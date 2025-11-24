@@ -14,7 +14,7 @@ module BusinessManager
         if @business.update(website_pages_params)
           redirect_to edit_business_manager_settings_website_pages_path, notice: 'Website pages settings updated.'
         else
-          render :edit, status: :unprocessable_entity
+          render :edit, status: :unprocessable_content
         end
       end
 
@@ -36,13 +36,20 @@ module BusinessManager
           :show_services_section,
           :show_products_section,
           :show_estimate_page,
+          :website_layout,
+          :enhanced_accent_color,
           :facebook_url,
           :twitter_url,
           :instagram_url,
           :pinterest_url,
           :linkedin_url,
           :tiktok_url,
-          :youtube_url
+          :youtube_url,
+          :gallery_enabled,
+          :show_gallery_section,
+          :video_display_location,
+          :gallery_columns,
+          :gallery_layout
         )
       end
     end

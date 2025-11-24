@@ -7,9 +7,9 @@ We're sorry to inform you that your booking with <%= @business.name %> has been 
 
 CANCELLED BOOKING DETAILS
 --------------------------
-Service: <%= @booking.service.name %>
+Service: <%= service_with_variant(@booking) %>
 Date & Time: <%= @booking.local_start_time.strftime('%A, %B %d, %Y at %l:%M %p') %>
-Duration: <%= @booking.service.duration %> minutes
+Duration: <%= service_duration(@booking) %> minutes
 <% if @booking.staff_member %>Staff Member: <%= @booking.staff_member.name %>
 <% end %><% if @booking.total_charge > 0 %>Total Amount: $<%= sprintf('%.2f', @booking.total_charge) %>
 <% end %>
@@ -28,7 +28,7 @@ We sincerely apologize for any inconvenience this may cause. If you have any que
 
 <% if @business.hostname && !@business.hostname.empty? %>
 You can book another appointment at any time by visiting our booking page:
-<%= new_tenant_booking_url(host: @business.hostname + '.lvh.me') %>
+<%= tenant_url_for(@business, '/booking/new') %>
 
 <% end %>
 We appreciate your understanding and look forward to serving you in the future.

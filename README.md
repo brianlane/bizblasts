@@ -1,3 +1,15 @@
+## Security Headers
+
+For production, enable HSTS at the edge (Render) for both the platform and all custom domains:
+
+```
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+```
+
+Notes:
+- Set this header via your CDN/edge (Render) so it applies before Rails. 
+- Only enable `preload` if your apex and all subdomains serve HTTPS permanently.
+
 # BizBlasts
 
 BizBlasts is a modern multi-tenant Rails 8 application for business websites with enhanced Hotwire integration and comprehensive testing.
@@ -13,6 +25,120 @@ BizBlasts is a modern multi-tenant Rails 8 application for business websites wit
 
 **📖 See [docs/HOTWIRE_SETUP.md](docs/HOTWIRE_SETUP.md) for complete documentation**
 
+## 🔒 **Security & Compliance (January 2025)**
+
+**BizBlasts implements enterprise-grade security measures:**
+- ✅ **Multi-Tenant Isolation** - Complete data separation between businesses
+- ✅ **Cross-Domain SSO Security** - DB-backed tokens with IP validation and 2-minute TTL
+- ✅ **API Authentication** - Secure API access with key-based authentication
+- ✅ **Email Enumeration Protection** - Prevents user discovery attacks
+- ✅ **Audit Logging** - Comprehensive security event monitoring
+- ✅ **Automated Security Alerts** - Real-time notifications for suspicious activity
+- ✅ **Data Sanitization** - Automatic removal of sensitive data from logs
+- ✅ **Cross-Tenant Access Prevention** - Strict authorization controls
+
+**📖 See [Security Documentation](#security) section below for implementation details**
+
+## 🌐 **Custom Domain CNAME Setup (Premium Feature)**
+
+**BizBlasts Premium businesses can connect custom domains using CNAME records:**
+- ✅ **Automated DNS Monitoring** - Real-time verification of CNAME configuration
+- ✅ **Email-Guided Setup** - Step-by-step instructions sent to business owners
+- ✅ **Multi-DNS Server Verification** - Checks across Google DNS, Cloudflare, and OpenDNS
+- ✅ **Render.com Integration** - Automatic domain registration with hosting platform
+- ✅ **ActiveAdmin Management** - Complete admin interface for domain lifecycle
+- ✅ **Automatic SSL** - HTTPS certificates provisioned automatically
+- ✅ **Tier-Based Controls** - Domain removal on tier downgrades
+- ✅ **Timeout Assistance** - Troubleshooting emails when setup fails
+- ✅ **Domain Change Request Interface** - Intuitive form for requesting domain changes
+- ✅ **Tier-Conditional UI** - Interface adapts based on business subscription tier
+- ✅ **Rich Dropdown Components** - Enhanced UX with fancy JavaScript dropdowns
+
+**Custom Domain Workflow:**
+1. Business submits domain change request through settings interface
+2. System sends email notification to BizBlasts team for review
+3. Team reviews request and contacts business within 24-48 hours
+4. For custom domains: Domain ownership verification assistance provided
+5. System adds approved domain to Render.com via API
+6. Email sent with CNAME setup instructions (`domain.com` → `bizblasts.onrender.com`)
+7. DNS monitoring checks every 5 minutes for 1 hour
+8. Domain automatically activated when CNAME verified
+9. SSL certificate provisioned by Render.com
+
+**Environment Variables Required:**
+```bash
+RENDER_API_KEY=your_render_api_key_here
+RENDER_SERVICE_ID=your_render_service_id_here
+SUPPORT_EMAIL=bizblaststeam@gmail.com
+```
+
+### **Domain Change Request Features**
+
+**🎨 Tier-Adaptive Interface:**
+- **Premium Tier**: Full access to custom domain and subdomain options
+- **Free/Standard Tier**: Subdomain-only interface with upgrade prompts
+- **Smart Labels**: Contextual field labels based on subscription tier
+- **Conditional Content**: Premium-specific process steps and domain availability tools
+
+**✨ Enhanced UX Components:**
+- **Rich JavaScript Dropdowns**: Replaced HTML selects with interactive dropdowns
+- **Hover Effects**: Proper color transitions for buttons and links
+- **Consistent Spacing**: Uniform `mb-8` spacing between all form sections
+- **Visual Feedback**: Loading states, validation, and success/error messaging
+
+**🔧 Technical Implementation:**
+- **Route Integration**: `/manage/settings/business/edit` with domain change form
+- **Email Notifications**: Automatic team notifications via `DomainMailer`
+- **Turbo Compatible**: Works seamlessly with Rails 8 Hotwire stack
+- **Form Validation**: Real-time validation with proper error handling
+
+## 🔐 **Cross-Domain Single Sign-On (SSO) - Enterprise Authentication (January 2025)**
+
+**BizBlasts implements a cutting-edge cross-domain SSO system for seamless authentication across custom domains:**
+
+- ✅ **DB-Backed Token Bridge** - Secure, short-lived authentication tokens
+- ✅ **Enterprise Security** - IP validation, single-use tokens, 2-minute TTL
+- ✅ **Seamless User Experience** - Maintains authentication from main domain to custom domains
+- ✅ **Production Monitoring** - Comprehensive logging and cleanup jobs
+- ✅ **Zero Configuration** - Automatic activation for custom domain businesses
+
+**The Challenge:**
+When users browse businesses on `bizblasts.com` and click through to a custom domain business (e.g., `mycoffee.com`), traditional session cookies don't transfer across domains, causing users to lose their authentication.
+
+**The Solution:**
+```
+User on bizblasts.com → Authentication Bridge → Custom Domain Business
+     (authenticated)          (secure token)         (re-authenticated)
+```
+
+**Security Features:**
+- **Short-lived tokens**: 2-minute expiration prevents replay attacks
+- **Single-use tokens**: Cannot be reused after consumption
+- **IP address validation**: Must be consumed from same IP that generated it
+- **Cryptographically secure**: Uses `SecureRandom.urlsafe_base64` generation
+- **Background cleanup**: Automatic cleanup job removes orphaned tokens
+
+**Technical Architecture:**
+- **AuthToken Model**: DB-backed token storage with TTL
+- **Authentication Bridge Controller**: Token generation and consumption endpoints
+- **TenantHost Helper**: Auth-aware URL generation (`url_for_with_auth`)
+- **Application Controller Integration**: Automatic token processing
+- **Comprehensive Testing**: 41 unit tests covering all security scenarios
+
+**Operational Tools:**
+```bash
+# Manual token cleanup
+rake auth_tokens:cleanup
+
+# View token statistics
+rake auth_tokens:stats
+
+# Test token generation/consumption
+rake auth_tokens:test
+```
+
+**📖 See [docs/CROSS_DOMAIN_SSO_IMPLEMENTATION.md](docs/CROSS_DOMAIN_SSO_IMPLEMENTATION.md) for complete technical documentation**
+
 ---
 
 ## Prerequisites
@@ -21,6 +147,109 @@ BizBlasts is a modern multi-tenant Rails 8 application for business websites wit
 * PostgreSQL
 * Node.js and Yarn/Bun
 * Rails 8.0.2
+
+## Domain Architecture: Subdomain vs Custom Domain
+
+BizBlasts supports two tenant hosting modes with unified routing:
+
+| Host Type            | Database Columns Used | Example |
+|----------------------|-----------------------|---------|
+| `subdomain` (default)| `subdomain` contains the subdomain **only** (e.g. `acme`) <br/> `hostname` may also be populated but is ignored for routing | `https://acme.bizblasts.com` (production) <br/> `http://acme.lvh.me:3000` (development) |
+| `custom_domain`      | `hostname` stores the full custom domain (e.g. `acme-corp.com`) | `https://acme-corp.com` |
+
+### **Unified Tenant Routing System**
+
+**🎯 Key Achievement:** All tenant routes automatically work on both subdomains AND custom domains without code duplication.
+
+#### **Route Architecture:**
+```ruby
+# config/routes.rb - Single constraint handles both domain types
+constraints TenantPublicConstraint do
+  scope module: 'public' do
+    get '/', to: 'pages#show'           # Works on both testbiz.bizblasts.com AND customdomain.com
+    get '/services', to: 'pages#show'   # Works on both domain types
+    get '/book', to: 'booking#new'      # Works on both domain types
+    # ... all tenant routes work universally
+  end
+  
+  # Cart, orders, payments - all work on both domain types
+  resource :cart, controller: 'public/carts'
+  resources :orders, controller: 'public/orders'
+  resources :payments, controller: 'public/payments'
+end
+```
+
+#### **Constraint Logic:**
+- **`TenantPublicConstraint`**: Matches both `*.bizblasts.com` subdomains AND active custom domains
+- **`CustomDomainConstraint`**: Identifies requests from verified custom domains (`status: 'cname_active'`)
+- **`SubdomainConstraint`**: Handles `*.bizblasts.com` subdomains (used for admin/manage routes)
+
+#### **Tenant Detection Flow:**
+1. **Request arrives** → `ApplicationController#set_tenant`
+2. **Subdomain check** → `find_business_by_subdomain` 
+3. **Custom domain check** → `find_business_by_custom_domain` (matches both apex and www)
+4. **Tenant set** → `ActsAsTenant.current_tenant = business`
+5. **Route constraint** → `TenantPublicConstraint` matches and serves tenant content
+
+#### **Mailer URL Reliability:**
+```ruby
+# ✅ CORRECT: Reliable host determination for critical links
+@business.mailer_host                    # Always reliable (defaults to subdomain)
+@business.mailer_host(prefer_custom_domain: true)  # Uses custom domain only if fully verified
+
+# ❌ WRONG: Could break if custom domain has DNS issues
+@business.hostname                       # Might be unreliable for payments/invoices
+```
+
+### **Adding New Tenant Routes**
+
+**✅ Future-Proof Pattern:**
+```ruby
+# All routes added here automatically work on BOTH subdomains and custom domains
+constraints TenantPublicConstraint do
+  scope module: 'public' do
+    get '/new-feature', to: 'new_feature#index'  # ← Works on testbiz.bizblasts.com AND customdomain.com
+  end
+end
+```
+
+**🚨 Common Mistake:**
+```ruby
+# ❌ WRONG: Only works on main platform domain
+get '/new-feature', to: 'public/new_feature#index'
+```
+
+### **Route Validation Tools**
+
+**Automated validation ensures all routes work correctly:**
+```bash
+# Comprehensive route validation
+bin/rails tenant:validate_routes
+
+# Quick development testing
+bin/test-tenant-routes
+
+# Test specific new route
+bin/test-tenant-routes --route /new-feature
+```
+
+**📖 Complete Documentation:** [docs/TENANT_ROUTING_GUIDE.md](docs/TENANT_ROUTING_GUIDE.md)
+
+When generating links or redirects **always use the `TenantHost` helper (it automatically adds `:port` in dev/test)**:
+
+```
+if business.host_type_subdomain?
+  # Use the subdomain column
+  "#{business.subdomain}.#{request.domain}"
+else # host_type_custom_domain?
+  # Use the hostname column
+  business.hostname
+end
+```
+
+This convention is enforced throughout the codebase (controllers, helpers, mailers, etc.) to ensure users remain on the correct host.
+
+---
 
 ## Getting Started
 
@@ -57,6 +286,92 @@ rails server
    * Main site: http://lvh.me:3000
    * Tenant debug: http://lvh.me:3000/home/debug
    * Specific tenant: http://example.lvh.me:3000 (replace 'example' with your tenant subdomain)
+
+---
+
+## 📦 **Asset Pipeline Architecture**
+
+### **Dual Asset Pipeline Setup**
+
+BizBlasts uses a **dual asset pipeline** approach to support both modern JavaScript and legacy ActiveAdmin compatibility:
+
+#### **Main Application (Modern JS)**
+- **Bundler**: Bun (fast JavaScript bundler)
+- **Entry Point**: `app/javascript/application.js`
+- **Output**: `app/assets/builds/application.js`
+- **Rails UJS**: `@rails/ujs` (modern)
+- **Styles**: Tailwind CSS + Sass
+
+#### **ActiveAdmin (Legacy Compatibility)**
+- **Bundler**: Sprockets (Rails asset pipeline)
+- **Entry Point**: `app/assets/javascripts/active_admin.js`
+- **Output**: Served directly by Sprockets with fingerprinting
+- **Rails UJS**: `jquery_ujs` (jQuery-based)
+- **Styles**: Sass with ActiveAdmin theming
+
+### **Why This Architecture?**
+
+**ActiveAdmin 3.3** requires jQuery and is not yet compatible with modern JS bundlers for all features. We use:
+- **Sprockets** for ActiveAdmin to maintain full compatibility
+- **Bun** for the main application to use modern JavaScript features
+
+This provides:
+- ✅ Full ActiveAdmin functionality
+- ✅ Modern JavaScript for the main app
+- ✅ No conflicts between jQuery and modern JS
+- ✅ Clear separation of concerns
+
+### **Development Workflow**
+
+```bash
+# Start development server with asset watchers
+bin/dev
+```
+
+This runs:
+- Rails server on port 3000
+- CSS watchers (Tailwind + Sass)
+- JavaScript builders (Bun watches app JS, Sprockets compiles AA automatically)
+
+### **Production Build Process**
+
+The `bin/render-build.sh` script builds assets:
+
+```bash
+# Build main application JS (Bun)
+bun build ./app/javascript/application.js --outdir ./app/assets/builds
+
+# ActiveAdmin JS is NOT built by Bun - Sprockets handles it directly
+# from app/assets/javascripts/active_admin.js
+
+# Precompile all assets (Sprockets processes ActiveAdmin)
+bundle exec rails assets:precompile
+```
+
+**⚠️ Important**: Do NOT build `active_admin.js` with Bun/esbuild. It will cause a conflict:
+```
+Sprockets::DoubleLinkError: Multiple files with the same output path
+cannot be linked ("active_admin.js")
+```
+
+### **⚠️ Important: Rails UJS**
+
+**DO NOT** call `Rails.start()` in ActiveAdmin JavaScript files:
+- Main app uses `@rails/ujs` (started in `application.js`)
+- ActiveAdmin uses `jquery_ujs` (loaded via Sprockets)
+- Starting Rails UJS twice causes double-binding issues (duplicate form submissions, AJAX requests, confirmations)
+
+### **📖 Complete Development Guide**
+
+For detailed information about:
+- Adding new JavaScript (app vs ActiveAdmin)
+- Adding new styles (Tailwind vs Sass)
+- Content Security Policy (CSP)
+- Multi-tenancy development
+- Testing strategies
+- Troubleshooting
+
+See **[DEVELOPING.md](DEVELOPING.md)** - Comprehensive developer guide
 
 ---
 
@@ -244,6 +559,18 @@ document.addEventListener('turbo:load', initializeFunctionName);
 3. **🛡️ Enhanced Reliability** - Added null checks and error handling
 4. **📱 Better User Experience** - Smooth navigation without page reloads
 5. **🏗️ Future-Proof Architecture** - Ready for modern SPA-like experience
+
+---
+
+## 🆕 Service Variants
+
+Businesses can now define multiple "variants" of a core service — for example a 30-minute and 60-minute massage — without duplicating the base record.
+
+1. Navigate to **Manage → Services → Edit** and scroll to **Service Variants**.
+2. Add rows specifying `Name`, `Duration (min)`, and `Price`. You can toggle whether each variant is **Active**.
+3. At checkout the customer selects the desired variant; all pricing, duration, and Stripe line-items automatically adjust.
+
+All existing services have been migrated to a single default variant so your data remains intact.
 
 ---
 
@@ -452,6 +779,302 @@ Tests automatically run on GitHub Actions:
 
 ---
 
+## 📱 **SMS Notifications (Twilio Integration)**
+
+**BizBlasts features comprehensive SMS notification support with Twilio integration:**
+
+### **SMS Features**
+- ✅ **Booking Notifications** - Confirmations, reminders, status updates
+- ✅ **Invoice & Payment Alerts** - Payment confirmations, overdue reminders  
+- ✅ **Order Management** - Order confirmations, shipping updates, refunds
+- ✅ **Business Notifications** - New bookings, payments received, customer signups
+- ✅ **Marketing Campaigns** - Promotional SMS with opt-in/opt-out support
+- ✅ **System Messages** - Help responses, opt-out confirmations
+- ✅ **TCPA Compliance** - Automatic opt-out keyword processing (STOP, CANCEL, UNSUBSCRIBE)
+- ✅ **Rate Limiting** - Tier-based SMS quotas (Free: 100, Standard: 500, Premium: 1000 daily)
+- ✅ **Template System** - 60+ SMS templates with 160-character optimization
+- ✅ **Delivery Receipts** - Webhook processing for message status updates
+
+### **SMS Configuration**
+
+#### **Environment Variables Required:**
+```bash
+# SMS Feature Toggle
+ENABLE_SMS=true                                      # Global SMS feature enabled/disabled
+
+# Twilio Credentials  
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  # Your Twilio Account SID
+TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx   # Your Twilio Auth Token  
+TWILIO_MESSAGING_SERVICE_SID=MGxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx # Messaging Service SID
+```
+
+#### **Rate Limiting by Business Tier:**
+- **Free Tier**: 0 SMS per day, 100 SMS per hour
+- **Standard Tier**: 500 SMS per day, 100 SMS per hour
+- **Premium Tier**: 1000 SMS per day, 100 SMS per hour
+- **Per Customer**: 10 SMS per day, 5 SMS per hour (across all businesses)
+
+### **SMS Opt-In/Opt-Out Support**
+
+**Automatic Keyword Processing:**
+- **Opt-Out Keywords**: `STOP`, `CANCEL`, `UNSUBSCRIBE` (case-insensitive, whitespace tolerant)
+- **Opt-In Keywords**: `START`, `SUBSCRIBE`, `YES` (case-insensitive, whitespace tolerant)  
+- **Help Keyword**: `HELP` - Sends support information
+- **Unknown Messages**: Automatic "didn't understand" responses for short messages
+
+**Edge Cases Handled:**
+- Mixed case variations: `Stop`, `STOP`, `StOp`
+- Whitespace variations: ` STOP `, `\tSTOP\n`, `STOP\r`
+- Multiple customers with same phone number
+- Template rendering failures
+- Auto-reply failures
+
+### **SMS Template System**
+
+**60+ Pre-Built Templates organized by category:**
+- **Booking**: `booking.confirmation`, `booking.reminder_24h`, `booking.cancellation`
+- **Invoice**: `invoice.created`, `invoice.payment_confirmation`, `invoice.payment_reminder`
+- **Order**: `order.confirmation`, `order.status_update`, `order.refund_confirmation`
+- **Business**: `business.new_booking_notification`, `business.payment_received_notification`
+- **Marketing**: `marketing.campaign_promotional`, `marketing.special_offer`
+- **System**: `system.help_response`, `system.opt_out_confirmation`, `system.unknown_command`
+
+**Template Features:**
+- **Variable Substitution**: `{{business_name}}`, `{{customer_name}}`, `{{amount}}`, etc.
+- **160-Character Optimization**: All templates respect SMS length limits
+- **URL Shortening**: Automatic link shortening with click tracking
+- **YAML-Based Configuration**: Easy template management and updates
+
+### **Webhook Configuration**
+
+**Twilio Webhook Endpoints:**
+```
+Production:  https://yourdomain.com/webhooks/twilio       (delivery receipts)
+Production:  https://yourdomain.com/webhooks/twilio/inbound (incoming SMS)
+
+Development: http://localhost:3000/webhooks/twilio
+Development: http://localhost:3000/webhooks/twilio/inbound
+```
+
+**Webhook Security:**
+- **Signature Verification**: Enabled in production, configurable in development
+- **Environment Detection**: Automatic test/production mode switching
+- **Error Handling**: Graceful failure with proper HTTP status codes
+
+### **Performance Optimizations**
+
+#### **Database Indexes**
+```ruby
+# Composite indexes for rate limiting queries
+add_index :sms_messages, [:business_id, :created_at]
+add_index :sms_messages, [:tenant_customer_id, :created_at]
+```
+
+#### **Query Optimization**
+- **Single Aggregated Query**: Replaces 4 separate COUNT queries for rate limiting
+- **Time Window Accuracy**: Proper daily/hourly count separation (fixes previous bug)
+- **SQL Safety**: Uses `sanitize_sql_array` for parameter binding
+
+### **Testing**
+
+**Comprehensive Test Suite:**
+```bash
+# Run SMS-specific tests
+bundle exec rspec spec/requests/webhooks/twilio_spec.rb                    # Basic webhook tests
+bundle exec rspec spec/requests/webhooks/twilio_enhanced_spec.rb           # Enhanced functionality  
+bundle exec rspec spec/requests/webhooks/twilio_opt_out_edge_cases_spec.rb # 90 edge case tests
+
+# Run SMS service tests
+bundle exec rspec spec/services/sms_service_spec.rb          # Core SMS service
+bundle exec rspec spec/services/sms_rate_limiter_spec.rb     # Rate limiting logic
+bundle exec rspec spec/jobs/sms_notification_job_spec.rb     # Background job processing
+```
+
+**Edge Cases Covered:**
+- 90+ opt-out keyword variations and edge cases
+- Phone number normalization across different formats  
+- Template rendering failures
+- Auto-reply failures
+- Cross-tenant phone number handling
+- Rate limiting boundary conditions
+
+### **Deployment Notes**
+
+#### **Production Checklist**
+- [ ] Set `ENABLE_SMS=true` in environment variables
+- [ ] Configure Twilio credentials (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_MESSAGING_SERVICE_SID`)
+- [ ] Set up Twilio webhook URLs in Twilio Console
+- [ ] Run database migration: `rails db:migrate` (for business_id column and indexes)
+- [ ] Test SMS delivery with a real phone number
+- [ ] Verify opt-out/opt-in keyword processing
+- [ ] Monitor rate limiting logs for proper quota enforcement
+
+#### **Monitoring & Troubleshooting**
+- **SMS Logs**: Check `Rails.logger` for `[SMS_SERVICE]` and `[SMS_RATE_LIMIT]` entries
+- **Rate Limiting**: Monitor business daily/hourly quotas in logs
+- **Webhook Processing**: Check `/webhooks/twilio` endpoint for delivery receipt processing
+- **Opt-Out Processing**: Verify STOP/CANCEL keywords update customer `phone_opt_in` status
+
+---
+
+## 🔒 Security
+
+BizBlasts implements comprehensive security measures to protect multi-tenant data and prevent unauthorized access.
+
+### Security Architecture
+
+#### Multi-Tenant Isolation
+- **ActsAsTenant Gem**: Automatic tenant scoping for all business data
+- **Tenant Context Management**: Secure tenant switching with business verification
+- **Cross-Tenant Protection**: Prevents access to data from other businesses
+- **Database Constraints**: Foreign key relationships enforce tenant boundaries
+
+#### API Security
+- **Authentication Required**: All sensitive endpoints require API key authentication
+- **Rate Limiting**: 100 requests per hour per IP address
+- **Data Minimization**: API responses exclude sensitive information (emails, phone numbers, addresses)
+- **Tenant-Aware Responses**: API results are properly scoped to authorized businesses
+
+#### Authorization & Access Control
+- **Pundit Policies**: Comprehensive authorization rules for all resources
+- **Role-Based Access**: Manager, staff, and client roles with appropriate permissions
+- **Business Ownership Validation**: All actions verify user belongs to the target business
+- **Admin Separation**: Platform administrators use separate AdminUser model
+
+#### Security Monitoring & Logging
+
+##### Audit Logging System
+```ruby
+# Automatically logs all security events
+SecureLogger.security_event('unauthorized_access', {
+  user_id: current_user&.id,
+  ip: request.remote_ip,
+  path: request.fullpath,
+  method: request.method
+})
+```
+
+##### Automated Security Alerts
+- **Real-time Monitoring**: Suspicious activity triggers immediate alerts
+- **Email Notifications**: Critical security events are emailed to administrators
+- **Event Types Monitored**:
+  - Unauthorized access attempts
+  - Cross-tenant boundary violations
+  - Email enumeration attacks
+  - Suspicious request patterns
+  - Authorization failures
+
+##### Data Sanitization
+```ruby
+# Automatic removal of sensitive data from logs
+SecureLogger.info("User login attempt: user@example.com")
+# Logs as: "User login attempt: use***@***"
+```
+
+**Sensitive Data Patterns Removed:**
+- Email addresses → `use***@***`
+- Phone numbers → `***-***-1234`
+- SSN numbers → `[REDACTED_SSN]`
+- Credit card numbers → `[REDACTED_CREDIT_CARD]`
+- API keys → `[REDACTED_API_KEY]`
+
+### Security Features
+
+#### Email Enumeration Protection
+- **Consistent Responses**: Same response for existing and non-existing emails
+- **Rate Limiting**: Prevents automated email discovery attempts
+- **Security Logging**: Failed enumeration attempts are logged and monitored
+
+#### Input Validation & Sanitization
+- **XSS Prevention**: All user input is sanitized before display
+- **SQL Injection Protection**: Parameterized queries and ORM usage
+- **Path Traversal Prevention**: File access controls and validation
+- **Command Injection Protection**: Input sanitization for system commands
+
+#### Session & Authentication Security
+- **CSRF Protection**: Rails authenticity tokens for all forms
+- **Secure Sessions**: HTTPOnly and secure cookie flags
+- **Magic Link Authentication**: Secure passwordless login option
+- **Session Timeout**: Automatic logout after inactivity
+
+### Security Testing
+
+#### Automated Security Tests
+```bash
+# Run security-specific test suite
+rspec spec/security/
+
+# Test categories:
+# - API Security (authentication, rate limiting, data exposure)
+# - Tenant Isolation (cross-tenant access prevention)
+# - Policy Security (authorization rules)
+# - Secure Logging (data sanitization)
+```
+
+#### Security Test Coverage
+- **API Authentication**: Verifies all endpoints require proper authentication
+- **Tenant Boundary Testing**: Ensures users cannot access other businesses' data
+- **Policy Enforcement**: Tests all Pundit policies for proper authorization
+- **Data Sanitization**: Verifies sensitive data is removed from logs
+- **Email Enumeration**: Confirms protection against user discovery attacks
+
+### Security Configuration
+
+#### Environment Variables
+```bash
+# Required security configuration
+ADMIN_EMAIL=admin@yourcompany.com  # Security alert recipient
+API_KEY=your_secure_api_key_here   # API authentication key
+SECRET_KEY_BASE=your_rails_secret  # Rails session encryption
+
+# SMS Configuration (Twilio)
+ENABLE_SMS=true                                      # Global SMS feature toggle (true/false)
+TWILIO_ACCOUNT_SID=your_twilio_account_sid           # Twilio Account SID (starts with 'AC')
+TWILIO_AUTH_TOKEN=your_twilio_auth_token             # Twilio Auth Token
+TWILIO_MESSAGING_SERVICE_SID=your_messaging_service_sid # Twilio Messaging Service SID (starts with 'MG')
+```
+
+#### Production Security Checklist
+- [ ] Set strong API keys in environment variables
+- [ ] Configure ADMIN_EMAIL for security alerts
+- [ ] Enable SSL/TLS encryption (HTTPS)
+- [ ] Set up log monitoring and retention
+- [ ] Configure rate limiting rules
+- [ ] Review and test tenant isolation
+- [ ] Verify backup encryption and access controls
+
+### Security Incident Response
+
+#### Monitoring Dashboard
+Security events are automatically logged and can be monitored through:
+- Application logs (`Rails.logger`)
+- Security event logs (`SecureLogger`)
+- Email alerts for critical events
+- Database audit trail for sensitive actions
+
+#### Incident Types & Responses
+- **Unauthorized Access**: Automatic user session termination and alert
+- **Cross-Tenant Violation**: Immediate access blocking and investigation
+- **Enumeration Attack**: IP rate limiting and monitoring escalation
+- **Data Breach Attempt**: Full security audit and incident response activation
+
+### Security Maintenance
+
+#### Regular Security Tasks
+- **Weekly**: Review security logs for anomalies
+- **Monthly**: Update dependencies and security patches
+- **Quarterly**: Comprehensive security testing and audit
+- **Annually**: Third-party security assessment and penetration testing
+
+#### Security Updates
+Security fixes are prioritized and deployed immediately. Monitor:
+- Rails security announcements
+- Dependency vulnerability alerts (Dependabot)
+- Security audit logs for emerging threats
+- Industry security best practices
+
+---
+
 **Last Updated:** January 2025  
 **BizBlasts Technical Team**  
-**Status:** ✅ Production Ready with Enhanced Hotwire Integration
+**Status:** ✅ Production Ready with Enhanced Security & Hotwire Integration

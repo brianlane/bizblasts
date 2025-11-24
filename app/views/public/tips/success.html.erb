@@ -17,9 +17,7 @@
       <!-- Business Info -->
       <div class="px-6 py-4 bg-green-50 border-b">
         <div class="text-center">
-          <% if @booking.business.logo.attached? %>
-            <%= image_tag @booking.business.logo, class: "h-10 w-auto mx-auto mb-2", alt: @booking.business.name %>
-          <% end %>
+          <%= business_logo_tag(@booking.business, size: :medium, css_class: "h-10 w-auto mx-auto mb-2") %>
           <h2 class="text-lg font-semibold text-gray-800"><%= @booking.business.name %></h2>
         </div>
       </div>
@@ -30,7 +28,7 @@
         <div class="bg-gray-50 rounded-lg p-4">
           <h3 class="font-medium text-gray-800 mb-2">Service Details</h3>
           <div class="space-y-1 text-sm text-gray-600">
-            <p><span class="font-medium">Service:</span> <%= @booking.service.name %></p>
+            <p><span class="font-medium">Service:</span> <%= service_with_variant(@booking) %></p>
             <p><span class="font-medium">Date:</span> <%= @booking.local_start_time.strftime("%B %d, %Y at %I:%M %p") %></p>
             <% if @booking.staff_member %>
               <p><span class="font-medium">Staff:</span> <%= @booking.staff_member.name %></p>

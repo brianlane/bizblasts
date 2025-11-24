@@ -1,4 +1,5 @@
 class InvoicesController < ApplicationController
+  before_action :set_tenant, if: -> { before_action_business_domain_check }
   before_action :authenticate_user!
   before_action :set_current_tenant
   before_action :set_tenant_customer
@@ -53,10 +54,8 @@ class InvoicesController < ApplicationController
   private
 
   def set_current_tenant
-    @current_tenant = Business.first 
-    unless @current_tenant
-        Rails.logger.warn "WARN: @current_tenant is not set in InvoicesController."
-    end
+    # Just use what ActsAsTenant already resolved from ApplicationController#set_tenant
+    @current_tenant = ActsAsTenant.current_tenant
   end
 
   def set_tenant_customer

@@ -4,7 +4,8 @@
   <% content_for :meta_keywords, @page.seo_keywords %>
 <% end %>
 
-<div class="website-builder-page" data-page-id="<%= @page.id %>" data-page-type="<%= @page.page_type %>" data-controller="section-animations">
+<% content_for :body_class, 'enhanced-layout-active' if @business.website_layout_enhanced? %>
+<div class="website-builder-page <%= 'enhanced-layout' if @business.website_layout_enhanced? %>" data-page-id="<%= @page.id %>" data-page-type="<%= @page.page_type %>" data-controller="section-animations">
   <!-- Page Header -->
   <% unless @page.page_type == 'home' %>
     <div class="page-header bg-gray-50 py-12">

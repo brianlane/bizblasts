@@ -30,9 +30,9 @@
 
       <div class="booking-details">
         <h3>Cancelled Booking Details</h3>
-        <p><strong>Service:</strong> <%= @booking.service.name %></p>
+        <p><strong>Service:</strong> <%= service_with_variant(@booking) %></p>
         <p><strong>Date & Time:</strong> <%= @booking.local_start_time.strftime('%A, %B %d, %Y at %l:%M %p') %></p>
-        <p><strong>Duration:</strong> <%= @booking.service.duration %> minutes</p>
+        <p><strong>Duration:</strong> <%= service_duration(@booking) %> minutes</p>
         <% if @booking.staff_member %>
           <p><strong>Staff Member:</strong> <%= @booking.staff_member.name %></p>
         <% end %>
@@ -54,7 +54,7 @@
 
       <% if @business.hostname && !@business.hostname.empty? %>
         <p>You can book another appointment at any time by visiting our booking page:</p>
-        <a href="<%= new_tenant_booking_url(host: @business.hostname + '.lvh.me') %>" class="button">Book Another Appointment</a>
+        <a href="<%= tenant_url_for(@business, '/booking/new') %>" class="button">Book Another Appointment</a>
       <% end %>
     </div>
 

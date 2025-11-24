@@ -25,7 +25,7 @@ class ReferralService
       return { success: false, error: 'Referral is not pending' } unless referral.pending?
 
       business = referral.business
-      referral_program = business.referral_program
+      referral_program = business.referral_program.reload
       return { success: false, error: 'Referral program is not active' } unless referral_program&.active?
       
       # Check if minimum purchase requirement is met
@@ -61,7 +61,7 @@ class ReferralService
     # Awards the specified reward to the user who made the referral.
     def award_referrer_reward(referral)
       business = referral.business
-      referral_program = business.referral_program
+      referral_program = business.referral_program.reload
       referrer_user = referral.referrer
       
       # The referrer must also be a customer of the business to receive points.
@@ -81,15 +81,23 @@ class ReferralService
     # Finds or creates a TenantCustomer record for a given User.
     # This ensures a user can receive rewards even if they haven't made a purchase.
     def find_or_create_tenant_customer(user, business)
-      TenantCustomer.find_or_create_by!(
-        email: user.email,
-        business: business
-      ) do |customer|
-        customer.first_name = user.first_name
-        customer.last_name = user.last_name
-        customer.phone = user.phone
-        customer.skip_notification_email = true # Don't send a "new customer" email
-      end
+      # Use CustomerLinker to ensure proper data sync and handle edge cases
+      linker = CustomerLinker.new(business)
+      customer = linker.link_user_to_customer(user)
+
+      # Note: Skip notification email functionality can be implemented if needed
+      # For now, referral customers are created without special notification handling
+
+      customer
+    rescue PhoneConflictError => e
+      Rails.logger.error "[ReferralService] CustomerLinker phone conflict for user #{user.id}: #{e.message}"
+      raise e
+    rescue EmailConflictError => e
+      Rails.logger.error "[ReferralService] CustomerLinker error for user #{user.id}: #{e.message}"
+      raise e
+    rescue StandardError => e
+      Rails.logger.error "[ReferralService] CustomerLinker error for user #{user.id}: #{e.message}"
+      raise e
     end
   end
 end 

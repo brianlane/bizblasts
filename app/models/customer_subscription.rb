@@ -10,6 +10,8 @@ class CustomerSubscription < ApplicationRecord
   belongs_to :service, optional: true
   belongs_to :preferred_staff_member, class_name: 'StaffMember', optional: true
   has_many :subscription_transactions, dependent: :destroy
+  has_many :orders, dependent: :destroy
+  has_many :line_items, through: :orders
   
   # Enums (must be defined before validations that reference them)
   enum :status, {
@@ -333,10 +335,9 @@ class CustomerSubscription < ApplicationRecord
   end
   
   def advance_billing_date!
-    new_billing_date = calculate_next_billing_date
-    update!(next_billing_date: new_billing_date)
-    Rails.logger.info "[SUBSCRIPTION] Advanced billing date for subscription #{id} to #{new_billing_date}"
-    new_billing_date
+    update!(next_billing_date: calculate_next_billing_date)
+    SecureLogger.info "[SUBSCRIPTION] Advanced billing date for subscription #{id}"
+    true
   end
   
   def allow_customer_preferences?

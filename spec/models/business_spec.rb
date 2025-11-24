@@ -3,7 +3,22 @@
 require 'rails_helper'
 
 RSpec.describe Business, type: :model do
-  subject { build(:business) } # Use subject for concise tests
+  subject { 
+    Business.new(
+      hostname: 'test-business',
+      host_type: 'subdomain',
+      name: 'Test Business',
+      industry: 'other',
+      phone: '555-555-5555',
+      email: 'test@example.com',
+      address: '123 Test St',
+      city: 'Test',
+      state: 'CA',
+      zip: '90210',
+      description: 'A test business',
+      tier: 'free'
+    )
+  }
 
   describe 'associations' do
     it { is_expected.to belong_to(:service_template).optional }
@@ -18,6 +33,55 @@ RSpec.describe Business, type: :model do
     it { is_expected.to have_many(:pages) }
     it { is_expected.to have_many(:client_businesses) }
     it { is_expected.to have_many(:clients).through(:client_businesses).source(:user) }
+  end
+
+  describe '#destroy' do
+    it 'destroys invalidated sessions for associated users' do
+      business = create(:business)
+      user = create(:user, :manager, business: business)
+      create(:invalidated_session, user: user)
+
+      expect {
+        business.destroy!
+      }.to change(InvalidatedSession, :count).by(-1)
+       .and change(User, :count).by(-1)
+    end
+  end
+
+  describe 'time zone helpers' do
+    describe '#ensure_time_zone!' do
+      let(:business) do
+        build(
+          :business,
+          time_zone: 'UTC',
+          state: 'CA',
+          address: '123 Test St',
+          city: 'Los Angeles',
+          zip: '90001'
+        )
+      end
+
+      it 'treats UTC as a placeholder and performs address lookup' do
+        called = false
+        allow(business).to receive(:set_time_zone_from_address) do
+          called = true
+          business.time_zone = 'America/Los_Angeles'
+        end
+
+        business.ensure_time_zone!
+
+        expect(called).to be(true)
+        expect(business.time_zone).to eq('America/Los_Angeles')
+      end
+
+      it 'falls back to state-based default when lookup does not set a timezone' do
+        expect(business).to receive(:set_time_zone_from_address)
+
+        business.ensure_time_zone!
+
+        expect(business.time_zone).to eq('America/Los_Angeles')
+      end
+    end
   end
 
   describe 'enums' do
@@ -63,7 +127,21 @@ RSpec.describe Business, type: :model do
 
     # Hostname Format
     context 'when host type is subdomain' do
-      subject { build(:business, host_type: :subdomain) }
+      subject { 
+        Business.new(
+          host_type: :subdomain,
+          name: 'Test Business',
+          industry: 'other',
+          phone: '555-555-5555',
+          email: 'test@example.com',
+          address: '123 Test St',
+          city: 'Test',
+          state: 'CA',
+          zip: '90210',
+          description: 'A test business',
+          tier: 'free'
+        )
+      }
       
       it { is_expected.to allow_value('valid-subdomain123').for(:hostname) }
       it { is_expected.to allow_value('test').for(:hostname) }
@@ -74,7 +152,21 @@ RSpec.describe Business, type: :model do
     end
     
     context 'when host type is custom domain' do
-      subject { build(:business, host_type: :custom_domain) }
+      subject { 
+        Business.new(
+          host_type: :custom_domain,
+          name: 'Test Business',
+          industry: 'other',
+          phone: '555-555-5555',
+          email: 'test@example.com',
+          address: '123 Test St',
+          city: 'Test',
+          state: 'CA',
+          zip: '90210',
+          description: 'A test business',
+          tier: 'premium'
+        )
+      }
       
       it { is_expected.to allow_value('example.com').for(:hostname) }
       it { is_expected.to allow_value('sub.example-test.co.uk').for(:hostname) }  
@@ -99,14 +191,14 @@ RSpec.describe Business, type: :model do
         expect(existing_business).to be_valid
       end
     end
-    
+
     # Tier requirements
     context 'when tier is free' do
       subject { build(:business, tier: :free, host_type: 'custom_domain') }
       
       it 'validates that host type must be subdomain' do
         expect(subject).not_to be_valid
-        expect(subject.errors[:host_type]).to include("must be 'subdomain' for the Free tier")
+        expect(subject.errors[:host_type]).to include("must be 'subdomain' for Free and Standard tiers")
       end
     end
   end
@@ -114,19 +206,58 @@ RSpec.describe Business, type: :model do
   describe 'callbacks' do
     describe '#normalize_hostname' do
       it 'downcases and normalizes hostname for subdomains' do
-        business = build(:business, hostname: '  My-Test--Subdomain123!  ', host_type: 'subdomain')
+        business = Business.new(
+          hostname: '  My-Test--Subdomain123!  ', 
+          host_type: 'subdomain',
+          name: 'Test Business',
+          industry: 'other',
+          phone: '555-555-5555',
+          email: 'test@example.com',
+          address: '123 Test St',
+          city: 'Test',
+          state: 'CA',
+          zip: '90210',
+          description: 'A test business',
+          tier: 'free'
+        )
         business.valid? # Trigger callback
         expect(business.hostname).to eq('my-test--subdomain123!')
       end
       
       it 'downcases and strips hostname for custom domains' do
-        business = build(:business, hostname: '  EXAMPLE.COM  ', host_type: 'custom_domain')  
+        business = Business.new(
+          hostname: '  EXAMPLE.COM  ',
+          host_type: 'custom_domain',
+          name: 'Test Business',
+          industry: 'other',
+          phone: '555-555-5555',
+          email: 'test@example.com',
+          address: '123 Test St',
+          city: 'Test',
+          state: 'CA',
+          zip: '90210',
+          description: 'A test business',
+          tier: 'premium'
+        )
         business.valid?
         expect(business.hostname).to eq('example.com')
       end
 
       it 'handles blank hostname' do
-        business = build(:business, hostname: nil)
+        business = Business.new(
+          hostname: nil,
+          host_type: 'subdomain',
+          name: 'Test Business',
+          industry: 'other',
+          phone: '555-555-5555',
+          email: 'test@example.com',
+          address: '123 Test St',
+          city: 'Test',
+          state: 'CA',
+          zip: '90210',
+          description: 'A test business',
+          tier: 'free'
+        )
         expect(business).not_to be_valid
         expect(business.errors[:hostname]).to include("can't be blank")
       end
@@ -622,6 +753,141 @@ RSpec.describe Business, type: :model do
         expect(mock_attachment.attached?).to be false
         expect(mock_attachment).to respond_to(:attach)
         expect(mock_attachment).to respond_to(:purge)
+      end
+    end
+  end
+
+  describe 'domain health verification' do
+    let(:business) { create(:business, tier: 'premium', host_type: 'custom_domain', hostname: 'example.com') }
+    
+    describe '#mark_domain_health_status!' do
+      it 'sets domain health as verified with timestamp' do
+        freeze_time do
+          business.mark_domain_health_status!(true)
+          
+          business.reload
+          expect(business.domain_health_verified).to be true
+          expect(business.domain_health_checked_at).to eq(Time.current)
+        end
+      end
+
+      it 'sets domain health as unverified with timestamp' do
+        freeze_time do
+          business.update!(domain_health_verified: true)
+          
+          business.mark_domain_health_status!(false)
+          
+          business.reload
+          expect(business.domain_health_verified).to be false
+          expect(business.domain_health_checked_at).to eq(Time.current)
+        end
+      end
+
+      it 'handles optimistic locking conflicts gracefully' do
+        # Simulate a stale object error that persists
+        allow(business).to receive(:update!).and_raise(ActiveRecord::StaleObjectError.new(business, 'update'))
+        allow(business).to receive(:reload).and_return(business)
+        allow(business).to receive(:with_lock).and_yield
+        
+        # Should retry once: first call fails, reload, second call fails and raises
+        expect(business).to receive(:update!).twice
+        expect(business).to receive(:reload).once
+        
+        expect { business.mark_domain_health_status!(true) }.to raise_error(ActiveRecord::StaleObjectError)
+      end
+
+      it 'succeeds on retry after stale object error' do
+        # Simulate stale object error on first attempt, success on second
+        call_count = 0
+        allow(business).to receive(:update!) do
+          call_count += 1
+          if call_count == 1
+            raise ActiveRecord::StaleObjectError.new(business, 'update')
+          else
+            # Success on second attempt
+            true
+          end
+        end
+        allow(business).to receive(:reload).and_return(business)
+        allow(business).to receive(:with_lock).and_yield
+
+        freeze_time do
+          expect { business.mark_domain_health_status!(true) }.not_to raise_error
+          
+          # Should have been called twice (first failure, then success)
+          expect(call_count).to eq(2)
+        end
+      end
+    end
+
+    describe '#domain_health_stale?' do
+      it 'returns true when never checked' do
+        business.update!(domain_health_checked_at: nil)
+        expect(business.domain_health_stale?).to be true
+      end
+
+      it 'returns true when checked more than threshold ago' do
+        business.update!(domain_health_checked_at: 2.hours.ago)
+        expect(business.domain_health_stale?(1.hour)).to be true
+      end
+
+      it 'returns false when checked within threshold' do
+        business.update!(domain_health_checked_at: 30.minutes.ago)
+        expect(business.domain_health_stale?(1.hour)).to be false
+      end
+
+      it 'uses 1 hour as default threshold' do
+        business.update!(domain_health_checked_at: 2.hours.ago)
+        expect(business.domain_health_stale?).to be true
+        
+        business.update!(domain_health_checked_at: 30.minutes.ago)
+        expect(business.domain_health_stale?).to be false
+      end
+    end
+
+    describe '#custom_domain_allow?' do
+      let(:business) { create(:business, tier: 'premium', host_type: 'custom_domain', hostname: 'example.com', status: 'cname_active', render_domain_added: true) }
+      
+      context 'when all conditions are met' do
+        it 'returns true' do
+          business.update!(domain_health_verified: true)
+          expect(business.custom_domain_allow?).to be true
+        end
+      end
+
+      context 'when domain health is not verified' do
+        it 'returns false' do
+          business.update!(domain_health_verified: false)
+          expect(business.custom_domain_allow?).to be false
+        end
+      end
+
+      context 'when not premium tier' do
+        it 'returns false' do
+          business.update!(tier: 'free', domain_health_verified: true)
+          expect(business.custom_domain_allow?).to be false
+        end
+      end
+
+      context 'when not custom domain type' do
+        it 'returns false' do
+          business.update!(host_type: 'subdomain', domain_health_verified: true)
+          expect(business.custom_domain_allow?).to be false
+        end
+      end
+
+      context 'when CNAME not active' do
+        it 'returns false' do
+          business.update!(status: 'cname_pending', domain_health_verified: true)
+          expect(business.custom_domain_allow?).to be false
+        end
+      end
+
+      context 'when render domain not added' do
+        it 'returns false' do
+          business.update!(render_domain_added: false, domain_health_verified: true)
+          expect(business.custom_domain_allow?).to be false
+        end
       end
     end
   end

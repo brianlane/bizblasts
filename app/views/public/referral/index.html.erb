@@ -98,13 +98,7 @@
             
             <!-- Business Action Button -->
             <div class="mt-4 pt-4 border-t border-gray-200">
-              <% if Rails.env.development? %>
-                <% referral_url = "http://#{business.hostname}.lvh.me:3000/referral" %>
-              <% else %>
-                <% protocol = business.host_type_custom_domain? ? 'https' : 'https' %>
-                <% host = business.host_type_custom_domain? ? business.hostname : "#{business.hostname}.bizblasts.com" %>
-                <% referral_url = "#{protocol}://#{host}/referral" %>
-              <% end %>
+              <% referral_url = TenantHost.url_for_with_auth(business, request, '/referral', user_signed_in: user_signed_in?, current_user: current_user) %>
               <%= link_to "Get Referral Code for #{business.name}", 
                           referral_url, 
                           class: "text-blue-600 hover:text-blue-800 text-sm font-medium",

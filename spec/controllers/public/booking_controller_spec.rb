@@ -5,7 +5,7 @@ RSpec.describe Public::BookingController, type: :controller do
   
   before do
     ActsAsTenant.current_tenant = business
-    request.host = "#{business.subdomain}.example.com"
+    request.host = host_for(business)
   end
 
   describe 'POST #create' do
@@ -41,7 +41,7 @@ RSpec.describe Public::BookingController, type: :controller do
         # Should update existing customer with new info
         existing_customer.reload
         expect(existing_customer.full_name).to eq('John Doe') # Updated from form
-        expect(existing_customer.phone).to eq('555-123-4567') # Updated from form
+        expect(existing_customer.phone).to eq('+15551234567') # Updated from form, normalized to E.164
       end
 
       it 'creates booking with existing customer' do
@@ -64,7 +64,7 @@ RSpec.describe Public::BookingController, type: :controller do
         customer = TenantCustomer.last
         expect(customer.full_name).to eq('John Doe')
         expect(customer.email).to eq('john.doe@example.com')
-        expect(customer.phone).to eq('555-123-4567')
+        expect(customer.phone).to eq('+15551234567') # Normalized to E.164
       end
 
       it 'creates booking with new customer' do

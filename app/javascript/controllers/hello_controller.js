@@ -6,7 +6,7 @@ export default class extends Controller {
   static targets = ["name", "output"]
   
   connect() {
-    console.log("Hello controller connected!")
+    //console.log("Hello controller connected!")
   }
   
   greet() {

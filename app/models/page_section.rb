@@ -89,7 +89,7 @@ class PageSection < ApplicationRecord
   
   # Content is optional for sections that generate their own content dynamically
   def content_optional_section?
-    %w[contact_form service_list product_list product_grid team_showcase pricing_table map_location newsletter_signup].include?(section_type)
+    %w[contact_form service_list product_list product_grid team_showcase pricing_table map_location newsletter_signup gallery].include?(section_type)
   end
   
   def set_default_config

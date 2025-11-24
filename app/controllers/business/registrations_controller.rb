@@ -30,6 +30,31 @@ class Business::RegistrationsController < Users::RegistrationsController
     user_params = sign_up_params.except(:business_attributes)
     raw_business_params = params.require(:user).fetch(:business_attributes, {})
     processed_business_params = process_business_host_params(raw_business_params)
+
+    # If the submitted industry is not recognised, notify the user that we defaulted to "Other".
+    submitted_industry = raw_business_params[:industry]
+    if submitted_industry.present? &&
+       !Business::SHOWCASE_INDUSTRY_MAPPINGS.values.include?(submitted_industry) &&
+       !Business.industries.key?(submitted_industry.to_s)
+      flash[:alert] = "\"#{submitted_industry}\" is not a recognised industry. Please select one from the list."
+
+      # Rebuild a minimal resource for re-rendering the form without attempting to build an invalid Business record.
+      build_resource(user_params)
+
+      business_attrs = raw_business_params.except(:industry)
+      allowed_business_keys = [:name, :phone, :email, :address, :city, :state, :zip, :description, :tier, :hostname, :canonical_preference, :platform_referral_code]
+      business_attrs = if business_attrs.respond_to?(:permit)
+                         business_attrs.permit(*allowed_business_keys).to_h
+                       else
+                         business_attrs.slice(*allowed_business_keys)
+                       end
+      resource.build_business(business_attrs)
+
+      clean_up_passwords resource
+      set_minimum_password_length
+      render :new, status: :unprocessable_content
+      return
+    end
     
     # Build objects for validation only - DO NOT SAVE YET
     build_resource(user_params) 
@@ -68,7 +93,7 @@ class Business::RegistrationsController < Users::RegistrationsController
       
       clean_up_passwords resource
       set_minimum_password_length
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
       return
     end
 
@@ -90,13 +115,12 @@ class Business::RegistrationsController < Users::RegistrationsController
   # Permit nested parameters for business details.
   def configure_sign_up_params
     devise_parameter_sanitizer.permit(:sign_up, keys: [
-      :first_name, :last_name,
+      :first_name, :last_name, :bizblasts_notification_consent,
       business_attributes: [
         :name, :industry, :phone, :email, :address, :city, :state, :zip,
         :description, :tier, 
-        :hostname, # Permit the single hostname field
+        :hostname, :subdomain, :host_type, :custom_domain_owned, :canonical_preference,
         :platform_referral_code # Permit platform referral code
-        # Removed :subdomain, :domain
       ],
       policy_acceptances: {}
     ])
@@ -106,39 +130,65 @@ class Business::RegistrationsController < Users::RegistrationsController
   def process_business_host_params(raw_params)
     # Handle both ActionController::Parameters and regular Hash
     if raw_params.respond_to?(:permit!)
-      processed_params = raw_params.except(:hostname).permit! # Permit all *except* hostname initially
+      processed_params = raw_params.except(:hostname, :subdomain).permit! # Remove hostname and subdomain initially
     else
-      # For regular Hash (like in tests), just duplicate and remove hostname
-      processed_params = raw_params.except(:hostname).dup
+      # For regular Hash (like in tests), just duplicate and remove hostname/subdomain
+      processed_params = raw_params.except(:hostname, :subdomain).dup
     end
     
     tier = raw_params[:tier]
-    # Note: Form now submits :hostname directly, not :subdomain/:domain
-    hostname_input = raw_params[:hostname].presence 
+    subdomain_input = raw_params[:subdomain].presence
+    hostname_input = raw_params[:hostname].presence # Custom domain (Premium only)
 
-    if hostname_input.present?
-      # Basic check: Does it look like a custom domain or just a subdomain part?
-      if hostname_input.include?('.') 
-        processed_params[:hostname] = hostname_input
-        processed_params[:host_type] = 'custom_domain'
-      else 
-        # Assume it's intended as a subdomain part
-        processed_params[:hostname] = hostname_input 
-        processed_params[:host_type] = 'subdomain'
-      end
+    # Priority: Custom domain (hostname) > Subdomain
+    if hostname_input.present? && tier == 'premium'
+      # Premium tier with custom domain
+      processed_params[:hostname] = hostname_input
+      processed_params[:host_type] = 'custom_domain'
+    elsif subdomain_input.present?
+      # Use subdomain (for all tiers)
+      processed_params[:hostname]  = subdomain_input   # same as now
+      processed_params[:subdomain] = subdomain_input   # new – keep routing source-of-truth populated
+      processed_params[:host_type] = 'subdomain'
     else
-      # Neither provided, let model handle blank hostname
-      processed_params[:hostname] = nil 
-      # For free tier, default to subdomain host_type even if hostname is blank
-      # This allows the model validation to show the correct error message
-      processed_params[:host_type] = tier == 'free' ? 'subdomain' : nil
+      # Neither provided - set defaults based on tier
+      if tier == 'free'
+        # Free tier defaults to subdomain host_type even if hostname is blank
+        # This allows the model validation to show the correct error message
+        processed_params[:hostname] = nil 
+        processed_params[:host_type] = 'subdomain'
+      elsif tier.in?(['standard', 'premium'])
+        # Paid tiers without custom domain default to subdomain with generated hostname
+        # This allows Premium businesses to be created without requiring custom domains
+        processed_params[:hostname] = nil # Will be auto-generated by model if needed
+        processed_params[:host_type] = 'subdomain'
+      else
+        processed_params[:hostname] = nil 
+        processed_params[:host_type] = nil
+      end
     end
 
     # Convert human-readable industry name (value) to the enum key string
     industry_val = processed_params["industry"] || processed_params[:industry]
     if industry_val.present?
       key = Business::SHOWCASE_INDUSTRY_MAPPINGS.key(industry_val)
-      processed_params["industry"] = key.to_s if key
+
+      if key
+        # Mapped value from the showcase list (e.g. "Hair Salons" -> :hair_salons)
+        processed_params["industry"] = key.to_s
+      elsif Business.industries.key?(industry_val.to_s)
+        # Already passed as enum key (e.g. "hair_salons") – leave as-is
+        processed_params["industry"] = industry_val.to_s
+      else
+        # Unrecognised value – remove to avoid ArgumentError; will be handled upstream
+        processed_params["industry"] = nil
+      end
+    end
+    
+    # Normalize blank platform_referral_code to nil to avoid unique index collisions
+    if processed_params.key?(:platform_referral_code)
+      code_val = processed_params[:platform_referral_code]
+      processed_params[:platform_referral_code] = nil if code_val.respond_to?(:strip) && code_val.strip.blank?
     end
     
     processed_params
@@ -149,7 +199,7 @@ class Business::RegistrationsController < Users::RegistrationsController
   def business_params
     params.require(:user).fetch(:business_attributes, {}).permit(
       :name, :industry, :phone, :email, :address, :city, :state, :zip,
-      :description, :tier, :hostname 
+      :description, :tier, :hostname, :subdomain, :host_type 
     )
   end
   
@@ -186,7 +236,6 @@ class Business::RegistrationsController < Users::RegistrationsController
   def setup_stripe_integration(business)
     # Only setup Stripe for paid tiers
     return unless business.tier.in?(['standard', 'premium'])
-    
     Rails.logger.info "[REGISTRATION] Setting up Stripe integration for Business ##{business.id} (#{business.tier} tier)"
     
     begin
@@ -283,7 +332,7 @@ class Business::RegistrationsController < Users::RegistrationsController
       
       clean_up_passwords resource
       set_minimum_password_length
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
   end
 
@@ -391,7 +440,7 @@ class Business::RegistrationsController < Users::RegistrationsController
       
       begin
         PolicyAcceptance.record_acceptance(user, policy_type, current_version.version, request)
-        Rails.logger.info "[REGISTRATION] Recorded policy acceptance: #{user.email} - #{policy_type} v#{current_version.version}"
+        SecureLogger.info "[REGISTRATION] Recorded policy acceptance: #{user.email} - #{policy_type} v#{current_version.version}"
       rescue => e
         Rails.logger.error "[REGISTRATION] Failed to record policy acceptance for #{policy_type}: #{e.message}"
       end

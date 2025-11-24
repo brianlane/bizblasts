@@ -88,6 +88,9 @@ RSpec.configure do |config|
   config.include ActiveAdminHelpers, type: :request
   config.include TenantHelpers
   config.include LoginHelpers
+  config.include BridgeHelpers, type: :request
+  config.include ActiveSupport::Testing::TimeHelpers
+  config.include ActiveJob::TestHelper
   
   # Include mock asset helpers
   config.include MockAssetHelpers, type: :request
@@ -120,8 +123,8 @@ RSpec.configure do |config|
     DatabaseCleaner.clean_with(:truncation, except: EXCLUDED_TABLES)
     # Set the default strategy for the suite
     DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES }
-    # Rewind sequences AFTER cleaning and setting strategy
-    # FactoryBot.rewind_sequences # Removed from here
+    # Rewind sequences AFTER cleaning and setting strategy so factories start from a clean baseline
+    FactoryBot.rewind_sequences if FactoryBot.respond_to?(:rewind_sequences)
   end
 
   config.around(:each) do |example|
@@ -151,7 +154,7 @@ RSpec.configure do |config|
     # Reset tenant after each test (important)
     ActsAsTenant.current_tenant = nil
     # Rewind sequences after each test
-    FactoryBot.rewind_sequences
+    FactoryBot.rewind_sequences if FactoryBot.respond_to?(:rewind_sequences)
     # Reset Capybara session state
     # Reset Capybara session state only if it's a system/feature test (Keep this specific reset)
     if example.metadata[:type] == :system || example.metadata[:type] == :feature
@@ -195,13 +198,15 @@ RSpec.configure do |config|
   config.disable_monkey_patching!
   config.profile_examples = ENV['PROFILE_SPECS'] ? ENV['PROFILE_SPECS'].to_i : 0
 
-  # Configure Capybara to use Cuprite driver for system tests
-  config.before(:each, type: :system) do
-    driven_by Capybara.javascript_driver
-  end
+  # Capybara configuration is handled in spec/support/capybara.rb
 
-  # Assign dynamic server ports for parallel system tests
-  Capybara.server_port = 9887 + ENV['TEST_ENV_NUMBER'].to_i
+  # Assign dynamic server ports for parallel tests, or default port for single tests
+  if ENV['TEST_ENV_NUMBER']
+    Capybara.server_port = 9887 + ENV['TEST_ENV_NUMBER'].to_i
+  else
+    # For single test runs, use a consistent port to avoid connection issues
+    Capybara.server_port = 3000
+  end
 
   Capybara.javascript_driver = :cuprite
   

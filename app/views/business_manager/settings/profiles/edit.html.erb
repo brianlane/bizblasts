@@ -37,115 +37,153 @@
 
         <div class="field">
           <%= f.label :first_name %>
-          <%= f.text_field :first_name %>
+          <%= f.text_field :first_name, class: "settings-input" %>
         </div>
 
         <div class="field">
           <%= f.label :last_name %>
-          <%= f.text_field :last_name %>
+          <%= f.text_field :last_name, class: "settings-input" %>
         </div>
 
         <div class="field">
           <%= f.label :email %>
-          <%= f.text_field :email, type: 'email', required: true %> 
+          <%= f.text_field :email, type: 'email', required: true, class: "settings-input" %> 
         </div>
 
         <div class="field">
           <%= f.label :phone %>
-          <%= f.text_field :phone, type: 'tel' %>
-        </div>
-
-        <div class="field">
-          <%= f.label :notification_preferences, "Email Notification Preferences" %>
-          <p class="field-description">Choose which business notifications you'd like to receive via email.</p>
-          
-          <%= f.fields_for :notification_preferences, OpenStruct.new(@user.notification_preferences || {}) do |prefs_fields| %>
-            <div class="preference-group">
-              <h4>Customer Interactions</h4>
-              <div class="checkbox-field">
-                <%= prefs_fields.check_box :email_booking_notifications, 
-                    { checked: (@user.notification_preferences.is_a?(Hash) ? @user.notification_preferences.fetch('email_booking_notifications', true) : true) },
-                    '1', '0' %>
-                <%= prefs_fields.label :email_booking_notifications, "New Booking Notifications" %>
-                <small>Get notified when customers make new bookings</small>
-              </div>
-              
-              <div class="checkbox-field">
-                <%= prefs_fields.check_box :email_order_notifications,
-                    { checked: (@user.notification_preferences.is_a?(Hash) ? @user.notification_preferences.fetch('email_order_notifications', true) : true) },
-                    '1', '0' %>
-                <%= prefs_fields.label :email_order_notifications, "New Order Notifications" %>
-                <small>Get notified when customers place new orders</small>
-              </div>
-              
-              <div class="checkbox-field">
-                <%= prefs_fields.check_box :email_customer_notifications,
-                    { checked: (@user.notification_preferences.is_a?(Hash) ? @user.notification_preferences.fetch('email_customer_notifications', true) : true) },
-                    '1', '0' %>
-                <%= prefs_fields.label :email_customer_notifications, "New Customer Notifications" %>
-                <small>Get notified when new customers register</small>
-              </div>
-            </div>
-
-            <div class="preference-group">
-              <h4>Payments & Financial</h4>
-              <div class="checkbox-field">
-                <%= prefs_fields.check_box :email_payment_notifications,
-                    { checked: (@user.notification_preferences.is_a?(Hash) ? @user.notification_preferences.fetch('email_payment_notifications', true) : true) },
-                    '1', '0' %>
-                <%= prefs_fields.label :email_payment_notifications, "Payment Received Notifications" %>
-                <small>Get notified when payments are received</small>
-              </div>
-              
-              <div class="checkbox-field">
-                <%= prefs_fields.check_box :email_failed_payment_notifications,
-                    { checked: (@user.notification_preferences.is_a?(Hash) ? @user.notification_preferences.fetch('email_failed_payment_notifications', true) : true) },
-                    '1', '0' %>
-                <%= prefs_fields.label :email_failed_payment_notifications, "Failed Payment Notifications" %>
-                <small>Get notified when payments fail</small>
-              </div>
-            </div>
-
-            <div class="preference-group">
-              <h4>System & Updates</h4>
-              <div class="checkbox-field">
-                <%= prefs_fields.check_box :email_system_notifications,
-                    { checked: (@user.notification_preferences.is_a?(Hash) ? @user.notification_preferences.fetch('email_system_notifications', true) : true) },
-                    '1', '0' %>
-                <%= prefs_fields.label :email_system_notifications, "System Notifications" %>
-                <small>Important system updates and maintenance notices</small>
-              </div>
-              
-              <div class="checkbox-field">
-                <%= prefs_fields.check_box :email_marketing_updates,
-                    { checked: (@user.notification_preferences.is_a?(Hash) ? @user.notification_preferences.fetch('email_marketing_updates', false) : false) },
-                    '1', '0' %>
-                <%= prefs_fields.label :email_marketing_updates, "Marketing & Feature Updates" %>
-                <small>New features, tips, and promotional content from BizBlasts</small>
-              </div>
-              
-              <div class="checkbox-field">
-                <%= prefs_fields.check_box :email_blog_updates,
-                    { checked: (@user.notification_preferences.is_a?(Hash) ? @user.notification_preferences.fetch('email_blog_updates', false) : false) },
-                    '1', '0' %>
-                <%= prefs_fields.label :email_blog_updates, "Blog Post Notifications" %>
-                <small>Get notified when new blog posts are published</small>
-              </div>
-            </div>
-          <% end %>
+          <%= f.text_field :phone, type: 'tel', class: "settings-input" %>
         </div>
 
         <div class="field">
           <%= f.label :password %>
-          <%= f.password_field :password, autocomplete: "new-password" %>
+          <%= f.password_field :password, autocomplete: "new-password", class: "settings-input" %>
           <small>Leave blank if you don't want to change it</small>
           <small>Minimum <%= Devise.password_length.min %> characters (if changing)</small>
         </div>
 
         <div class="field">
           <%= f.label :password_confirmation %>
-          <%= f.password_field :password_confirmation, autocomplete: "new-password" %>
+          <%= f.password_field :password_confirmation, autocomplete: "new-password", class: "settings-input" %>
         </div>
+
+
+        <div class="field">
+          <%= f.label :notification_preferences, "Email Notification Preferences" %>
+          <p class="field-description">Choose which business notifications you'd like to receive via email.</p>
+          
+          <fieldset>
+            <%= f.fields_for :notification_preferences, OpenStruct.new(@user.notification_preferences || {}) do |prefs_fields| %>
+              <div class="preference-group">
+                <h4>Customer Interactions</h4>
+                <div class="checkbox-field">
+                  <%= prefs_fields.check_box :email_booking_notifications, 
+                      { checked: (@user.notification_preferences.is_a?(Hash) ? @user.notification_preferences.fetch('email_booking_notifications', true) : true) },
+                      '1', '0' %>
+                  <%= prefs_fields.label :email_booking_notifications, "New Booking Notifications" %>
+                  <small>Get notified when customers make new bookings</small>
+                </div>
+                
+                <div class="checkbox-field">
+                  <%= prefs_fields.check_box :email_order_notifications,
+                      { checked: (@user.notification_preferences.is_a?(Hash) ? @user.notification_preferences.fetch('email_order_notifications', true) : true) },
+                      '1', '0' %>
+                  <%= prefs_fields.label :email_order_notifications, "New Order Notifications" %>
+                  <small>Get notified when customers place new orders</small>
+                </div>
+                
+                <div class="checkbox-field">
+                  <%= prefs_fields.check_box :email_customer_notifications,
+                      { checked: (@user.notification_preferences.is_a?(Hash) ? @user.notification_preferences.fetch('email_customer_notifications', true) : true) },
+                      '1', '0' %>
+                  <%= prefs_fields.label :email_customer_notifications, "New Customer Notifications" %>
+                  <small>Get notified when new customers register</small>
+                </div>
+              </div>
+
+              <div class="preference-group">
+                <h4>Payments & Financial</h4>
+                <div class="checkbox-field">
+                  <%= prefs_fields.check_box :email_payment_notifications,
+                      { checked: (@user.notification_preferences.is_a?(Hash) ? @user.notification_preferences.fetch('email_payment_notifications', true) : true) },
+                      '1', '0' %>
+                  <%= prefs_fields.label :email_payment_notifications, "Payment Received Notifications" %>
+                  <small>Get notified when payments are received</small>
+                </div>
+                
+                <div class="checkbox-field">
+                  <%= prefs_fields.check_box :email_failed_payment_notifications,
+                      { checked: (@user.notification_preferences.is_a?(Hash) ? @user.notification_preferences.fetch('email_failed_payment_notifications', true) : true) },
+                      '1', '0' %>
+                  <%= prefs_fields.label :email_failed_payment_notifications, "Failed Payment Notifications" %>
+                  <small>Get notified when payments fail</small>
+                </div>
+              </div>
+
+              <div class="preference-group">
+                <h4>System & Updates</h4>
+                <div class="checkbox-field">
+                  <%= prefs_fields.check_box :email_system_notifications,
+                      { checked: (@user.notification_preferences.is_a?(Hash) ? @user.notification_preferences.fetch('email_system_notifications', true) : true) },
+                      '1', '0' %>
+                  <%= prefs_fields.label :email_system_notifications, "System Notifications" %>
+                  <small>Important system updates and maintenance notices</small>
+                </div>
+                
+                <div class="checkbox-field">
+                  <%= prefs_fields.check_box :email_marketing_updates,
+                      { checked: (@user.notification_preferences.is_a?(Hash) ? @user.notification_preferences.fetch('email_marketing_updates', false) : false) },
+                      '1', '0' %>
+                  <%= prefs_fields.label :email_marketing_updates, "Marketing & Feature Updates" %>
+                  <small>New features, tips, and promotional content from BizBlasts</small>
+                </div>
+                
+                <div class="checkbox-field">
+                  <%= prefs_fields.check_box :email_blog_updates,
+                      { checked: (@user.notification_preferences.is_a?(Hash) ? @user.notification_preferences.fetch('email_blog_updates', false) : false) },
+                      '1', '0' %>
+                  <%= prefs_fields.label :email_blog_updates, "Blog Post Notifications" %>
+                  <small>Get notified when new blog posts are published</small>
+                </div>
+              </div>
+            <% end %>
+          </fieldset>
+        </div>
+        
+        <% if @business.present? %>
+          <div class="field">
+            <%= f.label :sms_settings, "SMS Settings" %>
+            <p class="field-description">Control SMS notifications for your clients and customers.</p>
+            
+            <fieldset>
+              <div class="preference-group">
+                <h4>Client SMS Notifications</h4>
+                <div class="checkbox-field">
+                  <%= check_box_tag 'business[sms_enabled]', '1', 
+                      (@business.sms_enabled? && (@business.standard_tier? || @business.premium_tier?)),
+                      { disabled: @business.free_tier? } %>
+                  <%= label_tag 'business[sms_enabled]', "Enable SMS for Clients" %>
+                  <small>
+                    <% if @business.free_tier? %>
+                      SMS notifications are only available for Standard and Premium tier businesses. 
+                      <%= link_to "Upgrade your plan", business_manager_settings_subscription_path, style: "color: #0066cc;" %> to enable SMS.
+                    <% else %>
+                      Allow sending SMS notifications to your customers for bookings, orders, and reminders.
+                    <% end %>
+                  </small>
+                </div>
+                
+                <% if @business.standard_tier? || @business.premium_tier? %>
+                  <div class="checkbox-field">
+                    <%= check_box_tag 'business[sms_marketing_enabled]', '1', @business.sms_marketing_enabled? %>
+                    <%= label_tag 'business[sms_marketing_enabled]', "Enable SMS Marketing" %>
+                    <small>Allow sending promotional SMS to customers who have opted in for marketing messages.</small>
+                  </div>
+                <% end %>
+              </div>
+            </fieldset>
+          </div>
+        <% end %>
 
         <div class="actions">
           <%= f.submit "Update Profile" %>
@@ -160,7 +198,7 @@
     <div class="mt-4 p-4 border border-gray-300 rounded-md bg-gray-50">
       <h4 class="font-bold mb-2">Email Preferences</h4>
       <p class="text-sm text-gray-600 mb-3">Click below to unsubscribe from all email notifications for this business.</p>
-      <%= form.submit "Unsubscribe From All Emails", class: "bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded" %><%# Using a warning-like color from Tailwind config %>
+      <%= form.submit "Unsubscribe From All Emails", class: "bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded cursor-pointer" %><%# Using a warning-like color from Tailwind config %>
     </div>
   <% end %>
 
@@ -216,13 +254,13 @@
           <div class="deletion-form">
             <div class="field">
               <%= form.label :current_password, "Current Password" %>
-              <%= form.password_field :current_password, autocomplete: "current-password", required: true %>
+              <%= form.password_field :current_password, autocomplete: "current-password", required: true, class: "settings-input" %>
               <small>Required to confirm your identity</small>
             </div>
 
             <div class="field">
               <%= form.label :confirm_deletion, "Type DELETE to confirm" %>
-              <%= form.text_field :confirm_deletion, placeholder: "DELETE", required: true %>
+              <%= form.text_field :confirm_deletion, placeholder: "DELETE", required: true, class: "settings-input" %>
               <small>You must type DELETE exactly as shown</small>
             </div>
 
@@ -235,7 +273,7 @@
             <% end %>
 
             <div class="actions">
-              <%= form.submit "Delete My Account", class: "btn-danger", 
+              <%= form.submit "Delete My Account", class: "cursor-pointer btn-danger", 
                   data: { 
                     confirm: @user.manager? && @user.business.users.where.not(id: @user.id).empty? ? 
                       "This will permanently delete your account AND the entire business. Are you sure?" : 

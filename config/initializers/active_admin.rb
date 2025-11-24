@@ -15,9 +15,97 @@ ActiveAdmin.setup do |config|
   # This is the recommended way to add JavaScript to ActiveAdmin in Rails 8
   config.authentication_method = :authenticate_admin_user!
 
-  # Manually add our JavaScript
-  script_code = File.read(Rails.root.join('app/assets/javascripts/delete_fix.js'))
-  config.head = "<script>#{script_code}</script>".html_safe
+  # ActiveAdmin-specific JavaScript lives in app/assets/javascripts.
+  # Files like delete_fix.js are bundled via Sprockets (see active_admin.js),
+  # which avoids runtime file reads and keeps static analysis happy.
+
+  # Add timezone handling JavaScript
+  # This is a static script defined in this initializer file
+  timezone_js = <<~JAVASCRIPT
+    // Client-side timezone detection and conversion for ActiveAdmin
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get client timezone
+      const clientTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      
+      // Find all timestamp elements and convert them to local time
+      const convertTimestamps = function() {
+        // Convert elements with data-timestamp attribute
+        document.querySelectorAll('[data-timestamp]').forEach(function(element) {
+          const isoTimestamp = element.getAttribute('data-timestamp');
+          if (isoTimestamp) {
+            const date = new Date(isoTimestamp);
+            const localText = date.toLocaleString('en-US', {
+              timeZone: clientTimezone,
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+              timeZoneName: 'short'
+            });
+            element.textContent = localText;
+          }
+        });
+        
+        // Also handle any existing UTC timestamps that don't have data attributes
+        document.querySelectorAll('*').forEach(function(element) {
+          const text = element.textContent;
+          
+          // Match the specific format from the screenshot: "August 11, 2025 04:03"
+          const dateTimePattern = /(January|February|March|April|May|June|July|August|September|October|November|December) (\d{1,2}), (\d{4}) (\d{2}):(\d{2})/g;
+          
+          if (text.match(dateTimePattern) && !element.hasAttribute('data-timestamp')) {
+            const newText = text.replace(dateTimePattern, function(match, month, day, year, hour, minute) {
+              // Assume this is UTC time
+              const utcDate = new Date(`${year}-${String(new Date(Date.parse(month + " 1, 2000")).getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T${hour}:${minute}:00Z`);
+              return utcDate.toLocaleString('en-US', {
+                timeZone: clientTimezone,
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+                timeZoneName: 'short'
+              });
+            });
+            
+            if (newText !== text && element.children.length === 0) {
+              element.textContent = newText;
+            }
+          }
+        });
+      };
+      
+      // Convert timestamps when page loads
+      setTimeout(convertTimestamps, 100);
+      
+      // Convert timestamps when content changes (for AJAX updates)
+      const observer = new MutationObserver(function(mutations) {
+        let shouldConvert = false;
+        mutations.forEach(function(mutation) {
+          if (mutation.addedNodes.length > 0) {
+            shouldConvert = true;
+          }
+        });
+        if (shouldConvert) {
+          setTimeout(convertTimestamps, 200);
+        }
+      });
+      
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+    });
+  JAVASCRIPT
+
+  # Inject inline JavaScript that cannot easily live in a separate asset
+  inline_scripts = []
+  inline_scripts << "<script>#{timezone_js}</script>" if timezone_js.present?
+
+  config.head = inline_scripts.join.html_safe if inline_scripts.any?
 
   # Add custom CSS for better login styling
   custom_css = <<~CSS
@@ -100,10 +188,16 @@ ActiveAdmin.setup do |config|
       }
     </style>
   CSS
-  
-  config.head = "#{config.head}#{custom_css}".html_safe
 
-  # Register Active Admin JavaScript to ensure batch actions work
+  # Append custom CSS to existing head content
+  # Note: custom_css is a static heredoc defined in this initializer file
+  # It's safe to mark as html_safe since it's controlled content from the application code
+  if custom_css.present?
+    config.head = [config.head, custom_css].compact.join.html_safe
+  end
+
+  # Register ActiveAdmin JavaScript (Sprockets-based)
+  # This uses the traditional asset pipeline for full compatibility
   config.register_javascript 'active_admin.js'
 
   # Set an optional image to be displayed for the header

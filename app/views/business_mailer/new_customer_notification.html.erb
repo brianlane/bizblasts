@@ -54,8 +54,7 @@
             <span class="value"><%= @customer.created_at.strftime("%B %d, %Y at %I:%M %p") %></span>
           </div>
           
-          <% user_account = User.find_by(email: @customer.email) if @customer.email.present? %>
-          <% if user_account.present? %>
+          <% if @customer_user_account.present? %>
           <div class="detail-row">
             <span class="label">Account Type:</span>
             <span class="value">Registered User (has account login)</span>
@@ -69,7 +68,7 @@
         </div>
 
         <div style="text-align: center;">
-          <a href="https://<%= @business.hostname %>.bizblasts.com/manage/customers/<%= @customer.id %>" class="cta-button">
+          <a href="<%= tenant_url_for(@business, "/manage/customers/#{@customer.id}") %>" class="cta-button">
             View Customer Profile
           </a>
         </div>
@@ -84,7 +83,7 @@
       <div class="footer">
         <p style="margin: 0; color: #6c757d; font-size: 14px;">
           This notification was sent because you have customer notifications enabled.<br>
-          <a href="https://<%= @business.hostname %>.bizblasts.com/manage/settings/profile/edit" style="color: #007bff;">Manage notification preferences</a>
+          <a href="<%= tenant_url_for(@business, '/manage/settings/profile/edit') %>" style="color: #007bff;">Manage notification preferences</a>
         </p>
         <p style="margin: 10px 0 0 0; color: #6c757d; font-size: 12px;">
           © <%= Date.current.year %> BizBlasts. All rights reserved.

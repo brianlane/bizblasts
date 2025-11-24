@@ -52,9 +52,9 @@ class RetryFailedSubscriptionsJob < ApplicationJob
           subscription.update!(status: :failed)
           transaction.update!(status: :failed, failure_reason: "Max retries exceeded: #{e.message}")
           permanently_failed_count += 1
-          
+
           # Notify business and customer of permanent failure
-          SubscriptionMailer.permanent_failure(subscription).deliver_later
+          SubscriptionMailer.permanent_failure(subscription).deliver_later(queue: 'mailers')
         else
           transaction.schedule_retry!
         end

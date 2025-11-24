@@ -13,17 +13,19 @@ FactoryBot.define do
     host_type { 'subdomain' }
     
     # Sequence hostname based on host_type
+    # Add a short random suffix to guarantee uniqueness even if sequences rewind
     sequence(:hostname) do |n|
       worker_num = ENV['TEST_ENV_NUMBER']
-      prefix = "factory-host-#{worker_num.present? ? worker_num + '-' : ''}#{n}"
+      random_suffix = SecureRandom.alphanumeric(6).downcase
+      prefix = "factory-host-#{worker_num.present? ? worker_num + '-' : ''}#{n}-#{random_suffix}"
       # Ensure hostname format matches host_type (simplistic check)
       # Override this in traits or specific create calls if needed
       if host_type == 'custom_domain'
-        "#{prefix}.com" 
+        "#{prefix}.com"
       else
         prefix # Assumed subdomain
       end
-    end 
+    end
 
     # Default industry to a known valid enum key
     industry { :other }
@@ -35,33 +37,52 @@ FactoryBot.define do
     zip { Faker::Address.zip_code }
     description { Faker::Company.catch_phrase }
     website { Faker::Internet.url }
-    
+    enhanced_accent_color { 'red' }
+    website_layout { 'basic' }
+
+
     # Set tier, ensuring free tier gets subdomain host_type
     tier do 
       if host_type == 'custom_domain'
         [:standard, :premium].sample # Custom domain cannot be free
       else
-        # Allow any tier for subdomain, can be overridden by traits
-        Business.tiers.keys.sample 
+        # Always free tier for subdomain
+        'free'
       end
     end
 
     time_zone { 'UTC' }
     active { true }
     stock_management_enabled { true }
+    tip_mailer_if_no_tip_received { true }
     
-    # Set subdomain same as hostname for subdomain host types
-    subdomain { hostname }
+    # Subdomain used for subdomain host type. Default to mirror hostname to
+    # satisfy tests that expect `business.hostname` to represent the subdomain.
+    subdomain { nil }
+
+    # Ensure for subdomain host type the hostname mirrors the subdomain
+    # but do NOT override an explicitly provided hostname in the spec.
+    after(:build) do |biz|
+      if biz.host_type == 'subdomain'
+        # Keep subdomain in sync with hostname unless explicitly set by the test
+        biz.subdomain ||= biz.hostname.to_s.downcase.strip.presence
+      end
+    end
     
     # Traits for specific host types/tiers
     trait :subdomain_host do
       host_type { 'subdomain' }
-      sequence(:hostname) { |n| "factory-subdomain-#{n}" } 
+      sequence(:hostname) { |n| "factory-subdomain-#{n}" }
+    end
+
+    trait :with_subdomain do
+      host_type { 'subdomain' }
+      sequence(:hostname) { |n| "factory-sub-#{n}" }
     end
 
     trait :custom_domain_host do
       host_type { 'custom_domain' }
-      sequence(:hostname) { |n| "factory-domain-#{n}.com" } 
+      sequence(:hostname) { |n| "factory-domain-#{n}.com" }
       tier { [:standard, :premium].sample } # Cannot be free tier
     end
     
@@ -126,6 +147,19 @@ FactoryBot.define do
 
     trait :inactive do
       active { false }
+    end
+
+    trait :with_stripe_account do
+      sequence(:stripe_account_id) { |n| "acct_test#{n}" }
+    end
+
+    trait :with_custom_domain do
+      host_type { 'custom_domain' }
+      tier { 'premium' }
+      status { 'cname_active' }
+      domain_health_verified { true }
+      render_domain_added { true }
+      sequence(:hostname) { |n| "custom-domain-#{n}.com" }
     end
 
     factory :complete_business do

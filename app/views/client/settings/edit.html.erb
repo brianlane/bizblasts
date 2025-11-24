@@ -1,272 +1,355 @@
-<h1>My Settings</h1>
+<div class="max-w-4xl mx-auto p-6 bg-white">
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">Account Settings</h1>
+    <p class="text-gray-600">Manage your profile information and preferences</p>
+  </div>
 
-<%= form_with model: @user, url: client_settings_path, method: :patch, local: true do |form| %>
-  <% if @user.errors.any? %>
-    <div style="color: red">
-      <h2><%= pluralize(@user.errors.count, "error") %> prohibited this user from being saved:</h2>
-      <ul>
-        <% @user.errors.full_messages.each do |message| %>
-          <li><%= message %></li>
+  <%= form_with model: @user, url: client_settings_path, method: :patch, local: true, class: "space-y-8" do |form| %>
+    <% if @user.errors.any? %>
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-red-800">
+              <%= pluralize(@user.errors.count, "error") %> prohibited this user from being saved:
+            </h3>
+            <div class="mt-2 text-sm text-red-700">
+              <ul class="list-disc list-inside space-y-1">
+                <% @user.errors.full_messages.each do |message| %>
+                  <li><%= message %></li>
+                <% end %>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Profile Information Section -->
+    <div class="bg-white shadow rounded-lg">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-medium text-gray-900">Profile Information</h2>
+        <p class="mt-1 text-sm text-gray-600">Update your personal details and contact information.</p>
+      </div>
+      <div class="px-6 py-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <%= form.label :first_name, class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.text_field :first_name, class: "settings-input" %>
+          </div>
+
+          <div>
+            <%= form.label :last_name, class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.text_field :last_name, class: "settings-input" %>
+          </div>
+
+          <div>
+            <%= form.label :email, class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.email_field :email, class: "settings-input" %>
+          </div>
+
+          <div>
+            <%= form.label :phone, class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.text_field :phone, class: "settings-input" %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Password Section -->
+    <div class="bg-white shadow rounded-lg">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-medium text-gray-900">Change Password</h2>
+        <p class="mt-1 text-sm text-gray-600">Update your password to keep your account secure. Leave blank if you don't want to change it.</p>
+      </div>
+      <div class="px-6 py-6">
+        <div class="space-y-6">
+          <div>
+            <%= form.label :current_password, class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <p class="text-xs text-gray-500 mb-2">We need your current password to confirm your changes</p>
+            <%= form.password_field :current_password, autocomplete: "current-password", class: "settings-input" %>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <%= form.label :password, "New Password", class: "block text-sm font-medium text-gray-700 mb-2" %>
+              <%= form.password_field :password, autocomplete: "new-password", class: "settings-input" %>
+            </div>
+
+            <div>
+              <%= form.label :password_confirmation, "Confirm New Password", class: "block text-sm font-medium text-gray-700 mb-2" %>
+              <%= form.password_field :password_confirmation, autocomplete: "new-password", class: "settings-input" %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Preferences Section -->
+    <div class="bg-white shadow rounded-lg">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-medium text-gray-900">Notification Preferences</h2>
+        <p class="mt-1 text-sm text-gray-600">
+          <% if @user.unsubscribed_at.present? %>
+            <span class="text-amber-600 font-medium">You are currently unsubscribed from all emails.</span> To manage individual notification preferences, please resubscribe first.
+          <% else %>
+            Choose how you'd like to receive updates about your bookings, orders, and promotions.
+          <% end %>
+        </p>
+      </div>
+      <div class="px-6 py-6">
+        <fieldset <%= 'disabled' if @user.unsubscribed_at.present? %> class="<%= 'opacity-50' if @user.unsubscribed_at.present? %>">
+          <% require 'ostruct' %>
+          <% prefs_object = OpenStruct.new(@user.notification_preferences || {}) %>
+          <%= form.fields_for :notification_preferences, prefs_object do |prefs_fields| %>
+            <div class="space-y-8">
+              <!-- Booking & Service Notifications -->
+              <div>
+                <h3 class="text-base font-medium text-gray-900 mb-4">Booking & Service Notifications</h3>
+                <div class="space-y-4">
+                  <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                      <%= prefs_fields.check_box :email_booking_confirmation, class: "focus:ring-primary h-4 w-4 text-primary border-gray-300 rounded" %>
+                    </div>
+                    <div class="ml-3 text-sm">
+                      <%= prefs_fields.label :email_booking_confirmation, "Email Booking Confirmations", class: "font-medium text-gray-700" %>
+                      <p class="text-gray-500">Receive confirmation emails when you book services</p>
+                    </div>
+                  </div>
+                  <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                      <%= prefs_fields.check_box :sms_booking_reminder, class: "focus:ring-primary h-4 w-4 text-primary border-gray-300 rounded" %>
+                    </div>
+                    <div class="ml-3 text-sm">
+                      <%= prefs_fields.label :sms_booking_reminder, "SMS Booking Reminders", class: "font-medium text-gray-700" %>
+                      <p class="text-gray-500">Get SMS reminders before your appointments</p>
+                    </div>
+                  </div>
+                  <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                      <%= prefs_fields.check_box :email_booking_updates, class: "focus:ring-primary h-4 w-4 text-primary border-gray-300 rounded" %>
+                    </div>
+                    <div class="ml-3 text-sm">
+                      <%= prefs_fields.label :email_booking_updates, "Email Booking Status Updates", class: "font-medium text-gray-700" %>
+                      <p class="text-gray-500">Get notified when your booking status changes</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Order & Product Notifications -->
+              <div>
+                <h3 class="text-base font-medium text-gray-900 mb-4">Order & Product Notifications</h3>
+                <div class="space-y-4">
+                  <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                      <%= prefs_fields.check_box :email_order_updates, class: "focus:ring-primary h-4 w-4 text-primary border-gray-300 rounded" %>
+                    </div>
+                    <div class="ml-3 text-sm">
+                      <%= prefs_fields.label :email_order_updates, "Email Order Updates (for products)", class: "font-medium text-gray-700" %>
+                      <p class="text-gray-500">Receive updates on your product orders</p>
+                    </div>
+                  </div>
+                  <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                      <%= prefs_fields.check_box :sms_order_updates, class: "focus:ring-primary h-4 w-4 text-primary border-gray-300 rounded" %>
+                    </div>
+                    <div class="ml-3 text-sm">
+                      <%= prefs_fields.label :sms_order_updates, "SMS Order Updates (for products)", class: "font-medium text-gray-700" %>
+                      <p class="text-gray-500">Get SMS updates on your product orders</p>
+                    </div>
+                  </div>
+                  <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                      <%= prefs_fields.check_box :email_payment_confirmations, class: "focus:ring-primary h-4 w-4 text-primary border-gray-300 rounded" %>
+                    </div>
+                    <div class="ml-3 text-sm">
+                      <%= prefs_fields.label :email_payment_confirmations, "Email Payment Confirmations", class: "font-medium text-gray-700" %>
+                      <p class="text-gray-500">Receive email receipts when payments are processed</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Marketing & Promotional -->
+              <div>
+                <h3 class="text-base font-medium text-gray-900 mb-4">Marketing & Promotional</h3>
+                <div class="space-y-4">
+                  <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                      <%= prefs_fields.check_box :email_promotions, class: "focus:ring-primary h-4 w-4 text-primary border-gray-300 rounded" %>
+                    </div>
+                    <div class="ml-3 text-sm">
+                      <%= prefs_fields.label :email_promotions, "Email Promotional Offers & News", class: "font-medium text-gray-700" %>
+                      <p class="text-gray-500">Receive special offers and business news</p>
+                    </div>
+                  </div>
+                  <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                      <%= prefs_fields.check_box :email_blog_updates, class: "focus:ring-primary h-4 w-4 text-primary border-gray-300 rounded" %>
+                    </div>
+                    <div class="ml-3 text-sm">
+                      <%= prefs_fields.label :email_blog_updates, "Blog Post Notifications", class: "font-medium text-gray-700" %>
+                      <p class="text-gray-500">Get notified when we publish new blog posts</p>
+                    </div>
+                  </div>
+                  <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                      <%= prefs_fields.check_box :sms_promotions, class: "focus:ring-primary h-4 w-4 text-primary border-gray-300 rounded" %>
+                    </div>
+                    <div class="ml-3 text-sm">
+                      <%= prefs_fields.label :sms_promotions, "SMS Promotional Offers", class: "font-medium text-gray-700" %>
+                      <p class="text-gray-500">Get special offers via SMS</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </fieldset>
+      </div>
+    </div>
+
+    <!-- Save Settings Button -->
+    <div class="flex justify-end">
+      <%= form.submit "Save Settings", class: "bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-lg transition-colors duration-200 cursor-pointer" %>
+    </div>
+  <% end %>
+
+  <!-- Business-Specific SMS Preferences -->
+  <% if @user.tenant_customers.any? %>
+    <div class="bg-white shadow rounded-lg">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-medium text-gray-900">SMS Preferences by Business</h2>
+        <p class="mt-1 text-sm text-gray-600">
+          Control SMS notifications from specific businesses. You can opt out from individual businesses while staying subscribed to others.
+        </p>
+      </div>
+      <div class="px-6 py-6">
+        <%= form_with(model: @user, url: client_settings_path, method: :patch, local: true, class: "space-y-4") do |form| %>
+          <% @user.tenant_customers.includes(:business).each do |customer| %>
+            <% next unless customer.business.present? %>
+            <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+              <div class="flex-1">
+                <h3 class="text-sm font-medium text-gray-900"><%= customer.business.name %></h3>
+                <p class="text-xs text-gray-500">
+                  <% if customer.phone_opt_in? && !customer.opted_out_from_business?(customer.business) %>
+                    <span class="text-green-600">✓ Subscribed to SMS</span>
+                  <% elsif customer.opted_out_from_business?(customer.business) %>
+                    <span class="text-red-600">✗ Opted out from this business</span>
+                  <% else %>
+                    <span class="text-yellow-600">⚠ Not opted in for SMS</span>
+                  <% end %>
+                </p>
+              </div>
+              <div class="flex items-center">
+                <%= check_box_tag "business_sms_preferences[#{customer.business.id}]",
+                                  "1",
+                                  !customer.opted_out_from_business?(customer.business),
+                                  class: "focus:ring-primary h-4 w-4 text-primary border-gray-300 rounded",
+                                  id: "business_sms_#{customer.business.id}" %>
+                <%= label_tag "business_sms_#{customer.business.id}", "Receive SMS", class: "ml-2 text-sm text-gray-700" %>
+              </div>
+            </div>
+          <% end %>
+
+          <div class="pt-4">
+            <p class="text-xs text-gray-500">
+              Note: To receive SMS notifications, you must also have a phone number set and general SMS opt-in enabled.
+              You can also text "START" or "STOP" to any business to manage SMS preferences.
+            </p>
+          </div>
+
+          <div class="flex justify-end pt-4">
+            <%= form.submit "Update SMS Preferences", class: "bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 cursor-pointer" %>
+          </div>
         <% end %>
-      </ul>
-    </div>
-  <% end %>
-
-  <div>
-    <%= form.label :first_name %><br>
-    <%= form.text_field :first_name %>
-  </div>
-
-  <div>
-    <%= form.label :last_name %><br>
-    <%= form.text_field :last_name %>
-  </div>
-
-  <div>
-    <%= form.label :email %><br>
-    <%= form.email_field :email %>
-  </div>
-
-  <div>
-    <%= form.label :phone %><br>
-    <%= form.text_field :phone %>
-  </div>
-
-  <hr>
-  <h3>Change Password</h3>
-  <p>Leave blank if you don't want to change it.</p>
-
-  <div>
-    <%= form.label :current_password %> <i>(we need your current password to confirm your changes)</i><br>
-    <%= form.password_field :current_password, autocomplete: "current-password" %>
-  </div>
-
-  <div>
-    <%= form.label :password, "New Password" %><br>
-    <%= form.password_field :password, autocomplete: "new-password" %>
-  </div>
-
-  <div>
-    <%= form.label :password_confirmation, "Confirm New Password" %><br>
-    <%= form.password_field :password_confirmation, autocomplete: "new-password" %>
-  </div>
-
-  <hr>
-  <h3>Notification Preferences</h3>
-  <%= form.fields_for :notification_preferences, @user.notification_preferences || {} do |prefs_fields| %>
-    <p class="text-sm text-gray-600 mb-2">Manage your email and SMS notifications.</p>
-    
-    <div class="preference-section">
-      <h4>Booking & Service Notifications</h4>
-      <div class="mb-2">
-        <%= prefs_fields.check_box :email_booking_confirmation, class: "form-checkbox h-5 w-5 text-blue-600" %>
-        <%= prefs_fields.label :email_booking_confirmation, "Email Booking Confirmations", class: "ml-2 text-gray-700" %>
-        <small class="notification-description">Receive confirmation emails when you book services</small>
-      </div>
-      <div class="mb-2">
-        <%= prefs_fields.check_box :sms_booking_reminder, class: "form-checkbox h-5 w-5 text-blue-600" %>
-        <%= prefs_fields.label :sms_booking_reminder, "SMS Booking Reminders", class: "ml-2 text-gray-700" %>
-        <small class="notification-description">Get SMS reminders before your appointments</small>
-      </div>
-      <div class="mb-2">
-        <%= prefs_fields.check_box :email_booking_updates, class: "form-checkbox h-5 w-5 text-blue-600" %>
-        <%= prefs_fields.label :email_booking_updates, "Email Booking Status Updates", class: "ml-2 text-gray-700" %>
-        <small class="notification-description">Get notified when your booking status changes</small>
-      </div>
-    </div>
-
-    <div class="preference-section">
-      <h4>Order & Product Notifications</h4>
-      <div class="mb-2">
-        <%= prefs_fields.check_box :email_order_updates, class: "form-checkbox h-5 w-5 text-blue-600" %>
-        <%= prefs_fields.label :email_order_updates, "Email Order Updates (for products)", class: "ml-2 text-gray-700" %>
-        <small class="notification-description">Receive updates on your product orders</small>
-      </div>
-      <div class="mb-2">
-        <%= prefs_fields.check_box :sms_order_updates, class: "form-checkbox h-5 w-5 text-blue-600" %>
-        <%= prefs_fields.label :sms_order_updates, "SMS Order Updates (for products)", class: "ml-2 text-gray-700" %>
-        <small class="notification-description">Get SMS updates on your product orders</small>
-      </div>
-      <div class="mb-2">
-        <%= prefs_fields.check_box :email_payment_confirmations, class: "form-checkbox h-5 w-5 text-blue-600" %>
-        <%= prefs_fields.label :email_payment_confirmations, "Email Payment Confirmations", class: "ml-2 text-gray-700" %>
-        <small class="notification-description">Receive email receipts when payments are processed</small>
-      </div>
-    </div>
-
-    <div class="preference-section">
-      <h4>Marketing & Promotional</h4>
-      <div class="mb-2">
-        <%= prefs_fields.check_box :email_promotions, class: "form-checkbox h-5 w-5 text-blue-600" %>
-        <%= prefs_fields.label :email_promotions, "Email Promotional Offers & News", class: "ml-2 text-gray-700" %>
-        <small class="notification-description">Receive special offers and business news</small>
-      </div>
-      <div class="mb-2">
-        <%= prefs_fields.check_box :email_blog_updates, class: "form-checkbox h-5 w-5 text-blue-600" %>
-        <%= prefs_fields.label :email_blog_updates, "Blog Post Notifications", class: "ml-2 text-gray-700" %>
-        <small class="notification-description">Get notified when we publish new blog posts</small>
-      </div>
-      <div class="mb-4">
-        <%= prefs_fields.check_box :sms_promotions, class: "form-checkbox h-5 w-5 text-blue-600" %>
-        <%= prefs_fields.label :sms_promotions, "SMS Promotional Offers", class: "ml-2 text-gray-700" %>
-        <small class="notification-description">Get special offers via SMS</small>
       </div>
     </div>
   <% end %>
 
-  <div>
-    <%= form.submit "Save Settings" %>
-  </div>
-<% end %>
-
-<%# Add Unsubscribe All button %>
-<%= form_with url: unsubscribe_all_client_settings_path, method: :patch, local: true, data: { confirm: "Are you sure you want to unsubscribe from all notifications? You can re-subscribe in your settings at any time." } do |form|
-%>
-  <div class="mt-4">
-    <%= form.submit "Unsubscribe From All Emails", class: "btn-secondary" %><%# Use a secondary button style %>
-  </div>
-<% end %>
-
-<hr>
-<div class="danger-zone">
-  <h3>Delete Account</h3>
-  <p>Once you delete your account, there is no going back. Please be certain.</p>
-  
-  <% if @account_deletion_info[:warnings].any? %>
-    <div class="warning-box">
-      <h4>Before you delete your account:</h4>
-      <ul>
-        <% @account_deletion_info[:warnings].each do |warning| %>
-          <li><%= warning %></li>
-        <% end %>
-      </ul>
+  <!-- Unsubscribe Section -->
+  <div class="bg-white shadow rounded-lg">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-lg font-medium text-gray-900">Email Preferences</h2>
+      <p class="mt-1 text-sm text-gray-600">Manage your overall email subscription status.</p>
     </div>
-  <% end %>
-
-  <div class="deletion-info">
-    <h4>Deleting your account will:</h4>
-    <ul>
-      <li>Remove you from all businesses</li>
-      <li>Your booking history will not be preserved</li>
-      <li>This action cannot be undone</li>
-    </ul>
+    <div class="px-6 py-6">
+      <%= form_with url: unsubscribe_all_client_settings_path, method: :patch, local: true, data: { confirm: "Are you sure you want to unsubscribe from all notifications? You can re-subscribe in your settings at any time." } do |form| %>
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-medium text-gray-900">Unsubscribe from all emails</h3>
+            <p class="text-sm text-gray-500">You'll stop receiving all email notifications, but can re-subscribe anytime.</p>
+          </div>
+          <%= form.submit "Unsubscribe From All Emails", class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 cursor-pointer" %>
+        </div>
+      <% end %>
+    </div>
   </div>
 
-  <%= form_with model: @user, url: client_settings_path, method: :delete, local: true, data: { confirm: "Are you absolutely sure? This action cannot be undone." } do |form| %>
-    <div class="deletion-form">
-      <div>
-        <%= form.label :current_password, "Current Password" %><br>
-        <%= form.password_field :current_password, autocomplete: "current-password", required: true %>
-        <small>Required to confirm your identity</small>
-      </div>
-
-      <div>
-        <%= form.label :confirm_deletion, "Type DELETE to confirm" %><br>
-        <%= form.text_field :confirm_deletion, placeholder: "DELETE", required: true %>
-        <small>You must type DELETE exactly as shown</small>
-      </div>
-
-      <div>
-        <%= form.submit "Delete My Account", class: "btn-danger", data: { confirm: "This will permanently delete your account. Are you sure?" } %>
-      </div>
+  <!-- Danger Zone -->
+  <div class="bg-white shadow rounded-lg border-red-200">
+    <div class="px-6 py-4 border-b border-red-200 bg-red-50">
+      <h2 class="text-lg font-medium text-red-900">Delete Account</h2>
+      <p class="mt-1 text-sm text-red-600">Once you delete your account, there is no going back. Please be certain.</p>
     </div>
-  <% end %>
+    <div class="px-6 py-6">
+      <% if @account_deletion_info[:warnings].any? %>
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-amber-800">Before you delete your account:</h3>
+              <div class="mt-2 text-sm text-amber-700">
+                <ul class="list-disc list-inside space-y-1">
+                  <% @account_deletion_info[:warnings].each do |warning| %>
+                    <li><%= warning %></li>
+                  <% end %>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+        <h3 class="text-sm font-medium text-red-800 mb-2">Deleting your account will:</h3>
+        <ul class="text-sm text-red-700 list-disc list-inside space-y-1">
+          <li>Remove you from all businesses</li>
+          <li>Your booking history will not be preserved</li>
+          <li>This action cannot be undone</li>
+        </ul>
+      </div>
+
+      <%= form_with model: @user, url: client_settings_path, method: :delete, local: true, data: { confirm: "This will permanently delete your account. Are you sure?" }, class: "deletion-form space-y-6" do |form| %>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <%= form.label :current_password, "Current Password", class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.password_field :current_password, autocomplete: "current-password", required: true, class: "settings-input" %>
+            <p class="mt-1 text-xs text-gray-500">Required to confirm your identity</p>
+          </div>
+
+          <div>
+            <%= form.label :confirm_deletion, "Type DELETE to confirm", class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.text_field :confirm_deletion, placeholder: "DELETE", required: true, class: "settings-input" %>
+            <p class="mt-1 text-xs text-gray-500">You must type DELETE exactly as shown</p>
+          </div>
+        </div>
+
+        <div class="flex justify-end">
+          <%= form.submit "Delete My Account", class: "cursor-pointer bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-6 rounded-lg transition-colors duration-200", data: { confirm: "This will permanently delete your account. Are you sure?" } %>
+        </div>
+      <% end %>
+    </div>
+  </div>
 </div>
 
-<style>
-  .preference-section {
-    background: #f8f9fa;
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    border: 1px solid #e9ecef;
-  }
-  
-  .preference-section h4 {
-    margin: 0 0 15px 0;
-    color: #495057;
-    font-size: 16px;
-    border-bottom: 1px solid #dee2e6;
-    padding-bottom: 8px;
-  }
-  
-  .notification-description {
-    display: block;
-    margin-left: 24px;
-    margin-top: 2px;
-    color: #6c757d;
-    font-size: 0.85em;
-    font-style: italic;
-  }
-  
-  .mb-2 {
-    margin-bottom: 15px;
-  }
-  
-  .mb-4 {
-    margin-bottom: 20px;
-  }
-
-  .danger-zone {
-    background: #fff5f5;
-    border: 2px solid #fed7d7;
-    border-radius: 8px;
-    padding: 20px;
-    margin-top: 30px;
-  }
-
-  .danger-zone h3 {
-    color: #c53030;
-    margin-top: 0;
-  }
-
-  .warning-box {
-    background: #fef5e7;
-    border: 1px solid #f6ad55;
-    border-radius: 6px;
-    padding: 15px;
-    margin: 15px 0;
-  }
-
-  .warning-box h4 {
-    color: #c05621;
-    margin-top: 0;
-  }
-
-  .deletion-info {
-    background: #f7fafc;
-    border: 1px solid #cbd5e0;
-    border-radius: 6px;
-    padding: 15px;
-    margin: 15px 0;
-  }
-
-  .deletion-form {
-    margin-top: 20px;
-  }
-
-  .deletion-form div {
-    margin-bottom: 15px;
-  }
-
-  .deletion-form small {
-    display: block;
-    color: #6c757d;
-    font-size: 0.85em;
-    margin-top: 5px;
-  }
-
-  .btn-danger {
-    background-color: #e53e3e;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-  }
-
-  .btn-danger:hover {
-    background-color: #c53030;
-  }
-</style> 
+ 

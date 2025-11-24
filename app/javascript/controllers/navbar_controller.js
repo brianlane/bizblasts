@@ -4,7 +4,7 @@ export default class extends Controller {
   static targets = ["sidebar", "overlay", "toggle", "desktopToggle", "desktopToggleIcon", "mainContent"]
   
   connect() {
-    this.sidebarOpen = window.innerWidth >= 1024 // Default open on desktop
+    this.sidebarOpen = false // Default closed on all screen sizes
     this.setInitialState()
     this.setupEventListeners()
   }
@@ -30,46 +30,23 @@ export default class extends Controller {
   }
 
   setInitialState() {
-    const isLargeScreen = window.innerWidth >= 1024
-    
-    if (isLargeScreen) {
-      // Desktop: start with sidebar open
-      this.sidebarOpen = true
-      this.sidebarTarget.classList.remove('-translate-x-full')
-      this.sidebarTarget.classList.add('translate-x-0')
-      
-      if (this.hasDesktopToggleTarget) {
-        this.desktopToggleTarget.style.left = '270px'
-        this.desktopToggleTarget.classList.add('sidebar-open')
-      }
-      
-      if (this.hasDesktopToggleIconTarget) {
-        this.desktopToggleIconTarget.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>'
-      }
-      
-      // Hide mobile toggle on desktop
-      if (this.hasToggleTarget) {
-        this.toggleTarget.style.display = 'none'
-      }
-    } else {
-      // Mobile: start with sidebar closed
-      this.sidebarOpen = false
-      this.sidebarTarget.classList.add('-translate-x-full')
-      this.sidebarTarget.classList.remove('translate-x-0')
-      this.sidebarTarget.classList.remove('show')
-      
-      if (this.hasToggleTarget) {
-        this.toggleTarget.style.display = 'block'
-      }
-      
-      if (this.hasDesktopToggleTarget) {
-        this.desktopToggleTarget.style.left = '16px'
-        this.desktopToggleTarget.classList.remove('sidebar-open')
-      }
-      
-      if (this.hasDesktopToggleIconTarget) {
-        this.desktopToggleIconTarget.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>'
-      }
+    // Both desktop and mobile start with sidebar closed
+    this.sidebarOpen = false
+    this.sidebarTarget.classList.add('-translate-x-full')
+    this.sidebarTarget.classList.remove('translate-x-0')
+    this.sidebarTarget.classList.remove('show')
+
+    // Show hamburger button when sidebar is closed
+    if (this.hasToggleTarget) {
+      this.toggleTarget.style.display = 'block'
+    }
+
+    if (this.hasDesktopToggleTarget) {
+      this.desktopToggleTarget.classList.remove('sidebar-open')
+    }
+
+    if (this.hasDesktopToggleIconTarget) {
+      this.desktopToggleIconTarget.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>'
     }
     
     if (this.hasOverlayTarget) {
@@ -90,7 +67,6 @@ export default class extends Controller {
         this.sidebarTarget.classList.add('translate-x-0')
         
         if (this.hasDesktopToggleTarget) {
-          this.desktopToggleTarget.style.left = '270px'
           this.desktopToggleTarget.classList.add('sidebar-open')
         }
         
@@ -106,16 +82,16 @@ export default class extends Controller {
         this.sidebarTarget.classList.remove('translate-x-0')
         
         if (this.hasDesktopToggleTarget) {
-          this.desktopToggleTarget.style.left = '16px'
           this.desktopToggleTarget.classList.remove('sidebar-open')
         }
         
         if (this.hasDesktopToggleIconTarget) {
           this.desktopToggleIconTarget.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>'
         }
-        
+
+        // Show hamburger button when sidebar is closed (desktop)
         if (this.hasToggleTarget) {
-          this.toggleTarget.style.display = 'none'
+          this.toggleTarget.style.display = 'block'
         }
       }
       
@@ -127,7 +103,6 @@ export default class extends Controller {
     } else {
       // Mobile behavior
       if (this.hasDesktopToggleTarget) {
-        this.desktopToggleTarget.style.left = '16px'
         this.desktopToggleTarget.classList.remove('sidebar-open')
       }
       

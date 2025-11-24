@@ -61,22 +61,30 @@ class WebsiteTheme < ApplicationRecord
   
   def generate_css_variables
     variables = []
-    
-    # Color variables
+
+    # Color variables (sanitized to prevent XSS)
     color_scheme.each do |key, value|
-      variables << "--color-#{key.to_s.gsub('_', '-')}: #{value};"
+      sanitized_key = CssSanitizer.sanitize_css_property_name(key)
+      sanitized_value = CssSanitizer.sanitize_css_value(value)
+      variables << "--color-#{sanitized_key}: #{sanitized_value};" if sanitized_key.present? && sanitized_value.present?
     end
-    
-    # Typography variables  
+
+    # Typography variables (sanitized to prevent XSS)
     typography.each do |key, value|
-      variables << "--#{key.to_s.gsub('_', '-')}: #{value};"
+      sanitized_key = CssSanitizer.sanitize_css_property_name(key)
+      sanitized_value = CssSanitizer.sanitize_css_value(value)
+      variables << "--#{sanitized_key}: #{sanitized_value};" if sanitized_key.present? && sanitized_value.present?
     end
-    
-    # Layout variables
+
+    # Layout variables (sanitized to prevent XSS)
     layout_config.each do |key, value|
-      variables << "--layout-#{key.to_s.gsub('_', '-')}: #{value};" if value.is_a?(String)
+      if value.is_a?(String)
+        sanitized_key = CssSanitizer.sanitize_css_property_name(key)
+        sanitized_value = CssSanitizer.sanitize_css_value(value)
+        variables << "--layout-#{sanitized_key}: #{sanitized_value};" if sanitized_key.present? && sanitized_value.present?
+      end
     end
-    
+
     ":root {\n  #{variables.join("\n  ")}\n}"
   end
   

@@ -1,8 +1,0 @@
-==> Tests completed in 188 seconds!
-    Reused 1 existing database(s) - saved ~3 seconds
-
-==> Test Summary: All tests passed! (Exit Code: 0)
-    (Ran 725 tests, 0 failures)
-    Overall Coverage: 68.36%
-
-See test.out for detailed output

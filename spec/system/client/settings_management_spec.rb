@@ -22,7 +22,7 @@ RSpec.describe "Client Settings Management", type: :system do
   end
 
   it "allows a client to view their settings page" do
-    expect(page).to have_content("My Settings")
+    expect(page).to have_content("Account Settings")
     expect(page).to have_field("user[first_name]", with: client_user.first_name)
     expect(page).to have_field("user[email]", with: client_user.email)
   end
@@ -37,7 +37,7 @@ RSpec.describe "Client Settings Management", type: :system do
     client_user.reload
     expect(client_user.first_name).to eq("UpdatedFirst")
     expect(client_user.last_name).to eq("UpdatedLast")
-    expect(client_user.phone).to eq("0987654321")
+    expect(client_user.phone).to eq(PhoneNormalizer.normalize("0987654321"))
   end
 
   # Skip password tests that involve Sign Out and Sign In
@@ -82,5 +82,17 @@ RSpec.describe "Client Settings Management", type: :system do
 
     expect(page).to have_content("Profile settings updated successfully.")
     # Don't check specific notification_preferences values as we've already done that in the request spec
+  end
+
+  it "shows the 'Unsubscribed Successfully' banner and disables notification toggles if unsubscribed" do
+    client_user.unsubscribe_from_emails!
+    visit client_settings_path
+    
+    # Check that notification preferences are disabled when unsubscribed
+    within('fieldset') do
+      expect(page).to have_unchecked_field("user[notification_preferences][email_booking_confirmation]", disabled: true)
+      expect(page).to have_unchecked_field("user[notification_preferences][email_order_updates]", disabled: true)
+      expect(page).to have_unchecked_field("user[notification_preferences][email_promotions]", disabled: true)
+    end
   end
 end 

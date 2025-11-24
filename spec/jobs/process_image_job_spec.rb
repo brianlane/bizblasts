@@ -55,5 +55,58 @@ RSpec.describe ProcessImageJob, type: :job do
         end
       }.not_to raise_error
     end
+
+    context 'with HEIC images' do
+      # Use existing JPEG fixture but mock as HEIC for testing
+      let(:heic_file) { fixture_file_upload('spec/fixtures/files/test_image.jpg', 'image/heic') }                                                             
+
+      before do
+        product.images.attach(heic_file)
+      end
+
+      it 'converts HEIC to JPEG when ImageMagick supports HEIC' do
+        heic_attachment = product.images.attachments.last
+
+        # Mock HEIC support
+        allow_any_instance_of(ProcessImageJob).to receive(:heic_supported?).and_return(true)
+        allow(heic_attachment.blob).to receive(:image?).and_return(true)
+        allow(heic_attachment.blob).to receive(:byte_size).and_return(1.megabyte)
+
+        expect {
+          perform_enqueued_jobs do
+            ProcessImageJob.perform_later(heic_attachment.id)
+          end
+        }.not_to raise_error
+      end
+
+      it 'skips conversion when ImageMagick does not support HEIC' do
+        heic_attachment = product.images.attachments.last
+
+        # Mock no HEIC support
+        allow_any_instance_of(ProcessImageJob).to receive(:heic_supported?).and_return(false)
+        allow(heic_attachment.blob).to receive(:image?).and_return(true)
+
+        expect {
+          perform_enqueued_jobs do
+            ProcessImageJob.perform_later(heic_attachment.id)
+          end
+        }.not_to raise_error
+      end
+
+      it 'handles HEIC conversion errors gracefully' do
+        heic_attachment = product.images.attachments.last
+
+        # Mock HEIC support but conversion failure
+        allow_any_instance_of(ProcessImageJob).to receive(:heic_supported?).and_return(true)
+        allow(heic_attachment.blob).to receive(:image?).and_return(true)
+        allow(ImageProcessing::MiniMagick).to receive(:source).and_raise(ImageProcessing::Error.new('Conversion failed'))
+
+        expect {
+          perform_enqueued_jobs do
+            ProcessImageJob.perform_later(heic_attachment.id)
+          end
+        }.not_to raise_error
+      end
+    end
   end
 end 

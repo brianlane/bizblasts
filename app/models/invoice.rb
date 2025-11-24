@@ -41,8 +41,11 @@ class Invoice < ApplicationRecord
     payments.successful.sum(:amount)
   end
   
+  # Remaining balance after all successful payments. Use total_amount
+  # (which includes taxes, tips, etc.) to avoid negative balances when
+  # amount represents a pre-tax subtotal.
   def balance_due
-    amount - total_paid
+    total_amount - total_paid
   end
   
   def mark_as_paid!
@@ -79,11 +82,11 @@ class Invoice < ApplicationRecord
   end
 
   def self.ransackable_attributes(auth_object = nil)
-    super + %w[original_amount discount_amount]
+    %w[amount business_id created_at due_date guest_access_token id invoice_number original_amount discount_amount status tenant_customer_id total_amount updated_at tax_amount tip_amount review_request_suppressed]
   end
 
   def self.ransackable_associations(auth_object = nil)
-    super + %w[promotion shipping_method tax_rate]
+    %w[booking business line_items order payments promotion shipping_method tax_rate tenant_customer]
   end
 
   def calculate_totals
@@ -125,6 +128,7 @@ class Invoice < ApplicationRecord
   before_validation :set_invoice_number, on: :create
   before_validation :set_guest_access_token, on: :create
   after_create :send_invoice_created_email
+  after_update :send_review_request_email, if: :saved_change_to_status_to_paid?
 
   # Tip-related methods
   def has_tip_eligible_items?
@@ -139,6 +143,11 @@ class Invoice < ApplicationRecord
     has_tip_eligible_items?
   end
 
+  # Check if status changed to paid
+  def saved_change_to_status_to_paid?
+    saved_change_to_status? && status == 'paid'
+  end
+  
   # Create an invoice from an approved estimate
   def self.create_from_estimate(estimate)
     invoice = nil
@@ -168,6 +177,98 @@ class Invoice < ApplicationRecord
   end
 
   private
+  
+  # Send review request email after invoice is paid
+  def send_review_request_email
+    # Skip if review requests are suppressed for this invoice
+    return if review_request_suppressed?
+    
+    # Skip if business doesn't have Google Place ID configured
+    return unless business&.google_place_id.present?
+    
+    # Skip if customer can't receive emails
+    return unless tenant_customer&.can_receive_email?(:customer)
+    
+    # Generate signed tracking token for unsubscribe
+    tracking_token = generate_review_request_tracking_token
+    return unless tracking_token
+    
+    begin
+      # Prepare request data for mailer
+      request_data = {
+        business: business,
+        customer: tenant_customer,
+        booking: booking,
+        order: order,
+        invoice: self,
+        tracking_token: tracking_token
+      }
+      
+      # Send the review request email (check for NullMail to avoid sending non-existent emails)
+      mail = ReviewRequestMailer.review_request_email(request_data)
+      
+      # Check if the mail is actually a NullMail (validation failed, ineligible customer, etc.)
+      if mail&.message&.is_a?(ActionMailer::Base::NullMail)
+        SecureLogger.info "[ReviewRequest] Review request email skipped for Invoice ##{invoice_number} (validation failed or ineligible)"
+        return
+      elsif mail.present?
+        mail.deliver_later(queue: 'mailers')
+        SecureLogger.info "[ReviewRequest] Review request email enqueued for Invoice ##{invoice_number} to #{tenant_customer.email}"
+
+        # Send SMS review request if customer can receive SMS
+        begin
+          if tenant_customer.can_receive_sms?(:review_request)
+            # Generate the Google review URL
+            review_url = "https://search.google.com/local/writereview?placeid=#{business.google_place_id}"
+
+            # Determine service name for personalization
+            service_name = if booking&.service
+              booking.service.name
+            elsif order&.service_line_items&.any?
+              service_names = order.service_line_items.map { |item| item.service&.name }.compact
+              service_names.first # Use first service name for simplicity
+            else
+              "our service"
+            end
+
+            # Send review request SMS
+            SmsService.send_review_request(tenant_customer, business, service_name, review_url)
+            SecureLogger.info "[ReviewRequest] Review request SMS sent for Invoice ##{invoice_number} to #{tenant_customer.phone}"
+          end
+        rescue => sms_error
+          SecureLogger.error "[ReviewRequest] Failed to send review request SMS for Invoice ##{invoice_number}: #{sms_error.message}"
+          # Don't fail the whole review request process for SMS issues
+        end
+      else
+        # This shouldn't happen with current mailer implementation, but kept for safety
+        SecureLogger.warn "[ReviewRequest] Mailer returned nil for Invoice ##{invoice_number}; email not enqueued"
+        return
+      end
+    rescue => e
+      SecureLogger.error "[ReviewRequest] Failed to send review request email for Invoice ##{invoice_number}: #{e.message}"
+    end
+  end
+  
+  # Generate signed tracking token for review request unsubscribe
+  def generate_review_request_tracking_token
+    return nil unless tenant_customer && business
+    
+    token_data = {
+      business_id: business.id,
+      customer_id: tenant_customer.id,
+      invoice_id: id,
+      booking_id: booking&.id,
+      order_id: order&.id,
+      generated_at: Time.current.to_i
+    }
+    
+    # Use Rails message verifier to create signed token
+    verifier = Rails.application.message_verifier('review_request_tracking')
+    verifier.generate(token_data)
+  rescue => e
+    SecureLogger.error "[ReviewRequest] Failed to generate tracking token for Invoice ##{invoice_number}: #{e.message}"
+    nil
+  end
 
   def set_invoice_number
     return if invoice_number.present?
@@ -193,15 +294,15 @@ class Invoice < ApplicationRecord
     # Skip automatic email if this invoice belongs to an order
     # Order creation handles staggered email delivery to avoid rate limits
     if order.present?
-      Rails.logger.info "[EMAIL] Skipping automatic invoice email for Order-based Invoice ##{invoice_number} (handled by order)"
+      SecureLogger.info "[EMAIL] Skipping automatic invoice email for Order-based Invoice ##{invoice_number} (handled by order)"
       return
     end
     
     begin
-      InvoiceMailer.invoice_created(self).deliver_later
-      Rails.logger.info "[EMAIL] Sent invoice created email for Invoice ##{invoice_number}"
+      NotificationService.invoice_created(self)
+      SecureLogger.info "[NOTIFICATION] Sent invoice created notifications for Invoice ##{invoice_number}"
     rescue => e
-      Rails.logger.error "[EMAIL] Failed to send invoice created email for Invoice ##{invoice_number}: #{e.message}"
+      SecureLogger.error "[NOTIFICATION] Failed to send invoice created notifications for Invoice ##{invoice_number}: #{e.message}"
     end
   end
 end 

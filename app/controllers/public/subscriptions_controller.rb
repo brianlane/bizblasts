@@ -1,14 +1,17 @@
 # frozen_string_literal: true
 
-class Public::SubscriptionsController < ApplicationController
+class Public::SubscriptionsController < Public::BaseController
+  after_action :no_store!
   skip_before_action :authenticate_user!  # Allow guest access for subscription signups
-  before_action :set_tenant, if: -> { request.subdomain.present? && request.subdomain != 'www' }
+  before_action :set_tenant, if: -> { before_action_business_domain_check }
   before_action :set_product_or_service, except: [:confirmation]
   before_action :ensure_subscriptions_enabled, except: [:confirmation]
+
 
   # GET /subscriptions/new
   def new
     @customer_subscription = current_business.customer_subscriptions.build
+    prefill_subscription_from_params(@customer_subscription)
     @customer_subscription.product = @product if @product
     @customer_subscription.service = @service if @service
     
@@ -46,12 +49,20 @@ class Public::SubscriptionsController < ApplicationController
     unless @tenant_customer
       flash.now[:alert] = 'Please provide valid customer information.'
       @customer_subscription = current_business.customer_subscriptions.build
+      prefill_subscription_from_params(@customer_subscription)
       initialize_pricing_variables
       populate_form_data
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
       return
     end
     
+    # Ensure business is persisted before creating subscription
+    unless current_business&.persisted?
+      Rails.logger.error "[SUBSCRIPTION] Cannot create subscription for unpersisted business"
+      flash[:alert] = "Unable to create subscription. Please try again."
+      redirect_to new_tenant_subscription_path and return
+    end
+
     # Build subscription data for Stripe
     subscription_data = build_subscription_data(@tenant_customer)
     
@@ -82,10 +93,11 @@ class Public::SubscriptionsController < ApplicationController
         # Initialize pricing variables for the view
         @tenant_customer = find_or_initialize_tenant_customer
         @customer_subscription = current_business.customer_subscriptions.build
+        prefill_subscription_from_params(@customer_subscription)
         initialize_pricing_variables
         
         populate_form_data
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
       end
       
     rescue => e
@@ -95,10 +107,11 @@ class Public::SubscriptionsController < ApplicationController
       # Initialize pricing variables for the view
       @tenant_customer = find_or_initialize_tenant_customer
       @customer_subscription = current_business.customer_subscriptions.build
+      prefill_subscription_from_params(@customer_subscription)
       initialize_pricing_variables
       
       populate_form_data
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
   end
 
@@ -133,13 +146,16 @@ class Public::SubscriptionsController < ApplicationController
   end
 
   def set_product_or_service
-    if params[:product_id].present?
-      @product = current_business.products.active.find(params[:product_id])
+    product_id = params[:product_id].presence || params.dig(:customer_subscription, :product_id).presence
+    service_id = params[:service_id].presence || params.dig(:customer_subscription, :service_id).presence
+
+    if product_id
+      @product = current_business.products.active.find(product_id)
       unless @product.subscription_enabled?
         redirect_to root_path, alert: 'Subscriptions not available for this product.'
       end
-    elsif params[:service_id].present?
-      @service = current_business.services.active.find(params[:service_id])
+    elsif service_id
+      @service = current_business.services.active.find(service_id)
       unless @service.subscription_enabled?
         redirect_to root_path, alert: 'Subscriptions not available for this service.'
       end
@@ -156,13 +172,29 @@ class Public::SubscriptionsController < ApplicationController
 
   def find_or_initialize_tenant_customer
     if user_signed_in?
-      # Find existing tenant customer for this user's email and business
-      current_business.tenant_customers.find_by(email: current_user.email) ||
+      # Use CustomerLinker to ensure proper data sync for existing customers
+      begin
+        linker = CustomerLinker.new(current_business)
+        linker.link_user_to_customer(current_user)
+      rescue PhoneConflictError => e
+        Rails.logger.error "[SubscriptionsController#find_or_initialize] CustomerLinker phone conflict for user #{current_user.id}: #{e.message}"
+        # Fallback to build new customer for form display
         current_business.tenant_customers.build(
           first_name: current_user.first_name,
           last_name: current_user.last_name,
-          email: current_user.email
+          email: current_user.email,
+          phone: current_user.phone
         )
+      rescue StandardError => e
+        Rails.logger.error "[SubscriptionsController#find_or_initialize] CustomerLinker error for user #{current_user.id}: #{e.message}"
+        # Fallback to build new customer for form display
+        current_business.tenant_customers.build(
+          first_name: current_user.first_name,
+          last_name: current_user.last_name,
+          email: current_user.email,
+          phone: current_user.phone
+        )
+      end
     else
       # For guest checkout, we'll need to collect customer info
       current_business.tenant_customers.build
@@ -171,24 +203,45 @@ class Public::SubscriptionsController < ApplicationController
 
   def find_or_create_tenant_customer
     if user_signed_in?
-      current_business.tenant_customers.find_or_create_by(email: current_user.email) do |tc|
-        tc.first_name = current_user.first_name
-        tc.last_name = current_user.last_name
-        tc.phone = current_user.phone if current_user.respond_to?(:phone)
+      # Use CustomerLinker to ensure proper data sync
+      begin
+        linker = CustomerLinker.new(current_business)
+        linker.link_user_to_customer(current_user)
+      rescue PhoneConflictError => e
+        Rails.logger.error "[SubscriptionsController#find_or_create] CustomerLinker phone conflict for user #{current_user.id}: #{e.message}"
+        return nil
+      rescue EmailConflictError => e
+        Rails.logger.error "[SubscriptionsController#find_or_create] CustomerLinker error for user #{current_user.id}: #{e.message}"
+        return nil
+      rescue StandardError => e
+        Rails.logger.error "[SubscriptionsController#find_or_create] CustomerLinker error for user #{current_user.id}: #{e.message}"
+        return nil
       end
     else
-      # Create tenant customer from form data
+      # Use CustomerLinker for guest customer management
       customer_attrs = subscription_params[:tenant_customer_attributes] || {}
-      customer = current_business.tenant_customers.create(
-        first_name: customer_attrs[:first_name],
-        last_name: customer_attrs[:last_name],
-        email: customer_attrs[:email],
-        phone: customer_attrs[:phone],
-        address: customer_attrs[:address]
-      )
-      
-      # If customer creation fails, return nil so create action can handle the error
-      customer.persisted? ? customer : nil
+      begin
+        linker = CustomerLinker.new(current_business)
+        customer = linker.find_or_create_guest_customer(
+          customer_attrs[:email],
+          first_name: customer_attrs[:first_name],
+          last_name: customer_attrs[:last_name],
+          phone: customer_attrs[:phone],
+          phone_opt_in: customer_attrs[:phone_opt_in] == 'true' || customer_attrs[:phone_opt_in] == true
+        )
+
+        # Return customer if created successfully, nil otherwise
+        customer&.persisted? ? customer : nil
+      rescue PhoneConflictError => e
+        Rails.logger.error "[SubscriptionsController#find_or_create] CustomerLinker phone conflict for guest: #{e.message}"
+        return nil
+      rescue GuestConflictError => e
+        Rails.logger.error "[SubscriptionsController#find_or_create] CustomerLinker guest conflict for guest: #{e.message}"
+        return nil
+      rescue StandardError => e
+        Rails.logger.error "[SubscriptionsController#find_or_create] CustomerLinker error for guest: #{e.message}"
+        return nil
+      end
     end
   end
 
@@ -296,4 +349,45 @@ class Public::SubscriptionsController < ApplicationController
       nil
     end
   end
-end 
+
+  def prefill_subscription_from_params(subscription)
+    return unless subscription
+
+    attributes = subscription_form_attributes
+    subscription.assign_attributes(attributes) if attributes.any?
+  end
+
+  def subscription_form_attributes
+    permitted_keys = [
+      :service_id,
+      :product_id,
+      :product_variant_id,
+      :quantity,
+      :billing_day_of_month,
+      :service_rebooking_preference,
+      :preferred_time_slot,
+      :preferred_staff_member_id,
+      :out_of_stock_action,
+      :customer_rebooking_preference,
+      :notes
+    ]
+
+    attributes = {}
+
+    if params[:customer_subscription].present?
+      nested_attrs = params.require(:customer_subscription).permit(permitted_keys)
+      attributes.merge!(nested_attrs.to_h)
+    end
+
+    top_level_attrs = params.permit(permitted_keys)
+    attributes.merge!(top_level_attrs.to_h)
+
+    attributes.delete_if { |_, value| value.blank? }
+
+    %w[service_id product_id product_variant_id preferred_staff_member_id quantity billing_day_of_month].each do |numeric_key|
+      attributes[numeric_key] = attributes[numeric_key].to_i if attributes[numeric_key].present?
+    end
+
+    attributes
+  end
+end

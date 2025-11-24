@@ -60,7 +60,7 @@
             <% remaining_spots = @booking.service.spots.to_i + @booking.quantity.to_i %>
             <%= f.number_field :quantity, min: 1, max: remaining_spots, class: "shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md", id: 'booking_quantity' %>
             <p class="mt-2 text-sm text-gray-500">
-              Min: <%= @booking.service.min_bookings %>, Max: <%= @booking.service.max_bookings %>, Current Spots Remaining: <%= @booking.service.spots %>
+              Min: <%= @booking.service.min_bookings %>, Max: <%= @booking.service.max_bookings %>, Current Spots Remaining: <%= @booking.service.spots || 0 %>
             </p>
           </div>
         <% else %>
@@ -186,7 +186,7 @@
   function initializeBookingEditPage() {
     const quantityInput = document.getElementById('booking_quantity');
     const totalPriceSpan = document.getElementById('total-booking-price');
-    const baseServicePrice = <%= @booking.service.price || 0 %>;
+    const baseServicePrice = <%= service_price(@booking) || 0 %>;
     const addonQuantityInputs = document.querySelectorAll('.addon-quantity-input');
     const addonPrices = {}; // Store add-on prices by product variant ID
 

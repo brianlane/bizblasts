@@ -55,24 +55,24 @@ function initializeCopyLinkModule() {
       } catch (err) {
         console.error('Failed to copy: ', err);
       
-      // Fallback: Show error message
-      this.innerHTML = `
+        // Fallback: Show error message
+        this.innerHTML = `
         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
         </svg>
         Copy Failed
       `;
       
-      this.classList.remove('bg-gray-600', 'hover:bg-gray-700');
-      this.classList.add('bg-red-600', 'hover:bg-red-700');
+        this.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+        this.classList.add('bg-red-600', 'hover:bg-red-700');
       
-      // Reset after 2 seconds
-      setTimeout(() => {
-        this.innerHTML = originalText;
-        this.classList.remove('bg-red-600', 'hover:bg-red-700');
-        this.classList.add('bg-gray-600', 'hover:bg-gray-700');
-      }, 2000);
-    }
+        // Reset after 2 seconds
+        setTimeout(() => {
+          this.innerHTML = originalText;
+          this.classList.remove('bg-red-600', 'hover:bg-red-700');
+          this.classList.add('bg-gray-600', 'hover:bg-gray-700');
+        }, 2000);
+      }
     });
   });
 }

@@ -4,7 +4,7 @@ module BusinessManager
   class BookingsController < BaseController
     before_action :authenticate_user!
     before_action :require_business_staff!
-    before_action :set_booking, only: [:show, :edit, :update, :confirm, :cancel, :reschedule, :update_schedule]
+    before_action :set_booking, only: [:show, :edit, :update, :confirm, :cancel, :reschedule, :update_schedule, :refund]
     
     # GET /manage/bookings
     def index
@@ -21,6 +21,36 @@ module BusinessManager
     
     # GET /manage/bookings/:id
     def show
+    end
+    
+    # GET /manage/bookings/new
+    def new
+      @booking = current_business.bookings.new
+      
+      # Handle service selection and variant
+      if params[:service_id].present?
+        @service = current_business.services.find_by(id: params[:service_id])
+        @booking.service = @service if @service
+        
+        # Handle service variant if provided
+        if params[:service_variant_id].present? && @service
+          @service_variant = @service.service_variants.find_by(id: params[:service_variant_id])
+          @booking.service_variant = @service_variant if @service_variant
+        end
+      end
+      
+      # Pre-fill staff member if provided
+      @booking.staff_member_id = params[:staff_member_id] if params[:staff_member_id].present?
+      
+      # Pre-fill customer if provided
+      @booking.tenant_customer_id = params[:tenant_customer_id] if params[:tenant_customer_id].present?
+      
+      # Pre-fill date/time if provided via query params
+      if params[:date].present? && params[:start_time].present?
+        current_business.ensure_time_zone! if current_business.respond_to?(:ensure_time_zone!)
+        dt = BookingManager.process_datetime_params(params[:date], params[:start_time], current_business&.time_zone || 'UTC')
+        @booking.start_time = dt if dt
+      end
     end
     
     # GET /manage/bookings/:id/edit
@@ -180,8 +210,8 @@ module BusinessManager
       if @booking.status == 'confirmed'
         flash[:notice] = "This booking was already confirmed."
       elsif @booking.update(status: :confirmed)
-        # Send email notification
-        BookingMailer.status_update(@booking).deliver_later
+        # Send status update notification (email + SMS)
+        NotificationService.booking_status_update(@booking)
         flash[:notice] = "Booking has been confirmed."
       else
         flash[:alert] = "There was a problem confirming the booking."
@@ -206,6 +236,29 @@ module BusinessManager
         end
       end
       
+      redirect_to business_manager_booking_path(@booking)
+    end
+
+    # PATCH /manage/bookings/:id/refund
+    def refund
+      unless @booking.refundable?
+        flash[:alert] = "This booking is not eligible for a refund."
+        return redirect_to business_manager_booking_path(@booking)
+      end
+
+      refund_failures = []
+      @booking.invoice.payments.successful.where.not(status: :refunded).each do |payment|
+        success = payment.initiate_refund(reason: 'booking_refund', user: current_user)
+        refund_failures << payment.id unless success
+      end
+
+      if refund_failures.empty?
+        flash[:notice] = 'Refund initiated successfully.'
+        @booking.update(status: :cancelled) if @booking.status != 'cancelled'
+      else
+        flash[:alert] = "Refund failed for payments: #{refund_failures.join(', ')}"
+      end
+
       redirect_to business_manager_booking_path(@booking)
     end
     
@@ -259,8 +312,8 @@ module BusinessManager
       new_end_time = new_start_time + service_duration.minutes
       
       if @booking.update(start_time: new_start_time, end_time: new_end_time)
-        # Send email notification about reschedule
-        BookingMailer.status_update(@booking).deliver_later
+        # Send notification about reschedule (email + SMS)
+        NotificationService.booking_status_update(@booking)
         flash[:notice] = "Booking has been rescheduled."
         redirect_to business_manager_booking_path(@booking)
       else
@@ -332,6 +385,29 @@ module BusinessManager
         end
       end
 
+      # Buffer time policy
+      if policy.buffer_time_mins.present? && @booking.staff_member_id.present? && @booking.start_time.present?
+        duration_mins = duration.to_i
+        @booking.end_time ||= @booking.start_time + duration_mins.minutes if duration_mins.positive?
+
+        if @booking.end_time.present?
+          buffer = policy.buffer_time_mins.minutes
+          buffer_window_start = @booking.start_time - buffer
+          buffer_window_end = @booking.end_time + buffer
+
+          conflict = current_business.bookings
+            .where(staff_member_id: @booking.staff_member_id)
+            .where.not(id: @booking.id)
+            .where.not(status: :cancelled)
+            .where("start_time < ? AND end_time > ?", buffer_window_end, buffer_window_start)
+            .exists?
+
+          if conflict
+            @booking.errors.add(:base, "Requested booking conflicts with another existing booking due to buffer time policy")
+          end
+        end
+      end
+
       # Duration constraints policy
       if policy.min_duration_mins.present? && duration.to_i < policy.min_duration_mins
         @booking.errors.add(:base, "Booking cannot be less than the minimum required duration")
@@ -344,7 +420,7 @@ module BusinessManager
       # Render form with errors if any policy violations
       if @booking.errors.any?
         flash.now[:alert] = @booking.errors.full_messages.join(', ')
-        return render :new, status: :unprocessable_entity
+        return render :new, status: :unprocessable_content
       end
 
       if @booking.save
@@ -353,7 +429,7 @@ module BusinessManager
       else
         #raise "DEBUG: Booking errors: #{@booking.errors.full_messages.inspect}"
         flash.now[:alert] = @booking.errors.full_messages.join(', ')
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
       end
     end
     
@@ -384,7 +460,7 @@ module BusinessManager
       # For complex nested attributes like this, we need to build the permitted parameters
       # differently to handle dynamic keys
       params.require(:booking).permit(
-        :service_id, :staff_member_id, :tenant_customer_id,
+        :service_id, :service_variant_id, :staff_member_id, :tenant_customer_id,
         :start_time, :end_time, :status, :notes,
         :amount, :original_amount, :discount_amount, # Allow setting amounts manually if needed
         :cancellation_reason,

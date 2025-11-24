@@ -1,12 +1,15 @@
 # frozen_string_literal: true
 
 module Public
-  class PaymentsController < ApplicationController
+  class PaymentsController < Public::BaseController
+    skip_before_action :authenticate_user!, only: %i[new create]
     # Set tenant and require user authentication
     before_action :set_tenant
-    before_action :authenticate_user!, except: [:new, :create]
-    before_action :set_tenant_customer, only: [:index, :new, :create]
-    before_action :set_invoice, only: [:new, :create]
+    before_action :authenticate_user!, except: %i[new create]
+    before_action :set_tenant_customer, only: %i[index new create]
+    before_action :set_invoice, only: %i[new create]
+
+    after_action :no_store!, only: %i[new create]
 
     # GET /payments
     def index
@@ -29,8 +32,8 @@ module Public
           cancel_url = tenant_invoice_url(@invoice, cancel_params)
         else
           # For authenticated users, redirect to transactions view
-          success_url = tenant_transaction_url(@invoice, url_params)
-          cancel_url = tenant_transaction_url(@invoice, cancel_params)
+          success_url = transaction_url(@invoice, url_params)
+          cancel_url = transaction_url(@invoice, cancel_params)
         end
         
         result = StripeService.create_payment_checkout_session(
@@ -72,25 +75,37 @@ module Public
         @tenant_customer = current_tenant.tenant_customers.find_by(email: current_user.email)
         raise ActiveRecord::RecordNotFound unless @tenant_customer
       else
-        # For guest checkout, find tenant customer from invoice
-        invoice = current_tenant.invoices.find_by(id: params[:invoice_id])
+        # For guest checkout, find tenant customer from invoice with token verification
+        if params[:token].present?
+          invoice = current_tenant.invoices.find_by(id: params[:invoice_id], guest_access_token: params[:token])
+        else
+          invoice = current_tenant.invoices.find_by(id: params[:invoice_id])
+        end
         @tenant_customer = invoice&.tenant_customer
         raise ActiveRecord::RecordNotFound unless @tenant_customer
       end
     end
 
     def set_invoice
-      @invoice = current_tenant.invoices.find_by(id: params[:invoice_id])
-      # Verify the invoice belongs to the tenant customer
-      if @tenant_customer && @invoice&.tenant_customer != @tenant_customer
-        raise ActiveRecord::RecordNotFound
+      # Handle both authenticated and guest access
+      if params[:token].present?
+        # Guest access via token
+        @invoice = current_tenant.invoices.find_by(id: params[:invoice_id], guest_access_token: params[:token])
+      else
+        # Authenticated user access
+        @invoice = current_tenant.invoices.find_by(id: params[:invoice_id])
+        # Verify the invoice belongs to the tenant customer for authenticated users
+        if @tenant_customer && @invoice&.tenant_customer != @tenant_customer
+          raise ActiveRecord::RecordNotFound
+        end
       end
+      
       raise ActiveRecord::RecordNotFound unless @invoice
     end
 
     def redirect_to_invoice_with_token(flash_options = {})
       if current_user
-        redirect_to tenant_transaction_path(@invoice, type: 'invoice'), flash_options
+        redirect_to transaction_path(@invoice, type: 'invoice'), flash_options
       else
         redirect_to tenant_invoice_path(@invoice, token: @invoice.guest_access_token), flash_options
       end

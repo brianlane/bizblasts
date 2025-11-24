@@ -35,9 +35,18 @@
     <meta name="twitter:site" content="@BizBlasts">
     <meta name="twitter:title" content="<%= html_escape(content_for(:title) || 'BizBlasts - Professional Websites & Booking Systems') %>">
     <meta name="twitter:description" content="<%= html_escape(content_for(:meta_description) || 'Professional websites, booking systems, and payment tools for businesses.') %>">
-    <meta property="og:image" content="<%= html_escape("#{request.protocol}#{request.host_with_port}#{asset_path('bizblasts-logo.svg')}") %>">
+    <meta name="twitter:image" content="<%= html_escape("#{request.protocol}#{request.host_with_port}#{asset_path('bizblasts-logo.svg')}") %>">
     <meta name="twitter:image:alt" content="BizBlasts - Professional Business Websites and Booking Systems">
-    
+
+    <!-- Business-specific meta tags when in tenant context -->
+    <% if defined?(current_tenant) && current_tenant&.logo&.attached? %>
+      <!-- Override default platform image with business logo -->
+      <meta property="og:image" content="<%= html_escape(business_logo_url(current_tenant, size: :large)) %>">
+      <meta property="og:image:alt" content="<%= html_escape(current_tenant.name) %> Logo">
+      <meta name="twitter:image" content="<%= html_escape(business_logo_url(current_tenant, size: :large)) %>">
+      <meta name="twitter:image:alt" content="<%= html_escape(current_tenant.name) %> Logo">
+    <% end %>
+
     <!-- Structured Data for Organization -->
     <script type="application/ld+json">
     <%
@@ -124,40 +133,54 @@
     <%# Stylesheet: Tailwind output then custom application styles %>
     <%= stylesheet_link_tag "tailwind", data: { "turbo-track": "reload" } %>
     <%= stylesheet_link_tag "custom", data: { "turbo-track": "reload" } %>
-    
-    <% begin %>
-      <%= javascript_include_tag "application", defer: true %>
-    <% rescue => e %>
-      <% Rails.logger.error "Failed to load JavaScript with helper: #{e.message}" %>
-      <script src="/assets/application.js" defer></script>
-    <% end %>
+
+    <%= javascript_include_tag "application", defer: true %>
   </head>
 
-  <body>
+  <% enhanced_body = content_for?(:body_class) && content_for(:body_class).include?('enhanced-layout-active') %>
+  <% body_classes = content_for?(:body_class) ? content_for(:body_class) : '' %>
+  <% accent_style = if enhanced_body && ActsAsTenant.current_tenant
+                      accent_palette_style(ActsAsTenant.current_tenant.enhanced_accent_color)
+                    else
+                      ''
+                    end %>
+  <body class="<%= body_classes %>" style="<%= accent_style %>">
     <%# Enhanced Professional Navigation Header %>
-    <nav class="bg-white border-b border-gray-200 shadow-sm">
+    <% nav_classes = if enhanced_body
+         "bg-[rgba(10,17,33,0.92)] border-b border-white/10 shadow-[0_12px_30px_-20px_rgba(8,11,24,0.8)] backdrop-blur-lg"
+       else
+         "bg-white border-b border-gray-200 shadow-sm"
+       end %>
+    <nav class="<%= nav_classes %>">
       <!-- Main Header -->
       <div class="container mx-auto px-4 py-3">
         <div class="flex justify-between items-center">
           <!-- Logo and Brand -->
           <div class="flex items-center min-w-0 flex-shrink-0">
-            <% if request.subdomain.present? && request.subdomain != 'www' && ActsAsTenant.current_tenant %>
+            <% if ActsAsTenant.current_tenant %>
               <!-- BizBlasts Logo - links to main domain -->
               <%= link_to main_domain_url_for('/'), class: "hover:opacity-80 transition-opacity mr-3" do %>
-                <% begin %>
-                  <%= image_tag "bizblasts-logo.svg", alt: "BizBlasts - Professional Business Websites and Booking Systems", class: "h-10 w-auto" %>
-                <% rescue => e %>
-                  <img src="<%= asset_path('bizblasts-logo.svg') rescue '/bizblasts-logo.svg' %>" 
-                       alt="BizBlasts - Professional Business Websites and Booking Systems" class="h-10 w-auto" />
+                <%= image_tag "bizblasts-logo.svg", alt: "BizBlasts - Professional Business Websites and Booking Systems", class: "h-10 w-auto" %>
+              <% end %>
+
+              <!-- Business Logo (when not on homepage) -->
+              <% if ActsAsTenant.current_tenant.logo.attached? && !request.path.in?(['/', '/home']) %>
+                <%= link_to tenant_root_path, class: "hover:opacity-80 transition-opacity mr-3" do %>
+                  <div class="h-10 w-10 border border-gray-200 rounded overflow-hidden bg-white flex items-center justify-center">
+                    <%= image_tag business_logo_url(ActsAsTenant.current_tenant, size: :thumb),
+                        alt: "#{ActsAsTenant.current_tenant.name} Logo",
+                        class: "h-8 w-8 object-contain" %>
+                  </div>
                 <% end %>
               <% end %>
-              <!-- Company Name - links to tenant subdomain -->
+
+              <!-- Company Name - links to tenant home -->
               <%= link_to tenant_root_path, class: "hover:opacity-80 transition-opacity" do %>
-                <span class="font-bold text-lg text-primary whitespace-nowrap"><%= ActsAsTenant.current_tenant.name %></span>
+                <span class="font-bold text-lg whitespace-nowrap <%= enhanced_body ? 'text-blue-200' : 'text-primary' %>"><%= ActsAsTenant.current_tenant.name %></span>
               <% end %>
             <% else %>
               <%= link_to root_path, class: "flex items-center hover:opacity-80 transition-opacity" do %>
-                <span class="font-bold text-lg text-primary whitespace-nowrap">BizBlasts</span>
+                <span class="font-bold text-lg whitespace-nowrap <%= enhanced_body ? 'text-blue-200' : 'text-primary' %>">BizBlasts</span>
               <% end %>
             <% end %>
           </div>
@@ -188,19 +211,7 @@
                   <% dashboard_path = business_manager_dashboard_path %>
                 <% else %>
                   <%# User is on main domain or different business subdomain - redirect to their own business %>
-                  <% if Rails.env.development? || Rails.env.test? %>
-                    <% if business.host_type_subdomain? %>
-                      <% dashboard_path = "http://#{business.hostname}.lvh.me:#{request.port}/manage/dashboard" %>
-                    <% else %>
-                      <% dashboard_path = "http://#{business.hostname}:#{request.port}/manage/dashboard" %>
-                    <% end %>
-                  <% else %>
-                    <% if business.host_type_custom_domain? %>
-                      <% dashboard_path = "#{request.protocol}#{business.hostname}/manage/dashboard" %>
-                    <% else %>
-                      <% dashboard_path = "#{request.protocol}#{business.hostname}.bizblasts.com/manage/dashboard" %>
-                    <% end %>
-                  <% end %>
+                  <% dashboard_path = TenantHost.url_for_with_auth(business, request, '/manage/dashboard', user_signed_in: user_signed_in?, current_user: current_user) %>
                 <% end %>
               <% else %>
                 <% dashboard_path = root_path %>
@@ -224,7 +235,8 @@
               <!-- Guest User Actions -->
               <div class="flex items-stretch md:items-center space-x-2 md:space-x-0 md:space-x-3">
                 <% unless request.path == new_user_session_path %>
-                  <%= link_to "Sign In", new_user_session_path, class: "bg-white border border-primary text-primary px-1 py-1 md:px-4 md:py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors duration-200 text-center text-xs md:text-base" %>
+                  <% sign_in_classes = enhanced_body ? "bg-primary text-white hover:bg-blue-600 accent-link-white" : "bg-white border border-primary text-primary hover:bg-gray-50" %>
+                  <%= link_to "Sign In", new_user_session_path, class: "#{sign_in_classes} px-1 py-1 md:px-4 md:py-2 rounded-lg font-medium transition-colors duration-200 text-center text-xs md:text-base" %>
                 <% end %>
                 <%= link_to "Customer Sign Up", new_client_registration_path, class: "bg-accent hover:bg-orange-600 text-white px-1 py-1 md:px-4 md:py-2 rounded-lg font-medium transition-colors duration-200 text-center text-xs md:text-base" %>
                 <%= link_to "Business Sign Up", new_business_registration_path, class: "bg-secondary hover:bg-teal-600 text-white px-1 py-1 md:px-4 md:py-2 rounded-lg font-medium transition-colors duration-200 text-center text-xs md:text-base" %>
@@ -243,7 +255,7 @@
             <div class="container mx-auto px-4">
               <!-- Mobile Menu Toggle (visible on small screens) -->
               <div class="sm:hidden py-2">
-                <button id="mobile-nav-toggle" class="flex items-center text-gray-600 hover:text-primary transition-colors">
+                <button id="mobile-nav-toggle" class="cursor-pointer flex items-center text-gray-600 hover:text-primary transition-colors">
                   <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                   </svg>
@@ -370,22 +382,66 @@
     <%# Flash messages %>
     <div class="container mx-auto px-4">
       <% flash.each do |type, msg| %>
-        <div class="flash-message flash-<%= type %> mb-4 p-3 rounded 
-                    <%= type == 'notice' ? 'bg-success text-white' : '' %> 
-                    <%= type == 'alert' ? 'bg-error text-white' : '' %>
-             role="alert">
+        <% flash_classes = ["flash-message", "flash-#{type}", "mb-4", "p-3", "rounded"] %>
+        <% if enhanced_body %>
+          <% if type == 'notice' %>
+            <% flash_classes << "bg-[var(--accent-base)] text-white shadow-lg shadow-[rgba(0,0,0,0.35)] border-none" %>
+          <% elsif type == 'alert' %>
+            <% flash_classes << "bg-red-500 text-white shadow-lg shadow-[rgba(0,0,0,0.35)] border-none" %>
+          <% else %>
+            <% flash_classes << "bg-[rgba(15,23,42,0.85)] text-white shadow border border-white/10" %>
+          <% end %>
+        <% else %>
+          <% flash_classes << (type == 'notice' ? 'bg-success text-white' : '') %>
+          <% flash_classes << (type == 'alert' ? 'bg-error text-white' : '') %>
+        <% end %>
+        <div class="<%= flash_classes.join(' ') %>" role="alert">
           <%= msg %>
         </div>
       <% end %>
     </div>
 
-    <main class="container mx-auto px-4">
+    <% main_classes = "container mx-auto px-4" %>
+    <main class="<%= main_classes %>">
       <%= yield %>
     </main>
 
-    <div class="container mx-auto px-4 text-center text-sm text-gray-500 mt-8">
-      <a href="#" class="termly-display-preferences">Consent Preferences</a>
-    </div>
+    <!-- Combined Footer with Policy Links and Copyright -->
+    <% enhanced_body = content_for?(:body_class) && content_for(:body_class).include?('enhanced-layout-active') %>
+    <% footer_classes = enhanced_body ? "bg-transparent py-6" : "bg-gray-50 py-2" %>
+    <% footer_text_classes = enhanced_body ? "container mx-auto px-4 text-center text-sm text-gray-400" : "container mx-auto px-4 text-center text-sm text-gray-500" %>
+
+    <footer class="<%= footer_classes %>">
+      <div class="<%= footer_text_classes %>">
+        <% if ActsAsTenant.current_tenant %>
+          <!-- Tenant pages: Policy links left, copyright right -->
+          <div class="flex flex-col md:flex-row md:justify-between md:items-center space-y-2 md:space-y-0">
+            <!-- Policy Links -->
+            <div>
+              <a href="#" class="termly-display-preferences <%= 'text-gray-300 hover:text-gray-100' if enhanced_body %>">Consent Preferences</a>
+              •
+              <%= link_to "Privacy Policy", privacypolicy_path, class: "termly-privacy-preferences #{'text-gray-300 hover:text-gray-100' if enhanced_body}", data: { turbo: false } %>
+              •
+              <%= link_to "Terms of Service", terms_path, class: "termly-privacy-preferences #{'text-gray-300 hover:text-gray-100' if enhanced_body}", data: { turbo: false } %>
+            </div>
+            
+            <!-- Business Copyright -->
+            <div class="<%= enhanced_body ? 'text-gray-300' : 'text-gray-600' %>">
+              &copy; <%= Date.current.year %> <%= ActsAsTenant.current_tenant.name %>. All rights reserved.
+            </div>
+          </div>
+        <% else %>
+          <!-- Main domain: Policy links centered -->
+          <div>
+            <a href="#" class="termly-display-preferences <%= 'text-gray-300 hover:text-gray-100' if enhanced_body %>">Consent Preferences</a>
+            •
+            <%= link_to "Privacy Policy", privacypolicy_path, class: "termly-privacy-preferences #{'text-gray-300 hover:text-gray-100' if enhanced_body}", data: { turbo: false } %>
+            •
+            <%= link_to "Terms of Service", terms_path, class: "termly-privacy-preferences #{'text-gray-300 hover:text-gray-100' if enhanced_body}", data: { turbo: false } %>
+          </div>
+        <% end %>
+      </div>
+    </footer>
 
     <%# Policy Acceptance Modal - Only render for users who need policy acceptance %>
     <% if user_signed_in? && current_user.requires_policy_acceptance? %>

@@ -43,6 +43,33 @@
 
     <%# Hidden field for service_id %>
     <%= form.hidden_field :service_id, value: @service.id %>
+    <%# Service Variant selection %>
+    <% if @service.service_variants.any? && @service_variant.nil? %>
+      <div class="mb-4">
+        <%= form.label :service_variant_id, "Choose Option", class: "block text-gray-700 text-sm font-bold mb-2" %>
+        <% variants = @service.service_variants.active.by_position %>
+        <% variant_collection = variants.map { |v| OpenStruct.new(id: v.id, name: "#{v.name} (#{number_to_currency(v.price)})") } %>
+        <% auto_selected = variants.size == 1 ? variants.first.id : nil %>
+        <%= render 'shared/rich_dropdown',
+            collection: variant_collection,
+            field_name: "booking[service_variant_id]",
+            selected_value: auto_selected,
+            prompt_text: variants.size == 1 ? "Selected" : "Select an option",
+            value_method: :id,
+            text_method: :name,
+            required: true,
+            dropdown_id: "service_variant_dropdown" %>
+      </div>
+    <% elsif @service_variant.present? %>
+      <%# Display selected service variant as read-only using shared partial %>
+      <%= render 'shared/service_variant_readonly', 
+            form: form, 
+            service_variant: @service_variant, 
+            service: @service,
+            label: "Choose Option" %>
+    <% elsif @service.default_variant.present? %>
+      <%= form.hidden_field :service_variant_id, value: @service.default_variant.id %>
+    <% end %>
 
     <% if current_user&.role == 'client' || current_user.nil? %>
       <%# Client or guest: hidden staff_member_id and tenant_customer_id %>
@@ -76,10 +103,11 @@
         <%= form.label :tenant_customer_id, "Customer", class: "block text-gray-700 text-sm font-bold mb-2" %>
         
         <!-- Custom Customer Dropdown -->
-        <div class="customer-dropdown relative">
+        <div class="customer-dropdown relative" data-controller="customer-dropdown" data-customer-dropdown-selected-value-value="<%= @booking.tenant_customer_id %>">
           <button type="button" 
                   class="customer-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
-                  data-customer-dropdown-target="button">
+                  data-customer-dropdown-target="button"
+                  data-action="click->customer-dropdown#toggle">
             <span class="customer-dropdown-text text-gray-900">
               <% if @booking.tenant_customer_id.present? %>
                 <% customer = @business.tenant_customers.find(@booking.tenant_customer_id) %>
@@ -102,7 +130,8 @@
             <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
                  data-customer-id=""
                  data-customer-name="Select existing customer"
-                 data-customer-dropdown-target="option">
+                 data-customer-dropdown-target="option"
+                 data-action="click->customer-dropdown#select">
               <div class="flex items-center justify-between">
                 <div class="flex-1">
                   <div class="font-medium text-gray-500">Select existing customer</div>
@@ -121,7 +150,8 @@
               <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
                    data-customer-id="<%= customer.id %>"
                    data-customer-name="<%= customer.email.present? ? "#{customer.full_name} (#{customer.email})" : customer.full_name %>"
-                   data-customer-dropdown-target="option">
+                   data-customer-dropdown-target="option"
+                   data-action="click->customer-dropdown#select">
                 <div class="flex items-center justify-between">
                   <div class="flex-1">
                     <div class="font-medium text-gray-900"><%= customer.full_name %></div>
@@ -146,7 +176,8 @@
             <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors border-t border-gray-200"
                  data-customer-id="new"
                  data-customer-name="Create new customer"
-                 data-customer-dropdown-target="option">
+                 data-customer-dropdown-target="option"
+                 data-action="click->customer-dropdown#select">
               <div class="flex items-center justify-between">
                 <div class="flex-1">
                   <div class="font-medium text-blue-600">+ Create new customer</div>
@@ -164,11 +195,11 @@
         </div>
         
         <!-- Hidden field to store the selected customer ID -->
-        <%= form.hidden_field :tenant_customer_id, id: "tenant_customer_id" %>
+        <%= form.hidden_field :tenant_customer_id, id: "tenant_customer_id", data: { customer_dropdown_target: "hidden" } %>
       </div>
 
       <!-- New customer fields (hidden by default) -->
-      <div id="new-tenant-customer-fields" class="hidden mb-4">
+      <div id="new-tenant-customer-fields" class="hidden mb-4" data-customer-dropdown-target="newCustomerFields">
         <h3 class="text-lg font-bold mb-2">New Customer Details</h3>
         <%= form.fields_for :tenant_customer_attributes, @booking.tenant_customer do |cust_fields| %>
           <div class="grid grid-cols-2 gap-4 mb-4">
@@ -210,7 +241,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
           To change, please 
-          <%= link_to "return to calendar", tenant_calendar_path(service_id: @service.id), class: "text-blue-600 hover:text-blue-800 underline" %>.
+          <%= link_to "return to calendar", tenant_calendar_path(service_id: @service.id, service_variant_id: @service_variant&.id || params[:service_variant_id]), class: "text-blue-600 hover:text-blue-800 underline" %>.
         </p>
       <% else %>
         <!-- Fallback if no start_time is set -->
@@ -221,12 +252,22 @@
       <% end %>
     </div>
 
+    <% if @service.event? && @service.event_starts_at.present? %>
+      <% event_zone = ActiveSupport::TimeZone[@service.business&.time_zone.presence || Time.zone.name] || Time.zone %>
+      <% event_start = @service.event_starts_at.in_time_zone(event_zone) %>
+      <div class="mb-4 p-3 bg-purple-50 border border-purple-200 rounded">
+        <p class="text-purple-800 text-sm">
+          <strong>Event Schedule:</strong> <%= event_start.strftime("%A, ") %><%= format_event_datetime(@service) %>
+        </p>
+      </div>
+    <% end %>
+
     <%# Add quantity input field - Potentially make this conditional based on service type %>
     <% if @service.experience? %>
       <div class="mb-4">
         <%= form.label :quantity, "Number of Attendees", class: "block text-sm font-medium text-gray-700 mb-2" %>
         <%= form.number_field :quantity, min: 1, max: @service.max_bookings, class: "form-input rounded border px-3 py-2 w-full", id: 'booking_quantity' %>
-        <p class="text-sm text-gray-500">Min: <%= @service.min_bookings %>, Max: <%= @service.max_bookings %>, Spots Remaining: <%= @service.spots %></p>
+        <p class="text-sm text-gray-500">Min: <%= @service.min_bookings %>, Max: <%= @service.max_bookings %>, Spots Remaining: <%= @service.spots || 0 %></p>
       </div>
     <% else %>
        <%# For standard services, quantity is always 1, submit as hidden field %>

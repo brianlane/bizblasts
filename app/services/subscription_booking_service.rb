@@ -109,10 +109,7 @@ class SubscriptionBookingService
         first_slot = available_slots.first
         booking_time = first_slot[:start_time] + time_offset
         
-        # Make sure the offset time is still within business hours
-        if booking_time.hour >= 9 && booking_time.hour <= 17
-          return booking_time
-        end
+        return booking_time
       end
     end
     
@@ -283,17 +280,17 @@ class SubscriptionBookingService
     # Send customer notification
     begin
       if defined?(BookingMailer) && BookingMailer.respond_to?(:subscription_booking_created)
-        BookingMailer.subscription_booking_created(booking).deliver_later
-        Rails.logger.info "[EMAIL] Sent subscription booking notification to customer for booking #{booking.id}"
+        NotificationService.subscription_booking_created(booking)
+        Rails.logger.info "[NOTIFICATION] Sent subscription booking notification (email + SMS) to customer for booking #{booking.id}"
       end
     rescue => e
-      Rails.logger.error "[EMAIL] Failed to send customer notification for booking #{booking.id}: #{e.message}"
+      Rails.logger.error "[NOTIFICATION] Failed to send customer notification for booking #{booking.id}: #{e.message}"
     end
 
     # Send business notification
     begin
       if defined?(BusinessMailer) && BusinessMailer.respond_to?(:subscription_booking_received)
-        BusinessMailer.subscription_booking_received(booking).deliver_later
+        BusinessMailer.subscription_booking_received(booking).deliver_later(queue: 'mailers')
         Rails.logger.info "[EMAIL] Sent subscription booking notification to business for booking #{booking.id}"
       end
     rescue => e

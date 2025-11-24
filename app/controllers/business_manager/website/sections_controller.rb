@@ -187,28 +187,40 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
   end
   
   def section_params
+    # Define allowed content keys for section content
+    allowed_content_keys = [
+      :title, :subtitle, :description, :content, :image_url, :link_url, :link_text,
+      :button_text, :button_url, :heading, :subheading, :text, :items, :layout,
+      :show_contact_form, :show_map, :show_hours, :show_social_links,
+      :grid_columns, :max_items, :show_pricing, :show_descriptions,
+      :company_name, :address, :phone, :email, :hours, :social_links,
+      items: [], social_links: {}
+    ]
+    
+    # Use proper strong parameter filtering for all parameters
     permitted_params = params.require(:page_section).permit(
-      :section_type, :content, :position, :active, :custom_css_classes,
-      :animation_type, section_config: {}, background_settings: {}
+      :section_type, :position, :active, :custom_css_classes, :animation_type,
+      section_config: {}, 
+      background_settings: {},
+      content: allowed_content_keys
     )
     
-    # Handle custom content format from edit form
+    # Handle alternative content parameter sources with proper filtering
     if params[:section_content].present?
-      # Define allowed keys for section content based on section types
-      allowed_content_keys = [
-        :title, :subtitle, :description, :content, :image_url, :link_url, :link_text,
-        :button_text, :button_url, :heading, :subheading, :text, :items, :layout,
-        :show_contact_form, :show_map, :show_hours, :show_social_links,
-        :grid_columns, :max_items, :show_pricing, :show_descriptions,
-        :company_name, :address, :phone, :email, :hours, :social_links,
-        items: [], social_links: {}
-      ]
       permitted_params[:content] = params.require(:section_content).permit(allowed_content_keys).to_h
     elsif params[:section_content_json].present?
       begin
-        permitted_params[:content] = JSON.parse(params[:section_content_json])
+        parsed_content = JSON.parse(params[:section_content_json])
+        # Filter the parsed JSON through strong parameters for security
+        if parsed_content.is_a?(Hash)
+          temp_params = ActionController::Parameters.new(parsed_content)
+          permitted_params[:content] = temp_params.permit(allowed_content_keys).to_h
+        else
+          # If parsed content is not a hash, convert to string and assign
+          permitted_params[:content] = parsed_content.to_s
+        end
       rescue JSON::ParserError
-        # If JSON parsing fails, keep the original content
+        # If JSON parsing fails, keep the original content unchanged
       end
     end
     

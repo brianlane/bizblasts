@@ -1,6 +1,6 @@
 <%# app/views/public/services/show.html.erb %>
 
-<div class="container mx-auto px-4 py-8">
+<div class="container mx-auto px-4 py-8" data-controller="dropdown-updater" data-dropdown-updater-service-id-value="<%= @service.id %>">
   <h1 class="text-3xl font-bold mb-4"><%= @service.name %></h1>
 
   <%# Display Service Images (Gallery or single primary) %>
@@ -10,31 +10,118 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <% if @service.primary_image.present? %>
           <div class="md:col-span-2">
-            <%= image_tag rails_public_blob_url(@service.primary_image.representation(resize_to_limit: [600, 400])), class: "w-full rounded-lg shadow-md object-cover" %>
+            <% main_img = @service.primary_image %>
+            <%= image_tag(
+                  rails_public_blob_url(main_img.variant(:large)),
+                  srcset: [
+                    "#{rails_public_blob_url(main_img.variant(:thumb))} 400w",
+                    "#{rails_public_blob_url(main_img.variant(:medium))} 1200w",
+                    "#{rails_public_blob_url(main_img.variant(:large))} 2000w"
+                  ].join(', '),
+                  sizes: '(max-width: 768px) 100vw, 1200px',
+                  class: "w-full rounded-lg shadow-md object-cover"
+                ) %>
           </div>
         <% end %>
         <% @service.images.ordered.each do |img|
              next if @service.primary_image.present? && img.id == @service.primary_image.id %>
            <div>
-             <%= image_tag rails_public_blob_url(img.representation(resize_to_limit: [300, 200])), class: "w-full rounded-lg shadow-md object-cover" %>
+             <%= image_tag(
+                   rails_public_blob_url(img.variant(:medium)),
+                   srcset: [
+                     "#{rails_public_blob_url(img.variant(:thumb))} 400w",
+                     "#{rails_public_blob_url(img.variant(:medium))} 1200w"
+                   ].join(', '),
+                   sizes: '(max-width: 768px) 100vw, 600px',
+                   class: "w-full rounded-lg shadow-md object-cover"
+                 ) %>
            </div>
         <% end %>
       </div>
     </div>
   <% end %>
 
+  <% variants_available = @service.service_variants.active.any? %>
+  <% if variants_available %>
+    <% variants = @service.service_variants.active.by_position %>
+    <% selected_variant = @service_variant || variants.first %>
+  <% end %>
+
   <div class="mb-6">
     <h3 class="text-xl font-semibold mb-2">Details</h3>
     <p class="text-gray-700 mb-6"><%= simple_format(@service.description) %></p>
+    <% if variants_available %>
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Choose Option</label>
+        <div class="variant-dropdown relative" id="variant-dropdown" 
+             data-controller="dropdown" 
+             data-action="dropdown:selected->dropdown-updater#update"
+             <% if @service_variant.present? %>
+               data-dropdown-selected-value-value="<%= @service_variant.id %>" 
+               data-dropdown-selected-text-value="<%= @service_variant.label %>"
+             <% end %>>
+          <button type="button"
+                  class="variant-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                  data-dropdown-target="button"
+                  data-action="click->dropdown#toggle">
+            <span class="variant-dropdown-text rich-dropdown-text text-gray-900">
+              <%= selected_variant.label %>
+            </span>
+            <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+              <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </span>
+          </button>
+          <div class="variant-dropdown-menu absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden" data-dropdown-target="menu">
+            <% variants.each do |variant| %>
+              <div class="variant-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                   data-item-id="<%= variant.id %>"
+                   data-item-text="<%= variant.label %>"
+                   data-price="<%= variant.price %>"
+                   data-duration="<%= variant.duration %>"
+                   data-dropdown-target="option"
+                   data-action="click->dropdown#select">
+                <div class="flex items-center justify-between">
+                  <div class="font-medium text-gray-900"><%= variant.name %></div>
+                  <div class="ml-3 text-right">
+                    <div class="text-sm font-medium text-blue-600"><%= number_to_currency(variant.price) %></div>
+                    <div class="text-xs text-gray-500"><%= variant.duration %> min</div>
+                  </div>
+                </div>
+                <% if selected_variant.id == variant.id %>
+                  <span class="absolute inset-y-0 right-2 flex items-center text-blue-600"><svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg></span>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+          <input type="hidden" id="selected_variant_id" value="<%= selected_variant.id %>" data-dropdown-target="hidden" />
+        </div>
+      </div>
+    <% end %>
     <br>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <% if @service.service_variants.active.any? %>
+        <% min_dur = @service.service_variants.active.minimum(:duration) %>
+        <% max_dur = @service.service_variants.active.maximum(:duration) %>
+        <% min_price = @service.service_variants.active.minimum(:price) %>
+        <% max_price = @service.service_variants.active.maximum(:price) %>
+      <% end %>
+
       <div>
-        <p class="text-gray-900 font-medium">Duration: <%= @service.duration %> minutes</p>
-        
-        <!-- Promotional Pricing Display -->
+        <% if @service.service_variants.active.any? %>
+          <p class="text-gray-900 font-medium">Duration: <span id="service-duration" data-dropdown-updater-target="duration"><%= min_dur == max_dur ? "#{min_dur} min" : "#{min_dur}-#{max_dur} min" %></span></p>
+        <% else %>
+          <p class="text-gray-900 font-medium">Duration: <%= @service.duration %> minutes</p>
+        <% end %>
+       
+        <!-- Pricing Display -->
         <div class="pricing-section mt-2">
-          <% if @service.on_promotion? %>
+          <% if @service.service_variants.active.any? %>
+            <% price_display = min_price == max_price ? number_to_currency(min_price) : "#{number_to_currency(min_price)} - #{number_to_currency(max_price)}" %>
+            <p class="text-gray-900 font-medium text-xl">
+              Price: <span id="service-price" data-dropdown-updater-target="price"><%= price_display %></span>
+            </p>
+          <% elsif @service.on_promotion? %>
             <!-- Show promotional badge -->
             <div class="mb-2">
               <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
@@ -57,7 +144,7 @@
           <% else %>
             <!-- Regular pricing -->
             <p class="text-gray-900 font-medium text-xl">
-              Price: <%= number_to_currency(@service.price) %>
+              Price: <span id="service-price" data-dropdown-updater-target="price"><%= number_to_currency(@service.price) %></span>
             </p>
           <% end %>
         </div>
@@ -66,7 +153,10 @@
          <% if @service.experience? %>
            <p class="text-gray-900 font-medium">Minimum Bookings: <%= @service.min_bookings %></p>
            <p class="text-gray-900 font-medium">Maximum Bookings: <%= @service.max_bookings %></p>
-           <p class="text-gray-900 font-medium">Spots Available: <%= @service.spots %></p>
+           <p class="text-gray-900 font-medium">Spots Available: <%= @service.spots || 0 %></p>
+           <% if @service.event? && @service.event_starts_at.present? %>
+             <p class="text-gray-900 font-medium">Event Date: <%= format_event_datetime(@service) %></p>
+           <% end %>
          <% end %>
       </div>
     </div>
@@ -166,9 +256,18 @@
             
             <% first_active_staff = @service.staff_members.active.first %>
             <% if first_active_staff.present? || @service.standard? %>
+              <% calendar_params = { service_id: @service.id, staff_member_id: first_active_staff&.id } %>
+              <% if @service_variant.present? %>
+                <% calendar_params[:service_variant_id] = @service_variant.id %>
+              <% elsif @service.service_variants.active.count == 1 %>
+                <% calendar_params[:service_variant_id] = @service.service_variants.active.first.id %>
+              <% end %>
+              <% default_booking_path = tenant_calendar_path(calendar_params) %>
+              <% booking_path = book_now_path_with_service_area(fallback_path: default_booking_path, service: @service) %>
               <%= link_to "Book Now", 
-                  tenant_calendar_path(service_id: @service.id, staff_member_id: first_active_staff&.id), 
-                  class: "w-full bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition duration-300" %>
+                  booking_path, 
+                  data: { "dropdown-updater-target": "bookLink" },
+                  id: "book-now-link", class: "w-full bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition duration-300" %>
             <% else %>
               <p class="text-red-600 text-sm">Currently unavailable (no active staff)</p>
             <% end %>
@@ -250,46 +349,40 @@
             </ul>
             
             <!-- Subscription Form -->
-            <%= form_tag subscriptions_path, method: :post, class: "subscription-form" do %>
+            <%= form_with url: new_subscription_path, method: :get, local: true, html: { class: "subscription-form" } do %>
               <%= hidden_field_tag :service_id, @service.id %>
               <%= hidden_field_tag :subscription_type, 'service_subscription' %>
-              
-              <div class="mb-3">
-                <label for="subscription_quantity" class="block text-sm font-medium text-purple-700 mb-1">Monthly appointments:</label>
-                <input type="number" name="quantity" id="subscription_quantity" value="1" min="1" max="4"
-                       class="w-20 mx-auto border-purple-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500">
-                <span class="text-xs text-purple-600 block mt-1">appointments per month</span>
-              </div>
-              
+              <!--subscription monthly appointments is stored in the subscription model from the service view, not the services view (duplicate)-->
               <% if @service.allow_customer_preferences? %>
                 <div class="mb-3">
                   <label for="rebooking_preference" class="block text-sm font-medium text-purple-700 mb-1">Rebooking preference:</label>
-                  <select name="customer_rebooking_preference" id="rebooking_preference" 
-                          class="w-full border-purple-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm">
-                    <option value="">Use business default</option>
-                    <option value="same_day_next_month">Same day next month (or soonest available)</option>
-                    <% if @service.business.loyalty_program_enabled? %>
-                      <option value="same_day_loyalty_fallback">Same day next month (or loyalty points if unavailable)</option>
-                    <% end %>
-                  </select>
+                  <%= render 'shared/rich_dropdown',
+                        collection: [OpenStruct.new(id: '', name: 'Use business default'), OpenStruct.new(id: 'same_day_next_month', name: 'Same day next month (or soonest available)')] + (@service.business.loyalty_program_enabled? ? [OpenStruct.new(id: 'same_day_loyalty_fallback', name: 'Same day next month (or loyalty points if unavailable)')] : []),
+                        field_name: 'customer_rebooking_preference',
+                        selected_value: params[:customer_rebooking_preference],
+                        prompt_text: 'Use business default',
+                        value_method: :id,
+                        text_method: :name,
+                        dropdown_id: 'public_service_rebooking_dropdown' %>
                 </div>
                 
                 <% if @service.staff_members.active.any? %>
                   <div class="mb-3">
                     <label for="preferred_staff_member" class="block text-sm font-medium text-purple-700 mb-1">Staff preference:</label>
-                    <select name="preferred_staff_member_id" id="preferred_staff_member" 
-                            class="w-full border-purple-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm">
-                      <option value="">Any available staff member</option>
-                      <% @service.staff_members.active.each do |staff_member| %>
-                        <option value="<%= staff_member.id %>"><%= staff_member.name %></option>
-                      <% end %>
-                    </select>
+                    <%= render 'shared/rich_dropdown',
+                          collection: [OpenStruct.new(id: '', name: 'Any available staff member')] + @service.staff_members.active.map { |sm| OpenStruct.new(id: sm.id, name: sm.name) },
+                          field_name: 'preferred_staff_member_id',
+                          selected_value: params[:preferred_staff_member_id],
+                          prompt_text: 'Any available staff member',
+                          value_method: :id,
+                          text_method: :name,
+                          dropdown_id: 'public_service_staff_dropdown' %>
                   </div>
                 <% end %>
               <% end %>
               
               <%= submit_tag 'Start Subscription', 
-                    class: 'w-full bg-purple-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-purple-700 transition duration-300' %>
+                    class: 'w-full bg-purple-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-purple-700 transition duration-300 cursor-pointer' %>
             <% end %>
           </div>
         </div>
@@ -308,8 +401,17 @@
     <div class="mt-8 text-center">
              <% first_active_staff = @service.staff_members.active.first %>
        <% if first_active_staff.present? || @service.standard? %>
-         <%= link_to "Book Now", 
-             tenant_calendar_path(service_id: @service.id, staff_member_id: first_active_staff&.id), 
+         <% booking_params = { service_id: @service.id, staff_member_id: first_active_staff&.id } %>
+         <% if @service_variant.present? %>
+           <% booking_params[:service_variant_id] = @service_variant.id %>
+         <% elsif @service.service_variants.active.count == 1 %>
+           <% booking_params[:service_variant_id] = @service.service_variants.active.first.id %>
+         <% end %>
+        <% default_path = tenant_calendar_path(booking_params) %>
+        <% booking_path = book_now_path_with_service_area(fallback_path: default_path, service: @service) %>
+        <%= link_to "Book Now", 
+            booking_path, 
+             data: { "dropdown-updater-target": "bookLink" },
              class: "inline-block bg-green-600 text-white text-xl font-bold px-8 py-4 rounded-full hover:bg-green-700 transition duration-300" %>
       <% else %>
          <p class="text-red-600 text-lg">Booking currently unavailable for this service (no active staff).</p>
@@ -321,3 +423,5 @@
     <%= link_to '← Back to Services', tenant_services_page_path, class: "text-blue-600 hover:underline" %>
   </div>
 </div> 
+
+ 

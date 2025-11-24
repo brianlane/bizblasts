@@ -1,18 +1,27 @@
 <% content_for :title, "Website Pages" %>
 
-<div class="space-y-6">
+<div class="space-y-6" 
+     data-controller="pages-manager" 
+     data-pages-manager-update-priority-url-value="<%= update_priority_business_manager_website_pages_path %>" 
+     data-action="click@document->pages-manager#closeMenus">
   <!-- Header -->
   <div class="flex justify-between items-center">
     <div>
       <h1 class="text-2xl font-bold text-gray-900">Website Builder</h1>
       <p class="text-gray-600 mt-1">Build and customize your professional website</p>
     </div>
-    <div class="space-x-3">
+    <div class="flex items-center space-x-3">
+      <!-- Sort Dropdown -->
+      <%= select_tag :sort, options_for_select(@sort_options, params[:sort]), 
+                     { class: "bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm",
+                       "data-pages-manager-target" => "sortSelect",
+                       "data-action" => "change->pages-manager#sortChanged" } %>
+      
       <%= link_to "Show Site", root_url(subdomain: current_business.host_type_subdomain? ? current_business.hostname : nil), 
                   class: "bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors",
                   target: "_blank" %>
       <%= link_to "Create Page", new_business_manager_website_page_path, 
-                  class: "bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors" %>
+                  class: "bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors cursor-pointer" %>
     </div>
   </div>
 
@@ -47,41 +56,97 @@
     </nav>
   </div>
 
-  <!-- Quick Stats -->
-  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+  <!-- Enhanced Quick Stats -->
+  <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
     <div class="bg-white border border-gray-200 rounded-lg p-4">
-      <div class="flex items-center">
-        <div class="text-2xl font-bold text-blue-600"><%= @pages.count %></div>
-        <div class="ml-2 text-sm text-gray-600">Total Pages</div>
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-2xl font-bold text-blue-600"><%= @pages.count %></div>
+          <div class="text-sm text-gray-600">Total Pages</div>
+        </div>
+        <div class="text-blue-500">
+          <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </div>
       </div>
     </div>
     <div class="bg-white border border-gray-200 rounded-lg p-4">
-      <div class="flex items-center">
-        <div class="text-2xl font-bold text-green-600"><%= @pages.published.count %></div>
-        <div class="ml-2 text-sm text-gray-600">Published</div>
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-2xl font-bold text-green-600"><%= @pages.published.count %></div>
+          <div class="text-sm text-gray-600">Published</div>
+        </div>
+        <div class="w-3 h-3 bg-green-500 rounded-full"></div>
       </div>
     </div>
     <div class="bg-white border border-gray-200 rounded-lg p-4">
-      <div class="flex items-center">
-        <div class="text-2xl font-bold text-yellow-600"><%= @pages.draft.count %></div>
-        <div class="ml-2 text-sm text-gray-600">Drafts</div>
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-2xl font-bold text-yellow-600"><%= @pages.draft.count %></div>
+          <div class="text-sm text-gray-600">Drafts</div>
+        </div>
+        <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
       </div>
     </div>
     <div class="bg-white border border-gray-200 rounded-lg p-4">
-      <div class="flex items-center">
-        <div class="text-2xl font-bold text-purple-600"><%= @pages.sum { |p| p.page_sections.count } %></div>
-        <div class="ml-2 text-sm text-gray-600">Total Sections</div>
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-2xl font-bold text-purple-600"><%= @pages.sum { |p| p.page_sections.count } %></div>
+          <div class="text-sm text-gray-600">Total Sections</div>
+        </div>
+        <div class="text-purple-500">
+          <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white border border-gray-200 rounded-lg p-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-2xl font-bold text-indigo-600"><%= @pages.sum(&:view_count) %></div>
+          <div class="text-sm text-gray-600">Total Views</div>
+        </div>
+        <div class="text-indigo-500">
+          <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+            <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+          </svg>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Pages Grid -->
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  <!-- Enhanced Pages Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-pages-manager-target="pageGrid">
     <% @pages.each do |page| %>
-      <div class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-        <!-- Page Preview -->
-        <div class="h-40 bg-gradient-to-br from-gray-50 to-gray-100 rounded-t-lg relative overflow-hidden">
-          <div class="absolute inset-0 p-4">
+      <div class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 group" 
+           data-controller="page-card"
+           data-page-card-page-id-value="<%= page.id %>"
+           data-page-card-status-value="<%= page.status %>"
+           data-page-card-priority-value="<%= page.priority %>"
+           data-page-card-view-count-value="<%= page.view_count %>"
+           data-page-card-performance-score-value="<%= page.performance_score || 0 %>"
+           data-page-id="<%= page.id %>">
+        <!-- Enhanced Page Preview -->
+        <div class="h-40 bg-gradient-to-br from-gray-50 to-gray-100 rounded-t-lg relative overflow-hidden" data-page-card-target="thumbnail">
+          <!-- Priority Indicator -->
+          <% if page.priority > 0 %>
+            <div class="absolute top-2 left-2 z-10">
+              <% case page.priority_level %>
+              <% when 'critical' %>
+                <span class="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold">🔥 Critical</span>
+              <% when 'high' %>
+                <span class="bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-medium">⚡ High</span>
+              <% when 'medium' %>
+                <span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">📌 Medium</span>
+              <% end %>
+            </div>
+          <% end %>
+
+          <!-- Page Content Preview -->
+          <div class="absolute inset-0 p-4 pt-12">
             <!-- Mock page layout -->
             <div class="space-y-2">
               <div class="h-3 bg-gray-300 rounded" style="width: 70%;"></div>
@@ -91,117 +156,233 @@
                 <div class="h-1 bg-gray-200 rounded" style="width: 85%;"></div>
               </div>
               
-              <!-- Section indicators -->
+              <!-- Enhanced Section indicators -->
               <div class="flex space-x-1 mt-3">
-                <% page.page_sections.limit(4).each do |section| %>
-                  <div class="w-6 h-4 bg-blue-200 rounded-sm border border-blue-300 flex items-center justify-center">
-                    <span class="text-[6px] text-blue-600 font-bold">
+                <% page.page_sections.limit(5).each do |section| %>
+                  <div class="w-5 h-3 bg-blue-200 rounded-sm border border-blue-300 flex items-center justify-center">
+                    <span class="text-[5px] text-blue-600 font-bold">
                       <%= section.section_type.first.upcase %>
                     </span>
                   </div>
                 <% end %>
-                <% if page.page_sections.count > 4 %>
-                  <div class="w-6 h-4 bg-gray-200 rounded-sm border border-gray-300 flex items-center justify-center">
-                    <span class="text-[6px] text-gray-600">+<%= page.page_sections.count - 4 %></span>
+                <% if page.page_sections.count > 5 %>
+                  <div class="w-5 h-3 bg-gray-200 rounded-sm border border-gray-300 flex items-center justify-center">
+                    <span class="text-[5px] text-gray-600">+<%= page.page_sections.count - 5 %></span>
                   </div>
                 <% end %>
               </div>
             </div>
           </div>
           
-          <!-- Status Badge -->
-          <div class="absolute top-2 right-2">
-            <% if page.published? %>
-              <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Published</span>
-            <% elsif page.draft? %>
-              <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">Draft</span>
-            <% else %>
-              <span class="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">Archived</span>
-            <% end %>
+          <!-- Enhanced Status Badge with Traffic Light -->
+          <div class="absolute bottom-2 right-2">
+            <div data-page-card-target="statusIndicator" class="text-xs px-2 py-1 rounded-full font-medium">
+              <!-- Status will be updated by Stimulus controller -->
+            </div>
+          </div>
+          
+          <!-- Clear Action Buttons -->
+          <div class="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onclick="window.location.href='<%= business_manager_website_page_path(page) %>'"
+                    class="bg-blue-500 hover:bg-blue-600 text-white rounded p-1 text-xs cursor-pointer" title="Edit Page">
+              ✏️
+            </button>
+            <button onclick="window.location.href='<%= public_page_url(page) %>'"
+                    class="bg-gray-500 hover:bg-gray-600 text-white rounded p-1 text-xs cursor-pointer" title="Preview">
+              👁️
+            </button>
+            <%= link_to "🗑️", business_manager_website_page_path(page), 
+                       method: :delete,
+                       class: "bg-red-500 hover:bg-red-600 text-white rounded p-1 text-xs inline-block",
+                       title: "Delete Page",
+                       data: { confirm: "Are you sure you want to delete '#{page.title}'? This cannot be undone." } %>
           </div>
         </div>
 
-        <!-- Page Info -->
+        <!-- Enhanced Page Info -->
         <div class="p-4 space-y-3">
           <div>
             <h3 class="font-semibold text-gray-900 flex items-center">
-              <%= page.title %>
+              <!-- Page Type Icon -->
+              <% case page.page_type %>
+              <% when 'home' %>
+                🏠
+              <% when 'about' %>
+                ℹ️
+              <% when 'services' %>
+                ⚙️
+              <% when 'contact' %>
+                📞
+              <% when 'portfolio' %>
+                🎨
+              <% when 'team' %>
+                👥
+              <% when 'pricing' %>
+                💰
+              <% else %>
+                📄
+              <% end %>
+              
+              <span class="ml-2"><%= page.title %></span>
+              
               <% if page.show_in_menu? %>
-                <span class="ml-2 text-xs bg-blue-100 text-blue-600 px-1 rounded">Menu</span>
+                <span class="ml-2 text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">Menu</span>
+              <% end %>
+              
+              <% if page.page_type == 'home' %>
+                <span class="ml-2 text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded-full">Homepage</span>
               <% end %>
             </h3>
-            <p class="text-sm text-gray-500">
-              /<%= page.slug %>
+            <p class="text-sm text-gray-500 flex items-center space-x-2">
+              <span>/<%= page.slug %></span>
               <% if page.page_type != 'custom' %>
-                • <%= page.page_type.humanize %>
+                <span>•</span>
+                <span><%= page.page_type.humanize %></span>
               <% end %>
             </p>
           </div>
 
-          <!-- Section Summary -->
-          <div class="text-xs text-gray-600">
-            <%= pluralize(page.page_sections.count, 'section') %>
-            <% if page.page_sections.any? %>
-              • <%= page.page_sections.pluck(:section_type).uniq.join(', ') %>
-            <% end %>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="flex space-x-2 pt-2">
-            <%= link_to "Edit Page", business_manager_website_page_path(page), 
-                        class: "flex-1 text-center bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm transition-colors" %>
-            <%= link_to "Sections", business_manager_website_page_sections_path(page), 
-                        class: "flex-1 text-center bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded text-sm transition-colors" %>
-                            <%= link_to "Show Page", public_page_url(page), 
-                        class: "bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded text-sm transition-colors",
-                        target: "_blank" %>
-          </div>
-
-          <!-- Additional Info -->
-          <div class="flex justify-between items-center pt-2 border-t border-gray-100 text-xs text-gray-500">
-            <span>Updated <%= time_ago_in_words(page.updated_at) %> ago</span>
-            <div class="flex space-x-2">
-              <%= link_to "Settings", edit_business_manager_website_page_path(page), 
-                          class: "hover:text-gray-700" %>
-              <% unless page.essential_page? %>
-                <%= link_to "Delete", business_manager_website_page_path(page), 
-                            method: :delete,
-                            class: "text-red-500 hover:text-red-700",
-                            data: { confirm: "Are you sure? This cannot be undone." } %>
+          <!-- Enhanced Analytics Section -->
+          <div class="grid grid-cols-3 gap-2 text-xs">
+            <div class="text-center p-2 bg-gray-50 rounded">
+              <div class="font-semibold text-gray-900"><%= pluralize(page.page_sections.count, 'section') %></div>
+              <div class="text-gray-600">Sections</div>
+            </div>
+            <div class="text-center p-2 bg-gray-50 rounded">
+              <div class="font-semibold text-indigo-600"><%= page.view_count %></div>
+              <div class="text-gray-600">Views</div>
+            </div>
+            <div class="text-center p-2 bg-gray-50 rounded">
+              <% if page.performance_score.present? %>
+                <div class="font-semibold <%= page.performance_rating == 'excellent' ? 'text-green-600' : page.performance_rating == 'good' ? 'text-blue-600' : page.performance_rating == 'fair' ? 'text-yellow-600' : 'text-red-600' %>">
+                  <%= page.performance_score.to_i %>%
+                </div>
+                <div class="text-gray-600">Score</div>
+              <% else %>
+                <div class="font-semibold text-gray-400">--</div>
+                <div class="text-gray-600">Score</div>
               <% end %>
+            </div>
+          </div>
+
+          <!-- Clear Action Buttons -->
+          <div class="space-y-2 pt-2">
+            <!-- Primary Actions Row -->
+            <div class="grid grid-cols-2 gap-2">
+              <%= link_to "✏️ Edit Page", business_manager_website_page_path(page), 
+                          class: "text-center bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm transition-colors font-medium" %>
+              <%= link_to "🔧 Sections", business_manager_website_page_sections_path(page), 
+                          class: "text-center bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded text-sm transition-colors font-medium" %>
+            </div>
+            
+            <!-- Secondary Actions Row -->
+            <div class="grid grid-cols-2 gap-2">
+              <%= link_to "👁️ Preview", public_page_url(page), 
+                          class: "text-center bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded text-sm transition-colors font-medium",
+                          target: "_blank", 
+                          data: { action: "click->page-card#trackView" } %>
+              <%= link_to "🗑️ Delete", business_manager_website_page_path(page), 
+                         method: :delete,
+                         class: "text-center bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded text-sm transition-colors font-medium",
+                         data: { confirm: "Are you sure you want to delete '#{page.title}'? This cannot be undone." } %>
+            </div>
+          </div>
+
+          <!-- Enhanced Footer Info -->
+          <div class="pt-2 border-t border-gray-100 text-xs">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-gray-500">Updated <%= time_ago_in_words(page.updated_at) %> ago</span>
+              <% if page.last_viewed_at.present? %>
+                <span class="text-gray-400" title="Last viewed: <%= page.last_viewed_at.strftime('%B %d, %Y at %I:%M %p') %>">Viewed <%= time_ago_in_words(page.last_viewed_at) %> ago</span>
+              <% end %>
+            </div>
+            
+            <!-- Quick Actions Row -->
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <%= link_to "📋 Duplicate", duplicate_business_manager_website_page_path(page), 
+                           method: :post,
+                           class: "text-blue-600 hover:text-blue-800 text-xs" %>
+                <% unless page.published? %>
+                  <%= link_to "🚀 Publish", publish_business_manager_website_page_path(page), 
+                             method: :patch,
+                             class: "text-green-600 hover:text-green-800 text-xs" %>
+                <% end %>
+                <%= link_to "⚙️ Settings", edit_business_manager_website_page_path(page), 
+                           class: "text-gray-600 hover:text-gray-800 text-xs" %>
+              </div>
+              
+              <!-- Section Type Icons -->
+              <div class="flex items-center space-x-1">
+                <% if page.page_sections.any? %>
+                  <% page.page_sections.limit(3).each do |section| %>
+                    <span class="text-blue-500" title="<%= section.section_type.humanize %>">
+                      <% case section.section_type %>
+                      <% when 'header' %>
+                        📰
+                      <% when 'text' %>
+                        📝
+                      <% when 'image' %>
+                        🖼️
+                      <% when 'gallery' %>
+                        🖼️
+                      <% when 'video_embed' %>
+                        🎥
+                      <% when 'contact_form' %>
+                        📧
+                      <% else %>
+                        🔧
+                      <% end %>
+                    </span>
+                  <% end %>
+                <% end %>
+              </div>
             </div>
           </div>
         </div>
       </div>
     <% end %>
 
-    <!-- Add New Page Card -->
-    <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors">
-      <%= link_to new_business_manager_website_page_path, class: "flex flex-col items-center justify-center h-full min-h-[280px] text-gray-500 hover:text-blue-600" do %>
-        <div class="text-4xl mb-2">+</div>
-        <div class="text-sm font-medium">Create New Page</div>
-        <div class="text-xs text-gray-400 mt-1">Add a custom page to your website</div>
+    <!-- Enhanced Add New Page Card -->
+    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-dashed border-blue-300 rounded-lg hover:border-blue-400 hover:from-blue-100 hover:to-indigo-100 transition-all duration-200">
+      <%= link_to new_business_manager_website_page_path, class: "flex flex-col items-center justify-center h-full min-h-[280px] text-blue-600 hover:text-blue-700" do %>
+        <div class="text-5xl mb-3">✨</div>
+        <div class="text-lg font-semibold mb-1">Create New Page</div>
+        <div class="text-sm text-blue-500 text-center px-4">Add a custom page to your website<br>Choose from templates or start from scratch</div>
+        <div class="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors">
+          Get Started
+        </div>
       <% end %>
     </div>
+
+    <!-- Page Templates Gallery (Quick Template Selection) -->
+    <div class="col-span-full mt-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">📋 Quick Templates</h3>
+      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <% ['About Us', 'Services', 'Portfolio', 'Team', 'Pricing', 'Contact'].each do |template| %>
+          <%= link_to new_business_manager_website_page_path(template: template.downcase.gsub(' ', '_')), 
+                      class: "bg-white border border-gray-200 rounded-lg p-3 hover:border-blue-300 hover:shadow-md transition-all text-center" do %>
+            <div class="text-2xl mb-2">
+              <% case template %>
+              <% when 'About Us' %>
+                ℹ️
+              <% when 'Services' %>
+                ⚙️
+              <% when 'Portfolio' %>
+                🎨
+              <% when 'Team' %>
+                👥
+              <% when 'Pricing' %>
+                💰
+              <% when 'Contact' %>
+                📞
+              <% end %>
+            </div>
+            <div class="text-sm font-medium text-gray-900"><%= template %></div>
+            <div class="text-xs text-gray-500 mt-1">Template</div>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
   </div>
-</div>
-
-<script>
-// Add some page management functionality
-function initializePagesIndexPage() {
-  // Add hover effects
-  const pageCards = document.querySelectorAll('.bg-white.border.border-gray-200');
-  pageCards.forEach(card => {
-    card.addEventListener('mouseenter', function() {
-      this.style.transform = 'translateY(-2px)';
-    });
-    card.addEventListener('mouseleave', function() {
-      this.style.transform = 'translateY(0)';
-    });
-  });
-}
-
-// Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
-document.addEventListener('DOMContentLoaded', initializePagesIndexPage);
-document.addEventListener('turbo:load', initializePagesIndexPage);
-</script> 
+</div> 

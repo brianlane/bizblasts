@@ -117,10 +117,18 @@ RSpec.describe StaffController, type: :controller do
           'exceptions' => {}
         })
         
-        # Make the request to update availability
-        patch :update_availability, params: { 
-          id: staff_member.id, 
-          staff_member: { availability: valid_availability }
+        # Build params in the new indexed-hash format expected by the controller
+        param_availability = valid_availability.transform_values do |slots|
+          if slots.is_a?(Array)
+            slots.each_with_index.map { |slot, idx| [idx.to_s, slot] }.to_h
+          else
+            slots
+          end
+        end
+
+        patch :update_availability, params: {
+          id: staff_member.id,
+          staff_member: { availability: param_availability }
         }, format: :json
         
         # Reload the staff member to get the updated attributes
@@ -129,9 +137,17 @@ RSpec.describe StaffController, type: :controller do
       end
       
       it "returns a success status and message" do
-        patch :update_availability, params: { 
-          id: staff_member.id, 
-          staff_member: { availability: valid_availability }
+        param_availability = valid_availability.transform_values do |slots|
+          if slots.is_a?(Array)
+            slots.each_with_index.map { |slot, idx| [idx.to_s, slot] }.to_h
+          else
+            slots
+          end
+        end
+
+        patch :update_availability, params: {
+          id: staff_member.id,
+          staff_member: { availability: param_availability }
         }, format: :json
         
         expect(response).to have_http_status(:ok)
@@ -144,7 +160,7 @@ RSpec.describe StaffController, type: :controller do
     context "with invalid params" do
       let(:invalid_availability) do
         {
-          'monday' => [{ 'start' => '17:00', 'end' => '09:00' }] # End time before start time
+          'monday' => { '0' => { 'start' => '17:00', 'end' => '09:00' } } # End time before start time
         }
       end
       
@@ -155,12 +171,12 @@ RSpec.describe StaffController, type: :controller do
       end
       
       it "returns an error status and messages" do
-        patch :update_availability, params: { 
-          id: staff_member.id, 
+        patch :update_availability, params: {
+          id: staff_member.id,
           staff_member: { availability: invalid_availability }
         }, format: :json
         
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json_response = JSON.parse(response.body)
         expect(json_response['success']).to be false
         expect(json_response['errors']).to include('Error message')
@@ -170,8 +186,8 @@ RSpec.describe StaffController, type: :controller do
         calendar_data = { Date.today.to_s => [{ start_time: Time.current, end_time: Time.current + 1.hour }] }
         allow(AvailabilityService).to receive(:availability_calendar).and_return(calendar_data)
         
-        patch :update_availability, params: { 
-          id: staff_member.id, 
+        patch :update_availability, params: {
+          id: staff_member.id,
           staff_member: { availability: invalid_availability }
         }, format: :json
         

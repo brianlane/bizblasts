@@ -22,7 +22,7 @@
       </div>
 
       <!-- Password Field -->
-      <div>
+      <div class="mb-4 mt-4">
         <%= f.label :password, class: "block text-sm font-medium text-dark mb-1" %>
         <div class="relative">
           <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -37,7 +37,7 @@
 
       <!-- Remember Me -->
       <% if devise_mapping.rememberable? %>
-        <div class="flex items-center">
+        <div class="flex items-center mb-4 mt-4">
           <%= f.check_box :remember_me, class: "h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" %>
           <%= f.label :remember_me, class: "ml-2 block text-sm text-gray-700" %>
         </div>

@@ -105,10 +105,47 @@ RSpec.describe "Settings::BusinessController", type: :request do
         expect(business.logo).to be_attached
       end
 
+      it "removes the logo when remove_logo is selected" do
+        File.open(Rails.root.join('spec', 'fixtures', 'files', 'test_image.jpg')) do |file|
+          business.logo.attach(
+            io: file,
+            filename: 'test_image.jpg',
+            content_type: 'image/jpeg'
+          )
+        end
+        business.reload
+        expect(business.logo).to be_attached
+
+        patch business_manager_settings_business_path, params: { business: valid_attributes.merge(remove_logo: '1') }
+        business.reload
+
+        expect(business.logo).not_to be_attached
+      end
+
       it "redirects to the edit business settings page with a notice" do
         patch business_manager_settings_business_path, params: { business: valid_attributes }
         expect(response).to redirect_to(edit_business_manager_settings_business_path)
         expect(flash[:notice]).to eq('Business information updated successfully.')
+      end
+
+      it "redirects to the provided integrations path when return_to is safe" do
+        patch business_manager_settings_business_path,
+              params: {
+                business: valid_attributes,
+                return_to: business_manager_settings_integrations_path
+              }
+
+        expect(response).to redirect_to(business_manager_settings_integrations_path)
+      end
+
+      it "ignores unsafe return_to URLs" do
+        patch business_manager_settings_business_path,
+              params: {
+                business: valid_attributes,
+                return_to: 'https://evil.com/manage/settings/integrations'
+              }
+
+        expect(response).to redirect_to(edit_business_manager_settings_business_path)
       end
     end
 
@@ -120,12 +157,37 @@ RSpec.describe "Settings::BusinessController", type: :request do
         expect(business.name).to eq(original_name)
       end
 
-      it "renders the edit template with unprocessable_entity status and errors" do
+      it "renders the edit template with unprocessable_content status and errors" do
         patch business_manager_settings_business_path, params: { business: invalid_attributes }
         expect(response).to render_template(:edit)
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to include("Name can&#39;t be blank") # From the custom error display format (HTML encoded)
+      end
+
+      it "redirects back to integrations when return_to is provided and preserves errors in flash" do
+        create(:business, google_place_id: "ChIJduplicatePlace")
+
+        patch business_manager_settings_business_path,
+              params: {
+                business: { google_place_id: "ChIJduplicatePlace" },
+                return_to: business_manager_settings_integrations_path
+              }
+
+        expect(response).to redirect_to(business_manager_settings_integrations_path)
+        expect(flash[:alert]).to include("Please fix the following errors")
+        expect(Array(flash[:form_errors])).to include("Google place has already been taken")
+        expect(flash[:business_form_data]['google_place_id']).to eq("ChIJduplicatePlace")
+      end
+
+      it "falls back to rendering edit when return_to is unsafe" do
+        patch business_manager_settings_business_path,
+              params: {
+                business: invalid_attributes,
+                return_to: '//evil.com'
+              }
+
+        expect(response).to render_template(:edit)
       end
     end
   end
-end 
+end

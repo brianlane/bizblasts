@@ -21,10 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     console.warn('Showcase data element not found. Using empty examples.');
     businessExamples = {
-        Services: [],
-        Experiences: [],
-        Products: []
-      };
+      Services: [],
+      Experiences: [],
+      Products: []
+    };
   }
 
   const categoryTiles = document.querySelectorAll('.category-tile');
@@ -144,7 +144,7 @@ function populateExamples(container, examples, categoryName, itemBackgroundColor
           } else if (data.exists === false) { 
             window.location.href = '/businesses'; 
           } else {
-            console.warn(`Branch: data.exists is neither true nor false for ${example}. Received:`, data.exists, `Navigating to /businesses as a fallback.`); 
+            console.warn(`Branch: data.exists is neither true nor false for ${example}. Received:`, data.exists, 'Navigating to /businesses as a fallback.'); 
             window.location.href = '/businesses';
           }
         })

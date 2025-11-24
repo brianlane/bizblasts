@@ -2,6 +2,7 @@
 
 class TenantCustomer < ApplicationRecord
   include TenantScoped
+  include UnsubscribeTokenGenerator
   
   acts_as_tenant(:business)
   belongs_to :business
@@ -10,6 +11,7 @@ class TenantCustomer < ApplicationRecord
   has_many :invoices, dependent: :destroy
   has_many :orders, dependent: :destroy
   has_many :payments, dependent: :destroy
+  has_many :sms_messages, dependent: :destroy
   
   # Loyalty and referral system associations
   has_many :loyalty_transactions, dependent: :destroy
@@ -21,21 +23,49 @@ class TenantCustomer < ApplicationRecord
   
   # Allow access to User accounts associated with this customer's business
   has_many :users, through: :business, source: :clients
-  
+
+  # Encrypt phone numbers with deterministic encryption to allow querying
+  encrypts :phone, deterministic: true
+
   # Base validations - updated to match User model
-  validates :first_name, presence: true
-  validates :last_name, presence: true
-  validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }, uniqueness: { scope: :business_id, message: "must be unique within this business" }
-  # Make phone optional for now to fix booking flow
-  validates :phone, presence: true, allow_blank: true
+  validates :first_name, length: { maximum: 255 }, allow_blank: true
+  validates :last_name, length: { maximum: 255 }, allow_blank: true
+  validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
+  # Note: uniqueness is now enforced by database index on business_id + LOWER(email)
+  # Phone is optional - remove conflicting validation rules
+  # validates :phone, presence: true, allow_blank: true  # This was contradictory
   
   # Callbacks
   after_create :send_business_customer_notification
+  after_create :generate_unsubscribe_token
+  after_create :set_default_email_preferences
+  before_validation :normalize_email
+  before_validation :normalize_phone_number
+  validate :unique_email_per_business
   
   # Add accessor to skip email notifications when handled by staggered delivery
   attr_accessor :skip_notification_email
   
   scope :active, -> { where(active: true) }
+  scope :subscribed_to_emails, -> { where(unsubscribed_at: nil) }
+  scope :unsubscribed_from_emails, -> { where.not(unsubscribed_at: nil) }
+  
+  # Encrypted phone lookup scopes
+  scope :for_phone, ->(plain_phone) {
+    normalized = PhoneNormalizer.normalize(plain_phone)
+    return none if normalized.blank?
+
+    where(phone: normalized)
+  }
+
+  scope :for_phone_set, ->(phones) {
+    normalized_set = PhoneNormalizer.normalize_collection(phones)
+    return none if normalized_set.blank?
+
+    where(phone: normalized_set)
+  }
+  
+  scope :with_phone, -> { where.not(phone: nil) }
   
   def full_name
     [first_name, last_name].compact.join(' ').presence || email
@@ -144,8 +174,9 @@ class TenantCustomer < ApplicationRecord
   end
   
   # Define ransackable attributes for ActiveAdmin - updated for new fields
+  # Note: phone excluded from ransackable attributes because it's encrypted and doesn't support partial searches
   def self.ransackable_attributes(auth_object = nil)
-    %w[id first_name last_name email phone address notes active last_booking created_at updated_at business_id]
+    %w[id first_name last_name email address notes active last_booking created_at updated_at business_id]
   end
   
   # Define ransackable associations for ActiveAdmin
@@ -158,18 +189,224 @@ class TenantCustomer < ApplicationRecord
   def self.index_for_email_uniqueness
     @email_business_index ||= {}
   end
+
+  # Unsubscribe system methods
+  def unsubscribe_from_emails!
+    update!(
+      unsubscribed_at: Time.current,
+      email_marketing_opt_out: true
+    )
+  end
+
+  def resubscribe_to_emails!
+    update!(
+      unsubscribed_at: nil,
+      email_marketing_opt_out: false
+    )
+    regenerate_unsubscribe_token
+  end
+
+  def unsubscribed_from_emails?
+    unsubscribed_at.present?
+  end
+
+  def subscribed_to_emails?
+    !unsubscribed_from_emails?
+  end
   
+  # Returns true if the customer can receive a given type of email (e.g., :marketing, :blog, :booking, etc.)
+  def can_receive_email?(type)
+    return true if type == :transactional # Always allow transactional emails
+    return false if unsubscribed_from_emails?
+
+    # For TenantCustomer, we have simpler logic than User since we don't have granular notification preferences
+    # We only check the global unsubscribe status and email_marketing_opt_out for marketing emails
+    case type.to_sym
+    when :marketing
+      # Check if marketing emails are explicitly opted out
+      !email_marketing_opt_out?
+    when :blog, :booking, :order, :payment, :customer, :system, :subscription
+      # For other email types, allow if not globally unsubscribed
+      true
+    else
+      # Default to allow for unknown types
+      true
+    end
+  end
+
+  # Returns true if the customer can receive a given type of SMS (e.g., :marketing, :booking, :transactional, etc.)
+  def can_receive_sms?(type)
+    return false unless phone.present? # Must have phone number
+    return false unless business&.sms_enabled? # Business must have SMS enabled
+    return false if opted_out_from_business?(business) # Business-specific opt-out takes precedence
+    return true if type == :transactional && phone_opt_in? # Allow transactional if opted in
+
+    # Check specific SMS opt-in status and notification preferences
+    case type.to_sym
+    when :marketing
+      # Marketing SMS requires explicit opt-in AND business marketing enabled AND not opted out
+      phone_opt_in? && business.sms_marketing_enabled? && !phone_marketing_opt_out? && sms_preference_enabled?('sms_promotions')
+    when :booking
+      # Booking SMS requires phone opt-in and booking confirmation preference
+      phone_opt_in? && sms_preference_enabled?('sms_booking_reminder')
+    when :reminder
+      # Reminder SMS requires phone opt-in and booking reminder preference  
+      phone_opt_in? && sms_preference_enabled?('sms_booking_reminder')
+    when :order
+      # Order SMS requires phone opt-in and order update preference
+      phone_opt_in? && sms_preference_enabled?('sms_order_updates')
+    when :payment, :system, :subscription, :review_request
+      # Other SMS types require general phone opt-in (no specific preference controls in UI yet)
+      phone_opt_in?
+    else
+      # Default to require opt-in for unknown types
+      phone_opt_in?
+    end
+  end
+
+  # Opt customer into SMS notifications
+  def opt_into_sms!
+    update!(
+      phone_opt_in: true,
+      phone_opt_in_at: Time.current
+    )
+  end
+
+  # Opt customer out of SMS notifications  
+  def opt_out_of_sms!
+    update!(
+      phone_opt_in: false,
+      phone_opt_in_at: nil
+    )
+  end
+
+  # Opt customer out of marketing SMS only
+  def opt_out_of_sms_marketing!
+    update!(phone_marketing_opt_out: true)
+  end
+
+  # Business-specific opt-out methods
+  def opted_out_from_business?(business)
+    return false unless sms_opted_out_businesses.present?
+    sms_opted_out_businesses.include?(business.id)
+  end
+
+  def opt_out_from_business!(business)
+    self.sms_opted_out_businesses ||= []
+    unless opted_out_from_business?(business)
+      self.sms_opted_out_businesses = sms_opted_out_businesses + [business.id]
+      save!
+      Rails.logger.info "[SMS_OPT_OUT] Customer #{id} opted out from business #{business.id} (#{business.name})"
+    end
+  end
+
+  def opt_in_to_business!(business)
+    return unless sms_opted_out_businesses.present?
+    if opted_out_from_business?(business)
+      self.sms_opted_out_businesses = sms_opted_out_businesses - [business.id]
+      save!
+      Rails.logger.info "[SMS_OPT_IN] Customer #{id} opted back in to business #{business.id} (#{business.name})"
+    end
+  end
+
+  def can_receive_invitation_from?(business)
+    return false if opted_out_from_business?(business)
+    # Check 30-day limit
+    !SmsOptInInvitation.recent_invitation_sent?(phone, business.id)
+  end
+
+  # Check if phone number appears valid for SMS
+  def phone_verified?
+    phone.present? && phone.match?(/\A\+?[1-9]\d{1,14}\z/)
+  end
+
+  # Check if a specific SMS notification preference is enabled
+  # TenantCustomer checks the associated User's notification preferences (for client users)
+  def sms_preference_enabled?(preference_key)
+    # Find the associated client User by email
+    associated_user = User.find_by(email: email, role: 'client')
+    
+    # If no associated user or no notification preferences are set, default to true (allow all)
+    return true unless associated_user
+    return true if associated_user.notification_preferences.nil? || associated_user.notification_preferences.empty?
+    
+    # Check if the preference is enabled in the User's preferences
+    # Treat nil as enabled (default) to maintain backward compatibility
+    # Only false explicitly disables notifications
+    preference_value = associated_user.notification_preferences[preference_key]
+    preference_value != false
+  end
+
+  # Simple accessor used by specs to check notification enablement
+  # Falls back to true when no preference is explicitly disabled.
+  def notification_enabled?(pref_key)
+    if user&.notification_preferences.present?
+      # treat nil as enabled
+      user.notification_preferences[pref_key] != false
+    else
+      true
+    end
+  end
+
   private
+
+  def normalize_email
+    self.email = email.downcase.strip if email.present?
+  end
+
+  def normalize_phone_number
+    self.phone = PhoneNormalizer.normalize(phone)
+  end
+
+  def unique_email_per_business
+    return unless email.present? && business_id.present?
+    
+    # Check for existing customer with same email in same business
+    existing = TenantCustomer.where(
+      business_id: business_id,
+      email: email.downcase.strip
+    )
+    existing = existing.where.not(id: id) unless new_record?
+    
+    if existing.exists?
+      errors.add(:email, "must be unique within this business")
+    end
+  end
+
+  def set_default_email_preferences
+    # TenantCustomers are simpler - ensure email_marketing_opt_out defaults to false (allowing emails)
+    # and unsubscribed_at remains nil (subscribed by default)
+    return if email_marketing_opt_out == true || unsubscribed_at.present?
+    
+    # Explicitly set to false to ensure emails are enabled by default
+    if email_marketing_opt_out.nil?
+      if update_attribute(:email_marketing_opt_out, false)
+        SecureLogger.info "[TENANT_CUSTOMER] Set default email preferences for TenantCustomer ##{id} (#{email})"
+      else
+        SecureLogger.error "[TENANT_CUSTOMER] Failed to set default email preferences for TenantCustomer ##{id} (#{email})"
+      end
+    end
+  end
   
   def send_business_customer_notification
     # Skip if explicitly disabled (used by staggered email service)
     return if skip_notification_email
-    
+
     begin
-      BusinessMailer.new_customer_notification(self).deliver_later
-      Rails.logger.info "[EMAIL] Scheduled business customer notification for Customer #{full_name} (#{email})"
+      # Create a new customer notification - this will go to business owner
+      business_user = business.users.where(role: :manager).first
+      if business_user
+        # Send email
+        BusinessMailer.new_customer_notification(self).deliver_later(queue: 'mailers') if business_user.can_receive_email?(:customer)
+
+        # Send SMS if opted in
+        if business_user.respond_to?(:can_receive_sms?) && business_user.can_receive_sms?(:booking)
+          SmsService.send_business_new_customer(self, business_user)
+        end
+      end
+      SecureLogger.info "[NOTIFICATION] Scheduled business customer notification for Customer #{full_name} (#{email})"
     rescue => e
-      Rails.logger.error "[EMAIL] Failed to schedule business customer notification for Customer #{full_name} (#{email}): #{e.message}"
+      SecureLogger.error "[NOTIFICATION] Failed to schedule business customer notification for Customer #{full_name} (#{email}): #{e.message}"
     end
   end
 end 

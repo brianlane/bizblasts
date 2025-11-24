@@ -1,0 +1,40 @@
+<!-- Google Policy Compliant Review Request Email Template -->
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <h2>Hi <%= @customer.first_name.present? ? @customer.first_name : (@customer.name&.split&.first) || 'there' %>,</h2>
+  
+  <p>Thank you for choosing <%= @business.name %>! 
+  <% if @booking && @service_name %>
+    We hope you're satisfied with the <%= @service_name %> service we provided.
+  <% else %>
+    We hope you're satisfied with our service.
+  <% end %>
+  </p>
+  
+  <!-- IMPORTANT: Neutral language that doesn't bias toward positive reviews -->
+  <p>Your feedback is important to us and helps other customers make informed decisions. 
+  If you have a moment, we'd appreciate if you could share your experience on Google.</p>
+  
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="<%= @review_url %>" 
+       style="background-color: #4285f4; color: white; padding: 12px 24px; 
+              text-decoration: none; border-radius: 5px; display: inline-block;">
+      Share Your Experience on Google
+    </a>
+  </div>
+  
+  <p>This will take you directly to Google where you can write about your experience.</p>
+  
+  <p>Thank you for your time!</p>
+  
+  <p>Best regards,<br>
+  The <%= @business.name %> Team</p>
+  
+  <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+  <p style="font-size: 12px; color: #666;">
+    This is a one-time request. We respect your privacy and won't send additional review requests for this service.
+    <br>
+    <% if @tracking_token %>
+      <a href="<%= unsubscribe_review_requests_url(token: @tracking_token) %>">Unsubscribe from review requests</a>
+    <% end %>
+  </p>
+</div>

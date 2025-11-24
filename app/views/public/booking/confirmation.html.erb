@@ -40,9 +40,9 @@
         Here are your booking details:
       <% end %>
     </p>
-    <p><strong>Service:</strong> <%= @booking.service.name %></p>
+    <p><strong>Service:</strong> <%= service_with_variant(@booking) %></p>
     <p><strong>Business:</strong> <%= @booking.business.name %></p>
-          <p><strong>Date & Time:</strong> <%= l @booking.local_start_time, format: :long %> (until <%= l @booking.local_end_time, format: :short_time %>)</p>
+    <p><strong>Date & Time:</strong> <%= l @booking.local_start_time, format: :long %> (until <%= l @booking.local_end_time, format: :short_time %>)</p>
     <p><strong>Staff:</strong> <%= @booking.staff_member&.name || 'Any available' %></p>
     <p><strong>Your Name:</strong> <%= @booking.tenant_customer.full_name %></p>
     <p><strong>Your Email:</strong> <%= @booking.tenant_customer.email %></p>
@@ -64,7 +64,7 @@
 
     <% if @booking.invoice %>
       <h2 class="text-2xl font-bold mb-4">Invoice Summary:</h2>
-      <p><strong>Service Cost:</strong> <%= number_to_currency @booking.service.price %></p>
+      <p><strong>Service Cost:</strong> <%= number_to_currency service_price(@booking) %></p>
       <% if @booking.booking_product_add_ons.any? %>
         <p><strong>Products Subtotal:</strong> <%= number_to_currency @booking.booking_product_add_ons.sum(&:total_amount) %></p>
       <% end %>
@@ -92,7 +92,7 @@
         <% if params[:payment_cancelled] %>
           <div class="mt-6 mb-6 p-4 bg-red-50 border border-red-200 rounded">
             <p class="mb-2 text-red-800"><strong>Payment Required:</strong> This experience booking requires immediate payment to confirm.</p>
-            <%= link_to 'Complete Payment Now', new_tenant_payment_path(invoice_id: @booking.invoice.id), class: 'bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded' %>
+            <%= link_to 'Complete Payment Now', new_payment_path(invoice_id: @booking.invoice.id), class: 'bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded' %>
             <p class="text-sm text-gray-600 mt-2">
               You will be redirected to Stripe to complete your payment securely.
               <% unless current_user %>
@@ -103,7 +103,7 @@
         <% else %>
           <div class="mt-6 mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded">
             <p class="mb-2 text-yellow-800"><strong>Payment Pending:</strong> This experience booking requires payment to confirm.</p>
-            <%= link_to 'Pay Now', new_tenant_payment_path(invoice_id: @booking.invoice.id), class: 'bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded' %>
+            <%= link_to 'Pay Now', new_payment_path(invoice_id: @booking.invoice.id), class: 'bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded' %>
             <p class="text-sm text-gray-600 mt-2">
               You will be redirected to Stripe to complete your payment securely.
               <% unless current_user %>
@@ -117,7 +117,7 @@
         <div class="mt-6 mb-6 p-4 bg-blue-50 border border-blue-200 rounded">
           <p class="mb-2 text-blue-800"><strong>Payment Options:</strong> Your booking is confirmed! You can pay now or later.</p>
           <div class="flex flex-col sm:flex-row gap-3">
-            <%= link_to 'Pay Now', new_tenant_payment_path(invoice_id: @booking.invoice.id), class: 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-center' %>
+            <%= link_to 'Pay Now', new_payment_path(invoice_id: @booking.invoice.id), class: 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-center' %>
             <span class="text-blue-700 font-medium py-2 px-4 text-center">or pay after your service</span>
           </div>
           <p class="text-sm text-gray-600 mt-2">

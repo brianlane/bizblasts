@@ -1,8 +1,116 @@
 # frozen_string_literal: true
 
 require Rails.root.join('lib/constraints/subdomain_constraint')
+require Rails.root.join('lib/constraints/custom_domain_constraint')
+require Rails.root.join('lib/constraints/business_domain_constraint')
+require Rails.root.join('lib/constraints/tenant_public_constraint')
 
 Rails.application.routes.draw do
+  # Health check routes - MUST be first to avoid being caught by catch-all routes
+  get "up" => "rails/health#show", as: :rails_health_check
+  get "healthcheck" => "health#check", as: :health_check
+  get "db-check" => "health#db_check", as: :db_check
+  get "maintenance" => "maintenance#index", as: :maintenance
+  
+  # Authentication bridge routes for cross-domain authentication
+  # These must be accessible globally (not constrained to tenants)
+  get "auth/bridge" => "authentication_bridge#create", as: :auth_bridge
+  post "auth/bridge/consume" => "authentication_bridge#consume", as: :auth_bridge_consume
+  get "auth/bridge/health" => "authentication_bridge#health", as: :auth_bridge_health
+  
+  # Token consumption endpoint for custom domains
+  # This endpoint receives the redirect from the main domain auth bridge
+  get "auth/consume" => "authentication_bridge#consume_token", as: :auth_consume
+
+  # Reverse bridge: custom domain → main domain
+  # This allows users to navigate back to main domain while staying logged in
+  get "auth/bridge_to_main" => "authentication_bridge#bridge_to_main", as: :auth_bridge_to_main
+
+  # Tenant public routes: available on both subdomains and active custom domains
+  constraints TenantPublicConstraint do
+    # (public routes continue)
+    scope module: 'public' do
+      get '/', to: 'pages#show', constraints: { page: /home|root|^$/ }, as: :tenant_root
+      get '/about', to: 'pages#show', page: 'about', as: :tenant_about_page
+      get '/services', to: 'pages#show', page: 'services', as: :tenant_services_page
+      get '/services/:id', to: 'services#show', as: :tenant_service
+      # Product listings under tenant public scope
+      resources :products, only: [:index, :show]
+      get '/contact', to: 'pages#show', page: 'contact', as: :tenant_contact_page
+
+      # Estimate page and form submission
+      get '/estimate', to: 'pages#show', page: 'estimate', as: :tenant_estimate_page
+      post '/estimate', to: 'requests#create', as: :tenant_estimate_request
+
+      get '/calendar', to: 'tenant_calendar#index', as: :tenant_calendar
+      get '/available-slots', to: 'tenant_calendar#available_slots', as: :tenant_available_slots
+      get '/staff-availability', to: 'tenant_calendar#staff_availability', as: :tenant_staff_availability
+
+      get '/book', to: 'booking#new', as: :new_tenant_booking
+      resources :booking, only: [:create], as: :tenant_bookings
+      get '/booking/:id/confirmation', to: 'booking#confirmation', as: :tenant_booking_confirmation
+
+      get '/my-bookings', to: 'client_bookings#index', as: :tenant_my_bookings
+      get '/my-bookings/:id', to: 'client_bookings#show', as: :tenant_my_booking, constraints: { id: /\d+/ }
+      # Add alias for backward compatibility with tests
+      get '/booking/:id', to: 'client_bookings#show', as: :tenant_booking, constraints: { id: /\d+/ }
+      patch '/my-bookings/:id/cancel', to: 'client_bookings#cancel', as: :cancel_tenant_my_booking, constraints: { id: /\d+/ }
+
+      resources :invoices, only: [:index, :show], as: :tenant_invoices do
+        post :pay, on: :member
+      end
+      resources :payments, only: [:index, :new, :create]
+      
+      # Tips for experience bookings
+      resources :bookings, only: [] do
+        resources :tips, only: [:new, :create] do
+          member do
+            get :success
+            get :cancel
+          end
+        end
+      end
+      
+      # Unified transactions view
+      resources :transactions, only: [:index, :show]
+
+      # Public checkout/cart/orders/subscriptions/policies are defined below with tenant_* helpers
+
+      # Business-specific loyalty (on subdomain)
+      get '/loyalty', to: 'loyalty#show', as: :tenant_loyalty
+      post '/loyalty/redeem', to: 'loyalty#redeem_points', as: :tenant_loyalty_redeem
+
+      # Direct referral program access for current tenant
+      get '/referral', to: 'referral#show', as: :tenant_referral_program
+
+      # Public cart/checkout and subscriptions - MUST come before catch-all
+      resource  :cart, only: [:show]
+      resources :line_items, only: [:create, :update, :destroy]
+      resources :orders,     only: [:new, :create, :index, :show] do
+        collection { post :validate_promo_code }
+      end
+      resources :subscriptions, only: [:new, :create] do
+        member { get :confirmation }
+      end
+      resources :newsletter_subscriptions, only: [:create]
+      resource :service_area_check, only: [:new, :create]
+      resources :policy_acceptances, only: [:create, :show]
+      get '/policy_status', to: 'policy_acceptances#status'
+      post '/policy_acceptances/bulk', to: 'policy_acceptances#bulk_create'
+
+      # Tip collection routes (token-based for experiences)
+      resources :tips, only: [:new, :create, :show] do
+        member do
+          get :success
+          get :cancel
+        end
+      end
+
+      # Catch-all for static pages must come last
+      get '/:page', to: 'pages#show', as: :tenant_page
+    end
+  end
+
   # API routes for AI/LLM discovery
   namespace :api do
     namespace :v1 do
@@ -20,7 +128,21 @@ Rails.application.routes.draw do
   get '/theme-test/preview/:theme_id', to: 'theme_test#preview', as: :theme_test_preview
   get '/theme-test/business/:business_subdomain', to: 'theme_test#preview', as: :theme_test_business
   
+  # Stripe app deep link test (for development/testing)
+  get '/stripe-app-test', to: 'stripe_app_test#show', as: :stripe_app_test
+  
   post '/webhooks/stripe', to: 'stripe_webhooks#create'
+  post '/webhooks/twilio', to: 'webhooks/twilio#delivery_receipt'
+  post '/webhooks/twilio/inbound', to: 'webhooks/twilio#inbound_message'
+  
+  # SMS link redirects
+  get '/s/:short_code', to: 'sms_links#redirect', as: :sms_link_redirect
+  
+  # Calendar OAuth callback (outside subdomain constraint for security)
+  get '/oauth/calendar/:provider/callback', to: 'calendar_oauth#callback', as: :calendar_oauth_callback
+  
+  # Google Business Profile OAuth callback (outside subdomain constraint)
+  get '/oauth/google-business/callback', to: 'google_business_oauth#callback', as: :google_business_oauth_callback
   # Add routes for admin bookings availability before ActiveAdmin is initialized
   get '/admin/bookings-availability/slots', to: 'admin/booking_availability#available_slots', as: :available_slots_bookings
   get '/admin/bookings-availability/new', to: 'admin/booking_availability#new', as: :new_admin_booking_from_slots
@@ -33,10 +155,24 @@ Rails.application.routes.draw do
     sessions: 'admin/sessions'
   })
   ActiveAdmin.routes(self)
+
+  # Custom routes for SolidQueue job actions (Rails 8.1 compatible - avoids page_action deprecation)
+  namespace :admin do
+    post 'solid_queue_jobs/retry_all_failed_jobs', to: 'solid_queue_jobs#retry_all_failed_jobs', as: :solid_queue_jobs_retry_all_failed_jobs
+    post 'solid_queue_jobs/retry_failed_job', to: 'solid_queue_jobs#retry_failed_job', as: :solid_queue_jobs_retry_failed_job
+    post 'solid_queue_jobs/cleanup_orphaned_jobs', to: 'solid_queue_jobs#cleanup_orphaned_jobs', as: :solid_queue_jobs_cleanup_orphaned_jobs
+  end
   
   devise_for :users, skip: [:registrations], controllers: {
     sessions: 'users/sessions',
+    magic_links: 'users/magic_links'
   }
+
+  namespace :passwordless do
+    devise_for :users, skip: [:registrations], controllers: {
+      sessions: 'devise/passwordless/sessions'
+    }
+  end
 
   devise_for :businesses, skip: [:registrations], controllers: {
     sessions: 'businesses/sessions',
@@ -77,7 +213,8 @@ Rails.application.routes.draw do
     get '/users/sign_out', to: 'users/sessions#destroy'
   end
 
-  constraints(SubdomainConstraint) do
+  # Business Manager routes available on both subdomains and custom domains
+  constraints BusinessDomainConstraint do
     namespace :business_manager, path: '/manage' do
       get '/dashboard', to: 'dashboard#index', as: :dashboard
       resources :services do
@@ -85,7 +222,11 @@ Rails.application.routes.draw do
           patch :update_position
           patch :move_up
           patch :move_down
+          get 'manage_availability'
+          patch 'manage_availability'
+          patch :clear_availability
         end
+        resources :service_variants, except: [:show]
       end
       resources :products do
         member do
@@ -103,12 +244,25 @@ Rails.application.routes.draw do
           patch 'manage_availability'
         end
       end
-      
+
+      # Gallery management
+      get 'gallery', to: 'gallery#index', as: :gallery_index
+      scope path: 'gallery', as: :gallery, controller: 'gallery' do
+        post 'photos', action: :create_photo, as: :photos
+        post 'photos/reorder', action: :reorder_photos, as: :reorder_photos
+        patch 'photos/:id', action: :update_photo, as: :update_photo
+        delete 'photos/:id', action: :destroy_photo, as: :destroy_photo
+        post 'video', action: :create_video, as: :video
+        patch 'video', action: :update_video, as: :update_video
+        delete 'video', action: :destroy_video, as: :destroy_video
+      end
+
       # Bookings management
-      resources :bookings, only: [:index, :show, :edit, :update, :create] do
+      resources :bookings, only: [:index, :show, :new, :edit, :update, :create] do
         member do
           patch 'confirm'
           patch 'cancel'
+          patch 'refund'
           get 'reschedule'
           patch 'update_schedule'
         end
@@ -116,11 +270,11 @@ Rails.application.routes.draw do
           get '/available-slots', to: 'bookings#available_slots', as: :available_slots
         end
       end
-      
+
       # Add route for available slots in business manager context
       get '/available-slots', to: 'bookings#available_slots', as: :available_slots_bookings
 
-      # Allow staff/manager to create bookings under subdomain
+      # Allow staff/manager to create bookings
       resources :client_bookings, only: [:new, :create], path: 'my-bookings'
       # Estimates management
       resources :estimates do
@@ -128,16 +282,36 @@ Rails.application.routes.draw do
           patch :send_to_customer
         end
       end
-      
+
       # Business transactions management (unified orders and invoices)
-      resources :transactions, only: [:index, :show]
-      
+      resources :transactions, only: [:index, :show] do
+        collection do
+          get :download_csv
+        end
+      end
+
       # Business orders management
-      resources :orders, only: [:index, :show, :new, :create, :edit, :update]
+      resources :orders, only: [:index, :show, :new, :create, :edit, :update] do
+        member do
+          patch :refund
+        end
+      end
       resources :invoices, only: [:index, :show] do
         post :resend, on: :member
         patch :cancel, on: :member
+        patch :mark_as_paid, on: :member
+        get :qr_payment, on: :member
+        get :payment_status, on: :member
       end
+
+      # Business payments management
+      resources :payments, only: [:index, :show]
+
+      # Payment collection (singular resource for new payment collection)
+      resource :payment, only: [:new, :create]
+
+      # Redirect /manage/payment to /manage/payment/new to prevent 404s
+      get '/payment', to: redirect('/manage/payment/new')
       get '/settings', to: 'settings#index', as: :settings
 
       # Route to dismiss individual business setup reminder tasks for the current user
@@ -151,36 +325,65 @@ Rails.application.routes.draw do
           post :connect_stripe
           get :stripe_onboarding
           post :refresh_stripe
+          delete :disconnect_stripe
+          post :check_subdomain_availability
+          get  :check_subdomain_availability
+          get  :check_domain_status
+          post :finalize_domain_activation
         end
         resources :teams, only: [:index, :new, :create, :destroy]
         resource :booking_policy, only: [:show, :edit, :update]
-        resources :notifications
-        resources :notification_templates, controller: 'notifications'
-        resource :integration_credentials, only: [], controller: 'notifications' do
-          collection do
-            get :edit_credentials
-            patch :update_credentials
-            put :update_credentials
-          end
-        end
         resources :locations
 
         # Subscription & Billing (Module 7)
         get 'subscription', to: 'subscriptions#show', as: :subscription
         post 'subscription/checkout', to: 'subscriptions#create_checkout_session', as: :subscription_checkout
         post 'subscription/portal', to: 'subscriptions#customer_portal_session', as: :subscription_portal
+        post 'subscription/downgrade', to: 'subscriptions#downgrade', as: :subscription_downgrade
         # Stripe webhook endpoint - scoped under /manage/settings/stripe_events
         post 'stripe_events', to: 'subscriptions#webhook'
 
         # Integrations (Module 9)
-        resources :integrations, controller: 'integrations'
+        resources :integrations, only: [:index] do
+          collection do
+            # Google Business connection routes
+            get 'google-business/search', action: :google_business_search
+            get 'google-business/search-nearby', action: :google_business_search_nearby
+            get 'google-business/details/:place_id', action: :google_business_details, as: :google_business_details
+            post 'google-business/connect', action: :google_business_connect
+            post 'google-business/connect-manual', action: :google_business_connect_manual
+            delete 'google-business/disconnect', action: :google_business_disconnect
+            get 'google-business/status', action: :google_business_status
+            post 'lookup-place-id', action: :lookup_place_id
+            get 'check-place-id-status/:job_id', action: :check_place_id_status
+
+            # Google Business Profile OAuth routes
+            get 'google-business/oauth/authorize', action: :google_business_oauth_authorize
+
+            # Calendar integration routes
+            post 'calendar-integrations/connect', action: :calendar_integration_connect, as: :calendar_integration_connect
+            get 'calendar-integrations/new-caldav', action: :calendar_integration_new_caldav, as: :calendar_integration_new_caldav
+            post 'calendar-integrations/create-caldav', action: :calendar_integration_create_caldav, as: :calendar_integration_create_caldav
+            post 'calendar-integrations/test-caldav', action: :calendar_integration_test_caldav, as: :calendar_integration_test_caldav
+            post 'calendar-integrations/batch-sync', action: :calendar_integration_batch_sync, as: :calendar_integration_batch_sync
+            post 'calendar-integrations/import-availability', action: :calendar_integration_import_availability, as: :calendar_integration_import_availability
+            get 'calendar-integrations/:calendar_integration_id', action: :calendar_integration_show, as: :calendar_integration_show
+            delete 'calendar-integrations/:calendar_integration_id', action: :calendar_integration_destroy, as: :calendar_integration_destroy
+            patch 'calendar-integrations/:calendar_integration_id/toggle-default', action: :calendar_integration_toggle_default, as: :calendar_integration_toggle_default
+            post 'calendar-integrations/:calendar_integration_id/resync', action: :calendar_integration_resync, as: :calendar_integration_resync
+          end
+        end
         resource :website_pages, only: [:edit, :update]
-        
+
         # Tips configuration
         resource :tips, only: [:show, :update]
 
+        resource :sidebar, only: [:show], controller: 'sidebar' do
+          get :edit_sidebar
+          patch :update_sidebar
+        end
       end
-      
+
       # Customer Subscription Management for Business Managers
       resources :customer_subscriptions, path: 'subscriptions' do
         member do
@@ -191,7 +394,7 @@ Rails.application.routes.draw do
           get :analytics
         end
       end
-      
+
       # Referral and Loyalty Management
       resources :referrals, only: [:index, :show, :edit, :update, :create] do
         collection do
@@ -199,7 +402,7 @@ Rails.application.routes.draw do
           get :analytics
         end
       end
-      
+
       resources :loyalty, only: [:index, :show, :edit, :update, :create] do
         collection do
           patch :toggle_status
@@ -211,7 +414,7 @@ Rails.application.routes.draw do
           post :adjust_points
         end
       end
-      
+
       # Platform (BizBlasts) Loyalty and Referrals
       resources :platform, only: [:index] do
         collection do
@@ -222,7 +425,7 @@ Rails.application.routes.draw do
           get :discount_codes
         end
       end
-      
+
       # Promotion Management
       resources :promotions do
         collection do
@@ -239,7 +442,7 @@ Rails.application.routes.draw do
           patch :cancel
         end
       end
-      
+
       # Subscription loyalty management
       resources :subscription_loyalty, only: [:index, :show] do
         member do
@@ -252,32 +455,36 @@ Rails.application.routes.draw do
           get :export_data
         end
       end
-      
+
       # Website customization routes (Standard & Premium only)
       namespace :website do
         resources :pages do
+          collection do
+            patch :update_priority
+          end
           member do
             get :preview
             patch :publish
             post :create_version
             patch :restore_version
             post :duplicate
+            post :track_view
           end
-          
+
           resources :sections, except: [:show] do
             member do
               patch :move_up
-              patch :move_down  
+              patch :move_down
               post :duplicate
               patch :reorder
             end
-            
+
             collection do
               patch :reorder
             end
           end
         end
-        
+
         resources :themes do
           member do
             patch :activate
@@ -285,18 +492,18 @@ Rails.application.routes.draw do
             post :duplicate
             get :export
           end
-          
+
           collection do
             post :import
           end
         end
-        
+
         resources :templates, only: [:index, :show] do
           member do
             post :apply
             get :preview
           end
-          
+
           collection do
             get :search
             get :filter_by_industry
@@ -305,33 +512,16 @@ Rails.application.routes.draw do
         end
       end
     end
+  end
 
+  # Subdomain-only routes (business routes, policy redirects, etc.)
+  constraints(SubdomainConstraint) do
     # Business-specific routes for business owners
     namespace :business do
       resources :orders, only: [:index, :show]
     end
 
-    # Add cart resource within the subdomain constraint
-    resource :cart, only: [:show]
-    resources :line_items, only: [:create, :update, :destroy]
-          # Subdomain checkout uses Public::OrdersController for guest flows
-      resources :orders, only: [:new, :create, :index, :show], controller: 'public/orders' do
-        collection do
-          post :validate_promo_code
-        end
-      end
-      
-      # Public subscription signup (for customers on business subdomains)
-      resources :subscriptions, only: [:new, :create], controller: 'public/subscriptions' do
-        member do
-          get :confirmation
-        end
-      end
-
-    # Policy acceptance routes for subdomain users
-    resources :policy_acceptances, only: [:create, :show]
-    get '/policy_status', to: 'policy_acceptances#status'
-    post '/policy_acceptances/bulk', to: 'policy_acceptances#bulk_create'
+    # Public cart/checkout and subscriptions now handled by TenantPublicConstraint (see top block)
 
     # Policy pages for subdomain users (redirect to main domain)
     get '/privacypolicy', to: redirect { |params, request| 
@@ -365,84 +555,29 @@ Rails.application.routes.draw do
       "#{protocol}#{request.domain}#{port}/settings"
     }
 
-    scope module: 'public' do
-      get '/', to: 'pages#show', constraints: { page: /home|root|^$/ }, as: :tenant_root
-      get '/about', to: 'pages#show', page: 'about', as: :tenant_about_page
-      get '/services', to: 'pages#show', page: 'services', as: :tenant_services_page
-      get '/services/:id', to: 'services#show', as: :tenant_service
-      # Product listings under subdomain go through Public::ProductsController
-      resources :products, only: [:index, :show]
-      get '/contact', to: 'pages#show', page: 'contact', as: :tenant_contact_page
-
-      # Estimate page and form submission
-      get '/estimate', to: 'pages#show', page: 'estimate', as: :tenant_estimate_page
-      post '/estimate', to: 'requests#create', as: :tenant_estimate_request
-      # Public estimate actions
-      get  '/estimates/:token',                 to: 'estimates#show',            as: :tenant_estimate
-      patch '/estimates/:token/approve',         to: 'estimates#approve',         as: :approve_tenant_estimate
-      patch '/estimates/:token/decline',         to: 'estimates#decline',         as: :decline_tenant_estimate
-      patch '/estimates/:token/request_changes', to: 'estimates#request_changes', as: :request_changes_tenant_estimate
-
-      get '/calendar', to: 'tenant_calendar#index', as: :tenant_calendar
-      get '/available-slots', to: 'tenant_calendar#available_slots', as: :tenant_available_slots
-      get '/staff-availability', to: 'tenant_calendar#staff_availability', as: :tenant_staff_availability
-
-      get '/book', to: 'booking#new', as: :new_tenant_booking
-      resources :booking, only: [:create], as: :tenant_bookings
-      get '/booking/:id/confirmation', to: 'booking#confirmation', as: :tenant_booking_confirmation
-
-      get '/my-bookings', to: 'client_bookings#index', as: :tenant_my_bookings
-      get '/my-bookings/:id', to: 'client_bookings#show', as: :tenant_my_booking, constraints: { id: /\d+/ }
-      # Add alias for backward compatibility with tests
-      get '/booking/:id', to: 'client_bookings#show', as: :tenant_booking, constraints: { id: /\d+/ }
-      patch '/my-bookings/:id/cancel', to: 'client_bookings#cancel', as: :cancel_tenant_my_booking, constraints: { id: /\d+/ }
-
-      resources :invoices, only: [:index, :show], as: :tenant_invoices do
-        member do
-          post :pay
-        end
-      end
-      resources :payments, only: [:index, :new, :create], as: :tenant_payments
-      
-      # Tips for experience bookings
-      resources :bookings, only: [] do
-        resources :tips, only: [:new, :create] do
-          member do
-            get :success
-            get :cancel
-          end
-        end
-      end
-      
-      # Unified transactions view for subdomain
-      resources :transactions, only: [:index, :show], as: :tenant_transactions
-
-      # Business-specific loyalty (on subdomain)
-      get '/loyalty', to: 'loyalty#show', as: :tenant_loyalty
-      post '/loyalty/redeem', to: 'loyalty#redeem_points', as: :tenant_loyalty_redeem
-
-      # Direct referral program access for current tenant
-      get '/referral', to: 'referral#show', as: :tenant_referral_program
-
-      # Catch-all for static pages must come last
-      get '/:page', to: 'pages#show', as: :tenant_page
-    end
-
-    # Tip collection routes (token-based for experiences)
-    resources :tips, only: [:new, :create, :show], controller: 'public/tips' do
-      member do
-        get :success
-        get :cancel
-      end
-    end
+    # Tenant public routes are unified by TenantPublicConstraint (see top block)
   end
+
+  # Redirect management/dashboard for custom-domain hosts ONLY (after public routes)
+  # This now serves as a fallback for unauthenticated users on custom domains
+  # constraints CustomDomainConstraint do
+  #   get '/manage(/*path)', to: 'tenant_redirect#manage', as: :tenant_manage_redirect
+  # end
+
+  # Fallback redirect for unauthenticated users on custom domains
+  # Uses Warden (Devise) to reliably detect authentication state instead of relying on raw session keys.
+  constraints lambda { |req|
+    CustomDomainConstraint.matches?(req) && !(req.env["warden"]&.user.present?)
+  } do
+    get '/manage(/*path)', to: 'tenant_redirect#manage', as: :tenant_manage_redirect
+  end
+
 
   # Fallback routes for base OrdersController new/create
   resources :orders, only: [:new, :create, :index, :show]
 
   resources :businesses, only: [:index]
-  # Keep the global cart resource to maintain compatibility 
-  resource :cart, only: [:show]
+  # Cart is now handled in TenantPublicConstraint block
   resources :line_items, only: [:create, :update, :destroy]
   # Add back the global products routes for controller specs
   resources :products, only: [:index, :show]
@@ -495,15 +630,20 @@ Rails.application.routes.draw do
   # Route for contact form submission
   post '/contact', to: 'contacts#create'
 
+  # Magic link-based unsubscribe route
+  get '/unsubscribe/magic_link', to: 'public/unsubscribe#magic_link', as: :unsubscribe_magic_link
+  
+  # Review request unsubscribe route
+  get '/unsubscribe/review_requests/:token', to: 'review_request_unsubscribes#show', as: :unsubscribe_review_requests
+
   # Policy acceptance routes
   resources :policy_acceptances, only: [:create, :show]
   get '/policy_status', to: 'policy_acceptances#status'
   post '/policy_acceptances/bulk', to: 'policy_acceptances#bulk_create'
 
-  get "up" => "rails/health#show", as: :rails_health_check
-  get "healthcheck" => "health#check", as: :health_check
-  get "db-check" => "health#db_check", as: :db_check
-  get "maintenance" => "maintenance#index", as: :maintenance
+  # Public subdomain availability endpoint
+  get '/subdomains/check', to: 'public/subdomains#check', defaults: { format: :json }
+
   get "home/debug" => redirect("/admin/debug"), as: :old_tenant_debug
   get "admin/debug" => "admin/debug#index", as: :tenant_debug
 
@@ -528,13 +668,17 @@ Rails.application.routes.draw do
   # New unified transactions view
   resources :transactions, only: [:index, :show]
 
+  # Cart redirect handler for main domain
+  # Since carts are business-specific, redirect users to the appropriate business domain
+  resource :cart, only: [:show], controller: 'cart_redirect'
+
   authenticated :user, ->(user) { user.client? } do
     # Keep this block for any future client-specific routes that need the constraint
   end
 
   # Client Settings - moved outside authenticated block to allow proper redirects
   namespace :client, path: '' do # path: '' to avoid /client/client/settings
-    resource :settings, only: [:show, :update, :destroy], controller: 'settings' do
+    resource :settings, only: [:show, :edit, :update, :destroy], controller: 'settings' do
       patch :unsubscribe_all, on: :member
     end
     

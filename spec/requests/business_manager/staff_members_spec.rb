@@ -105,7 +105,7 @@ RSpec.describe "Business Manager StaffMembers", type: :request do
 
       it "renders a response with 422 status" do
         post business_manager_staff_members_path, params: { staff_member: invalid_attributes }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
     end
   end
@@ -137,7 +137,7 @@ RSpec.describe "Business Manager StaffMembers", type: :request do
 
       it "renders a response with 422 status" do
         patch business_manager_staff_member_path(staff_member), params: { staff_member: invalid_attributes }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
     end
   end
@@ -183,13 +183,13 @@ RSpec.describe "Business Manager StaffMembers", type: :request do
       patch manage_availability_business_manager_staff_member_path(staff_member), params: { staff_member: { availability: availability_params } }
       staff_member.reload
       expect(staff_member.availability["monday"]).to include({ "start" => "09:00", "end" => "17:00" })
-      expect(response).to redirect_to(manage_availability_business_manager_staff_member_path(staff_member, date: Date.today))
+      expect(response).to redirect_to(manage_availability_business_manager_staff_member_path(staff_member, date: Date.today, bust_cache: true))
     end
 
     it "renders a response with 422 status if invalid" do
       allow_any_instance_of(StaffMember).to receive(:update).and_return(false)
       patch manage_availability_business_manager_staff_member_path(staff_member), params: { staff_member: { availability: availability_params } }
-      expect(response).to have_http_status(:unprocessable_entity).or have_http_status(:ok)
+      expect(response).to have_http_status(:unprocessable_content).or have_http_status(:ok)
     end
   end
 end 

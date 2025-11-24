@@ -1,0 +1,750 @@
+# frozen_string_literal: true
+
+module Webhooks
+  class TwilioController < ActionController::API
+    # For API-only controller, CSRF is not enabled by default.
+    # Skip Devise-auth if present in parent modules (not included in ActionController::API, but guard anyway)
+    skip_before_action :authenticate_user! if respond_to?(:authenticate_user!)
+
+    
+    # Twilio webhook for delivery receipts
+    def delivery_receipt
+      SecureLogger.info "Received Twilio webhook: #{params.inspect}"
+      
+      # Verify webhook signature if configured
+      if verify_webhook_signature?
+        unless valid_signature?
+          SecureLogger.error "Invalid Twilio webhook signature"
+          render json: { error: "Invalid signature" }, status: :unauthorized
+          return
+        end
+      end
+      
+      # Process the webhook through SmsService
+      result = SmsService.process_webhook(params)
+      
+      if result[:success]
+        SecureLogger.info "Twilio webhook processed successfully: #{result[:status]}"
+        render json: { status: "success", message: "Webhook processed" }, status: :ok
+      else
+        SecureLogger.error "Twilio webhook processing failed: #{result[:error]}"
+        render json: { error: result[:error] }, status: :unprocessable_content
+      end
+      
+    rescue => e
+      SecureLogger.error "Twilio webhook error: #{e.message}"
+      SecureLogger.error e.backtrace.join("\n")
+      render json: { error: "Internal server error" }, status: :internal_server_error
+    end
+    
+    # Inbound SMS handler
+    def inbound_message
+      # Verify webhook signature if configured (similar to delivery_receipt)
+      if verify_webhook_signature?
+        unless valid_signature?
+          SecureLogger.warn "Invalid Twilio inbound SMS signature"
+          render json: { error: "Invalid signature" }, status: :forbidden
+          return
+        end
+      end
+
+      SecureLogger.info "Received Twilio inbound SMS: #{params.inspect}"
+      
+      # Extract message details
+      from = params[:From] || params['From']
+      body = params[:Body] || params['Body']
+      message_sid = params[:MessageSid] || params['MessageSid']
+      
+      SecureLogger.info "Inbound SMS from #{from}: #{body}"
+      
+      # Process common keywords
+      case body&.strip&.upcase
+      when "HELP"
+        SecureLogger.info "HELP keyword received from #{from}"
+        # Send help response
+        help_message = Sms::MessageTemplates.render('system.help_response', {
+          business_name: 'BizBlasts',
+          phone: ENV.fetch('SUPPORT_PHONE', '555-123-4567')
+        })
+        send_auto_reply(from, help_message) if help_message
+
+      when "CANCEL", "STOP", "UNSUBSCRIBE"
+        SecureLogger.info "STOP keyword received from #{from} - processing opt-out"
+        process_sms_opt_out(from)
+        
+      when "START", "SUBSCRIBE", "YES"
+        SecureLogger.info "START keyword received from #{from} - processing opt-in"
+        process_sms_opt_in(from)
+        
+      when "CONFIRM"
+        SecureLogger.info "CONFIRM keyword received from #{from}"
+        # Could trigger booking confirmation logic here
+        
+      else
+        SecureLogger.info "Other inbound message from #{from}: #{body}"
+        # Send unknown command response for unrecognized messages
+        if body.present? && body.length < 100 # Avoid responding to long messages
+          unknown_message = Sms::MessageTemplates.render('system.unknown_command')
+          send_auto_reply(from, unknown_message) if unknown_message
+        end
+      end
+      
+      # Always respond with success to acknowledge receipt
+      render json: { status: "received" }, status: :ok
+    end
+    
+    private
+    
+    def send_auto_reply(to_phone, message)
+      # Find a business that can handle auto-replies
+      # Try to find business associated with the phone number first
+      business = find_business_for_auto_reply(to_phone)
+
+      unless business
+        SecureLogger.error "No suitable business found for auto-reply to #{to_phone}"
+        return
+      end
+
+      # Find or create tenant customer for this phone number and business
+      normalized_phone = normalize_phone(to_phone)
+      tenant_customer = TenantCustomer.find_by(phone: normalized_phone, business: business)
+
+      # If no tenant customer exists, try to find a user and link them
+      unless tenant_customer
+        user = User.find_by(phone: normalized_phone)
+        if user
+          SecureLogger.info "Found user #{user.id} for phone #{to_phone}, linking to business #{business&.safe_identifier_for_logging}"
+          begin
+            tenant_customer = CustomerLinker.new(business).link_user_to_customer(user)
+            if tenant_customer
+              SecureLogger.info "Successfully linked user #{user.id} to tenant customer #{tenant_customer.id}"
+            else
+              SecureLogger.warn "CustomerLinker returned nil when linking user #{user.id} to business #{business&.safe_identifier_for_logging}"
+              return
+            end
+          rescue PhoneConflictError => linking_error
+            SecureLogger.error "Failed to link user #{user.id} to business #{business&.safe_identifier_for_logging} - phone conflict: #{linking_error.message}"
+            return
+          rescue => linking_error
+            SecureLogger.error "Failed to link user #{user.id} to business #{business&.safe_identifier_for_logging}: #{linking_error.message}"
+            return
+          end
+        else
+          SecureLogger.info "Creating minimal tenant customer for new phone number #{to_phone} in business #{business&.safe_identifier_for_logging}"
+          begin
+            # Create minimal tenant customer record for completely new phone numbers
+            # This enables auto-replies for new users discovered through SMS interactions
+            tenant_customer = TenantCustomer.create!(
+              business: business,
+              phone: normalized_phone,
+              first_name: 'Unknown', # Will be updated when they provide more info
+              last_name: 'User',     # Will be updated when they provide more info
+              email: "sms-user-#{SecureRandom.hex(8)}@invalid.example", # RFC 2606 reserved domain for invalid emails
+              phone_opt_in: false   # Start with opt-out, they need to explicitly opt-in
+            )
+            SecureLogger.info "Created minimal tenant customer #{tenant_customer.id} for phone #{to_phone}"
+          rescue => creation_error
+            SecureLogger.error "Failed to create tenant customer for phone #{to_phone}: #{creation_error.message}"
+            return
+          end
+        end
+      end
+
+      # Send automatic reply via SMS service
+      # Use the tenant_customer's business_id if the provided business is not persisted
+      business_id = if business&.persisted?
+        business.id
+      else
+        tenant_customer.business_id
+      end
+
+      SmsService.send_message(to_phone, message, {
+        business_id: business_id,
+        tenant_customer_id: tenant_customer.id,
+        auto_reply: true
+      })
+    rescue => e
+      SecureLogger.error "Failed to send auto-reply to #{to_phone}: #{e.message}"
+      SecureLogger.error e.backtrace.join("\n")
+    end
+    
+    def find_business_for_auto_reply(phone_number)
+      # Try to find business associated with this phone number
+      normalized_phone = normalize_phone(phone_number)
+
+      # Option 1: Find business through customer with this phone number
+      customers = find_customers_by_phone_global(phone_number)
+      customer = customers.first
+      return customer.business if customer&.business
+
+      # Option 2: Find business through user with this phone number
+      user = User.where(phone: normalized_phone).first
+      return user.business if user&.business
+
+      # Option 3: Fallback to any business that can send SMS (standard/premium tier only)
+      Business.where(sms_enabled: true).where.not(tier: 'free').first || 
+      Business.where.not(tier: 'free').first
+    end
+    
+    def process_sms_opt_out(phone_number)
+      # Determine business context from recent SMS activity (conservative mode for opt-out)
+      business_context = determine_business_context(phone_number, conservative: true)
+
+      if business_context
+        SecureLogger.info "Processing business-specific opt-out for #{phone_number} from business #{business_context.id}"
+
+        # Business-specific opt-out
+        customers = find_customers_by_phone(phone_number, business_context)
+        customers.each do |customer|
+          customer.opt_out_from_business!(business_context)
+          SecureLogger.info "Opted out customer #{customer.id} from business #{business_context.id}"
+        end
+
+        # Send business-specific confirmation
+        opt_out_message = "You've been unsubscribed from #{business_context.name} SMS. Reply START to re-subscribe or HELP for assistance."
+      else
+        SecureLogger.info "Processing global opt-out for #{phone_number} (no business context found)"
+
+        # Global opt-out (fallback)
+        customers = find_customers_by_phone_global(phone_number)
+        customers.each do |customer|
+          customer.opt_out_of_sms!
+          SecureLogger.info "Opted out customer #{customer.id} from SMS globally"
+        end
+
+        # Find users by phone number and opt them out
+        users = User.where(phone: normalize_phone(phone_number))
+        users.each do |user|
+          if user.respond_to?(:opt_out_of_sms!)
+            user.opt_out_of_sms!
+            SecureLogger.info "Opted out user #{user.id} from SMS"
+          end
+        end
+
+        opt_out_message = "You've been unsubscribed from all SMS. Reply START to re-subscribe or HELP for assistance."
+      end
+
+      send_auto_reply(phone_number, opt_out_message)
+      SecureLogger.info "Processed SMS opt-out for #{phone_number}"
+    end
+    
+    def process_sms_opt_in(phone_number)
+      # Record any pending invitation responses
+      record_invitation_response(phone_number, 'YES')
+
+      # Determine business context
+      business_context = determine_business_context(phone_number)
+
+      # Ensure customer exists before processing opt-in
+      # This prevents timing issues where new users text "YES" as first interaction
+      # Customer will be created as opted-out; opt-in logic below will handle proper opt-in
+      ensure_customer_exists(phone_number, business_context)
+
+      if business_context
+        SecureLogger.info "Processing business-specific opt-in for #{phone_number} to business #{business_context.id}"
+
+        # Business-specific opt-in (remove from opted-out list and global opt-in)
+        customers = find_customers_by_phone(phone_number, business_context)
+        customers.each do |customer|
+          customer.opt_in_to_business!(business_context) # Remove from business opt-out list
+          customer.opt_into_sms! unless customer.phone_opt_in? # Global opt-in if not already
+          SecureLogger.info "Opted in customer #{customer.id} for business #{business_context.id}"
+
+          # Schedule replay of pending notifications for this customer and business
+          schedule_notification_replay(customer, business_context)
+        end
+
+        # Send business-specific confirmation
+        opt_in_message = "You're now subscribed to #{business_context.name} SMS notifications. Reply STOP to unsubscribe or HELP for assistance."
+      else
+        SecureLogger.info "Processing global opt-in for #{phone_number}"
+
+        # Global opt-in
+        customers = find_customers_by_phone_global(phone_number)
+        customers.each do |customer|
+          customer.opt_into_sms!
+          SecureLogger.info "Opted in customer #{customer.id} for SMS"
+
+          # Schedule replay of all pending notifications for this customer
+          schedule_notification_replay(customer, nil)
+        end
+
+        opt_in_message = "You're now subscribed to SMS notifications. Reply STOP to unsubscribe or HELP for assistance."
+      end
+
+      send_auto_reply(phone_number, opt_in_message)
+      SecureLogger.info "Processed SMS opt-in for #{phone_number}"
+    end
+    
+    def normalize_phone(phone)
+      # Use centralized phone normalization to ensure consistency
+      PhoneNormalizer.normalize(phone)
+    end
+    
+    def verify_webhook_signature?
+      # Verify signatures in production unless explicitly disabled
+      # Can be disabled by setting TWILIO_VERIFY_SIGNATURES=false
+      # Can be enabled in other environments by setting TWILIO_VERIFY_SIGNATURES=true
+      if Rails.env.production?
+        ENV['TWILIO_VERIFY_SIGNATURES'] != 'false'
+      else
+        ENV['TWILIO_VERIFY_SIGNATURES'] == 'true'
+      end
+    end
+    
+    def valid_signature?
+      # Twilio webhook signature verification with manual implementation
+      # Using manual validation due to Twilio Ruby SDK compatibility issues with Ruby 3.4+/OpenSSL 3.0+
+
+      begin
+        signature = request.headers['X-Twilio-Signature']
+        return false unless signature
+
+        # Get URL and body for validation - must match exactly what Twilio used
+        reconstructed_url = reconstruct_original_url
+        body = request.raw_post
+
+        # Manual Twilio signature validation (more reliable than SDK)
+        result = validate_twilio_signature_manual(reconstructed_url, body, signature, TWILIO_AUTH_TOKEN)
+
+        SecureLogger.info "[WEBHOOK] Signature validation: URL=#{reconstructed_url}, Valid=#{result}"
+        return result
+
+      rescue => e
+        SecureLogger.error "[WEBHOOK] Signature validation error: #{e.class.name} - #{e.message}"
+        return false
+      end
+    end
+
+    private
+
+    def validate_twilio_signature_manual(url, body, signature, auth_token)
+      # TODO: Revert to Twilio SDK when Ruby 3.4/OpenSSL 3.0 compatibility is fixed
+      # Current issue: Twilio Ruby SDK has compatibility issues with Ruby 3.4+ and OpenSSL 3.0+
+      # causing signature validation failures. This manual implementation provides
+      # a reliable workaround until the SDK is updated.
+      # Related: https://github.com/twilio/twilio-ruby/issues (check for updates)
+      #
+      # Manual implementation of Twilio's signature validation algorithm
+      # This is more reliable than the Twilio Ruby SDK in certain Ruby/OpenSSL combinations
+
+      return false unless signature && auth_token
+      return false unless signature.length > 0 && auth_token.length > 0
+
+      # Generate expected signature using Twilio's algorithm
+      # For webhooks, Twilio uses URL + sorted form parameters, not raw body
+      data_to_sign = build_twilio_signature_data(url, body)
+      digest = OpenSSL::Digest.new('sha1')
+      expected_signature = Base64.encode64(OpenSSL::HMAC.digest(digest, auth_token, data_to_sign)).strip
+
+      # Secure constant-time comparison to prevent timing attacks
+      # Fix: Use fixed-length comparison to prevent truncation bypass
+      return false unless signature.length == expected_signature.length
+
+      # Constant-time comparison - ensure we compare every byte
+      result = 0
+      signature.length.times do |i|
+        result |= signature[i].ord ^ expected_signature[i].ord
+      end
+      result == 0
+    end
+
+    def build_twilio_signature_data(url, body)
+      # Build the data string that Twilio uses for signature generation
+      # For webhook POST requests, this is URL + sorted key=value pairs
+
+      # Parse the form-encoded POST body into parameters
+      parsed_params = URI.decode_www_form(body).sort_by(&:first)
+
+      # Build the signature data: URL + sorted key=value pairs
+      signature_data = url
+      parsed_params.each do |key, value|
+        signature_data += "#{key}#{value}"
+      end
+
+      signature_data
+    rescue => e
+      # Fallback to URL + raw body if parsing fails
+      SecureLogger.warn "[WEBHOOK] Failed to parse POST body for signature: #{e.message}"
+      url + body
+    end
+
+    def reconstruct_original_url
+      # Reconstruct the URL that Twilio originally called for signature validation
+      # This handles cases where the request was redirected (e.g., non-www to www)
+      current_url = request.original_url
+
+      # Check if there's a forwarded host header (set by proxies/load balancers during redirects)
+      forwarded_host = request.headers['X-Forwarded-Host']
+      original_host = request.headers['X-Original-Host']
+      
+      # Use the forwarded/original host if available
+      if forwarded_host.present? && forwarded_host != request.host
+        original_url = current_url.gsub(request.host, forwarded_host)
+        SecureLogger.debug "[WEBHOOK] URL reconstruction via X-Forwarded-Host: #{current_url} -> #{original_url}"
+        return original_url
+      elsif original_host.present? && original_host != request.host
+        original_url = current_url.gsub(request.host, original_host)
+        SecureLogger.debug "[WEBHOOK] URL reconstruction via X-Original-Host: #{current_url} -> #{original_url}"
+        return original_url
+      end
+
+      # Fallback: Check environment variable for domain mapping (e.g., TWILIO_WEBHOOK_DOMAIN)
+      # This allows configuration without code changes: TWILIO_WEBHOOK_DOMAIN=bizblasts.com
+      if ENV['TWILIO_WEBHOOK_DOMAIN'].present? && request.host != ENV['TWILIO_WEBHOOK_DOMAIN']
+        original_url = current_url.gsub(request.host, ENV['TWILIO_WEBHOOK_DOMAIN'])
+        SecureLogger.debug "[WEBHOOK] URL reconstruction via ENV: #{current_url} -> #{original_url}"
+        return original_url
+      end
+
+      # If no redirect indicators found, use the current URL as-is
+      # This is the correct behavior when Twilio calls the same URL we're receiving
+      current_url
+    end
+
+    # Determine business context using multiple signals
+    # Improved to handle new users without SMS history
+    def determine_business_context(phone_number, conservative: false)
+      normalized_phone = normalize_phone(phone_number)
+
+      # Strategy 1: Recent SMS messages (conservative: 24 hours, aggressive: 7 days)
+      timeframe = conservative ? 24.hours.ago : 7.days.ago
+      recent_sms = SmsMessage.for_phone(normalized_phone)
+                            .where('sent_at > ?', timeframe)
+                            .order(sent_at: :desc)
+                            .first
+      return recent_sms.business if recent_sms&.business
+
+      # Strategy 2: Recent SMS opt-in invitations
+      # If they received an invitation recently, use that business context
+      recent_invitation = SmsOptInInvitation.where(phone_number: normalized_phone)
+                                           .where('sent_at > ?', 30.days.ago)
+                                           .order(sent_at: :desc)
+                                           .first
+      return recent_invitation.business if recent_invitation&.business
+
+      # Strategy 3: Existing customer records (with conservative mode logic)
+      # If they're already a customer of a business, prefer that context
+      customer_businesses = find_customer_businesses_with_sms(phone_number)
+
+      if customer_businesses.exists?
+        # In conservative mode with multiple businesses, prefer the most recent customer relationship
+        # rather than triggering global opt-out, since customers likely intend business-specific opt-out
+        unique_businesses = customer_businesses.group_by(&:business).keys
+
+        if conservative && unique_businesses.count > 1
+          SecureLogger.info "[BUSINESS_CONTEXT] Multiple businesses found for #{phone_number}: #{unique_businesses.map(&:id).join(', ')}, using most recent customer relationship"
+        end
+
+        # Return the business associated with the most recent customer record (already ordered by created_at DESC)
+        return customer_businesses.first.business
+      end
+
+      # Strategy 4: User business association (checked even in conservative mode - authoritative signal)
+      # If a User record exists with this phone, use their business
+      user = User.for_phone(normalized_phone).first
+      if user&.business&.sms_enabled?
+        SecureLogger.info "[BUSINESS_CONTEXT] Found business #{user.business.id} via User association for #{phone_number}"
+        return user.business
+      end
+
+      # Strategy 5: Recent booking/order activity (conservative: 7 days, aggressive: 90 days)
+      # Check for recent business interactions through bookings or orders
+      if conservative
+        recent_booking_business = find_business_from_recent_bookings(normalized_phone, days: 7)
+        if recent_booking_business
+          SecureLogger.info "[BUSINESS_CONTEXT] Found business #{recent_booking_business.id} via recent booking (7 days) for #{phone_number}"
+          return recent_booking_business
+        end
+      else
+        recent_booking_business = find_business_from_recent_bookings(normalized_phone, days: 90)
+        return recent_booking_business if recent_booking_business
+      end
+
+      # Stop here for conservative mode (opt-out scenarios)
+      # This prevents overly aggressive fallbacks but keeps authoritative signals above
+      return nil if conservative
+
+      # Strategy 6: Smart fallback - most active SMS business
+      # Use the business that sends the most SMS (likely the main business)
+      fallback_business = Business.joins(:sms_messages)
+                                 .where(sms_enabled: true)
+                                 .where.not(tier: 'free')
+                                 .where('sms_messages.sent_at > ?', 30.days.ago)
+                                 .group('businesses.id')
+                                 .order('COUNT(sms_messages.id) DESC')
+                                 .first
+
+      if fallback_business
+        SecureLogger.info "[BUSINESS_CONTEXT] Using fallback business #{fallback_business.id} for #{phone_number}"
+        return fallback_business
+      end
+
+      # Strategy 7: Final fallback - any SMS-enabled business (when no recent SMS activity exists)
+      # This ensures auto-replies and interactions can still function for new businesses
+      final_fallback = Business.where(sms_enabled: true)
+                              .where.not(tier: 'free')
+                              .order(:created_at)
+                              .first
+
+      SecureLogger.info "[BUSINESS_CONTEXT] Using final fallback business #{final_fallback&.id} for #{phone_number} (no recent SMS activity)" if final_fallback
+      final_fallback
+    end
+
+    # Find business from recent booking/order activity
+    # Uses defensive programming to handle missing models or associations gracefully
+    def find_business_from_recent_bookings(phone_number, days: 90)
+      normalized_phone = normalize_phone(phone_number)
+      timeframe = days.days.ago
+
+      # Check for recent bookings by tenant customers
+      # Verify model exists AND has necessary associations before querying
+      if defined?(Booking) && Booking.respond_to?(:joins) && 
+         Booking.reflect_on_association(:tenant_customer) && 
+         Booking.reflect_on_association(:business)
+        begin
+          recent_booking = Booking.joins(:tenant_customer)
+                                 .where(tenant_customers: { phone: normalized_phone })
+                                 .where('bookings.created_at > ?', timeframe)
+                                 .order('bookings.created_at DESC')
+                                 .first
+          return recent_booking.business if recent_booking&.business&.sms_enabled?
+        rescue => e
+          SecureLogger.warn "[BUSINESS_CONTEXT] Error querying Booking with tenant_customer: #{e.message}"
+        end
+
+        # Also check for bookings placed by client users (without tenant customer)
+        if Booking.reflect_on_association(:user)
+          begin
+            recent_user_booking = Booking.joins(:user)
+                                        .where(users: { phone: normalized_phone })
+                                        .where('bookings.created_at > ?', timeframe)
+                                        .order('bookings.created_at DESC')
+                                        .first
+            return recent_user_booking.business if recent_user_booking&.business&.sms_enabled?
+          rescue => e
+            SecureLogger.warn "[BUSINESS_CONTEXT] Error querying Booking with user: #{e.message}"
+          end
+        end
+      end
+
+      # Check for recent orders by tenant customers
+      # Verify model exists AND has necessary associations before querying
+      if defined?(Order) && Order.respond_to?(:joins) && 
+         Order.reflect_on_association(:tenant_customer) && 
+         Order.reflect_on_association(:business)
+        begin
+          recent_order = Order.joins(:tenant_customer)
+                             .where(tenant_customers: { phone: normalized_phone })
+                             .where('orders.created_at > ?', timeframe)
+                             .order('orders.created_at DESC')
+                             .first
+          return recent_order.business if recent_order&.business&.sms_enabled?
+        rescue => e
+          SecureLogger.warn "[BUSINESS_CONTEXT] Error querying Order with tenant_customer: #{e.message}"
+        end
+
+        # Also check for orders placed by client users (without tenant customer)
+        if Order.reflect_on_association(:user)
+          begin
+            recent_user_order = Order.joins(:user)
+                                    .where(users: { phone: normalized_phone })
+                                    .where('orders.created_at > ?', timeframe)
+                                    .order('orders.created_at DESC')
+                                    .first
+            return recent_user_order.business if recent_user_order&.business&.sms_enabled?
+          rescue => e
+            SecureLogger.warn "[BUSINESS_CONTEXT] Error querying Order with user: #{e.message}"
+          end
+        end
+      end
+
+      nil
+    rescue => e
+      # Catch-all for unexpected errors
+      SecureLogger.error "[BUSINESS_CONTEXT] Unexpected error in find_business_from_recent_bookings: #{e.message}"
+      nil
+    end
+
+    # Record invitation response for analytics
+    def record_invitation_response(phone_number, response_text)
+      # Find recent invitations for this phone number
+      recent_invitations = SmsOptInInvitation.where(phone_number: normalize_phone(phone_number))
+                                            .where('sent_at > ?', 30.days.ago)
+                                            .where(responded_at: nil)
+
+      recent_invitations.each do |invitation|
+        invitation.record_response!(response_text)
+        SecureLogger.info "[SMS_INVITATION] Recorded response '#{response_text}' for invitation #{invitation.id}"
+      end
+    end
+
+    # Schedule replay of pending SMS notifications after opt-in
+    def schedule_notification_replay(customer, business = nil)
+      # Check if there are any pending notifications for this customer
+      pending_count = if business
+        PendingSmsNotification.pending
+                             .for_customer(customer)
+                             .for_business(business)
+                             .count
+      else
+        PendingSmsNotification.pending
+                             .for_customer(customer)
+                             .count
+      end
+
+      if pending_count > 0
+        SecureLogger.info "[SMS_REPLAY] Scheduling replay for customer #{customer.id} (#{business&.id || 'all businesses'}) - #{pending_count} pending notifications"
+
+        # Schedule the replay job (immediate for webhook response time)
+        SmsNotificationReplayJob.schedule_for_customer(customer, business)
+
+        SecureLogger.info "[SMS_REPLAY] Replay job scheduled for customer #{customer.id}"
+      else
+        SecureLogger.info "[SMS_REPLAY] No pending notifications for customer #{customer.id} (#{business&.id || 'all businesses'})"
+      end
+    rescue => e
+      SecureLogger.error "[SMS_REPLAY] Error scheduling replay for customer #{customer.id}: #{e.message}"
+      # Don't raise - this shouldn't break the webhook response
+    end
+
+    # Ensure a customer record exists for the phone number before processing opt-in
+    # This prevents timing issues where new users text "YES" as their first interaction
+    # Note: This only ensures customer existence; use process_sms_opt_in for actual opt-in logic
+    def ensure_customer_exists(phone_number, business_context = nil)
+      normalized_phone = normalize_phone(phone_number)
+
+      # If we have business context, check if customer exists for that business
+      if business_context
+        existing_customer = TenantCustomer.find_by(phone: normalized_phone, business: business_context)
+        return if existing_customer
+
+        SecureLogger.info "Creating customer for SMS interaction: phone #{phone_number}, business #{business_context.id}"
+
+        # Try to find user and link, or create minimal customer
+        user = User.for_phone(normalized_phone).first
+        if user
+          begin
+            linked_customer = CustomerLinker.new(business_context).link_user_to_customer(user)
+            if linked_customer
+              SecureLogger.info "Linked existing user #{user.id} to business #{business_context.id} for SMS interaction"
+            else
+              SecureLogger.warn "CustomerLinker returned nil when linking user #{user.id} to business #{business_context.id}"
+              # Fall through to create minimal customer
+              create_minimal_customer(normalized_phone, business_context)
+            end
+          rescue PhoneConflictError => linking_error
+            SecureLogger.error "Failed to link user #{user.id} to business #{business_context.id} - phone conflict: #{linking_error.message}"
+            # Fall through to create minimal customer
+            create_minimal_customer(normalized_phone, business_context)
+          rescue => linking_error
+            SecureLogger.error "Failed to link user: #{linking_error.message}"
+            # Fall through to create minimal customer
+            create_minimal_customer(normalized_phone, business_context)
+          end
+        else
+          create_minimal_customer(normalized_phone, business_context)
+        end
+      else
+        # No business context - ensure at least one customer exists for this phone
+        existing_customers = find_customers_by_phone_global(phone_number)
+        return if existing_customers.any?
+
+        SecureLogger.info "Creating customer for global SMS interaction: phone #{phone_number}"
+
+        # Find any business that can handle SMS
+        fallback_business = Business.where(sms_enabled: true).where.not(tier: 'free').first ||
+                           Business.where.not(tier: 'free').first
+
+        if fallback_business
+          create_minimal_customer(normalized_phone, fallback_business)
+        else
+          SecureLogger.error "No suitable business found for customer creation"
+        end
+      end
+    rescue => e
+      SecureLogger.error "Failed to ensure customer exists for #{phone_number}: #{e.message}"
+      # Don't raise - this shouldn't break the webhook response
+    end
+
+    # Create a minimal customer record for SMS interactions
+    # Always creates customers as opted-out; use process_sms_opt_in for proper opt-in handling
+    def create_minimal_customer(phone, business)
+      # Generate unique email using phone (normalized), timestamp, and business ID
+      # This prevents uniqueness constraint violations better than random hex alone
+      # Using RFC 2606 reserved domain @invalid.example for temporary emails
+      normalized = phone.gsub(/\D/, '') # Remove non-digits for email
+      timestamp = Time.current.to_i
+      email = "sms-#{normalized}-#{timestamp}-b#{business.id}@invalid.example"
+      
+      TenantCustomer.create!(
+        business: business,
+        phone: phone,
+        first_name: 'Unknown',
+        last_name: 'User',
+        email: email,
+        phone_opt_in: false # Always start opted-out; process_sms_opt_in handles opt-in logic
+      )
+      SecureLogger.info "Created minimal customer for phone #{phone} in business #{business&.safe_identifier_for_logging}"
+    rescue => e
+      SecureLogger.error "Failed to create minimal customer for #{phone}: #{e.message}"
+      raise # Re-raise so caller can handle
+    end
+
+    # Robust phone number lookup that handles multiple formats in the database
+    # Addresses issue where existing customer records have inconsistent phone formatting
+    # Now delegates to CustomerLinker for consistent phone lookup logic
+    def find_customers_by_phone(phone_number, business = nil)
+      SecureLogger.debug "[PHONE_LOOKUP] Using CustomerLinker for phone lookup: #{phone_number}"
+
+      # Use appropriate method based on business context
+      # CustomerLinker methods consistently return Arrays for efficient webhook processing
+      # IMPORTANT: Verify business is persisted before using (Bug 8 fix)
+      # This prevents errors when accessing business.id or querying by business
+      if business.present? && business.persisted?
+        # Business-scoped search using class method for consistency
+        customers_array = CustomerLinker.find_customers_by_phone_public(phone_number, business)
+        SecureLogger.debug "[PHONE_LOOKUP] Using business-scoped search for business #{business&.safe_identifier_for_logging}"
+      else
+        # Intentional global search when no business context is available (e.g., SMS webhooks)
+        # Also falls back to global search if business is unpersisted (safety guard)
+        if business.present? && !business.persisted?
+          SecureLogger.warn "[PHONE_LOOKUP] Received unpersisted business object, falling back to global search"
+        end
+        customers_array = CustomerLinker.find_customers_by_phone_across_all_businesses(phone_number)
+        SecureLogger.debug "[PHONE_LOOKUP] Using intentional global search (no business context)"
+      end
+
+      # Note: Phone normalization should be done separately, not during webhook processing
+      # to avoid race conditions and performance issues
+
+      customers_array
+    end
+
+    # Enhanced customer lookup by phone that handles format variations
+    def find_customers_by_phone_global(phone_number)
+      find_customers_by_phone(phone_number, nil)
+    end
+
+    # Find customer-business relationships with SMS enabled using robust phone lookup
+    def find_customer_businesses_with_sms(phone_number)
+      # Generate all possible phone number formats
+      normalized = normalize_phone(phone_number)
+      digits_only = phone_number.gsub(/\D/, '')
+      without_country = digits_only.length == 11 ? digits_only[1..-1] : digits_only
+
+      possible_formats = [
+        normalized,           # +16026866672
+        digits_only,         # 16026866672 or 6026866672
+        without_country,     # 6026866672
+        "1#{without_country}" # 16026866672
+      ].uniq
+
+      TenantCustomer.for_phone_set(possible_formats)
+                    .joins(:business)
+                    .where(businesses: { sms_enabled: true })
+                    .includes(:business)
+                    .order('tenant_customers.created_at DESC')
+    end
+  end
+end

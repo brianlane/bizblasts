@@ -2,7 +2,8 @@
 
 # Controller for handling the public booking process within a tenant subdomain.
 module Public
-  class BookingController < ApplicationController
+  class BookingController < Public::BaseController
+    after_action :no_store!, only: %i[confirmation]
     # Ensure tenant is set based on subdomain
     before_action :set_tenant
     include BusinessAccessProtection
@@ -22,13 +23,28 @@ module Public
       end
 
       @booking = current_tenant.bookings.new(service: @service)
+      if params[:service_variant_id].present? && @service
+        @service_variant = @service.service_variants.find_by(id: params[:service_variant_id])
+        @booking.service_variant = @service_variant if @service_variant
+      end
       # Always pre-fill staff member if provided via query params
       @booking.staff_member_id = params[:staff_member_id] if params[:staff_member_id].present?
       
       # If client user, set their own TenantCustomer; otherwise build nested for new customer
       if current_user && current_user.role == 'client' # Check current_user exists
-        client_cust = current_tenant.tenant_customers.find_by(email: current_user.email)
-        @booking.tenant_customer = client_cust if client_cust
+        begin
+          linker = CustomerLinker.new(current_tenant)
+          client_cust = linker.link_user_to_customer(current_user)
+          @booking.tenant_customer = client_cust if client_cust
+        rescue PhoneConflictError => e
+          Rails.logger.error "[BookingController#new] CustomerLinker phone conflict for user #{current_user.id}: #{e.message}"
+          flash[:alert] = e.message
+          redirect_to tenant_root_path and return
+        rescue StandardError => e
+          Rails.logger.error "[BookingController#new] CustomerLinker error for user #{current_user.id}: #{e.message}"
+          flash[:alert] = e.message
+          redirect_to tenant_root_path and return
+        end
       end
       # If still no tenant_customer (e.g. user not logged in, or not a client, or no record found)
       # The form might need fields for new customer details, handled by tenant_customer_attributes
@@ -55,16 +71,23 @@ module Public
       # Validate service presence
       unless @service
         flash[:alert] = "Invalid service selected."
-        redirect_to new_tenant_booking_path(service_id: booking_params[:service_id]), status: :unprocessable_entity and return
+        redirect_to new_tenant_booking_path(service_id: booking_params[:service_id]), status: :unprocessable_content and return
       end
 
       # Determine customer based on user state
       if current_user&.client?
-        # Logged-in client: find or create their TenantCustomer by email
-        customer = current_tenant.tenant_customers.find_or_create_by!(email: current_user.email) do |c|
-          c.first_name = current_user.first_name
-          c.last_name  = current_user.last_name
-          c.phone      = current_user.phone
+        # Logged-in client: link user to their TenantCustomer
+        begin
+          linker = CustomerLinker.new(current_tenant)
+          customer = linker.link_user_to_customer(current_user)
+        rescue PhoneConflictError => e
+          Rails.logger.error "[BookingController#create] CustomerLinker phone conflict for user #{current_user.id}: #{e.message}"
+          flash[:alert] = e.message
+          redirect_to new_tenant_booking_path(service_id: booking_params[:service_id]) and return
+        rescue StandardError => e
+          Rails.logger.error "[BookingController#create] CustomerLinker error for user #{current_user.id}: #{e.message}"
+          flash[:alert] = e.message
+          redirect_to new_tenant_booking_path(service_id: booking_params[:service_id]) and return
         end
       elsif current_user.present? && (current_user.staff? || current_user.manager?)
         # Staff or manager: select or create tenant customer based on form inputs
@@ -78,24 +101,29 @@ module Public
             redirect_to new_tenant_booking_path(service_id: booking_params[:service_id], staff_member_id: booking_params[:staff_member_id]) and return
           end
           
-          # Try to find existing customer by email
-          customer = current_tenant.tenant_customers.find_by(email: nested[:email])
-          
-          if customer
-            # Update existing customer with new info if provided
-            update_attrs = {}
-            update_attrs[:first_name] = nested[:first_name] if nested[:first_name].present?
-            update_attrs[:last_name] = nested[:last_name] if nested[:last_name].present?
-            update_attrs[:phone] = nested[:phone] if nested[:phone].present?
-            customer.update!(update_attrs) if update_attrs.any?
-          else
-            # Create new customer
-            customer = current_tenant.tenant_customers.create!(
-              first_name: nested[:first_name],
-              last_name:  nested[:last_name],
-              phone:      nested[:phone],
-              email:      nested[:email].presence
+          # Use CustomerLinker for guest checkout flow
+          begin
+            linker = CustomerLinker.new(current_tenant)
+            customer = linker.find_or_create_guest_customer(
+              nested[:email],
+              {
+                first_name: nested[:first_name],
+                last_name: nested[:last_name],
+                phone: nested[:phone]
+              }
             )
+          rescue PhoneConflictError => e
+            Rails.logger.error "[BookingController#create] CustomerLinker phone conflict for staff/manager: #{e.message}"
+            flash[:alert] = "Error creating customer: #{e.message}"
+            redirect_to new_tenant_booking_path(service_id: booking_params[:service_id], staff_member_id: booking_params[:staff_member_id]) and return
+          rescue GuestConflictError => e
+            Rails.logger.error "[BookingController#create] CustomerLinker guest conflict for staff/manager: #{e.message}"
+            flash[:alert] = e.message
+            redirect_to new_tenant_booking_path(service_id: booking_params[:service_id], staff_member_id: booking_params[:staff_member_id]) and return
+          rescue StandardError => e
+            Rails.logger.error "[BookingController#create] CustomerLinker error for staff/manager: #{e.message}"
+            flash[:alert] = "Error creating customer: #{e.message}"
+            redirect_to new_tenant_booking_path(service_id: booking_params[:service_id], staff_member_id: booking_params[:staff_member_id]) and return
           end
         end
       else
@@ -108,27 +136,32 @@ module Public
           redirect_to new_tenant_booking_path(service_id: booking_params[:service_id], staff_member_id: booking_params[:staff_member_id]) and return
         end
         
-        # Try to find existing customer by email
-        customer = current_tenant.tenant_customers.find_by(email: nested[:email])
-        
-        if customer
-          # Update existing customer with new info if provided
-          update_attrs = {}
-          update_attrs[:first_name] = nested[:first_name] if nested[:first_name].present?
-          update_attrs[:last_name] = nested[:last_name] if nested[:last_name].present?
-          update_attrs[:phone] = nested[:phone] if nested[:phone].present?
-          customer.update!(update_attrs) if update_attrs.any?
-        else
-          # Create new customer
-          customer = current_tenant.tenant_customers.create!(
-            first_name: nested[:first_name],
-            last_name:  nested[:last_name],
-            phone:      nested[:phone],
-            email:      nested[:email].presence
+        # Use CustomerLinker for guest checkout
+        begin
+          linker = CustomerLinker.new(current_tenant)
+          customer = linker.find_or_create_guest_customer(
+            nested[:email],
+            {
+              first_name: nested[:first_name],
+              last_name: nested[:last_name],
+              phone: nested[:phone]
+            }
           )
+        rescue PhoneConflictError => e
+          Rails.logger.error "[BookingController#create] CustomerLinker phone conflict for guest: #{e.message}"
+          flash[:alert] = "Error creating customer: #{e.message}"
+          redirect_to new_tenant_booking_path(service_id: booking_params[:service_id], staff_member_id: booking_params[:staff_member_id]) and return
+        rescue GuestConflictError => e
+          Rails.logger.error "[BookingController#create] CustomerLinker guest conflict for guest: #{e.message}"
+          flash[:alert] = e.message
+          redirect_to new_tenant_booking_path(service_id: booking_params[:service_id], staff_member_id: booking_params[:staff_member_id]) and return
+        rescue StandardError => e
+          Rails.logger.error "[BookingController#create] CustomerLinker error for guest: #{e.message}"
+          flash[:alert] = "Error creating customer: #{e.message}"
+          redirect_to new_tenant_booking_path(service_id: booking_params[:service_id], staff_member_id: booking_params[:staff_member_id]) and return
         end
 
-        # Optionally create an account if requested
+        # Optionally create an account if requested and link to customer
         if booking_params[:create_account] == '1' && booking_params[:password].present?
           user = User.new(
             email:                 nested[:email],
@@ -141,6 +174,8 @@ module Public
           )
           if user.save
             ClientBusiness.create!(user: user, business: current_tenant)
+            # Link the existing customer to the new user account
+            customer.update!(user_id: user.id)
             sign_in(user)
           else
             # Propagate user errors to booking
@@ -157,7 +192,12 @@ module Public
                  )
       @booking = current_tenant.bookings.new(attrs)
       @booking.tenant_customer = customer
-      @booking.end_time        = @booking.start_time + @service.duration.minutes
+      duration_for_booking = if @booking.service_variant.present?
+                               @booking.service_variant.duration
+                             else
+                               @service.duration
+                             end
+      @booking.end_time        = @booking.start_time + duration_for_booking.minutes
       
       # Process promo code if provided
       if booking_params[:promo_code].present?
@@ -184,7 +224,7 @@ module Public
       # Early validation for account creation errors
       if @booking.errors.any?
         flash.now[:alert] = @booking.errors.full_messages.to_sentence
-        render :new, status: :unprocessable_entity and return
+        render :new, status: :unprocessable_content and return
       end
 
       # Check if current user is business staff/manager making booking for client
@@ -208,19 +248,27 @@ module Public
           
           generate_or_update_invoice_for_booking(@booking)
           
-          # Send business notification email
+          # Send business notification (email + SMS)
           begin
-            BusinessMailer.new_booking_notification(@booking).deliver_later
-            Rails.logger.info "[EMAIL] Scheduled business booking notification for Booking ##{@booking.id}"
+            NotificationService.business_new_booking(@booking)
+            Rails.logger.info "[NOTIFICATION] Scheduled business booking notification for Booking ##{@booking.id}"
           rescue => e
-            Rails.logger.error "[EMAIL] Failed to schedule business booking notification for Booking ##{@booking.id}: #{e.message}"
+            Rails.logger.error "[NOTIFICATION] Failed to schedule business booking notification for Booking ##{@booking.id}: #{e.message}"
           end
-          
+
+          # Send customer booking confirmation (email + SMS)
+          begin
+            NotificationService.booking_confirmation(@booking)
+            Rails.logger.info "[NOTIFICATION] Scheduled customer booking confirmation for Booking ##{@booking.id}"
+          rescue => e
+            Rails.logger.error "[NOTIFICATION] Failed to schedule customer booking confirmation for Booking ##{@booking.id}: #{e.message}"
+          end
+
           flash[:notice] = "Booking was successfully created."
           redirect_to tenant_booking_confirmation_path(@booking)
         else
           flash.now[:alert] = @booking.errors.full_messages.to_sentence
-          render :new, status: :unprocessable_entity
+          render :new, status: :unprocessable_content
         end
       else
         # Client and guest users - validate booking but don't save yet for experience services
@@ -320,19 +368,27 @@ module Public
               @booking.update!(status: :confirmed)
             end
             
-            # Send business notification email for standard bookings too
+            # Send business notification (email + SMS) for standard bookings too
             begin
-              BusinessMailer.new_booking_notification(@booking).deliver_later
-              Rails.logger.info "[EMAIL] Scheduled business booking notification for Booking ##{@booking.id}"
+              NotificationService.business_new_booking(@booking)
+              Rails.logger.info "[NOTIFICATION] Scheduled business booking notification for Booking ##{@booking.id}"
             rescue => e
-              Rails.logger.error "[EMAIL] Failed to schedule business booking notification for Booking ##{@booking.id}: #{e.message}"
+              Rails.logger.error "[NOTIFICATION] Failed to schedule business booking notification for Booking ##{@booking.id}: #{e.message}"
             end
-            
+
+            # Send customer booking confirmation (email + SMS)
+            begin
+              NotificationService.booking_confirmation(@booking)
+              Rails.logger.info "[NOTIFICATION] Scheduled customer booking confirmation for Booking ##{@booking.id}"
+            rescue => e
+              Rails.logger.error "[NOTIFICATION] Failed to schedule customer booking confirmation for Booking ##{@booking.id}: #{e.message}"
+            end
+
             flash[:notice] = "Booking confirmed! You can pay now or later."
             redirect_to tenant_booking_confirmation_path(@booking)
           else
             flash.now[:alert] = @booking.errors.full_messages.to_sentence
-            render :new, status: :unprocessable_entity
+            render :new, status: :unprocessable_content
           end
         end
       end
@@ -375,7 +431,7 @@ module Public
       if current_user.present?
         # If user is logged in, ensure they have permission to view this booking
         unless user_can_view_booking?(@booking)
-          Rails.logger.warn "[SECURITY] Unauthorized booking access attempt: Booking=#{@booking.id}, User=#{current_user.email}, Customer=#{@booking.tenant_customer&.email}, IP=#{request.remote_ip}"
+          SecureLogger.warn "[SECURITY] Unauthorized booking access attempt: Booking=#{@booking.id}, User=#{current_user.email}, Customer=#{@booking.tenant_customer&.email}, IP=#{request.remote_ip}"
           flash[:alert] = "You are not authorized to view this booking."
           redirect_to tenant_root_path and return
         end
@@ -400,6 +456,9 @@ module Public
       # Try to get service_id from top-level params (GET new) or nested booking params (POST create error)
       service_id = params[:service_id] || params[:booking].try(:[], :service_id)
       @service = current_tenant.services.find_by(id: service_id)
+      if @service && params[:service_variant_id].present?
+        @service_variant = @service.service_variants.find_by(id: params[:service_variant_id])
+      end
 
       # Ensure @available_products is always set, even if @service is nil
       @available_products = if @service.present?
@@ -415,13 +474,13 @@ module Public
 
     def booking_params
       params.require(:booking).permit(
-        :service_id, :staff_member_id, :start_time,
+        :service_id, :service_variant_id, :staff_member_id, :start_time,
         :'start_time(1i)', :'start_time(2i)', :'start_time(3i)',
         :'start_time(4i)', :'start_time(5i)', :quantity,
         :notes, :tenant_customer_id, :date, :duration, :promo_code,
         :create_account, :password, :password_confirmation,
         booking_product_add_ons_attributes: [:id, :product_variant_id, :quantity, :_destroy],
-        tenant_customer_attributes: [:first_name, :last_name, :email, :phone]
+        tenant_customer_attributes: [:first_name, :last_name, :email, :phone, :phone_opt_in]
       )
     end
 

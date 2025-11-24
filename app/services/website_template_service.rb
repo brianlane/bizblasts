@@ -156,21 +156,25 @@ class WebsiteTemplateService
   
   def self.generate_theme_css(theme_data)
     return '' unless theme_data
-    
+
     variables = []
-    
+
     if theme_data['color_scheme']
       theme_data['color_scheme'].each do |key, value|
-        variables << "--color-#{key.to_s.gsub('_', '-')}: #{value};"
+        sanitized_key = CssSanitizer.sanitize_css_property_name(key)
+        sanitized_value = CssSanitizer.sanitize_css_value(value)
+        variables << "--color-#{sanitized_key}: #{sanitized_value};" if sanitized_key.present? && sanitized_value.present?
       end
     end
-    
+
     if theme_data['typography']
       theme_data['typography'].each do |key, value|
-        variables << "--#{key.to_s.gsub('_', '-')}: #{value};"
+        sanitized_key = CssSanitizer.sanitize_css_property_name(key)
+        sanitized_value = CssSanitizer.sanitize_css_value(value)
+        variables << "--#{sanitized_key}: #{sanitized_value};" if sanitized_key.present? && sanitized_value.present?
       end
     end
-    
+
     ":root { #{variables.join(' ')} }"
   end
 end 

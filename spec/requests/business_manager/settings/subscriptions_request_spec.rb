@@ -15,8 +15,9 @@ RSpec.describe "BusinessManager::Settings::Subscriptions", type: :request do
   before do
     host! "#{business.hostname}.lvh.me"
     ActsAsTenant.current_tenant = business
-    # Mock Stripe API Key for controller callbacks
-    allow(Rails.application.credentials).to receive(:stripe).and_return({ secret_key: 'sk_test_xyz', webhook_secret: 'whsec_abc' })
+    # Mock Stripe API Key for controller callbacks and webhook secret for middleware
+    allow(Rails.application.credentials).to receive(:dig).with(:stripe, :secret_key).and_return('sk_test_xyz')
+    allow(Rails.application.credentials).to receive(:dig).with(:stripe, :webhook_secret).and_return('whsec_abc')
     # Set Stripe API key for all tests
     Stripe.api_key = 'sk_test_xyz'
   end
@@ -211,20 +212,21 @@ RSpec.describe "BusinessManager::Settings::Subscriptions", type: :request do
 
     context "with invalid signature" do
       let(:invalid_signature_header) { "t=#{timestamp},#{scheme}=bad_signature_value" }
-      
-      it "returns http bad_request" do
+
+      it "returns http unauthorized (rejected by middleware)" do
         # Make sure the error is raised as expected
         allow(Stripe::Webhook).to receive(:construct_event)
           .and_raise(Stripe::SignatureVerificationError.new('Invalid signature', invalid_signature_header))
 
-        post business_manager_settings_stripe_events_path, 
+        post business_manager_settings_stripe_events_path,
              headers: { 'HTTP_STRIPE_SIGNATURE' => invalid_signature_header, 'CONTENT_TYPE' => 'application/json' },
              params: payload,
              as: :json
-             
-        expect(response).to have_http_status(:bad_request)
+
+        # Middleware rejects with 401 before controller can process
+        expect(response).to have_http_status(:unauthorized)
         json_response = JSON.parse(response.body)
-        expect(json_response['error']).to eq('Signature verification failed')
+        expect(json_response['error']).to eq('Unauthorized webhook request - invalid signature')
       end
     end
 
@@ -236,19 +238,20 @@ RSpec.describe "BusinessManager::Settings::Subscriptions", type: :request do
         expected_signature = OpenSSL::HMAC.hexdigest('sha256', webhook_secret, signed_payload)
         "t=#{timestamp},#{scheme}=#{expected_signature}"
       end
-      
-      it "returns http bad_request" do
+
+      it "returns http unauthorized (rejected by middleware)" do
         # Make it trigger a JSON::ParserError
         allow(Stripe::Webhook).to receive(:construct_event)
           .and_raise(JSON::ParserError.new("Invalid JSON"))
 
-        post business_manager_settings_stripe_events_path, 
+        post business_manager_settings_stripe_events_path,
              headers: { 'HTTP_STRIPE_SIGNATURE' => signature_for_non_json, 'CONTENT_TYPE' => 'text/plain' },
              params: non_json_payload
-             
-        expect(response).to have_http_status(:bad_request)
+
+        # Middleware rejects with 401 before controller can process
+        expect(response).to have_http_status(:unauthorized)
         json_response = JSON.parse(response.body)
-        expect(json_response['error']).to eq('Invalid payload')
+        expect(json_response['error']).to eq('Unauthorized webhook request - invalid signature')
       end
     end
 
@@ -273,7 +276,7 @@ RSpec.describe "BusinessManager::Settings::Subscriptions", type: :request do
       let(:stripe_sub_object) do # Mocked Stripe::Subscription object
         Stripe::Subscription.construct_from({
           id: stripe_subscription_id,
-          items: { data: [{ price: { lookup_key: 'basic_plan', product: 'prod_basic' } }] },
+          items: { data: [{ price: { id: 'price_basic_plan', lookup_key: 'basic_plan', product: 'prod_basic' } }] },
           status: 'active',
           current_period_end: Time.now.to_i + (30 * 24 * 60 * 60),
           customer: business.stripe_customer_id

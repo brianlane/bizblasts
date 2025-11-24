@@ -1,12 +1,12 @@
 class OrdersController < ApplicationController
-  before_action :set_tenant, if: -> { request.subdomain.present? && request.subdomain != 'www' }
+  before_action :set_tenant, if: -> { before_action_business_domain_check }
   skip_before_action :authenticate_user!
   before_action :authenticate_user!
   before_action :set_current_tenant
   before_action :set_tenant_customer
 
   def index
-    if request.subdomain.present? && request.subdomain != 'www'
+    if on_business_domain?
       # Tenant-specific case: Show orders only for this business
       if @tenant_customer
         @orders = @tenant_customer.orders.order(created_at: :desc).includes(:line_items, :shipping_method, :tax_rate)
@@ -25,24 +25,24 @@ class OrdersController < ApplicationController
   def show
     # Security: Validate parameter before database query
     unless params[:id].present? && params[:id].to_i > 0
-      Rails.logger.warn "[SECURITY] Invalid order ID parameter: #{params[:id]}, User: #{current_user&.email}, IP: #{request.remote_ip}"
+      SecureLogger.warn "[SECURITY] Invalid order ID parameter: #{params[:id]}, User: #{current_user&.email}, IP: #{request.remote_ip}"
       flash[:alert] = "Invalid order ID."
       redirect_to orders_path and return
     end
 
-    if request.subdomain.present? && request.subdomain != 'www'
+    if on_business_domain?
       # Tenant-specific case
       if @tenant_customer
         # Security: Proper scoping to prevent enumeration
         @order = @tenant_customer.orders.includes(line_items: { product_variant: :product }).find_by(id: params[:id])
         unless @order
           # Security: Log unauthorized access attempts
-          Rails.logger.warn "[SECURITY] Attempted access to non-existent or unauthorized order: ID=#{params[:id]}, Customer=#{@tenant_customer.email}, Tenant=#{@current_tenant&.name}, IP=#{request.remote_ip}"
+          SecureLogger.warn "[SECURITY] Attempted access to non-existent or unauthorized order: ID=#{params[:id]}, Customer=#{@tenant_customer.email}, Tenant=#{@current_tenant&.name}, IP=#{request.remote_ip}"
           flash[:alert] = "Order not found or it does not belong to you for this business."
           redirect_to orders_path and return
         end
       else
-        Rails.logger.warn "[SECURITY] Order access attempt without customer context: ID=#{params[:id]}, User=#{current_user&.email}, IP=#{request.remote_ip}"
+        SecureLogger.warn "[SECURITY] Order access attempt without customer context: ID=#{params[:id]}, User=#{current_user&.email}, IP=#{request.remote_ip}"
         flash[:alert] = "Could not identify you as a customer for this business."
         redirect_to root_path and return
       end
@@ -56,7 +56,7 @@ class OrdersController < ApplicationController
       
       unless @order
         # Security: Log unauthorized access attempts
-        Rails.logger.warn "[SECURITY] Attempted access to non-existent or unauthorized order: ID=#{params[:id]}, User=#{current_user&.email}, IP=#{request.remote_ip}"
+        SecureLogger.warn "[SECURITY] Attempted access to non-existent or unauthorized order: ID=#{params[:id]}, User=#{current_user&.email}, IP=#{request.remote_ip}"
         flash[:alert] = "Order not found or it does not belong to you."
         redirect_to orders_path and return
       end
@@ -107,17 +107,15 @@ class OrdersController < ApplicationController
       session[:cart] = {}
       redirect_to order_path(@order), notice: 'Order was successfully created.'
     else
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
   end
 
   private
 
   def set_current_tenant
-    @current_tenant = Business.first
-    unless @current_tenant
-        Rails.logger.warn "WARN: @current_tenant is not set in OrdersController."
-    end
+    # Just use what ActsAsTenant already resolved from ApplicationController#set_tenant
+    @current_tenant = ActsAsTenant.current_tenant
   end
 
   def set_tenant_customer

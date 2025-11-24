@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+app/assets/builds/
+public/assets/
+public/packs/
+public/packs-test/
+
+# Temporary files
+tmp/
+coverage/
+
+# Gems
+.bundle/
+
+# Database
+db/*.sqlite3
+
+# Logs
+log/
+*.log
+
+# OS files
+.DS_Store

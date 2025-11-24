@@ -71,9 +71,9 @@ RSpec.describe "BusinessManager::Settings::Locations", type: :request do
         end.to change(Location, :count).by(0)
       end
 
-      it "renders a unprocessable_entity response" do
+      it "renders a unprocessable_content response" do
         post business_manager_settings_locations_path, params: { location: invalid_attributes }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
     end
   end
@@ -110,9 +110,9 @@ RSpec.describe "BusinessManager::Settings::Locations", type: :request do
     context "with invalid parameters" do
       let(:invalid_attributes) { { name: "" } }
 
-      it "renders a unprocessable_entity response" do
+      it "renders a unprocessable_content response" do
         patch business_manager_settings_location_path(location), params: { location: invalid_attributes }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
     end
 
@@ -128,23 +128,23 @@ RSpec.describe "BusinessManager::Settings::Locations", type: :request do
     context "with missing required fields" do
       it "does not update location if address is blank" do
         patch business_manager_settings_location_path(location), params: { location: { address: "" } }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
       it "does not update location if city is blank" do
         patch business_manager_settings_location_path(location), params: { location: { city: "" } }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
       it "does not update location if state is blank" do
         patch business_manager_settings_location_path(location), params: { location: { state: "" } }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
       it "does not update location if zip is blank" do
         patch business_manager_settings_location_path(location), params: { location: { zip: "" } }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
       it "does not update location if hours is blank" do
         patch business_manager_settings_location_path(location), params: { location: { hours: "" } }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
     end
   end

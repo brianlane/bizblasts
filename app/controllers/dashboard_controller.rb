@@ -2,6 +2,8 @@
 
 # Controller for the user dashboard
 class DashboardController < ApplicationController
+  before_action :authenticate_user!
+
   def index
     if current_user.manager? || current_user.staff?
       # If a business user, they should go to their business manager dashboard
@@ -9,9 +11,7 @@ class DashboardController < ApplicationController
       
       if business
         # Construct the URL for the tenant's dashboard
-        host = "#{business.hostname}.#{request.domain}"
-        port = request.port unless [80, 443].include?(request.port)
-        url = business_manager_dashboard_url(host: host, port: port, protocol: request.protocol)
+        url = TenantHost.url_for(business, request, '/manage/dashboard')
         
         redirect_to url, allow_other_host: true, status: :see_other and return
       else

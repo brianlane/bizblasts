@@ -1,0 +1,26 @@
+{
+	"name": "@istanbuljs/load-nyc-config",
+	"version": "1.1.0",
+	"description": "Utility function to load nyc configuration",
+	"main": "index.js",
+	"engines": {
+		"node": ">=8"
+	},
+	"license": "ISC",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/istanbuljs/load-nyc-config.git"
+	},
+	"bugs": {
+		"url": "https://github.com/istanbuljs/load-nyc-config/issues"
+	},
+	"homepage": "https://github.com/istanbuljs/load-nyc-config#readme",
+	"dependencies": {
+		"camelcase": "^5.3.1",
+		"find-up": "^4.1.0",
+		"get-package-type": "^0.1.0",
+		"js-yaml": "^4.1.0",
+		"resolve-from": "^5.0.0"
+	},
+	"bizblastsVendorNote": "Locally vendored to require js-yaml 4.x for CVE-2025-64718 mitigation."
+}

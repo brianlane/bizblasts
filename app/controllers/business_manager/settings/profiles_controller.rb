@@ -7,6 +7,7 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
     authorize @user, policy_class: Settings::ProfilePolicy
     @account_deletion_info = @user.can_delete_account?
     @business_deletion_info = calculate_business_deletion_impact if @user.manager? && @account_deletion_info[:can_delete]
+    @business = @user.business # Make business available to the view
   end
 
   def update
@@ -25,11 +26,9 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
       update_params[:password_confirmation] = params[:user][:password_confirmation]
     end
 
-    # Handle notification preferences conversion
+    # Handle notification preferences - Rails handles checkbox conversion automatically
     if params[:user][:notification_preferences].present?
-      # Handle both Rails form helper and checkbox_tag formats:
-      # - Rails form helpers send '1' for checked, '0' for unchecked (simple strings)
-      # - checkbox_tag with Rails checkboxes send ['0', '1'] for checked, ['0'] for unchecked
+      # Rails checkbox helpers automatically convert to proper boolean values
       notification_prefs = {}
       params[:user][:notification_preferences].each do |key, value|
         if value.is_a?(Array)
@@ -47,13 +46,21 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
       update_params[:notification_preferences] = @user.notification_preferences || {}
     end
 
-    if @user.update(update_params)
+    # Handle business SMS settings if present
+    business_updated = true
+    if params[:business].present? && @user.business.present?
+      business_params = params.require(:business).permit(:sms_enabled, :sms_marketing_enabled)
+      business_updated = @user.business.update(business_params)
+    end
+
+    if @user.update(update_params) && business_updated
       # Sign in the user again to reset their session if password was changed.
       # This is a common Devise practice after password updates.
       bypass_sign_in(@user) if params[:user][:password].present?
 
       redirect_to edit_business_manager_settings_profile_path, notice: 'Profile updated successfully.'
     else
+      @business = @user.business # Make business available to the view for error display
       @account_deletion_info = @user.can_delete_account?
       @business_deletion_info = calculate_business_deletion_impact if @user.manager? && @account_deletion_info[:can_delete]
       flash.now[:alert] = 'Failed to update profile.'
@@ -73,7 +80,7 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
     unless @user.valid_password?(deletion_params[:current_password])
       flash.now[:alert] = 'Current password is incorrect.'
       @account_deletion_info = @user.can_delete_account?
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
       return
     end
 
@@ -81,7 +88,7 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
     unless deletion_params[:confirm_deletion] == 'DELETE'
       flash.now[:alert] = 'You must type DELETE to confirm account deletion.'
       @account_deletion_info = @user.can_delete_account?
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
       return
     end
 
@@ -111,14 +118,14 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
       sign_in(@user)
       flash.now[:alert] = e.message
       @account_deletion_info = @user.can_delete_account?
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     rescue => e
       Rails.logger.error "Account deletion failed for user #{@user.id}: #{e.message}"
       # Re-sign in the user since we signed them out
       sign_in(@user)
       flash.now[:alert] = 'An error occurred while deleting your account. Please contact support.'
       @account_deletion_info = @user.can_delete_account?
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 
@@ -126,20 +133,14 @@ class BusinessManager::Settings::ProfilesController < BusinessManager::BaseContr
   def unsubscribe_all
     authorize @user, policy_class: Settings::ProfilePolicy # Ensure user is authorized
 
-    # Update all notification preferences to false
-    @user.notification_preferences.each do |key, value|
-      @user.notification_preferences[key] = false
-    end
-
-    if @user.save
-      redirect_to edit_business_manager_settings_profile_path, notice: 'You have successfully unsubscribed from all email notifications.'
-    else
-      # This case should be rare unless there's a validation on the notification_preferences hash itself
-      @account_deletion_info = @user.can_delete_account?
-      @business_deletion_info = calculate_business_deletion_impact if @user.manager? && @account_deletion_info[:can_delete]
-      flash.now[:alert] = 'Failed to update notification preferences.'
-      render :edit, status: :unprocessable_entity
-    end
+    @user.unsubscribe_from_emails!
+    redirect_to edit_business_manager_settings_profile_path, notice: 'Unsubscribed from All Emails Successfully.'
+  rescue => e
+    Rails.logger.error "Failed to unsubscribe user #{@user.id}: #{e.message}"
+    @account_deletion_info = @user.can_delete_account?
+    @business_deletion_info = calculate_business_deletion_impact if @user.manager? && @account_deletion_info[:can_delete]
+    flash.now[:alert] = 'Failed to update notification preferences.'
+    render :edit, status: :unprocessable_content
   end
 
   private

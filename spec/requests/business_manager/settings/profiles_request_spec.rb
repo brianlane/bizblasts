@@ -125,7 +125,7 @@ RSpec.describe "BusinessManager::Settings::Profiles", type: :request do
           manager_user.reload
           expect(manager_user.first_name).to eq("Updated")
           expect(manager_user.last_name).to eq("User")
-          expect(manager_user.phone).to eq("123-456-7890")
+          expect(manager_user.phone).to eq(PhoneNormalizer.normalize("123-456-7890"))
           expect(manager_user.notification_preferences).to eq({ 'email_booking_notifications' => true })
         end
 
@@ -259,7 +259,7 @@ RSpec.describe "BusinessManager::Settings::Profiles", type: :request do
         staff_user.reload
         expect(staff_user.first_name).to eq("Updated")
         expect(staff_user.last_name).to eq("User")
-        expect(staff_user.phone).to eq("123-456-7890")
+        expect(staff_user.phone).to eq(PhoneNormalizer.normalize("123-456-7890"))
         expect(staff_user.notification_preferences).to eq({ 'email_booking_notifications' => true })
       end
 
@@ -360,7 +360,7 @@ RSpec.describe "BusinessManager::Settings::Profiles", type: :request do
         manager_user.reload
         expect(manager_user.first_name).to eq('NewFirstName')
         expect(manager_user.last_name).to eq('NewLastName')
-        expect(manager_user.phone).to eq('987-654-3210')
+        expect(manager_user.phone).to eq(PhoneNormalizer.normalize('987-654-3210'))
         expect(manager_user.notification_preferences).to eq({ 'email_booking_notifications' => true })
       end
 
@@ -444,9 +444,11 @@ RSpec.describe "BusinessManager::Settings::Profiles", type: :request do
         }
 
         manager_user.reload
-        # Should preserve existing preferences or set to empty hash (empty hash is not present but is not nil)
+        # Should preserve existing preferences when empty hash is submitted (controller preserves existing)
         expect(manager_user.notification_preferences).not_to be_nil
-        expect(manager_user.notification_preferences).to eq({})
+        # Since users now have default preferences set, they should be preserved when no preferences are explicitly submitted
+        expect(manager_user.notification_preferences).to be_present
+        expect(manager_user.first_name).to eq('Test')
       end
 
       it 'handles form submission without notification preferences key' do
@@ -546,6 +548,13 @@ RSpec.describe "BusinessManager::Settings::Profiles", type: :request do
           ActionMailer::Base.perform_deliveries = original_perform_deliveries
         end
       end
+    end
+  end
+
+  describe 'universal unsubscribe UI' do
+    before do
+      sign_in manager_user
+      manager_user.update!(unsubscribed_at: Time.current)
     end
   end
 end 

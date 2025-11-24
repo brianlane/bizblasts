@@ -18,7 +18,64 @@ RSpec.describe ProductVariant, type: :model do
     it { should validate_presence_of(:name) }
     it { should validate_presence_of(:stock_quantity) }
     it { should validate_numericality_of(:stock_quantity).only_integer.is_greater_than_or_equal_to(0) }
-    it { should validate_numericality_of(:price_modifier).allow_nil }
+    # Custom test for price_modifier since we have a custom setter that parses strings
+    it 'validates price_modifier numericality with custom parsing' do
+      variant = build(:product_variant, product: product)
+      
+      # Valid numeric values should work
+      variant.price_modifier = 10.50
+      expect(variant).to be_valid
+      
+      variant.price_modifier = -5.25
+      expect(variant).to be_valid
+      
+      variant.price_modifier = nil
+      expect(variant).to be_valid
+      
+      # Valid string representations should be parsed and work
+      variant.price_modifier = "10.50"
+      expect(variant).to be_valid
+      expect(variant.price_modifier).to eq(10.50)
+      
+      variant.price_modifier = "-$5.25"
+      expect(variant).to be_valid
+      expect(variant.price_modifier).to eq(-5.25)
+
+      variant.price_modifier = "$-12.34"
+      expect(variant).to be_valid
+      expect(variant.price_modifier).to eq(-12.34)
+      
+      variant.price_modifier = "-  $  7.00"
+      expect(variant).to be_valid
+      expect(variant.price_modifier).to eq(-7.0)
+      
+      # Invalid strings (with no numbers) trigger validation errors with helpful messages
+      variant.price_modifier = "xyz"
+      variant.valid? # Trigger validation
+      expect(variant.errors[:price_modifier]).to include("must be a valid number (e.g., '5.50', '-5.50', or '$5.50')")
+      expect(variant).to be_invalid
+    end
+    
+    it 'validates that price modifier does not make final price negative' do
+      variant = build(:product_variant, product: product)
+      
+      # Valid discount that doesn't make final price negative
+      variant.price_modifier = -5.00
+      expect(variant).to be_valid
+      
+      # Invalid discount that makes final price negative (product price is $50)
+      variant.price_modifier = -55.00
+      expect(variant).to be_invalid
+      expect(variant.errors[:price_modifier]).to include(/cannot make the final price negative/)
+      
+      # Zero final price should be valid
+      if variant.product.price.present?
+        variant.price_modifier = -variant.product.price
+        expect(variant).to be_valid
+        expect(variant.final_price).to eq(0.0)
+      end
+    end
+    
     it { should validate_numericality_of(:stock_quantity).is_greater_than_or_equal_to(0) }
   end
 

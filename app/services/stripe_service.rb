@@ -2,11 +2,41 @@
 
 class StripeService
   # This service handles integration with the Stripe payment gateway
-  
+
   # Configure API key for all Stripe calls
   def self.configure_stripe_api_key
     stripe_credentials = Rails.application.credentials.stripe || {}
     Stripe.api_key = stripe_credentials[:secret_key] || ENV['STRIPE_SECRET_KEY']
+  end
+
+  # Enhanced wrapper for Stripe API calls with error monitoring
+  # Useful during IP transition to identify connectivity issues
+  def self.with_stripe_error_monitoring(operation_name)
+    configure_stripe_api_key
+    start_time = Time.current
+
+    begin
+      result = yield
+      duration = Time.current - start_time
+      Rails.logger.debug "[StripeService] #{operation_name} successful (#{duration.round(3)}s)"
+      result
+    rescue Stripe::AuthenticationError => e
+      Rails.logger.error "[StripeService] AUTHENTICATION ERROR in #{operation_name}: #{e.message}"
+      Rails.logger.error "[StripeService] This may indicate IP allowlist issues after Render IP change"
+      raise
+    rescue Stripe::PermissionError => e
+      Rails.logger.error "[StripeService] PERMISSION ERROR in #{operation_name}: #{e.message}"
+      Rails.logger.error "[StripeService] This may indicate IP allowlist issues after Render IP change"
+      raise
+    rescue Stripe::APIConnectionError => e
+      Rails.logger.error "[StripeService] CONNECTION ERROR in #{operation_name}: #{e.message}"
+      Rails.logger.error "[StripeService] This may indicate network/IP connectivity issues"
+      raise
+    rescue => e
+      duration = Time.current - start_time
+      Rails.logger.error "[StripeService] #{operation_name} failed after #{duration.round(3)}s: #{e.class.name} - #{e.message}"
+      raise
+    end
   end
   
   def self.stripe_configured?
@@ -18,7 +48,7 @@ class StripeService
   def self.create_connect_account(business)
     configure_stripe_api_key
     account = Stripe::Account.create(
-      type: 'express',
+      type: 'standard',
       country: 'US',
       email: business.email,
       capabilities: {
@@ -104,7 +134,6 @@ class StripeService
       customer_email: tenant_customer.email, # Pre-fill email
       payment_intent_data: {
         application_fee_amount: platform_fee_cents,
-        transfer_data: { destination: business.stripe_account_id },
         metadata: { 
           business_id: business.id, 
           tenant_customer_id: tenant_customer.id,
@@ -119,16 +148,18 @@ class StripeService
       }
     }
     
-    # Ensure we have a valid Stripe customer for the tenant
-    stripe_customer = ensure_stripe_customer_for_tenant(tenant_customer)
+    # Ensure we have a valid Stripe customer for the tenant (on connected account)
+    stripe_customer = ensure_stripe_customer_for_tenant(tenant_customer, business)
     if stripe_customer
       session_params[:customer] = stripe_customer.id
       session_params.delete(:customer_creation) # Don't create new customer if using existing
       session_params.delete(:customer_email) # Don't pre-fill if using existing customer
     end
 
-    # Create the checkout session with booking data in metadata
-    session = Stripe::Checkout::Session.create(session_params)
+    # Create the checkout session with booking data in metadata (direct charge on connected account)
+    session = Stripe::Checkout::Session.create(session_params, {
+      stripe_account: business.stripe_account_id
+    })
 
     # Don't create payment record here - it will be created by the webhook
     # when the payment is actually processed by Stripe
@@ -172,7 +203,6 @@ class StripeService
       customer_email: tenant_customer.email, # Pre-fill email
       payment_intent_data: {
         application_fee_amount: platform_fee_cents,
-        transfer_data: { destination: business.stripe_account_id },
         metadata: { 
           business_id: business.id, 
           invoice_id: invoice.id,
@@ -186,16 +216,18 @@ class StripeService
       }
     }
     
-    # Ensure we have a valid Stripe customer for the tenant
-    stripe_customer = ensure_stripe_customer_for_tenant(tenant_customer)
+    # Ensure we have a valid Stripe customer for the tenant (on connected account)
+    stripe_customer = ensure_stripe_customer_for_tenant(tenant_customer, business)
     if stripe_customer
       session_params[:customer] = stripe_customer.id
       session_params.delete(:customer_creation) # Don't create new customer if using existing
       session_params.delete(:customer_email) # Don't pre-fill if using existing customer
     end
 
-    # Create the checkout session
-    session = Stripe::Checkout::Session.create(session_params)
+    # Create the checkout session (direct charge on connected account)
+    session = Stripe::Checkout::Session.create(session_params, {
+      stripe_account: business.stripe_account_id
+    })
 
     # Don't create payment record here - it will be created by the webhook
     # when the payment is actually processed by Stripe
@@ -240,7 +272,6 @@ class StripeService
       customer_email: tenant_customer.email, # Pre-fill email
       payment_intent_data: {
         application_fee_amount: platform_fee_cents,
-        transfer_data: { destination: business.stripe_account_id },
         metadata: { 
           business_id: business.id, 
           tip_id: tip.id,
@@ -256,20 +287,87 @@ class StripeService
       }
     }
     
-    # Ensure we have a valid Stripe customer for the tenant
-    stripe_customer = ensure_stripe_customer_for_tenant(tenant_customer)
+    # Ensure we have a valid Stripe customer for the tenant (on connected account)
+    stripe_customer = ensure_stripe_customer_for_tenant(tenant_customer, business)
     if stripe_customer
       session_params[:customer] = stripe_customer.id
       session_params.delete(:customer_creation) # Don't create new customer if using existing
       session_params.delete(:customer_email) # Don't pre-fill if using existing customer
     end
 
-    # Create the checkout session for tip
-    session = Stripe::Checkout::Session.create(session_params)
+    # Create the checkout session for tip (direct charge on connected account)
+    session = Stripe::Checkout::Session.create(session_params, {
+      stripe_account: business.stripe_account_id
+    })
 
     # Don't create payment record here - it will be created by the webhook
     # when the payment is actually processed by Stripe
     { session: session, tip: tip }
+  end
+
+  # Create a Stripe Payment Link with integrated tipping
+  def self.create_payment_link_with_tipping(invoice:, success_url:)
+    configure_stripe_api_key
+    business = invoice.business
+    tenant_customer = invoice.tenant_customer
+
+    total_amount = invoice.total_amount.to_f
+    
+    # Stripe requires a minimum charge amount of $0.50 USD
+    if total_amount < 0.50
+      raise ArgumentError, "Payment amount must be at least $0.50 USD. Current amount: $#{total_amount}"
+    end
+    
+    amount_cents = (total_amount * 100).to_i
+    platform_fee_cents = calculate_platform_fee_cents(amount_cents, business)
+
+    # Get tip configuration for the business
+    tip_config = business.tip_configuration_or_default
+    tip_percentages = tip_config.tip_percentage_options
+
+    # Create Payment Link with integrated tipping
+    payment_link = Stripe::PaymentLink.create({
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: "Service Fee",
+            description: "Payment for #{business.name}"
+          },
+          unit_amount: amount_cents
+        },
+        quantity: 1
+      }],
+      transfer_data: {
+        destination: business.stripe_account_id,
+      },
+      application_fee_amount: platform_fee_cents,
+      after_completion: { type: 'redirect', redirect: { url: success_url } },
+      # Enable tipping with business-configured percentages
+      custom_text: { 
+        submit: { 
+          message: tip_config.tip_message.present? ? tip_config.tip_message : "Add a tip for excellent service!" 
+        } 
+      },
+      tipping: {
+        amount_calculations: tip_percentages.map { |percent| { percent: percent } },
+        # Include tips in application fee calculation
+        application_fee_behavior: 'calculate_from_total'
+      },
+      # Note: Stripe doesn't currently support combining preset tip percentages with custom tip amounts
+      # in the same payment link. Custom amounts would require using custom_unit_amount instead of tipping.
+      metadata: {
+        business_id: business.id,
+        invoice_id: invoice.id,
+        tenant_customer_id: tenant_customer.id,
+        payment_type: 'invoice_with_tipping'
+      }
+    })
+
+    { payment_link: payment_link, invoice: invoice }
+  rescue Stripe::StripeError => e
+    Rails.logger.error "[STRIPE] Failed to create payment link with tipping for invoice #{invoice.id}: #{e.message}"
+    raise
   end
 
   # Create a payment intent for an invoice or order
@@ -296,19 +394,25 @@ class StripeService
       payment_method: payment_method_id,
       confirm: payment_method_id.present?,
       metadata: { business_id: business.id, invoice_id: invoice.id, order_id: order&.id },
-      application_fee_amount: platform_fee_cents,
-      transfer_data: { destination: business.stripe_account_id }
+      application_fee_amount: platform_fee_cents
     }
     
-    # Ensure we have a valid Stripe customer for the tenant
-    stripe_customer = ensure_stripe_customer_for_tenant(tenant_customer)
+    # Ensure we have a valid Stripe customer for the tenant (on connected account)
+    stripe_customer = ensure_stripe_customer_for_tenant(tenant_customer, business)
     customer_id = nil
     if stripe_customer
       intent_params[:customer] = stripe_customer.id
       customer_id = stripe_customer.id
     end
 
-    intent = Stripe::PaymentIntent.create(intent_params)
+    intent = Stripe::PaymentIntent.create(intent_params, {
+      stripe_account: business.stripe_account_id
+    })
+
+    # Calculate fee values for record
+    stripe_fee_amount   = stripe_fee_cents / 100.0
+    platform_fee_amount = platform_fee_cents / 100.0
+    business_amount     = (total_amount - stripe_fee_amount - platform_fee_amount).round(2)
 
     payment = Payment.create!(
       business: business,
@@ -316,12 +420,12 @@ class StripeService
       order: order,
       tenant_customer: tenant_customer,
       amount: total_amount,
-      stripe_fee_amount: stripe_fee_cents / 100.0,
-      platform_fee_amount: platform_fee_cents / 100.0,
-      business_amount: (total_amount - stripe_fee_cents / 100.0 - platform_fee_cents / 100.0).round(2),
+      stripe_fee_amount:   stripe_fee_amount,
+      platform_fee_amount: platform_fee_amount,
+      business_amount:     business_amount,
       stripe_payment_intent_id: intent.id,
       stripe_customer_id: customer_id, # Will be nil if no customer
-      payment_method: payment_method_id.present? ? :credit_card : :other, # Set based on whether payment method is provided
+      payment_method: payment_method_id.present? ? :credit_card : :other,
       status: :pending
     )
 
@@ -329,16 +433,19 @@ class StripeService
   end
 
   # Process raw webhook payload (as JSON string)
-  def self.process_webhook(event_json)
+  def self.process_webhook(event_json, tenant_context = nil)
     configure_stripe_api_key
     event = JSON.parse(event_json)
+    
+    Rails.logger.info "[STRIPE_SERVICE] Processing webhook #{event['type']} with tenant context: #{tenant_context&.name || 'None'}"
+    
     case event['type']
     when 'payment_intent.succeeded'
-      handle_successful_payment(event['data']['object'])
+      handle_successful_payment(event['data']['object'], tenant_context)
     when 'payment_intent.payment_failed'
-      handle_failed_payment(event['data']['object'])
+      handle_failed_payment(event['data']['object'], tenant_context)
     when 'charge.refunded'
-      handle_refund(event['data']['object'])
+      handle_refund(event['data']['object'], tenant_context)
     when 'account.updated'
       handle_account_updated(event['data']['object'])
     when 'checkout.session.completed'
@@ -363,8 +470,24 @@ class StripeService
     params = { payment_intent: payment.stripe_payment_intent_id }
     params[:amount] = (amount * 100).to_i if amount
     params[:metadata] = { reason: reason } if reason
-    refund = Stripe::Refund.create(params)
-    payment.update!(status: :refunded, refunded_amount: (refund.amount_refunded / 100.0), refund_reason: reason)
+    refund = Stripe::Refund.create(params, {
+      stripe_account: payment.business.stripe_account_id
+    })
+
+    refunded_amt = refund.amount_refunded / 100.0
+    payment.update!(status: :refunded, refunded_amount: refunded_amt, refund_reason: reason)
+
+    # Cascade updates to related records
+    if (invoice = payment.invoice)
+      # If all payments on this invoice are refunded, mark invoice as cancelled
+      if invoice.payments.where.not(status: :refunded).none?
+        invoice.update!(status: :cancelled)
+        # Update order status if applicable - use helper method to ensure consistency
+        if (order = invoice.order)
+          order.check_and_update_refund_status!
+        end
+      end
+    end
     refund
   end
 
@@ -389,6 +512,7 @@ class StripeService
     
     # Calculate amount in cents
     amount_cents = (tip.amount * 100).to_i
+    platform_fee_cents = calculate_platform_fee_cents(amount_cents, business)
     
     # Minimum amount check
     if amount_cents < 50 # $0.50 minimum
@@ -413,6 +537,15 @@ class StripeService
         success_url: success_url,
         cancel_url: cancel_url,
         client_reference_id: tip.id.to_s,
+        payment_intent_data: {
+          application_fee_amount: platform_fee_cents,
+          metadata: {
+            tip_id: tip.id.to_s,
+            booking_id: tip.booking&.id.to_s,
+            business_id: business.id.to_s,
+            tip_context: "Tip for #{tip.booking&.service&.name || 'service'}"
+          }
+        },
         metadata: {
           tip_id: tip.id.to_s,
           booking_id: tip.booking&.id.to_s,
@@ -567,16 +700,20 @@ class StripeService
   end
 
   # Retrieve or create Stripe Customer for tenant
-  def self.ensure_stripe_customer_for_tenant(tenant)
+  def self.ensure_stripe_customer_for_tenant(tenant, business)
     # In development or test mode without Stripe keys, return a mock customer
     if (Rails.env.development? || Rails.env.test?) && !stripe_configured?
       Rails.logger.info "[STRIPE] #{Rails.env} mode - mocking customer creation for tenant #{tenant.id}"
       return OpenStruct.new(id: "cus_#{Rails.env}_#{tenant.id}", email: tenant.email)
     end
     
+    # Determine connected account context (explicit business or current tenant)
+    connected_account_id = business&.stripe_account_id || ActsAsTenant.current_tenant&.stripe_account_id
+    stripe_account_options = connected_account_id.present? ? { stripe_account: connected_account_id } : {}
+    
     if tenant.stripe_customer_id.present?
       begin
-        return Stripe::Customer.retrieve(tenant.stripe_customer_id)
+        return Stripe::Customer.retrieve(tenant.stripe_customer_id, stripe_account_options)
       rescue Stripe::InvalidRequestError => e
         # Customer doesn't exist in Stripe, clear the ID and create a new one
         Rails.logger.warn "Stripe customer #{tenant.stripe_customer_id} not found, creating new customer for tenant #{tenant.id}"
@@ -584,11 +721,14 @@ class StripeService
       end
     end
     
-    # Create new Stripe customer
+    # Create new Stripe customer (on connected account if business provided)
     customer = Stripe::Customer.create(
-      email: tenant.email, 
-      name: tenant.full_name, 
-      metadata: { tenant_customer_id: tenant.id }
+      {
+        email: tenant.email, 
+        name: tenant.full_name, 
+        metadata: { tenant_customer_id: tenant.id }
+      },
+      stripe_account_options
     )
     tenant.update!(stripe_customer_id: customer.id)
     customer
@@ -668,15 +808,19 @@ class StripeService
       total_amount = invoice.total_amount.to_f
       amount_cents = (total_amount * 100).to_i
       
+      stripe_fee_amount   = calculate_stripe_fee_cents(amount_cents) / 100.0
+      platform_fee_amount = calculate_platform_fee_cents(amount_cents, business) / 100.0
+      business_amount     = (total_amount - stripe_fee_amount - platform_fee_amount).round(2)
+
       payment = Payment.create!(
         business: business,
         invoice: invoice,
         order: invoice.order,
         tenant_customer: tenant_customer,
         amount: total_amount,
-        stripe_fee_amount: calculate_stripe_fee_cents(amount_cents) / 100.0,
-        platform_fee_amount: calculate_platform_fee_cents(amount_cents, business) / 100.0,
-        business_amount: (total_amount - calculate_stripe_fee_cents(amount_cents) / 100.0 - calculate_platform_fee_cents(amount_cents, business) / 100.0).round(2),
+        stripe_fee_amount:   stripe_fee_amount,
+        platform_fee_amount: platform_fee_amount,
+        business_amount:     business_amount,
         stripe_payment_intent_id: session['payment_intent'],
         stripe_customer_id: session['customer'],
         payment_method: :credit_card,
@@ -696,74 +840,181 @@ class StripeService
       new_status = order.payment_required? ? :paid : :processing
       order.update!(status: new_status)
       
-      # Send order confirmation email (available to all tiers)
+      # Check if order should be completed (for service orders without bookings)
+      order.complete_if_ready!
+      
+      # Send order confirmation (email + SMS)
       begin
-        OrderMailer.order_confirmation(order).deliver_later
-        Rails.logger.info "[EMAIL] Sent order confirmation email for Order ##{order.order_number}"
+        NotificationService.order_confirmation(order)
+        Rails.logger.info "[NOTIFICATION] Sent order confirmation for Order ##{order.order_number}"
       rescue => e
-        Rails.logger.error "[EMAIL] Failed to send order confirmation email for Order ##{order.order_number}: #{e.message}"
+        Rails.logger.error "[NOTIFICATION] Failed to send order confirmation for Order ##{order.order_number}: #{e.message}"
       end
       
-      # Send business payment notification
+      # Send business payment notification (email + SMS)
       begin
-        BusinessMailer.payment_received_notification(payment).deliver_later
-        Rails.logger.info "[EMAIL] Scheduled business payment notification for Order ##{order.order_number}"
+        NotificationService.business_payment_received(payment)
+        Rails.logger.info "[NOTIFICATION] Scheduled business payment notification for Order ##{order.order_number}"
       rescue => e
-        Rails.logger.error "[EMAIL] Failed to schedule business payment notification for Order ##{order.order_number}: #{e.message}"
+        Rails.logger.error "[NOTIFICATION] Failed to schedule business payment notification for Order ##{order.order_number}: #{e.message}"
       end
     else
-      # Send invoice payment confirmation email (available to all tiers)
+      # Send invoice payment confirmation (email + SMS)
       begin
-        InvoiceMailer.payment_confirmation(invoice, payment).deliver_later
-        Rails.logger.info "[EMAIL] Sent payment confirmation email for Invoice ##{invoice.invoice_number}"
+        NotificationService.invoice_payment_confirmation(invoice, payment)
+        Rails.logger.info "[NOTIFICATION] Sent payment confirmation for Invoice ##{invoice.invoice_number}"
       rescue => e
-        Rails.logger.error "[EMAIL] Failed to send payment confirmation email for Invoice ##{invoice.invoice_number}: #{e.message}"
+        Rails.logger.error "[NOTIFICATION] Failed to send payment confirmation for Invoice ##{invoice.invoice_number}: #{e.message}"
       end
       
-      # Send business payment notification
+      # Send business payment notification (email + SMS)
       begin
-        BusinessMailer.payment_received_notification(payment).deliver_later
-        Rails.logger.info "[EMAIL] Scheduled business payment notification for Invoice ##{invoice.invoice_number}"
+        NotificationService.business_payment_received(payment)
+        Rails.logger.info "[NOTIFICATION] Scheduled business payment notification for Invoice ##{invoice.invoice_number}"
       rescue => e
-        Rails.logger.error "[EMAIL] Failed to schedule business payment notification for Invoice ##{invoice.invoice_number}: #{e.message}"
+        Rails.logger.error "[NOTIFICATION] Failed to schedule business payment notification for Invoice ##{invoice.invoice_number}: #{e.message}"
       end
     end
   end
 
-  def self.handle_successful_payment(pi)
-    payment = Payment.find_by(stripe_payment_intent_id: pi['id'])
+  def self.handle_successful_payment(pi, tenant_context = nil)
+    # Try to find payment with tenant context first
+    payment = if tenant_context
+      Rails.logger.info "[PAYMENT] Looking for payment in tenant context: #{tenant_context.name}"
+      ActsAsTenant.with_tenant(tenant_context) do
+        Payment.find_by(stripe_payment_intent_id: pi['id'])
+      end
+    else
+      # Fallback to unscoped search across all tenants
+      Rails.logger.info "[PAYMENT] Looking for payment across all tenants"
+      Payment.unscoped.find_by(stripe_payment_intent_id: pi['id'])
+    end
+    
     return unless payment
     
-    # Determine payment method from Stripe data
-    payment_method = case pi.dig('charges', 'data', 0, 'payment_method_details', 'type')
-                    when 'card' then :credit_card
-                    when 'us_bank_account' then :bank_transfer
-                    when 'paypal' then :paypal
-                    else :other
-                    end
-    
-    payment.update!(status: :completed, paid_at: Time.current, payment_method: payment_method)
-    payment.invoice.mark_as_paid! if payment.invoice&.pending?
-    # Update order status if applicable
-    if (order = payment.order)
-      # For product or experience orders, mark as paid; for services, mark as processing
-      new_status = order.payment_required? ? :paid : :processing
-      order.update!(status: new_status)
+    # Ensure we're in the correct tenant context for the payment
+    ActsAsTenant.with_tenant(payment.business) do
+      Rails.logger.info "[PAYMENT] Processing successful payment #{payment.id} for business #{payment.business.name}"
+      
+      # Determine payment method from Stripe data
+      payment_method = case pi.dig('charges', 'data', 0, 'payment_method_details', 'type')
+                      when 'card' then :credit_card
+                      when 'us_bank_account' then :bank_transfer
+                      when 'paypal' then :paypal
+                      else :other
+                      end
+      
+      # Check for tip amount from payment link tipping
+      tip_amount = extract_tip_amount_from_payment_intent(pi)
+      
+      # Update payment with tip tracking if tip was received
+      if tip_amount > 0
+        payment.update!(
+          status: :completed, 
+          paid_at: Time.current, 
+          payment_method: payment_method,
+          tip_received_on_initial_payment: true,
+          tip_amount_received_initially: tip_amount
+        )
+        
+        # Also update the invoice and order with tip tracking
+        if payment.invoice
+          payment.invoice.update!(
+            tip_received_on_initial_payment: true,
+            tip_amount_received_initially: tip_amount
+          )
+        end
+        
+        if payment.order
+          payment.order.update!(
+            tip_received_on_initial_payment: true,
+            tip_amount_received_initially: tip_amount
+          )
+        end
+        
+        Rails.logger.info "[PAYMENT] Tip of $#{tip_amount} received with payment #{payment.id}"
+      else
+        payment.update!(status: :completed, paid_at: Time.current, payment_method: payment_method)
+      end
+      
+      payment.invoice.mark_as_paid! if payment.invoice&.pending?
+      
+      # Update order status if applicable
+      if (order = payment.order)
+        # For product or experience orders, mark as paid; for services, mark as processing
+        new_status = order.payment_required? ? :paid : :processing
+        order.update!(status: new_status)
+        
+        # Check if order should be completed (for service orders without bookings)
+        order.complete_if_ready!
+      else
+        # No associated order – this is a standalone invoice payment. Send confirmation (email + SMS).
+        begin
+          NotificationService.invoice_payment_confirmation(payment.invoice, payment)
+          Rails.logger.info "[NOTIFICATION] Sent payment confirmation for Invoice ##{payment.invoice.invoice_number}"
+        rescue => e
+          Rails.logger.error "[NOTIFICATION] Failed to send payment confirmation for Invoice ##{payment.invoice&.invoice_number}: #{e.message}"
+        end
+      end
     end
   end
 
-  def self.handle_failed_payment(pi)
-    payment = Payment.find_by(stripe_payment_intent_id: pi['id'])
+  def self.handle_failed_payment(pi, tenant_context = nil)
+    # Try to find payment with tenant context first
+    payment = if tenant_context
+      Rails.logger.info "[PAYMENT] Looking for failed payment in tenant context: #{tenant_context.name}"
+      ActsAsTenant.with_tenant(tenant_context) do
+        Payment.find_by(stripe_payment_intent_id: pi['id'])
+      end
+    else
+      # Fallback to unscoped search across all tenants
+      Rails.logger.info "[PAYMENT] Looking for failed payment across all tenants"
+      Payment.unscoped.find_by(stripe_payment_intent_id: pi['id'])
+    end
+    
     return unless payment
-    payment.update!(status: :failed, failure_reason: pi['last_payment_error']&.dig('message'))
+    
+    # Ensure we're in the correct tenant context for the payment
+    ActsAsTenant.with_tenant(payment.business) do
+      Rails.logger.info "[PAYMENT] Processing failed payment #{payment.id} for business #{payment.business.name}"
+      payment.update!(status: :failed, failure_reason: pi['last_payment_error']&.dig('message'))
+    end
   end
 
-  def self.handle_refund(charge)
-    payment = Payment.find_by(stripe_charge_id: charge['id'])
+  def self.handle_refund(charge, tenant_context = nil)
+    # Try to find payment with tenant context first
+    payment = if tenant_context
+      Rails.logger.info "[REFUND] Looking for refund payment in tenant context: #{tenant_context.name}"
+      ActsAsTenant.with_tenant(tenant_context) do
+        Payment.find_by(stripe_charge_id: charge['id'])
+      end
+    else
+      # Fallback to unscoped search across all tenants
+      Rails.logger.info "[REFUND] Looking for refund payment across all tenants"
+      Payment.unscoped.find_by(stripe_charge_id: charge['id'])
+    end
+    
     return unless payment
-    refunded_amt = charge['amount_refunded'] / 100.0
-    reason = charge['refunds']&.dig('data')&.first&.dig('reason')
-    payment.update!(status: :refunded, refunded_amount: refunded_amt, refund_reason: reason)
+    
+    # Ensure we're in the correct tenant context for the payment
+    ActsAsTenant.with_tenant(payment.business) do
+      Rails.logger.info "[REFUND] Processing refund for payment #{payment.id} for business #{payment.business.name}"
+      refunded_amt = charge['amount_refunded'] / 100.0
+      reason = charge['refunds']&.dig('data')&.first&.dig('reason')
+      payment.update!(status: :refunded, refunded_amount: refunded_amt, refund_reason: reason)
+
+      # Cascade updates to related records
+      if (invoice = payment.invoice)
+        # If all payments on this invoice are refunded, mark invoice as cancelled
+        if invoice.payments.where.not(status: :refunded).none?
+          invoice.update!(status: :cancelled)
+          # Update order status if applicable - use helper method to ensure consistency
+          if (order = invoice.order)
+            order.check_and_update_refund_status!
+          end
+        end
+      end
+    end
   end
 
   def self.handle_subscription_event(sub)
@@ -884,7 +1135,7 @@ class StripeService
       
       # Send payment failure notification
       begin
-        SubscriptionMailer.payment_failed(customer_subscription).deliver_later
+        SubscriptionMailer.payment_failed(customer_subscription).deliver_later(queue: 'mailers')
       rescue => e
         Rails.logger.error "[EMAIL] Failed to send payment failure email for subscription #{customer_subscription.id}: #{e.message}"
       end
@@ -943,23 +1194,23 @@ class StripeService
         Rails.logger.info "[TIP] Saved Stripe customer ID #{session['customer']} for tenant customer #{tenant_customer.id}"
       end
       
-      # Calculate fees for the tip payment
-      amount_cents = (tip.amount * 100).to_i
-      stripe_fee_cents = calculate_stripe_fee_cents(amount_cents)
-      platform_fee_cents = calculate_platform_fee_cents(amount_cents, business)
-      
+      # Use service helpers to calculate tip fees and net amount
+      stripe_fee_amount   = calculate_tip_stripe_fee(tip.amount)
+      platform_fee_amount = calculate_tip_platform_fee(tip.amount, business)
+      business_amount     = calculate_tip_business_amount(tip.amount, business)
+
       # Update tip record with Stripe payment details and fees
       tip.update!(
         stripe_payment_intent_id: session['payment_intent'],
         stripe_customer_id: session['customer'],
-        stripe_fee_amount: stripe_fee_cents / 100.0,
-        platform_fee_amount: platform_fee_cents / 100.0,
-        business_amount: (tip.amount - stripe_fee_cents / 100.0 - platform_fee_cents / 100.0).round(2),
+        stripe_fee_amount:   stripe_fee_amount,
+        platform_fee_amount: platform_fee_amount,
+        business_amount:     business_amount,
         status: :completed,
         paid_at: Time.current
       )
       
-      Rails.logger.info "[TIP] Successfully processed tip payment #{tip.id} for booking #{tip.booking_id} with fees: Stripe: $#{stripe_fee_cents / 100.0}, Platform: $#{platform_fee_cents / 100.0}"
+      Rails.logger.info "[TIP] Successfully processed tip payment #{tip.id} for booking #{tip.booking_id} with fees: Stripe: $#{stripe_fee_amount}, Platform: $#{platform_fee_amount}"
     end
   rescue => e
     Rails.logger.error "[TIP] Error processing tip payment for session #{session['id']}: #{e.message}"
@@ -984,7 +1235,7 @@ class StripeService
         return
       end
       
-      Rails.logger.info "[BOOKING] Creating booking for customer #{tenant_customer.email} at business #{business.name}"
+      Rails.logger.info "[BOOKING] Creating booking for customer ID #{tenant_customer.id} at business ID #{business.id}"
       
       ActiveRecord::Base.transaction do
         # Save the Stripe customer ID if we don't have it yet
@@ -1029,14 +1280,18 @@ class StripeService
         total_amount = invoice.total_amount.to_f
         amount_cents = (total_amount * 100).to_i
         
+        stripe_fee_amount   = calculate_stripe_fee_cents(amount_cents) / 100.0
+        platform_fee_amount = calculate_platform_fee_cents(amount_cents, business) / 100.0
+        business_amount     = (total_amount - stripe_fee_amount - platform_fee_amount).round(2)
+
         payment = Payment.create!(
           business: business,
           invoice: invoice,
           tenant_customer: tenant_customer,
           amount: total_amount,
-          stripe_fee_amount: calculate_stripe_fee_cents(amount_cents) / 100.0,
-          platform_fee_amount: calculate_platform_fee_cents(amount_cents, business) / 100.0,
-          business_amount: (total_amount - calculate_stripe_fee_cents(amount_cents) / 100.0 - calculate_platform_fee_cents(amount_cents, business) / 100.0).round(2),
+          stripe_fee_amount:   stripe_fee_amount,
+          platform_fee_amount: platform_fee_amount,
+          business_amount:     business_amount,
           stripe_payment_intent_id: session['payment_intent'],
           stripe_customer_id: session['customer'],
           payment_method: :credit_card,
@@ -1046,31 +1301,31 @@ class StripeService
         
         Rails.logger.info "[BOOKING] Successfully created booking ##{booking.id} with payment ##{payment.id}"
         
-        # Send payment confirmation email (since booking invoice is now paid)
+        # Send payment confirmation (email + SMS) since booking invoice is now paid
         begin
-          InvoiceMailer.payment_confirmation(invoice, payment).deliver_later
-          Rails.logger.info "[EMAIL] Sent payment confirmation email for booking invoice ##{invoice.invoice_number}"
+          NotificationService.invoice_payment_confirmation(invoice, payment)
+          Rails.logger.info "[NOTIFICATION] Sent payment confirmation for booking invoice ##{invoice.invoice_number}"
         rescue => e
-          Rails.logger.error "[EMAIL] Failed to send payment confirmation email for booking invoice ##{invoice.invoice_number}: #{e.message}"
-          # Don't fail the whole transaction for email issues
+          Rails.logger.error "[NOTIFICATION] Failed to send payment confirmation for booking invoice ##{invoice.invoice_number}: #{e.message}"
+          # Don't fail the whole transaction for notification issues
         end
         
-        # Send business notifications for the booking
+        # Send business notifications for the booking (email + SMS)
         begin
-          BusinessMailer.new_booking_notification(booking).deliver_later
-          Rails.logger.info "[EMAIL] Scheduled business booking notification for Booking ##{booking.id}"
+          NotificationService.business_new_booking(booking)
+          Rails.logger.info "[NOTIFICATION] Scheduled business booking notification for Booking ##{booking.id}"
         rescue => e
-          Rails.logger.error "[EMAIL] Failed to schedule business booking notification for Booking ##{booking.id}: #{e.message}"
-          # Don't fail the whole transaction for email issues
+          Rails.logger.error "[NOTIFICATION] Failed to schedule business booking notification for Booking ##{booking.id}: #{e.message}"
+          # Don't fail the whole transaction for notification issues
         end
         
-        # Send business payment notification
+        # Send business payment notification (email + SMS)
         begin
-          BusinessMailer.payment_received_notification(payment).deliver_later
-          Rails.logger.info "[EMAIL] Scheduled business payment notification for Booking ##{booking.id} payment"
+          NotificationService.business_payment_received(payment)
+          Rails.logger.info "[NOTIFICATION] Scheduled business payment notification for Booking ##{booking.id} payment"
         rescue => e
-          Rails.logger.error "[EMAIL] Failed to schedule business payment notification for Booking ##{booking.id}: #{e.message}"
-          # Don't fail the whole transaction for email issues
+          Rails.logger.error "[NOTIFICATION] Failed to schedule business payment notification for Booking ##{booking.id}: #{e.message}"
+          # Don't fail the whole transaction for notification issues
         end
       end
       
@@ -1257,7 +1512,7 @@ class StripeService
 
     # Calculate amounts and fees
     amount_received = payment_intent.amount_received / 100.0
-    stripe_fee = (payment_intent.charges.data.first&.balance_transaction&.fee || 0) / 100.0
+    stripe_fee_amount = (payment_intent.charges.data.first&.balance_transaction&.fee || 0) / 100.0
     
     # Extract tip amount from metadata or calculate from difference
     tip_amount = if session.metadata&.dig('tip_amount')
@@ -1268,16 +1523,16 @@ class StripeService
                    0.0
                  end
 
-    # Calculate platform fee (if applicable)
+    # Calculate platform fee and net business amount
     platform_fee_amount = calculate_platform_fee(amount_received - tip_amount)
-    business_amount = amount_received - stripe_fee - platform_fee_amount
+    business_amount = (amount_received - stripe_fee_amount - platform_fee_amount).round(2)
 
     # Create payment record
     payment = invoice.payments.build(
       stripe_payment_intent_id: payment_intent_id,
       amount: amount_received,
       tip_amount: tip_amount,
-      stripe_fee_amount: stripe_fee,
+      stripe_fee_amount: stripe_fee_amount,
       platform_fee_amount: platform_fee_amount,
       business_amount: business_amount,
       status: :completed,
@@ -1308,9 +1563,9 @@ class StripeService
         create_tip_record_from_payment(payment, invoice)
       end
 
-      # Send confirmation emails
+      # Send confirmation notifications (email + SMS)
       if invoice.tenant_customer&.email
-        InvoiceMailer.payment_confirmation(invoice, payment).deliver_later
+        NotificationService.invoice_payment_confirmation(invoice, payment)
       end
 
       Rails.logger.info "Payment processed successfully for invoice #{invoice.id}"
@@ -1391,16 +1646,22 @@ class StripeService
   # Calculate tip-specific fees
   def self.calculate_tip_stripe_fee(tip_amount)
     # Stripe fee: 2.9% + $0.30 per transaction (prorated for tip portion)
-    (tip_amount * 0.029).round(2)
+    ((tip_amount * 0.029) + 0.30).round(2)
   end
 
-  def self.calculate_tip_platform_fee(tip_amount)
-    # Platform takes no fee from tips - they go directly to business
-    0.0
+  def self.calculate_tip_platform_fee(tip_amount, business = nil)
+    # Platform takes the same fee from tips as other payments
+    business_for_calc = business || ActsAsTenant.current_tenant
+    
+    # Always treat tip_amount as dollars and convert to cents
+    amount_cents = (tip_amount * 100).to_i
+    fee_cents = calculate_platform_fee_cents(amount_cents, business_for_calc)
+    fee_cents / 100.0
   end
 
-  def self.calculate_tip_business_amount(tip_amount)
-    tip_amount - calculate_tip_stripe_fee(tip_amount)
+  def self.calculate_tip_business_amount(tip_amount, business = nil)
+    # Calculate actual net amount business receives after all fees
+    tip_amount - calculate_tip_stripe_fee(tip_amount) - calculate_tip_platform_fee(tip_amount, business)
   end
 
   # Calculate platform fee for general use (used by tests)
@@ -1433,7 +1694,7 @@ class StripeService
         return
       end
       
-      Rails.logger.info "[SUBSCRIPTION] Creating subscription for customer #{tenant_customer.email} at business #{business.name}"
+      Rails.logger.info "[SUBSCRIPTION] Creating subscription for customer ID #{tenant_customer.id} at business ID #{business.id}"
       
       ActiveRecord::Base.transaction do
         # Save the Stripe customer ID if we don't have it yet
@@ -1471,16 +1732,16 @@ class StripeService
         
         # Send confirmation emails
         begin
-          SubscriptionMailer.signup_confirmation(customer_subscription).deliver_later
+          SubscriptionMailer.signup_confirmation(customer_subscription).deliver_later(queue: 'mailers')
           Rails.logger.info "[EMAIL] Sent subscription confirmation email for subscription ##{customer_subscription.id}"
         rescue => e
           Rails.logger.error "[EMAIL] Failed to send subscription confirmation email for subscription ##{customer_subscription.id}: #{e.message}"
           # Don't fail the whole transaction for email issues
         end
-        
+
         # Send business notification
         begin
-          BusinessMailer.new_subscription_notification(customer_subscription).deliver_later
+          BusinessMailer.new_subscription_notification(customer_subscription).deliver_later(queue: 'mailers')
           Rails.logger.info "[EMAIL] Scheduled business subscription notification for subscription ##{customer_subscription.id}"
         rescue => e
           Rails.logger.error "[EMAIL] Failed to schedule business subscription notification for subscription ##{customer_subscription.id}: #{e.message}"
@@ -1497,5 +1758,43 @@ class StripeService
       # Re-raise to ensure webhook fails and can be retried
       raise e
     end
+  end
+
+  # Extract tip amount from payment intent for payment link tipping
+  def self.extract_tip_amount_from_payment_intent(payment_intent)
+    # For Stripe Payment Links with tipping, the tip amount is included in the charges
+    # The tip amount can be found in the charge's metadata or calculated from amount difference
+    charges = payment_intent.dig('charges', 'data') || []
+    return 0.0 if charges.empty?
+    
+    charge = charges.first
+    
+    # Check if this charge has tip information in metadata
+    tip_amount_cents = charge.dig('metadata', 'tip_amount_cents')&.to_i
+    if tip_amount_cents && tip_amount_cents > 0
+      return tip_amount_cents / 100.0
+    end
+    
+    # For Payment Links, tip amount might be in the charge description or amount breakdown
+    # Check if the charge description mentions tipping
+    description = charge['description'] || ''
+    if description.include?('tip') || description.include?('gratuity')
+      # Try to extract tip amount from calculation_details if available
+      # This is a best-effort extraction - Stripe provides tip amounts in charge metadata
+      total_amount = charge['amount'] || 0
+      base_amount = payment_intent.dig('metadata', 'base_amount_cents')&.to_i || 0
+      
+      if base_amount > 0 && total_amount > base_amount
+        tip_amount = (total_amount - base_amount) / 100.0
+        Rails.logger.info "[TIP] Extracted tip amount $#{tip_amount} from payment intent #{payment_intent['id']}"
+        return tip_amount
+      end
+    end
+    
+    # Default to no tip if we can't extract it
+    0.0
+  rescue => e
+    Rails.logger.error "[TIP] Failed to extract tip amount from payment intent #{payment_intent['id']}: #{e.message}"
+    0.0
   end
 end

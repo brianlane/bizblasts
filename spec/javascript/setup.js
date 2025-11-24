@@ -2,7 +2,7 @@
 
 // Mock console methods to reduce noise in tests
 global.console = {
-  ...console,
+  ...console
   // Uncomment to ignore specific console methods during tests
   // log: jest.fn(),
   // warn: jest.fn(),

@@ -13,14 +13,8 @@ class BlogPost < ApplicationRecord
   validates :content, presence: true
   validates :category, inclusion: { in: %w[release feature tutorial announcement business-tips spotlight platform-updates] }
   
-  # Image validations
-  validates :featured_image, content_type: { 
-    in: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], 
-    message: 'must be a valid image format (PNG, JPEG, GIF, WebP)' 
-  }, size: { 
-    less_than: 15.megabytes, 
-    message: 'must be less than 15MB' 
-  }
+  # Image validations - Updated for HEIC support
+  validates :featured_image, **FileUploadSecurity.image_validation_options
 
   def self.ransackable_attributes(auth_object = nil)
     ["author_email", "author_name", "category", "content", "created_at", "excerpt", "featured_image_url", "id", "id_value", "published", "published_at", "release_date", "slug", "title", "updated_at"]

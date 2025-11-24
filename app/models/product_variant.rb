@@ -12,6 +12,48 @@ class ProductVariant < ApplicationRecord
   validates :name, presence: true # E.g., "Large, Red"
   validates :stock_quantity, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, unless: -> { business&.stock_management_disabled? }
   validates :price_modifier, numericality: true, allow_nil: true # Can be positive or negative
+  validate :price_modifier_not_nan
+  validate :final_price_not_negative
+  validate :price_modifier_format_valid
+  
+  # Custom setter to parse price modifier from strings with non-numeric characters
+  def price_modifier=(value)
+    if value.is_a?(String) && value.present?
+      processed = value.strip
+      is_negative = false
+
+      # Remove leading sign and currency symbol in any order (e.g., "-$5", "$-5", "-  $  5")
+      loop do
+        if processed.start_with?('-')
+          is_negative = true
+          processed = processed[1..].to_s.strip
+          next
+        elsif processed.start_with?('$')
+          processed = processed[1..].to_s.strip
+          next
+        end
+        break
+      end
+
+      # Now processed should be a plain number like "5" or "5.25"
+      if processed.match?(/\A\d+(?:\.\d{1,2})?\z/)
+        parsed_float = processed.to_f.round(2)
+        parsed_float = -parsed_float if is_negative
+        @invalid_price_modifier_input = nil
+        super(parsed_float)
+      else
+        # Store invalid input and set attribute to nil so validation triggers
+        @invalid_price_modifier_input = value
+        super(nil)
+      end
+    elsif value.nil?
+      @invalid_price_modifier_input = nil
+      super(nil)
+    else
+      @invalid_price_modifier_input = nil
+      super(value)
+    end
+  end
 
   # Add reserved_quantity field
   attribute :reserved_quantity, :integer, default: 0
@@ -61,8 +103,12 @@ class ProductVariant < ApplicationRecord
   end
   
   def subscription_discount_amount
-    return 0 unless product&.subscription_enabled? || product&.business&.subscription_discount_percentage.blank?
-    (final_price * (product.business.subscription_discount_percentage / 100.0)).round(2)
+    return 0 unless product&.subscription_enabled?
+
+    discount_pct = product&.subscription_discount_percentage.presence || product&.business&.subscription_discount_percentage
+    return 0 unless discount_pct.present?
+
+    (final_price * (discount_pct / 100.0)).round(2)
   end
   
   def subscription_savings_percentage
@@ -92,34 +138,62 @@ class ProductVariant < ApplicationRecord
 
   def reserve_stock!(quantity, order)
     return true if business&.stock_management_disabled?
-    
-    # Check available stock
-    if stock_quantity - reserved_quantity >= quantity
-      # Create reservation
+
+    with_lock do
+      # Re-check inside lock for race-safety
+      return false if stock_quantity - reserved_quantity < quantity
+
       stock_reservations.create!(
-        order: order, 
+        order: order,
         quantity: quantity,
         expires_at: 15.minutes.from_now
       )
-      
-      # Update stock and reservation quantities
-      decrement!(:stock_quantity, quantity) 
-      increment!(:reserved_quantity, quantity)
-      
-      true
-    else
-      false
+
+      self.stock_quantity -= quantity
+      self.reserved_quantity += quantity
+      save!
+    end
+
+    true
+  end
+ 
+  def release_reservation!(reservation)
+    return unless reservation.persisted?
+
+    return true if business&.stock_management_disabled?
+
+    with_lock do
+      self.stock_quantity += reservation.quantity
+      self.reserved_quantity -= reservation.quantity
+      save!
+    end
+
+    reservation.destroy!
+  end
+
+  private
+
+  def price_modifier_not_nan
+    return unless price_modifier.present?
+    
+    if price_modifier.is_a?(Float) && price_modifier.nan?
+      errors.add(:price_modifier, "cannot be NaN")
     end
   end
-  
-  def release_reservation!(reservation)
-    if business&.stock_management_enabled?
-      # Update stock and reservation quantities
-      increment!(:stock_quantity, reservation.quantity)
-      decrement!(:reserved_quantity, reservation.quantity) 
-    end
+
+  def final_price_not_negative
+    return unless product&.price.present? && price_modifier.present?
     
-    # Delete reservation
-    reservation.destroy!
+    calculated_final_price = final_price
+    if calculated_final_price < 0
+      base_price = product.price
+      errors.add(:price_modifier, "cannot make the final price negative (base price: $#{base_price}, modifier: $#{price_modifier}, final: $#{calculated_final_price.round(2)})")
+    end
+  end
+
+  def price_modifier_format_valid
+    return unless @invalid_price_modifier_input
+    
+    errors.add(:price_modifier, "must be a valid number (e.g., '5.50', '-5.50', or '$5.50')")
   end
 end

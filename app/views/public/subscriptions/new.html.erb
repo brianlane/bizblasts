@@ -22,13 +22,29 @@
         <div class="flex items-start space-x-4">
           <% if @product&.images&.attached? %>
             <div class="flex-shrink-0">
-              <%= image_tag rails_public_blob_url(@product.images.first.variant(resize_to_limit: [100, 100])), 
-                    class: "w-20 h-20 rounded-lg object-cover" %>
+              <% img = @product.images.first %>
+              <%= image_tag(
+                    rails_public_blob_url(img.variant(:thumb)),
+                    srcset: [
+                      "#{rails_public_blob_url(img.variant(:thumb))} 400w",
+                      "#{rails_public_blob_url(img.variant(:medium))} 1200w"
+                    ].join(', '),
+                    sizes: '(max-width: 768px) 100vw, 160px',
+                    class: "w-20 h-20 rounded-lg object-cover"
+                  ) %>
             </div>
           <% elsif @service&.images&.attached? %>
             <div class="flex-shrink-0">
-              <%= image_tag rails_public_blob_url(@service.images.first.representation(resize_to_limit: [100, 100])), 
-                    class: "w-20 h-20 rounded-lg object-cover" %>
+              <% img = @service.images.first %>
+              <%= image_tag(
+                    rails_public_blob_url(img.variant(:thumb)),
+                    srcset: [
+                      "#{rails_public_blob_url(img.variant(:thumb))} 400w",
+                      "#{rails_public_blob_url(img.variant(:medium))} 1200w"
+                    ].join(', '),
+                    sizes: '(max-width: 768px) 100vw, 160px',
+                    class: "w-20 h-20 rounded-lg object-cover"
+                  ) %>
             </div>
           <% else %>
             <div class="flex-shrink-0 w-20 h-20 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -185,25 +201,31 @@
               </div>
               <div>
                 <%= form.label :billing_day_of_month, "Billing Day", class: "block text-sm font-medium text-gray-700" %>
-                <%= form.select :billing_day_of_month,
-                      options_for_select((1..28).map { |day| [day.ordinalize, day] }, @customer_subscription.billing_day_of_month || Date.current.day),
-                      {},
-                      { class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500" } %>
+                <%= render 'shared/rich_dropdown',
+                      collection: (1..28).map { |day| OpenStruct.new(id: day, name: day.ordinalize) },
+                      field_name: 'customer_subscription[billing_day_of_month]',
+                      selected_value: @customer_subscription.billing_day_of_month || Date.current.day,
+                      prompt_text: 'Select billing day',
+                      value_method: :id,
+                      text_method: :name,
+                      dropdown_id: 'public_subscription_billing_day_dropdown' %>
               </div>
             </div>
 
             <% if @product.allow_customer_preferences? %>
               <div>
                 <%= form.label :out_of_stock_action, "What to do when out of stock?", class: "block text-sm font-medium text-gray-700" %>
-                <%= form.select :out_of_stock_action,
-                      options_for_select([
-                        ['Skip this month, try again next cycle', 'skip_month'],
-        
-                        ['Cancel subscription', 'cancel_subscription']
-                      ] + (@product.business.loyalty_program_enabled? ? [['Receive loyalty points instead', 'loyalty_points']] : []), 
-                      @customer_subscription.out_of_stock_action),
-                      { prompt: "Use business default" },
-                      { class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500" } %>
+                <%= render 'shared/rich_dropdown',
+                      collection: [
+                        OpenStruct.new(id: 'skip_month', name: 'Skip this month, try again next cycle'),
+                        OpenStruct.new(id: 'cancel_subscription', name: 'Cancel subscription')
+                      ] + (@product.business.loyalty_program_enabled? ? [OpenStruct.new(id: 'loyalty_points', name: 'Receive loyalty points instead')] : []),
+                      field_name: 'customer_subscription[out_of_stock_action]',
+                      selected_value: @customer_subscription.out_of_stock_action,
+                      prompt_text: 'Use business default',
+                      value_method: :id,
+                      text_method: :name,
+                      dropdown_id: 'public_subscription_out_of_stock_dropdown' %>
               </div>
             <% end %>
           <% end %>
@@ -213,41 +235,56 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <%= form.label :quantity, "Monthly Appointments", class: "block text-sm font-medium text-gray-700" %>
-                <%= form.number_field :quantity, 
-                      value: @customer_subscription.quantity || 1,
-                      min: 1, max: 4,
-                      class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500" %>
+                <%= render 'shared/rich_dropdown',
+                      collection: [1,2,3,4].map { |n| OpenStruct.new(id: n, name: n.to_s) },
+                      field_name: 'customer_subscription[quantity]',
+                      selected_value: @customer_subscription.quantity || 1,
+                      prompt_text: 'Select number of appointments',
+                      value_method: :id,
+                      text_method: :name,
+                      dropdown_id: 'public_subscription_quantity_dropdown' %>
                 <p class="mt-1 text-xs text-gray-500">appointments per month</p>
               </div>
               <div>
                 <%= form.label :billing_day_of_month, "Billing Day", class: "block text-sm font-medium text-gray-700" %>
-                <%= form.select :billing_day_of_month,
-                      options_for_select((1..28).map { |day| [day.ordinalize, day] }, @customer_subscription.billing_day_of_month || Date.current.day),
-                      {},
-                      { class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500" } %>
+                <%= render 'shared/rich_dropdown',
+                      collection: (1..28).map { |day| OpenStruct.new(id: day, name: day.ordinalize) },
+                      field_name: 'customer_subscription[billing_day_of_month]',
+                      selected_value: @customer_subscription.billing_day_of_month || Date.current.day,
+                      prompt_text: 'Select billing day',
+                      value_method: :id,
+                      text_method: :name,
+                      dropdown_id: 'public_subscription_billing_day_dropdown' %>
               </div>
             </div>
 
             <% if @staff_members.any? %>
               <div>
                 <%= form.label :preferred_staff_member_id, "Preferred Staff Member", class: "block text-sm font-medium text-gray-700" %>
-                <%= form.select :preferred_staff_member_id,
-                      options_from_collection_for_select(@staff_members, :id, :name, @customer_subscription.preferred_staff_member_id),
-                      { prompt: "No preference" },
-                      { class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500" } %>
+                <%= render 'shared/rich_dropdown',
+                      collection: [OpenStruct.new(id: '', name: 'No preference')] + @staff_members.map { |sm| OpenStruct.new(id: sm.id, name: sm.name) },
+                      field_name: 'customer_subscription[preferred_staff_member_id]',
+                      selected_value: @customer_subscription.preferred_staff_member_id,
+                      prompt_text: 'No preference',
+                      value_method: :id,
+                      text_method: :name,
+                      dropdown_id: 'public_subscription_staff_dropdown' %>
               </div>
             <% end %>
 
             <% if @service.allow_customer_preferences? %>
               <div>
                 <%= form.label :service_rebooking_preference, "Rebooking Preference", class: "block text-sm font-medium text-gray-700" %>
-                <%= form.select :service_rebooking_preference,
-                      options_for_select([
-                        ['Same day next month (or soonest available)', 'same_day_next_month']
-                      ] + (@service.business.loyalty_program_enabled? ? [['Same day next month (or loyalty points if unavailable)', 'same_day_loyalty_fallback']] : []), 
-                      @customer_subscription.service_rebooking_preference),
-                      { prompt: "Use business default" },
-                      { class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500" } %>
+                <%= render 'shared/rich_dropdown',
+                      collection: [
+                        OpenStruct.new(id: 'same_day_next_month', name: 'Same day next month (or soonest available)')
+                      ] + (@service.business.loyalty_program_enabled? ? [OpenStruct.new(id: 'same_day_loyalty_fallback', name: 'Same day next month (or loyalty points if unavailable)')] : []),
+                      field_name: 'customer_subscription[service_rebooking_preference]',
+                      selected_value: @customer_subscription.service_rebooking_preference,
+                      prompt_text: 'Use business default',
+                      value_method: :id,
+                      text_method: :name,
+                      dropdown_id: 'public_subscription_rebooking_dropdown' %>
               </div>
             <% end %>
 
@@ -295,7 +332,7 @@
           <div class="flex justify-between items-center">
             <%= link_to "← Back", :back, class: "text-gray-600 hover:text-gray-800" %>
             <%= form.submit "Start Subscription", 
-                  class: "bg-purple-600 text-white px-8 py-3 rounded-md font-medium hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors" %>
+                  class: "bg-purple-600 text-white px-8 py-3 rounded-md font-medium hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors cursor-pointer" %>
           </div>
         </div>
       <% end %>

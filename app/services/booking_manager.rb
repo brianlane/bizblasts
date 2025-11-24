@@ -136,7 +136,7 @@ class BookingManager
       if booking_params[:send_confirmation]
         # Placeholder for sending confirmation
         Rails.logger.info "[BookingManager] Send confirmation flag set for Booking ##{booking.id}"
-        BookingMailer.confirmation(booking).deliver_later
+        NotificationService.booking_confirmation(booking)
       end
       
       # Handle payment requirements
@@ -261,7 +261,7 @@ class BookingManager
       if booking.saved_change_to_status?
         # Notify customer of status change
         Rails.logger.info "[BookingManager] Status changed from #{original_status} to #{booking.status} for Booking ##{booking.id}"
-        BookingMailer.status_update(booking).deliver_later
+        NotificationService.booking_status_update(booking)
       end
       
       # Reschedule reminders if time changed
@@ -324,7 +324,7 @@ class BookingManager
       
       # Enhanced logging for audit trail
       if business_override
-        Rails.logger.info "[BookingManager] Manager override cancellation for Booking ##{booking.id} by User ##{current_user.id} (#{current_user.email})"
+        SecureLogger.info "[BookingManager] Manager override cancellation for Booking ##{booking.id} by User ##{current_user.id} (#{current_user.email})"
       else
         Rails.logger.info "[BookingManager] Normal cancellation for Booking ##{booking.id} by User ##{current_user&.id || 'system'}"
       end
@@ -334,7 +334,7 @@ class BookingManager
         Rails.logger.info "[BookingManager] Booking ##{booking.id} cancelled with reason: #{reason || 'Not provided'}"
         # Send cancellation email
         begin
-          BookingMailer.cancellation(booking).deliver_later
+          NotificationService.booking_cancellation(booking)
           Rails.logger.info "[BookingManager] Cancellation email scheduled for Booking ##{booking.id}"
         rescue => e
           Rails.logger.error "[BookingManager] Failed to schedule cancellation email for Booking ##{booking.id}: #{e.message}"
@@ -349,10 +349,24 @@ class BookingManager
         if invoice.payments.successful.exists?
           # Invoice has payments - process refund if applicable
           Rails.logger.info "[BookingManager] Processing refund for cancelled Booking ##{booking.id} via Invoice ##{invoice.id}"
-          # TODO: Implement actual refund processing
-          # invoice.payments.successful.each do |payment|
-          #   StripeService.refund_payment(payment)
-          # end
+          invoice.payments.successful.each do |payment|
+            refund_success = payment.initiate_refund(reason: "booking_cancelled", user: current_user)
+
+            if refund_success
+              Rails.logger.info "[BookingManager] Refund processed for Payment ##{payment.id} (Booking ##{booking.id})"
+              # Mark invoice as cancelled if all payments fully refunded
+              if invoice.payments.where.not(status: :refunded).none?
+                invoice.update!(status: :cancelled)
+              end
+
+              # Update order status if applicable - use helper method to ensure consistency
+              if (order = invoice.order)
+                order.check_and_update_refund_status!
+              end
+            else
+              Rails.logger.error "[BookingManager] Failed to refund Payment ##{payment.id} for Booking ##{booking.id}: #{payment.errors.full_messages.join(', ')}"
+            end
+          end
         else
           # Invoice has no payments - cancel it since service won't be performed
           invoice.update!(status: :cancelled)

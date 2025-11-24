@@ -40,7 +40,7 @@
         <div class="ml-3">
           <h4 class="text-sm font-medium text-blue-800">Your Recent Experience</h4>
           <p class="text-sm text-blue-700 mt-1">
-            <%= booking.service.name %> with <%= booking.staff_member&.name || 'our team' %>
+            <%= service_with_variant(booking) %> with <%= booking.staff_member&.name || 'our team' %>
             <br>
             <span class="text-blue-600"><%= booking.local_start_time.strftime("%B %d, %Y at %I:%M %p") %></span>
           </p>
@@ -73,8 +73,8 @@
     <!-- Percentage buttons -->
     <div class="grid grid-cols-4 gap-2 sm:gap-3">
       <% default_percentages.each do |percentage| %>
-        <button type="button" 
-                class="tip-percentage-btn bg-gray-100 hover:bg-blue-100 border border-gray-300 hover:border-blue-400 rounded-lg py-3 px-2 text-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        <button type="button"
+                class="tip-percentage-btn bg-gray-100 hover:bg-blue-100 border border-gray-300 hover:border-blue-400 rounded-lg py-3 px-2 text-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                 data-percentage="<%= percentage %>">
           <div class="text-sm font-semibold text-gray-700"><%= percentage %>%</div>
           <div class="text-xs text-gray-500 mt-1">$<%= sprintf('%.2f', base_amount * percentage / 100.0) %></div>
@@ -111,8 +111,8 @@
 
     <!-- No tip option -->
     <div class="border-t pt-4">
-      <button type="button" 
-              class="no-tip-btn w-full bg-gray-50 hover:bg-gray-100 border border-gray-300 rounded-lg py-3 px-4 text-sm text-gray-600 hover:text-gray-800 transition-colors duration-200">
+      <button type="button"
+              class="no-tip-btn w-full bg-gray-50 hover:bg-gray-100 border border-gray-300 rounded-lg py-3 px-4 text-sm text-gray-600 hover:text-gray-800 transition-colors duration-200 cursor-pointer">
         No tip
       </button>
     </div>
@@ -129,7 +129,7 @@
             <div class="text-sm text-green-600 selected-tip-amount">$0.00</div>
           </div>
         </div>
-        <button type="button" class="clear-tip-btn text-green-600 hover:text-green-800">
+        <button type="button" class="cursor-pointer clear-tip-btn text-green-600 hover:text-green-800">
           <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
           </svg>

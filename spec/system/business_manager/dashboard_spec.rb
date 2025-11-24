@@ -27,7 +27,7 @@ RSpec.describe "Business Manager Dashboard", type: :system do
     
     it "redirects to the login page" do
       visit business_manager_dashboard_path
-      expect(page).to have_current_path(new_user_session_path)
+      expect(page).to have_current_path(new_user_session_path, ignore_query: true)
       expect(page).to have_content("Welcome Back")
       expect(page).to have_content("Sign in to your account")
     end
@@ -49,7 +49,8 @@ RSpec.describe "Business Manager Dashboard", type: :system do
       within('#recent-bookings-widget') do
         expect(page).to have_content(service.name)
         expect(page).to have_content(customer.full_name)
-        expect(page).to have_content(recent_booking.local_start_time.strftime("%a, %b %d, %Y at %I:%M %p"))
+        displayed_time = Booking.find(recent_booking.id).local_start_time.strftime("%a, %b %d, %Y at %I:%M %p")
+        expect(page).to have_content(displayed_time)
       end
 
       # Check for Upcoming Appointments widget

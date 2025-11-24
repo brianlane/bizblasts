@@ -1,65 +1,364 @@
-<div class="container mx-auto px-4 py-8">
-  <div class="flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-semibold text-gray-800">Integrations</h1>
-    <div>
-      <%= link_to "← Back to Settings", business_manager_settings_path, class: "text-indigo-600 hover:text-indigo-800 mr-4" %>
-      <%= link_to 'Add New Integration', new_business_manager_settings_integration_path, class: "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+<%# Business Manager Integration Settings %>
+<div class="container mx-auto px-4 py-4 sm:py-8">
+  <!-- Header Section -->
+  <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100 mb-8">
+    <div class="bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-6 sm:px-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 bg-gradient-to-br from-white/20 to-white/10 backdrop-blur-sm rounded-lg flex items-center justify-center text-white border border-white/30">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-white">
+              Integrations & Connections
+            </h1>
+            <p class="text-indigo-100 text-sm mt-1">
+              Connect your business with external services and platforms
+            </p>
+          </div>
+        </div>
+        
+        <%= link_to business_manager_settings_path,
+              class: "inline-flex items-center justify-center px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 text-sm font-medium rounded-lg text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-indigo-600 transition-all duration-200" do %>
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+          Back to Settings
+        <% end %>
+      </div>
     </div>
   </div>
 
-  <% if notice %>
-    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
-      <span class="block sm:inline"><%= notice %></span>
-    </div>
-  <% end %>
+  <!-- Google Business Reviews Integration -->
+  <%= render 'shared/google_business_connection', business: @business %>
 
-  <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-    <% if @integrations.any? %>
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Kind
-              </th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Configuration Preview
-              </th>
-              <th scope="col" class="relative px-6 py-3">
-                <span class="sr-only">Actions</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <% @integrations.each do |integration| %>
-              <tr>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  <%= integration.kind.humanize.titleize %>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <pre class="overflow-x-auto bg-gray-100 p-2 rounded text-xs"><%= JSON.pretty_generate(integration.config).truncate(100) rescue "Invalid JSON" %></pre>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                  <%= link_to 'Show', business_manager_settings_integration_path(integration), class: "text-indigo-600 hover:text-indigo-900" %>
-                  <%= link_to 'Edit', edit_business_manager_settings_integration_path(integration), class: "text-indigo-600 hover:text-indigo-900" %>
-                  <%= button_to 'Delete', business_manager_settings_integration_path(integration), method: :delete, data: { confirm: 'Are you sure? This action cannot be undone.' }, class: "text-red-600 hover:text-red-900 bg-transparent border-none p-0 cursor-pointer" %>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% else %>
-      <div class="text-center py-12">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-          <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.224.569-9.47 5.227 7.917-3.286-.672zm0 0l2.522 2.224M4.242 4.242L9.482 9.482m10.294 10.294L21.414 21.414M13.684 16.6l-5.227-7.917" />
-        </svg>
-        <h3 class="mt-2 text-sm font-medium text-gray-900">No integrations</h3>
-        <p class="mt-1 text-sm text-gray-500">Get started by adding a new integration.</p>
-        <div class="mt-6">
-          <%= link_to 'Add New Integration', new_business_manager_settings_integration_path, class: "inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+  <!-- Calendar Integration Section -->
+  <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100 mt-8">
+    <div class="px-6 py-4 bg-gradient-to-r from-blue-50 to-blue-100 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            Calendar Integrations
+          </h2>
+          <p class="text-sm text-gray-600 mt-1">Connect your team's calendars to automatically sync bookings and prevent double-booking conflicts</p>
         </div>
       </div>
-    <% end %>
+    </div>
+
+    <div class="p-6">
+      <% if @sync_statistics.present? && @sync_statistics[:total_attempts] > 0 %>
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+          <h3 class="font-medium text-gray-900 mb-3">Sync Statistics (Last 24 Hours)</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+            <div>
+              <div class="text-2xl font-bold text-green-600"><%= @sync_statistics[:successful] %></div>
+              <div class="text-xs text-gray-600">Successful Syncs</div>
+            </div>
+            <div>
+              <div class="text-2xl font-bold text-red-600"><%= @sync_statistics[:failed] %></div>
+              <div class="text-xs text-gray-600">Failed Syncs</div>
+            </div>
+            <div>
+              <div class="text-2xl font-bold text-blue-600"><%= @sync_statistics[:success_rate].round(1) %>%</div>
+              <div class="text-xs text-gray-600">Success Rate</div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <div class="space-y-6">
+        <% @staff_members.each do |staff_member| %>
+          <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <!-- Staff Member Header -->
+            <div class="p-4 sm:p-5 border-b border-gray-100">
+              <div class="flex items-start justify-between">
+                <div class="min-w-0 flex-1">
+                  <h3 class="text-lg font-semibold text-gray-900 truncate"><%= staff_member.name %></h3>
+                  <p class="text-sm text-gray-600 mt-1 truncate"><%= staff_member.email %></p>
+                </div>
+                <span class="ml-3 inline-flex px-3 py-1 text-xs font-medium rounded-full bg-<%= staff_member.calendar_sync_status.downcase.gsub(' ', '-') == 'all-synced' ? 'green' : staff_member.calendar_sync_status.downcase.gsub(' ', '-') == 'no-integrations' ? 'gray' : 'yellow' %>-100 text-<%= staff_member.calendar_sync_status.downcase.gsub(' ', '-') == 'all-synced' ? 'green' : staff_member.calendar_sync_status.downcase.gsub(' ', '-') == 'no-integrations' ? 'gray' : 'yellow' %>-800">
+                  <%= staff_member.calendar_sync_status %>
+                </span>
+              </div>
+            </div>
+
+            <!-- Calendar Connections Content -->
+            <div class="p-4 sm:p-5">
+
+            <% if staff_member.calendar_connections.active.any? %>
+              <div class="space-y-3 mb-4">
+                <% staff_member.calendar_connections.active.each do |connection| %>
+                  <div class="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+                    <!-- Desktop Layout: Horizontal -->
+                    <div class="hidden sm:flex items-center justify-between p-4">
+                      <div>
+                        <div class="flex items-center gap-2">
+                          <span class="font-medium text-gray-900">
+                            <%= connection.provider_display_name %>
+                          </span>
+                          <% if staff_member.default_calendar_connection == connection %>
+                            <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full font-medium">Default</span>
+                          <% end %>
+                        </div>
+                        <div class="text-sm text-gray-600 mt-1">Last sync: <%= connection.last_sync_status %></div>
+                      </div>
+                      
+                      <div class="flex items-center space-x-2">
+                        <%= button_to "Resync", calendar_integration_resync_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                      method: :post, 
+                                      class: "cursor-pointer px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700" %>
+                        
+                        <% if staff_member.default_calendar_connection == connection %>
+                          <%= button_to "Remove Default", calendar_integration_toggle_default_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                        method: :patch, 
+                                        class: "cursor-pointer px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700" %>
+                        <% else %>
+                          <%= button_to "Set Default", calendar_integration_toggle_default_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                        method: :patch, 
+                                        class: "cursor-pointer px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700" %>
+                        <% end %>
+                        
+                        <%= link_to "Details", calendar_integration_show_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                    class: "cursor-pointer px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700" %>
+                        
+                        <%= button_to "Disconnect", calendar_integration_destroy_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                      method: :delete, 
+                                      class: "cursor-pointer px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700",
+                                      data: { turbo_confirm: "Are you sure you want to disconnect #{connection.provider_display_name}? This will stop syncing bookings to #{staff_member.name}'s calendar." } %>
+                      </div>
+                    </div>
+
+                    <!-- Mobile Layout: Vertical Stack -->
+                    <div class="sm:hidden">
+                      <!-- Header Section -->
+                      <div class="bg-white p-4 border-b border-gray-200">
+                        <div class="flex items-center justify-between">
+                          <div>
+                            <h4 class="font-semibold text-gray-900 text-base">
+                              <%= connection.provider_display_name %>
+                            </h4>
+                            <p class="text-sm text-gray-600 mt-1">Last sync: <%= connection.last_sync_status %></p>
+                          </div>
+                          <% if staff_member.default_calendar_connection == connection %>
+                            <span class="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full font-medium">Default</span>
+                          <% end %>
+                        </div>
+                      </div>
+                      
+                      <!-- Actions Section -->
+                      <div class="bg-gray-50 p-4">
+                        <div class="grid grid-cols-2 gap-3">
+                          <%= button_to "Resync", calendar_integration_resync_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                        method: :post, 
+                                        class: "cursor-pointer w-full px-4 py-3 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors min-h-[44px] flex items-center justify-center" %>
+                          
+                          <% if staff_member.default_calendar_connection == connection %>
+                            <%= button_to "Remove Default", calendar_integration_toggle_default_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                          method: :patch, 
+                                          class: "cursor-pointer w-full px-4 py-3 text-sm font-medium bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors min-h-[44px] flex items-center justify-center" %>
+                          <% else %>
+                            <%= button_to "Set Default", calendar_integration_toggle_default_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                          method: :patch, 
+                                          class: "cursor-pointer w-full px-4 py-3 text-sm font-medium bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors min-h-[44px] flex items-center justify-center" %>
+                          <% end %>
+                          
+                          <%= link_to "Details", calendar_integration_show_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                      class: "cursor-pointer w-full px-4 py-3 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors min-h-[44px] flex items-center justify-center" %>
+                          
+                          <%= button_to "Disconnect", calendar_integration_destroy_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
+                                        method: :delete, 
+                                        class: "cursor-pointer w-full px-4 py-3 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors min-h-[44px] flex items-center justify-center",
+                                        data: { turbo_confirm: "Are you sure you want to disconnect #{connection.provider_display_name}? This will stop syncing bookings to #{staff_member.name}'s calendar." } %>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+
+            <% if @providers.any? { |provider| !staff_member.calendar_connections.active.exists?(provider: provider) } %>
+              <!-- Connect New Calendar Section -->
+              <div class="border-t border-gray-200 pt-4">
+                <h5 class="text-sm font-medium text-gray-900 mb-3">Connect Additional Calendars</h5>
+                <!-- Desktop Layout: Inline buttons -->
+                <div class="hidden sm:flex flex-wrap gap-3">
+                  <% @providers.each do |provider| %>
+                    <% unless staff_member.calendar_connections.active.exists?(provider: provider) %>
+                      <%= button_to "Connect #{provider.humanize} Calendar", 
+                                    calendar_integration_connect_business_manager_settings_integrations_path, 
+                                    params: { provider: provider, staff_member_id: staff_member.id },
+                                    method: :post,
+                                    class: "cursor-pointer px-4 py-2 text-sm font-medium bg-#{provider == 'google' ? 'blue' : provider == 'microsoft' ? 'indigo' : 'orange'}-600 text-white rounded-lg hover:bg-#{provider == 'google' ? 'blue' : provider == 'microsoft' ? 'indigo' : 'orange'}-700 focus:ring-2 focus:ring-#{provider == 'google' ? 'blue' : provider == 'microsoft' ? 'indigo' : 'orange'}-500 focus:ring-offset-2 transition-colors",
+                                    data: { turbo: false } %>
+                    <% end %>
+                  <% end %>
+                </div>
+                <!-- Mobile Layout: Full width buttons -->
+                <div class="sm:hidden grid grid-cols-1 gap-3">
+                  <% @providers.each do |provider| %>
+                    <% unless staff_member.calendar_connections.active.exists?(provider: provider) %>
+                      <%= button_to "Connect #{provider.humanize} Calendar", 
+                                    calendar_integration_connect_business_manager_settings_integrations_path, 
+                                    params: { provider: provider, staff_member_id: staff_member.id },
+                                    method: :post,
+                                    class: "cursor-pointer w-full px-4 py-3 text-sm font-medium bg-#{provider == 'google' ? 'blue' : provider == 'microsoft' ? 'indigo' : 'orange'}-600 text-white rounded-lg hover:bg-#{provider == 'google' ? 'blue' : provider == 'microsoft' ? 'indigo' : 'orange'}-700 focus:ring-2 focus:ring-#{provider == 'google' ? 'blue' : provider == 'microsoft' ? 'indigo' : 'orange'}-500 focus:ring-offset-2 transition-colors",
+                                    data: { turbo: false } %>
+                    <% end %>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+            </div>
+          </div>
+        <% end %>
+
+        <% if @staff_members.empty? %>
+          <div class="text-center py-8">
+            <p class="text-gray-600">No active staff members found. <%= link_to "Add staff members", business_manager_staff_members_path, class: "text-blue-600 hover:underline" %> to enable calendar integrations.</p>
+          </div>
+        <% end %>
+      </div>
+
+      <% if @calendar_connections.any? %>
+        <div class="mt-8 pt-6 border-t border-gray-200">
+          <h3 class="font-medium text-gray-900 mb-4">Bulk Actions</h3>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <%= button_to "Sync All Pending Bookings", 
+                          calendar_integration_batch_sync_business_manager_settings_integrations_path, 
+                          method: :post, 
+                          class: "cursor-pointer w-full sm:w-auto px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 text-center",
+                          data: { turbo_confirm: "This will sync all pending bookings for all staff members. Continue?" } %>
+            
+            <%= button_to "Import All Availability", 
+                          calendar_integration_import_availability_business_manager_settings_integrations_path, 
+                          method: :post, 
+                          class: "cursor-pointer w-full sm:w-auto px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 text-center",
+                          data: { turbo_confirm: "This will import calendar events from all connected calendars. Continue?" } %>
+          </div>
+        </div>
+      <% end %>
+    </div>
   </div>
-</div> 
+
+  <!-- Additional Integrations Section -->
+  <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100 mt-8">
+    <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+            </svg>
+            Other Integrations
+          </h2>
+          <p class="text-sm text-gray-600 mt-1">Additional third-party service integrations</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="p-6">
+      <!-- Coming Soon Section -->
+      <div class="text-center py-8">
+        <div class="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center shadow-lg ring-1 ring-[#1A5F7A]/40 mb-4" style="background: linear-gradient(135deg, #1A5F7A 0%, #0f3e4d 100%);">
+          <!-- Sleek, bold, exotic icon: stylized spark + integration nodes -->
+          <svg class="w-9 h-9 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Central spark -->
+            <path d="M12 2l1.8 3.9L18 7.2l-3.2 2.6.9 4.2L12 12.7 8.3 14l.9-4.2L6 7.2l4.2-1.3L12 2z" fill="currentColor" opacity="0.9"/>
+            <!-- Orbit/nodes -->
+            <path d="M4.5 12a7.5 7.5 0 0015 0 7.5 7.5 0 00-15 0z" stroke="currentColor" stroke-width="1.5" opacity="0.35"/>
+            <circle cx="5.5" cy="12" r="1.2" fill="currentColor"/>
+            <circle cx="18.5" cy="12" r="1.2" fill="currentColor"/>
+            <circle cx="12" cy="18.5" r="1.2" fill="currentColor"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">More Integrations Coming Soon</h3>
+        <p class="text-gray-600 mb-6">We're working on additional integrations to help grow your business:</p>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
+          <!-- Email Marketing Preview -->
+          <div class="p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-3" style="background-color: rgba(87, 197, 182, 0.15);">
+              <svg class="w-5 h-5" style="color: #57C5B6;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+              </svg>
+            </div>
+            <h4 class="font-medium text-gray-900 text-sm">Email Marketing</h4>
+            <p class="text-xs text-gray-600 mt-1">Mailchimp, Constant Contact</p>
+            <span class="inline-block mt-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">Coming Soon</span>
+          </div>
+
+          <!-- Social Media Preview -->
+          <div class="p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-3" style="background-color: rgba(87, 197, 182, 0.15);">
+              <!-- Social network/share icon -->
+              <svg class="w-6 h-6" style="color: #57C5B6;" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="16" cy="5" r="3" stroke="currentColor" stroke-width="2"/>
+                <circle cx="6" cy="11" r="3" stroke="currentColor" stroke-width="2"/>
+                <circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="2"/>
+                <path d="M8.3 9.7 L12.8 7.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M8.5 12.9 L15.0 17.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <h4 class="font-medium text-gray-900 text-sm">Social Media</h4>
+            <p class="text-xs text-gray-600 mt-1">Facebook, Instagram posting</p>
+            <span class="inline-block mt-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">Coming Soon</span>
+          </div>
+
+          <!-- Accounting Integration Preview -->
+          <div class="p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-3" style="background-color: rgba(87, 197, 182, 0.15);">
+              <svg class="w-5 h-5" style="color: #57C5B6;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+              </svg>
+            </div>
+            <h4 class="font-medium text-gray-900 text-sm">Accounting</h4>
+            <p class="text-xs text-gray-600 mt-1">QuickBooks, Xero sync</p>
+            <span class="inline-block mt-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">Coming Soon</span>
+          </div>
+
+          <!-- Inventory Integration Preview -->
+          <div class="p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-3" style="background-color: rgba(87, 197, 182, 0.15);">
+              <svg class="w-5 h-5" style="color: #57C5B6;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+              </svg>
+            </div>
+            <h4 class="font-medium text-gray-900 text-sm">Inventory</h4>
+            <p class="text-xs text-gray-600 mt-1">Stock management systems</p>
+            <span class="inline-block mt-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">Coming Soon</span>
+          </div>
+
+          <!-- Analytics Integration Preview -->
+          <div class="p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-3" style="background-color: rgba(87, 197, 182, 0.15);">
+              <svg class="w-5 h-5" style="color: #57C5B6;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+              </svg>
+            </div>
+            <h4 class="font-medium text-gray-900 text-sm">Analytics</h4>
+            <p class="text-xs text-gray-600 mt-1">Google Analytics, tracking</p>
+            <span class="inline-block mt-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">Coming Soon</span>
+          </div>
+        </div>
+        
+        <div class="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg max-w-2xl mx-auto">
+          <div class="flex items-start">
+            <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div class="ml-3 text-sm">
+              <p class="text-blue-800 font-medium">Need a specific integration?</p>
+              <p class="text-blue-700 mt-1">Let us know what services you'd like to connect with your business. We're actively working on expanding our integration ecosystem.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

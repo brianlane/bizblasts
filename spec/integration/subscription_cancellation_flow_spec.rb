@@ -21,7 +21,7 @@ RSpec.describe "Subscription Cancellation Flow", type: :request do
 
   before do
     ActsAsTenant.current_tenant = business
-    host! "#{business.subdomain}.example.com"
+    host! host_for(business)
     
     # Mock Stripe cancellation service
     allow(SubscriptionStripeService).to receive(:new).and_return(
@@ -118,7 +118,7 @@ RSpec.describe "Subscription Cancellation Flow", type: :request do
     before do
       business.users << business_user
       sign_in business_user
-      host! "#{business.subdomain}.example.com"
+      host! host_for(business)
     end
 
     describe "PATCH /manage/subscriptions/:id/cancel" do

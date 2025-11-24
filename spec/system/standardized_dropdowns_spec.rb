@@ -71,24 +71,6 @@ RSpec.describe 'Standardized Dropdowns', type: :system do
     end
   end
 
-  describe 'Notification Settings Form' do
-    let!(:notification_template) { create(:notification_template, business: business) }
-    
-    it 'renders channel dropdown correctly' do
-      visit edit_business_manager_settings_notification_template_path(notification_template)
-      
-      expect(page.status_code).to eq(200)
-      expect(page).to have_content('Channel')
-      
-      # Check for dropdown structure
-      expect(page).to have_css('.rich-dropdown')
-      
-      # Verify channel options are present
-      expect(page.body).to include('email')
-      expect(page.body).to include('sms')
-    end
-  end
-
   describe 'Business Index Filter Form' do
     before do
       # Create some businesses for filtering

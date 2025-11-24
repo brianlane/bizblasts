@@ -177,29 +177,19 @@ export default class extends Controller {
   }
 
   async handleArrowClick(event) {
-    // Try multiple ways to find the arrow button
-    let arrowButton = event.target.closest('.position-arrow')
+    // Only handle clicks on .position-arrow buttons
+    const arrowButton = event.target.closest('.position-arrow')
     if (!arrowButton) {
-      arrowButton = event.target.closest('button[data-action]')
-    }
-    if (!arrowButton && event.target.tagName === 'BUTTON') {
-      arrowButton = event.target
-    }
-    
-    if (!arrowButton) {
+      // Not an arrow button, ignore
       return
     }
-    
     if (arrowButton.classList.contains('disabled')) {
       return
     }
-
     event.preventDefault()
     event.stopPropagation()
-
     const itemId = arrowButton.dataset.itemId
     const action = arrowButton.dataset.action
-    
     if (!itemId || !action) {
       console.error('Missing item ID or action on arrow button')
       return

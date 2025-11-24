@@ -24,9 +24,10 @@ class Service < ApplicationRecord
   
   # Image attachments
   has_many_attached :images do |attachable|
-    attachable.variant :thumb, resize_to_limit: [300, 300]
-    attachable.variant :medium, resize_to_limit: [800, 800] 
-    attachable.variant :large, resize_to_limit: [1200, 1200]
+    # Use consistent aspect variants - quality handled by ProcessImageJob
+    attachable.variant :thumb, resize_to_fill: [400, 300]
+    attachable.variant :medium, resize_to_fill: [1200, 900]
+    attachable.variant :large, resize_to_limit: [2000, 2000]
   end
 
   # Ensure `images.ordered` is available on the ActiveStorage proxy
@@ -39,8 +40,140 @@ class Service < ApplicationRecord
   end
 
   # Define service types
-  enum :service_type, { standard: 0, experience: 1 }
-  
+  enum :service_type, { standard: 0, experience: 1, event: 2 }
+  # Service-specific availability configuration
+  before_validation :assign_event_schedule, if: :should_assign_event_schedule?
+  before_validation :process_service_availability
+
+  def experience?
+    super || event?
+  end
+
+  # Normalize availability JSON before validation
+  def process_service_availability
+    return if availability.blank?
+    
+    begin
+      unless availability.is_a?(Hash)
+        Rails.logger.warn("Service #{id}: Invalid availability format (not a hash), resetting to default")
+        self.availability = default_availability_structure
+        return
+      end
+      
+      days = %w[monday tuesday wednesday thursday friday saturday sunday]
+      processed_days = 0
+      
+      days.each do |day|
+        if availability[day].is_a?(Array)
+          original_count = availability[day].length
+          availability[day] = availability[day].select { |s| 
+            s.is_a?(Hash) && s['start'].present? && s['end'].present? && 
+            valid_time_format?(s['start']) && valid_time_format?(s['end'])
+          }
+          
+          if availability[day].length != original_count
+            Rails.logger.info("Service #{id}: Filtered invalid time slots for #{day} (#{original_count} -> #{availability[day].length})")
+          end
+          processed_days += 1
+        else
+          availability[day] = []
+          Rails.logger.debug("Service #{id}: Initialized empty array for #{day}")
+        end
+      end
+      
+      # Process exceptions
+      if availability['exceptions'].is_a?(Hash)
+        exceptions_processed = 0
+        availability['exceptions'].each do |date, slots|
+          if valid_date_format?(date)
+            availability['exceptions'][date] = Array(slots).select { |s| 
+              s.is_a?(Hash) && s['start'].present? && s['end'].present? &&
+              valid_time_format?(s['start']) && valid_time_format?(s['end'])
+            }
+            exceptions_processed += 1
+          else
+            Rails.logger.warn("Service #{id}: Removing invalid date exception: #{date}")
+            availability['exceptions'].delete(date)
+          end
+        end
+        
+        Rails.logger.debug("Service #{id}: Processed #{exceptions_processed} date exceptions") if exceptions_processed > 0
+      else
+        availability['exceptions'] = {}
+        Rails.logger.debug("Service #{id}: Initialized empty exceptions hash")
+      end
+      
+      Rails.logger.info("Service #{id}: Successfully processed availability for #{processed_days} days")
+      
+    rescue => e
+      Rails.logger.error("Service #{id}: Exception in process_service_availability: #{e.message}")
+      Rails.logger.error(e.backtrace.join("\n"))
+      
+      # Reset to safe default on any error
+      self.availability = default_availability_structure
+      errors.add(:availability, "Failed to process availability settings")
+    end
+  end
+
+  # Check if service is available at a given datetime
+  def available_at?(datetime)
+    begin
+      return true unless enforce_service_availability
+      return true if availability.blank?
+      
+      unless datetime.respond_to?(:strftime)
+        Rails.logger.error("Service #{id}: Invalid datetime object in available_at?: #{datetime.class}")
+        return false
+      end
+      
+      time_to_check = parse_time_of_day(datetime.strftime('%H:%M'))
+      return false unless time_to_check
+      
+      data = availability.with_indifferent_access
+      exceptions = data[:exceptions] || {}
+      weekly = data.except(:exceptions)
+      
+      # Check for date-specific exceptions first
+      date_key = datetime.to_date.iso8601
+      intervals = if exceptions.key?(date_key)
+        Array(exceptions[date_key])
+      else
+        day_name = datetime.strftime('%A').downcase
+        Array(weekly[day_name])
+      end
+      
+      Rails.logger.debug("Service #{id}: Checking availability at #{datetime} - found #{intervals.count} intervals")
+      
+      # Check if time falls within any interval
+      intervals.any? do |interval|
+        next false unless interval.is_a?(Hash)
+        
+        start_tod = parse_time_of_day(interval['start'])
+        end_tod = parse_time_of_day(interval['end'])
+        
+        next false unless start_tod && end_tod
+        
+        # Handle full day availability
+        if start_tod == Tod::TimeOfDay.new(0, 0) && end_tod == Tod::TimeOfDay.new(23, 59)
+          true
+        elsif start_tod < end_tod
+          # Normal interval (same day)
+          time_to_check >= start_tod && time_to_check < end_tod
+        else
+          # Overnight interval (e.g., 22:00-02:00)
+          time_to_check >= start_tod || time_to_check < end_tod
+        end
+      end
+      
+    rescue => e
+      Rails.logger.error("Service #{id}: Exception in available_at?(#{datetime}): #{e.message}")
+      Rails.logger.error(e.backtrace.join("\n"))
+      
+      # Default to false for safety when there's an error
+      false
+    end
+  end
+
   # Callbacks
   # before_destroy :orphan_bookings  # Removed - Business model handles orphaning
   
@@ -48,26 +181,33 @@ class Service < ApplicationRecord
   after_commit :process_images, on: [:create, :update]
   
   validates :name, presence: true
+  include PriceDurationParser
+
   validates :name, uniqueness: { scope: :business_id }
-  validates :duration, presence: true, numericality: { only_integer: true, greater_than: 0 }
-  validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }
+  validates :duration, presence: true, numericality: { only_integer: true, greater_than: 0 }                                                                   
+  validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }                                                                              
+  
+  # Use shared parsing logic
+  price_parser :price
+  duration_parser :duration
   validates :active, inclusion: { in: [true, false] }
   validates :business_id, presence: true
   validates :tips_enabled, inclusion: { in: [true, false] }
+  validates :tip_mailer_if_no_tip_received, inclusion: { in: [true, false] }
   validates :subscription_enabled, inclusion: { in: [true, false] }
   validates :subscription_discount_percentage, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }, allow_blank: true
   validates :allow_customer_preferences, inclusion: { in: [true, false] }
   validates :allow_discounts, inclusion: { in: [true, false] }
   validates :position, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+  validates :event_starts_at, presence: true, if: :event?
 
-  # Validations for images - Updated for 15MB max
-  validates :images, content_type: { in: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], 
-                                     message: 'must be a valid image format (PNG, JPEG, GIF, WebP)' }, 
-                     size: { less_than: 15.megabytes, message: 'must be less than 15MB' }
+  # Validations for images - Updated for 15MB max with HEIC support
+  validates :images, **FileUploadSecurity.image_validation_options
   
   validate :image_size_validation
   validate :image_format_validation
   validate :loyalty_program_required_for_loyalty_fallback
+  validate :price_format_valid
   
   # Validations for min/max bookings and spots based on type
   validates :min_bookings, numericality: { only_integer: true, greater_than_or_equal_to: 1 }, if: :experience?
@@ -82,7 +222,20 @@ class Service < ApplicationRecord
   
   scope :active, -> { where(active: true) }
   scope :featured, -> { where(featured: true) }
-  
+
+  # Event-specific scopes
+  scope :events, -> { where(service_type: :event) }
+  scope :upcoming_events, -> {
+    where(service_type: :event)
+      .where('event_starts_at > ?', Time.current)
+      .order(:event_starts_at)
+  }
+  scope :past_events, -> {
+    where(service_type: :event)
+      .where('event_starts_at <= ?', Time.current)
+      .order(event_starts_at: :desc)
+  }
+
   # Position management
   scope :positioned, -> { order(:position, :created_at) }
   scope :by_position, -> { order(:position) }
@@ -96,7 +249,7 @@ class Service < ApplicationRecord
   
   # Define ransackable attributes for ActiveAdmin
   def self.ransackable_attributes(auth_object = nil)
-    %w[id name description duration price active business_id created_at updated_at featured service_type min_bookings max_bookings spots allow_discounts]
+    %w[id name description duration price active business_id created_at updated_at featured service_type min_bookings max_bookings spots allow_discounts tips_enabled tip_mailer_if_no_tip_received event_starts_at]
   end
   
   # Define ransackable associations for ActiveAdmin
@@ -151,14 +304,10 @@ class Service < ApplicationRecord
   end
   
   def tip_timing
-    case service_type
-    when 'standard'
-      :after_service  # Tips on invoice payment
-    when 'experience'
-      :after_experience  # Special handling - pay now, tip later
-    else
-      :immediate  # Default behavior
-    end
+    # Updated: All service types now support integrated tipping during initial payment
+    # and optional tip mailer after service completion if no tip was received initially
+    # Previously: Different timing for standard vs experience services
+    :integrated_with_mailer_fallback
   end
 
   # Subscription methods
@@ -168,8 +317,12 @@ class Service < ApplicationRecord
   end
   
   def subscription_discount_amount
-    return 0 unless subscription_enabled? || business&.subscription_discount_percentage.blank?
-    (price * (business.subscription_discount_percentage / 100.0)).round(2)
+    return 0 unless subscription_enabled?
+
+    discount_pct = subscription_discount_percentage.presence || business&.subscription_discount_percentage
+    return 0 unless discount_pct.present?
+
+    (price * (discount_pct / 100.0)).round(2)
   end
   
   def subscription_savings_percentage
@@ -201,8 +354,15 @@ class Service < ApplicationRecord
     true
   end
   
-  def duration_minutes
-    duration
+  def duration_minutes(variant = nil)
+    base_duration(variant)
+  end
+  
+  def event_ends_at
+    return unless event_starts_at.present?
+    return unless duration.present?
+
+    event_starts_at + duration.to_i.minutes
   end
 
   # Position management methods
@@ -287,7 +447,55 @@ class Service < ApplicationRecord
     images.attachments.order(:position).find_by(primary: true)
   end
 
+  has_many :service_variants, dependent: :destroy
+  accepts_nested_attributes_for :service_variants, allow_destroy: true
+
+  # Return primary (first) variant for convenience
+  def default_variant
+    service_variants.by_position.first
+  end
+
+  # Convenience wrappers to favour variant price/duration when available
+  def base_price(variant = nil)
+    (variant || default_variant)&.price || price
+  end
+
+  def base_duration(variant = nil)
+    (variant || default_variant)&.duration || duration
+  end
+
   private
+
+  # Only regenerate event schedule when creating or when event timing changes
+  # This prevents overwriting user-modified availability on unrelated updates
+  def should_assign_event_schedule?
+    return false unless event?
+    return true if new_record?
+
+    # Only regenerate if event_starts_at or duration changed
+    event_starts_at_changed? || duration_changed?
+  end
+
+  def assign_event_schedule
+    return if event_starts_at.blank?
+    duration_minutes = duration.to_i
+    return if duration_minutes <= 0
+
+    tz_name = business&.time_zone.presence
+    timezone = ActiveSupport::TimeZone[tz_name] || Time.zone
+    local_start = event_starts_at.in_time_zone(timezone)
+    local_end = local_start + duration_minutes.minutes
+
+    schedule = default_availability_structure
+    date_key = local_start.to_date.iso8601
+    schedule['exceptions'][date_key] = [{
+      'start' => local_start.strftime('%H:%M'),
+      'end' => local_end.strftime('%H:%M')
+    }]
+
+    self.availability = schedule
+    self.enforce_service_availability = true
+  end
 
   def image_size_validation
     images.each do |image|
@@ -299,8 +507,8 @@ class Service < ApplicationRecord
   
   def image_format_validation
     images.each do |image|
-      unless image.blob.content_type.in?(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
-        errors.add(:images, "must be a valid image format (JPEG, PNG, GIF, WebP)")
+      unless FileUploadSecurity.valid_image_type?(image.blob.content_type)
+        errors.add(:images, FileUploadSecurity.image_validation_options[:content_type][:message])                                                                 
       end
     end
   end
@@ -325,7 +533,7 @@ class Service < ApplicationRecord
         'cannot use loyalty points fallback when loyalty program is not enabled. Please enable your loyalty program first or choose a different rebooking option.')
     end
   end
-  
+
   # Safe method to get rebooking preference - falls back if loyalty program is disabled
   def effective_subscription_rebooking_preference
     return subscription_rebooking_preference unless subscription_rebooking_preference == 'same_day_loyalty_fallback'
@@ -352,6 +560,52 @@ class Service < ApplicationRecord
   def self.resequence_for_business(business)
     business.services.positioned.each_with_index do |service, index|
       service.update_column(:position, index) if service.position != index
+    end
+  end
+
+  # Default availability structure
+  def default_availability_structure
+    {
+      'monday' => [],
+      'tuesday' => [],
+      'wednesday' => [],
+      'thursday' => [],
+      'friday' => [],
+      'saturday' => [],
+      'sunday' => [],
+      'exceptions' => {}
+    }
+  end
+
+  # Validate time format (HH:MM or H:MM)
+  def valid_time_format?(time_str)
+    return false unless time_str.is_a?(String)
+    time_str.match?(/\A([01]?[0-9]|2[0-3]):[0-5][0-9]\z/)
+  end
+
+  # Validate date format (YYYY-MM-DD)
+  def valid_date_format?(date_str)
+    return false unless date_str.is_a?(String)
+    begin
+      Date.parse(date_str)
+      date_str.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+    rescue ArgumentError
+      false
+    end
+  end
+
+  # Parse time string to Tod::TimeOfDay with error handling
+  def parse_time_of_day(time_str)
+    return nil unless time_str.present?
+    
+    begin
+      Tod::TimeOfDay.parse(time_str.to_s)
+    rescue ArgumentError => e
+      Rails.logger.warn("Service #{id}: Invalid time format '#{time_str}': #{e.message}")
+      nil
+    rescue => e
+      Rails.logger.error("Service #{id}: Unexpected error parsing time '#{time_str}': #{e.message}")
+      nil
     end
   end
 end 

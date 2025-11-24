@@ -9,17 +9,18 @@ class InvoiceMailer < ApplicationMailer
     # Add tier-specific features for premium businesses
     @include_analytics = @business.tier == 'premium'
     
-    Rails.logger.info "[EMAIL] InvoiceMailer.invoice_created preparing email for: #{@customer.email} | Invoice: #{@invoice.invoice_number}"
+    SecureLogger.info "[EMAIL] InvoiceMailer.invoice_created preparing email for: #{@customer.email} | Invoice: #{@invoice.invoice_number}"
     
     result = mail(
       to: @customer.email,
-      subject: "Invoice ##{@invoice.invoice_number} - #{@business.name}"
+      subject: "Invoice ##{@invoice.invoice_number} - #{@business.name}",
+      reply_to: @business.email
     )
     
-    Rails.logger.info "[EMAIL] InvoiceMailer.invoice_created mail object created successfully for: #{@customer.email}"
+    SecureLogger.info "[EMAIL] InvoiceMailer.invoice_created mail object created successfully for: #{@customer.email}"
     result
   rescue => e
-    Rails.logger.error "[EMAIL] InvoiceMailer.invoice_created failed for: #{@customer&.email} | Error: #{e.message}"
+    SecureLogger.error "[EMAIL] InvoiceMailer.invoice_created failed for: #{@customer&.email} | Error: #{e.message}"
     raise
   end
 
@@ -33,11 +34,12 @@ class InvoiceMailer < ApplicationMailer
     # Add tier-specific features for premium businesses
     @include_analytics = @business.tier == 'premium'
     
-    Rails.logger.info "[EMAIL] InvoiceMailer.payment_confirmation preparing email for: #{@customer.email} | Invoice: #{@invoice.invoice_number}"
+    SecureLogger.info "[EMAIL] InvoiceMailer.payment_confirmation preparing email for: #{@customer.email} | Invoice: #{@invoice.invoice_number}"
     
     mail(
       to: @customer.email,
-      subject: "Payment Received - Invoice ##{@invoice.invoice_number} - #{@business.name}"
+      subject: "Payment Received - Invoice ##{@invoice.invoice_number} - #{@business.name}",
+      reply_to: @business.email
     )
   end
 
@@ -57,7 +59,8 @@ class InvoiceMailer < ApplicationMailer
     
     mail(
       to: @customer.email,
-      subject: "Payment Reminder - Invoice ##{@invoice.invoice_number} - #{@business.name}"
+      subject: "Payment Reminder - Invoice ##{@invoice.invoice_number} - #{@business.name}",
+      reply_to: @business.email
     )
   end
 
@@ -77,7 +80,8 @@ class InvoiceMailer < ApplicationMailer
     
     mail(
       to: @customer.email,
-      subject: "Payment Failed - Invoice ##{@invoice.invoice_number} - #{@business.name}"
+      subject: "Payment Failed - Invoice ##{@invoice.invoice_number} - #{@business.name}",
+      reply_to: @business.email
     )
   end
 
@@ -85,8 +89,13 @@ class InvoiceMailer < ApplicationMailer
 
   def generate_payment_url(invoice)
     # For authenticated users, use transaction path
-    # Check if this customer has an associated user account
-    user = User.find_by(email: @customer.email) if @customer.email.present?
+    # Check if this customer has an associated user account (tenant-scoped)
+    user = nil
+    if @customer.email.present?
+      # Look for user account within business context only
+      user = @business.users.find_by(email: @customer.email) ||
+             @business.client_businesses.joins(:user).find_by(users: { email: @customer.email })&.user
+    end
     
     if user.present?
       Rails.application.routes.url_helpers.tenant_transaction_url(

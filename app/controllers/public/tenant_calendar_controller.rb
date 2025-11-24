@@ -1,19 +1,37 @@
 # frozen_string_literal: true
 
 module Public
-  class TenantCalendarController < ApplicationController
+  class TenantCalendarController < Public::BaseController
+    after_action :no_store!
     skip_before_action :authenticate_user!
     before_action :set_business
     
     def index
       @date = params[:date] ? Date.parse(params[:date]) : Date.today
       @services = @business.services.active
-      
-      # Selected service if provided
-      @service = @business.services.find_by(id: params[:service_id]) if params[:service_id].present?
-      
+
+      # Selected service
+      if params[:service_id].present?
+        @service = @business.services.find_by(id: params[:service_id])
+      end
+
+      # Handle service variant selection
+      if @service&.present? && params[:service_variant_id].present?
+        @service_variant = @service.service_variants.find_by(id: params[:service_variant_id])
+      end
+
+      # Auto-select default variant if no variant specified or invalid variant provided
+      if @service&.present? && @service_variant.nil? && @service.service_variants.active.any?
+        @service_variant = @service.service_variants.active.by_position.first
+      end
 
       if @service.present?
+        # Determine interval based on variant or service duration
+        @interval = if @service_variant.present?
+                      @service_variant.duration
+                    else
+                      @service.duration
+                    end
         # Build a month-centered 5-week calendar grid that properly shows the target month
         # This ensures the full target month is visible with appropriate padding from adjacent months
         
@@ -39,7 +57,8 @@ module Public
           date:       @date,
           tenant:     @business,
           start_date: @calendar_start_date,
-          end_date:   @calendar_end_date
+          end_date:   @calendar_end_date,
+          interval:   @interval
         )
       else
         @calendar_data = {} # Initialize empty if no service selected
@@ -49,11 +68,18 @@ module Public
     def available_slots
       @date = params[:date] ? Date.parse(params[:date]) : Date.today
       @service = @business.services.find_by(id: params[:service_id])
-      @interval = (params[:interval] || 30).to_i
       
       if @service.nil?
         render json: { error: 'Service not found' }, status: :not_found
         return
+      end
+      
+      # Determine interval based on variant if provided
+      if params[:service_variant_id].present?
+        variant = @service.service_variants.find_by(id: params[:service_variant_id])
+        @interval = variant&.duration || (params[:interval] || @service.duration || 30).to_i
+      else
+        @interval = (params[:interval] || @service.duration || 30).to_i
       end
       
       # For date range requests (used by calendar initial load)
@@ -67,7 +93,8 @@ module Public
           date:       start_date,
           tenant:     @business,
           start_date: start_date,
-          end_date:   end_date
+          end_date:   end_date,
+          interval:   @interval
         )
         
         respond_to do |format|

@@ -84,7 +84,7 @@
                 <div class="flex-1">
                   <div class="font-medium text-gray-900 text-sm">
                     <span class="text-xs text-gray-500">#<%= booking.id %></span>
-                    <span class="ml-2"><%= booking.service.name %></span>
+                    <span class="ml-2"><%= service_with_variant(booking) %></span>
                   </div>
                   <div class="text-sm text-gray-600 mt-1">
                     <%= booking.tenant_customer.full_name %>
@@ -121,7 +121,7 @@
                     <%= booking.staff_member.name %>
                   </div>
                   <div class="text-gray-600">
-                    <%= booking.service.duration %> min
+                    <%= service_duration(booking) %> min
                   </div>
                 </div>
               </div>
@@ -186,14 +186,14 @@
                       <div class="text-sm text-gray-500"><%= booking.tenant_customer.email %></div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <%= booking.service.name %>
+                      <%= service_with_variant(booking) %>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><%= booking.staff_member.name %></td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     <div><%= booking.local_start_time.strftime("%b %d, %Y") %></div>
               <div><%= booking.local_start_time.strftime("%I:%M %p") %> - <%= booking.local_end_time.strftime("%I:%M %p") %></div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><%= booking.service.duration %> min</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><%= service_duration(booking) %> min</td>
                     <td class="px-6 py-4 whitespace-nowrap">
                       <% status_colors = {
                         'pending' => 'bg-yellow-100 text-yellow-800',

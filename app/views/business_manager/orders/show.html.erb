@@ -173,6 +173,9 @@
     </div>
   <% end %>
 
-  <%= link_to 'Back to Business Orders', business_manager_orders_path, class: "text-blue-600 hover:text-blue-800" %>
+  <div class="flex justify-between items-center mt-6">
+    <%= link_to 'Back to Business Orders', business_manager_orders_path, class: "text-blue-600 hover:text-blue-800" %>
+    <%= render partial: 'shared/refund_button', locals: { record: @order, refund_path: refund_business_manager_order_path(@order) } %>
+  </div>
   <%# Add links for actions like 'Mark as Shipped', 'Cancel Order', 'Print Invoice' if applicable %> 
 </div> 

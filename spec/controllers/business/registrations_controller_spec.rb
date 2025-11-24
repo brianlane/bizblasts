@@ -6,6 +6,13 @@ RSpec.describe Business::RegistrationsController, type: :controller do
   before do
     # Configure devise for controller tests
     @request.env["devise.mapping"] = Devise.mappings[:user]
+    # Configure mailer URL options for CI/test environment
+    ActionMailer::Base.default_url_options = { host: 'example.com', port: 3000 }
+  end
+  
+  after do
+    # Reset mailer URL options
+    ActionMailer::Base.default_url_options = {}
   end
 
   describe '#create' do
@@ -28,7 +35,7 @@ RSpec.describe Business::RegistrationsController, type: :controller do
           zip: '12345',
           description: 'A test business',
           tier: 'free',
-          hostname: "testbusiness-#{SecureRandom.hex(4)}"
+          subdomain: "testbusiness-#{SecureRandom.hex(4)}"
         }
       }
     end
@@ -97,7 +104,7 @@ RSpec.describe Business::RegistrationsController, type: :controller do
       let(:valid_attributes_with_referral) do
         valid_attributes.deep_dup.tap do |attrs|
           attrs[:business_attributes][:platform_referral_code] = test_referral_code
-          attrs[:business_attributes][:hostname] = "testbiz-#{SecureRandom.hex(4)}"
+          attrs[:business_attributes][:subdomain] = "testbiz-#{SecureRandom.hex(4)}"
         end
       end
 
@@ -149,6 +156,41 @@ RSpec.describe Business::RegistrationsController, type: :controller do
         expect(response).to redirect_to(root_path)
         expect(User.count).to eq(1)
         expect(Business.count).to eq(1)
+      end
+
+      it 'treats blank platform referral code as nil to avoid uniqueness errors' do
+        # First request with blank code
+        attrs1 = valid_attributes.deep_dup
+        attrs1[:business_attributes][:platform_referral_code] = ''
+        attrs1[:business_attributes][:subdomain] = "biz1-#{SecureRandom.hex(4)}"
+
+        expect {
+          post :create, params: { user: attrs1 }
+        }.to change(Business, :count).by(1)
+
+        # Second request also with blank code should succeed
+        attrs2 = valid_attributes.deep_dup
+        attrs2[:email] = "user2-#{SecureRandom.hex(4)}@example.com"
+        attrs2[:business_attributes][:platform_referral_code] = ''
+        attrs2[:business_attributes][:subdomain] = "biz2-#{SecureRandom.hex(4)}"
+
+        expect {
+          post :create, params: { user: attrs2 }
+        }.to change(Business, :count).by(1)
+      end
+
+      it 'does not create resources and re-renders the form with flash alert when an unrecognised industry is supplied' do
+        unrecognised_industry = 'Chef Jenn LLC'
+        attributes_with_bad_industry = valid_attributes.deep_dup
+        attributes_with_bad_industry[:business_attributes][:industry] = unrecognised_industry
+
+        expect {
+          post :create, params: { user: attributes_with_bad_industry }
+        }.not_to change(Business, :count)
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response).to render_template(:new)
+        expect(flash[:alert]).to match(/not a recognised industry/i)
       end
     end
 

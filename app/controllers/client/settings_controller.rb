@@ -23,21 +23,26 @@ class Client::SettingsController < ApplicationController # Changed from Client::
       # Password update attempt
       if @user.update_with_password(password_update_params)
         bypass_sign_in(@user)
+        # Sync changes to tenant customers will happen via User model callback
         redirect_to client_settings_path, notice: 'Settings (including password) updated successfully.'
       else
         @account_deletion_info = @user.can_delete_account?
         flash.now[:alert] = 'Failed to update password. Please check your current password and ensure new passwords match.'
-        render :edit, status: :unprocessable_entity
+        render :edit, status: :unprocessable_content
       end
     else
       # Profile update only (no password change)
       # Remove password parameters to avoid unpermitted params warning
       if @user.update(profile_update_params)
+        # Handle business-specific SMS preferences
+        handle_business_sms_preferences if params[:business_sms_preferences].present?
+
+        # Sync changes to tenant customers will happen via User model callback
         redirect_to client_settings_path, notice: 'Profile settings updated successfully.'
       else
         @account_deletion_info = @user.can_delete_account?
         flash.now[:alert] = 'Failed to update profile settings.'
-        render :edit, status: :unprocessable_entity
+        render :edit, status: :unprocessable_content
       end
     end
   end
@@ -47,7 +52,7 @@ class Client::SettingsController < ApplicationController # Changed from Client::
     unless @user.valid_password?(deletion_params[:current_password])
       flash.now[:alert] = 'Current password is incorrect.'
       @account_deletion_info = @user.can_delete_account?
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
       return
     end
 
@@ -55,7 +60,7 @@ class Client::SettingsController < ApplicationController # Changed from Client::
     unless deletion_params[:confirm_deletion] == 'DELETE'
       flash.now[:alert] = 'You must type DELETE to confirm account deletion.'
       @account_deletion_info = @user.can_delete_account?
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
       return
     end
 
@@ -78,32 +83,26 @@ class Client::SettingsController < ApplicationController # Changed from Client::
       sign_in(@user)
       flash.now[:alert] = e.message
       @account_deletion_info = @user.can_delete_account?
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     rescue => e
       Rails.logger.error "Account deletion failed for user #{@user.id}: #{e.message}"
       # Re-sign in the user since we signed them out
       sign_in(@user)
       flash.now[:alert] = 'An error occurred while deleting your account. Please contact support.'
       @account_deletion_info = @user.can_delete_account?
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 
   # Action to unsubscribe from all notifications
   def unsubscribe_all
-    # Update all notification preferences to false
-    @user.notification_preferences.each do |key, value|
-      @user.notification_preferences[key] = false
-    end
-
-    if @user.save
-      redirect_to client_settings_path, notice: 'You have successfully unsubscribed from all emails.'
-    else
-      # This case should be rare unless there's a validation on the notification_preferences hash itself
-      flash.now[:alert] = 'Failed to update notification preferences.'
-      @account_deletion_info = @user.can_delete_account?
-      render :edit, status: :unprocessable_entity
-    end
+    @user.unsubscribe_from_emails!
+    redirect_to client_settings_path, notice: 'You have successfully unsubscribed from all emails.'
+  rescue => e
+    Rails.logger.error "Failed to unsubscribe user #{@user.id}: #{e.message}"
+    flash.now[:alert] = 'Failed to update notification preferences.'
+    @account_deletion_info = @user.can_delete_account?
+    render :edit, status: :unprocessable_content
   end
 
   private
@@ -126,9 +125,12 @@ class Client::SettingsController < ApplicationController # Changed from Client::
       notification_preferences: [
         :email_booking_confirmation,
         :sms_booking_reminder,
+        :email_booking_updates,
         :email_order_updates,
         :sms_order_updates,
+        :email_payment_confirmations,
         :email_promotions,
+        :email_blog_updates,
         :sms_promotions
       ]
     )
@@ -147,9 +149,12 @@ class Client::SettingsController < ApplicationController # Changed from Client::
       notification_preferences: [
         :email_booking_confirmation,
         :sms_booking_reminder,
+        :email_booking_updates,
         :email_order_updates,
         :sms_order_updates,
+        :email_payment_confirmations,
         :email_promotions,
+        :email_blog_updates,
         :sms_promotions
       ]
     )
@@ -158,5 +163,31 @@ class Client::SettingsController < ApplicationController # Changed from Client::
   # For account deletion
   def deletion_params
     params.require(:user).permit(:current_password, :confirm_deletion)
+  end
+
+  # Handle business-specific SMS preferences
+  def handle_business_sms_preferences
+    business_preferences = params[:business_sms_preferences] || {}
+
+    @user.tenant_customers.includes(:business).each do |customer|
+      next unless customer.business.present?
+
+      business_id = customer.business.id.to_s
+      should_receive_sms = business_preferences[business_id] == "1"
+
+      if should_receive_sms
+        # Customer wants to receive SMS from this business
+        if customer.opted_out_from_business?(customer.business)
+          customer.opt_in_to_business!(customer.business)
+          Rails.logger.info "[CLIENT_SETTINGS] Customer #{customer.id} opted back in to business #{business_id} via web UI"
+        end
+      else
+        # Customer wants to opt out from this business
+        unless customer.opted_out_from_business?(customer.business)
+          customer.opt_out_from_business!(customer.business)
+          Rails.logger.info "[CLIENT_SETTINGS] Customer #{customer.id} opted out from business #{business_id} via web UI"
+        end
+      end
+    end
   end
 end 

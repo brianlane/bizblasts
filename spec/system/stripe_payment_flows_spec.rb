@@ -4,12 +4,13 @@ require 'rails_helper'
 
 RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
   include StripeWebhookHelpers
-  
-  let!(:business) { create(:business, :with_default_tax_rate, host_type: 'subdomain', stripe_account_id: 'acct_test123') }
+
+  let!(:business) { create(:business, :with_default_tax_rate, :with_stripe_account, host_type: 'subdomain') }
   
   before do
     ActsAsTenant.current_tenant = business
     set_tenant(business)
+    Capybara.app_host = url_for_business(business)
     
     # Mock StripeService payment intent creation - will be called with the actual invoice
     allow(StripeService).to receive(:create_payment_intent) do |args|
@@ -33,7 +34,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
   context 'Client user books a service and redirects to Stripe' do
     let!(:service) { create(:service, business: business, name: 'Haircut', price: 50.00, duration: 30) }
     let!(:staff_member) { create(:staff_member, business: business, name: 'John Stylist') }
-    let!(:user) { create(:user, :client, email: 'client@example.com', password: 'password123') }
+    let!(:user) { create(:user, :client, password: 'password123') }
     let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, first_name: user.first_name, last_name: user.last_name) }
     
     before do
@@ -144,7 +145,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
     let!(:product) { create(:product, business: business, name: 'Shampoo', price: 25.00, active: true) }
     let!(:variant) { create(:product_variant, product: product, name: 'Large', stock_quantity: 10) }
     let!(:shipping_method) { create(:shipping_method, business: business, name: 'Standard', cost: 5.00) }
-    let!(:user) { create(:user, :client, email: 'shopper@example.com', password: 'password123') }
+    let!(:user) { create(:user, :client, password: 'password123') }
     let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, first_name: user.first_name, last_name: user.last_name) }
 
     before do
@@ -186,7 +187,17 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         # Checkout
         visit cart_path
         click_link 'Checkout'
-        select 'Standard', from: 'Select shipping method'
+        
+        # Dismiss cookie banner if it appears on checkout page
+        begin
+          if page.has_button?('Accept', wait: 2)
+            click_button 'Accept'
+          end
+        rescue Capybara::ElementNotFound
+          # Banner might not appear - continue with test
+        end
+        
+        select_shipping_method 'Standard'
         click_button 'Complete Order'
         
         # Should redirect to Stripe (mocked)
@@ -255,7 +266,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         fill_in 'Last Name', with: 'Buyer'
         fill_in 'Email', with: 'buyer@example.com'
         fill_in 'Phone', with: '555-9999'
-        select 'Express', from: 'Select shipping method'
+        select_shipping_method 'Express'
         
         # Dismiss cookie banner one more time if it appears before placing order
         begin

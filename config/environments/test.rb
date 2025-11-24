@@ -29,7 +29,7 @@ Rails.application.configure do
   config.logger = ActiveSupport::Logger.new(Rails.root.join("log", "test.log"))
 
   # Devise
-  config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
+  config.action_mailer.default_url_options = { host: "lvh.me", port: 3000 }
 
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
@@ -37,38 +37,44 @@ Rails.application.configure do
   # Disable request forgery protection in test environment.
   config.action_controller.allow_forgery_protection = false
 
+  # -----------------------------------------------------------------
+  # Active Record Encryption keys (fallback for GitHub Actions CI)
+  # If environment variables are not provided (e.g. in PRs from forks
+  # where secrets are not exposed) configure deterministic dummy keys so
+  # that encryption features can still initialize.
+  # -----------------------------------------------------------------
+  # Always set fallback values first, then override with ENV if present
+  # This ensures encryption is always configured in test environment
+  config.active_record.encryption.primary_key = ENV['ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY'].presence || ('0' * 32)
+  config.active_record.encryption.deterministic_key = ENV['ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY'].presence || ('1' * 32)
+  config.active_record.encryption.key_derivation_salt = ENV['ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT'].presence || ('2' * 32)
+  config.active_record.encryption.support_unencrypted_data = ENV.fetch('ACTIVE_RECORD_ENCRYPTION_SUPPORT_UNENCRYPTED', 'false') == 'true'
+
   # Store uploaded files on the local file system in a temporary directory.
   config.active_storage.service = :test
 
+  # Enable variant tracking so VariantRecord entries are created during tests
+  config.active_storage.track_variants = true
+
   config.action_mailer.delivery_method = :test
   config.action_mailer.perform_deliveries = true
-  config.action_mailer.default_url_options = { host: "example.com" }
+  config.action_mailer.default_url_options = { host: "lvh.me", port: 3000 }
 
   # Print deprecation notices to the stderr.
   config.active_support.deprecation = :stderr
 
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
-  
+
   # Performance optimizations for testing
   config.active_record.verbose_query_logs = false
   config.allow_concurrency = false
-  
-  # Conditionally disable asset handling in test environment
-  # Allow asset compilation when explicitly building assets
-  if ENV['RAILS_DISABLE_ASSET_COMPILATION'] == 'true'
-    config.assets.enabled = false
-    config.assets.compile = false
-    config.assets.debug = false
-    config.assets.digest = false
-    config.assets.prefix = '/null-assets'
-  else
-    # Allow minimal asset handling for builds
-    config.assets.enabled = true
-    config.assets.compile = false
-    config.assets.debug = false
-    config.assets.digest = false
-  end
+
+  # Enable on-demand asset compilation for tests
+  config.assets.enabled = true
+  config.assets.compile = true  # Enable on-the-fly compilation for tests
+  config.assets.debug = false
+  config.assets.digest = false
   
   # Disable fragment caching for tests
   config.action_controller.perform_caching = false
@@ -78,6 +84,7 @@ Rails.application.configure do
     "127.0.0.1",
     "lvh.me",                      # Allow root lvh.me for system tests
     "www.example.com",
+    "example.com",                # Allow apex example.com host for integration specs
     /.*\.lvh\.me/,
     /[a-z0-9\-]+\.example\.com/
   ]

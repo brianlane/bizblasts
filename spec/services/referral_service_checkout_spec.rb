@@ -203,7 +203,7 @@ RSpec.describe ReferralService, type: :service do
 
     context 'when minimum purchase amount is not met' do
       let!(:customer) { create(:tenant_customer, business: business) }
-      let!(:small_order) do
+      let(:small_order) do
         create(:order, 
           business: business, 
           tenant_customer: customer, 
@@ -216,6 +216,9 @@ RSpec.describe ReferralService, type: :service do
         referral_program.update!(min_purchase_amount: 25.00)
         # CRITICAL: Clear the association cache so business.referral_program picks up the change
         business.association(:referral_program).reset
+
+        # Stub out calculate_totals! to prevent recalculation of total_amount
+        allow_any_instance_of(Order).to receive(:calculate_totals!).and_return(nil)
       end
       
       after do

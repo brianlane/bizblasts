@@ -51,10 +51,10 @@ class StaggeredEmailService
       begin
         # In test environment, don't use delays to avoid issues with job counting
         if Rails.env.test? || delay == 0
-          email_job.deliver_later
+          email_job.deliver_later(queue: 'mailers')
           Rails.logger.info "[StaggeredEmail] Email #{index + 1}/#{valid_emails.count} scheduled immediately"
         else
-          email_job.deliver_later(wait: delay)
+          email_job.deliver_later(wait: delay, queue: 'mailers')
           Rails.logger.info "[StaggeredEmail] Email #{index + 1}/#{valid_emails.count} scheduled with #{delay} delay"
         end
       rescue => e

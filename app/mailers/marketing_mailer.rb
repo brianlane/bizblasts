@@ -1,22 +1,25 @@
 class MarketingMailer < ApplicationMailer
   def campaign(recipient, campaign)
-    # Placeholder for marketing campaign email
+    return unless recipient.can_receive_email?(:marketing)
     @recipient = recipient
     @campaign = campaign
-    mail(to: recipient.email, subject: campaign.subject)
+    @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
+    mail(to: recipient.email, subject: campaign.subject, reply_to: @support_email)
   end
 
   def newsletter(recipient, newsletter)
-    # Placeholder for newsletter email
+    return unless recipient.can_receive_email?(:marketing)
     @recipient = recipient
     @newsletter = newsletter
-    mail(to: recipient.email, subject: newsletter.subject)
+    @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
+    mail(to: recipient.email, subject: newsletter.subject, reply_to: @support_email)
   end
 
   def promotion(recipient, promotion)
-    # Placeholder for promotion email
+    return unless recipient.can_receive_email?(:marketing)
     @recipient = recipient
     @promotion = promotion
-    mail(to: recipient.email, subject: promotion.subject)
+    @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
+    mail(to: recipient.email, subject: promotion.subject, reply_to: @support_email)
   end
 end

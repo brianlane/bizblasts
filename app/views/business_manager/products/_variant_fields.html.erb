@@ -4,7 +4,7 @@
   <div class="flex items-center justify-between mb-4">
     <h4 class="text-md font-medium text-gray-900">Product Variant</h4>
     <button type="button" 
-            class="remove-variant inline-flex items-center px-3 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors"
+            class="remove-variant inline-flex items-center px-3 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors cursor-pointer"
             data-action="click->product-variants#removeVariant">
       Remove Variant
     </button>
@@ -25,15 +25,15 @@
     
     <div>
       <%= form.label :price_modifier, 'Price Modifier ($)', class: "block text-gray-700 text-sm font-bold mb-2" %>
-      <%= form.number_field :price_modifier, step: 0.01, placeholder: "0.00", 
-            class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+      <%= form.number_field :price_modifier, step: "0.01", inputmode: "decimal", placeholder: "0.00", 
+            class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500", data: { disable_wheel: true } %>
       <p class="mt-1 text-xs text-gray-500">Positive for upcharge, negative for discount</p>
     </div>
     
     <div>
       <% if current_business.requires_stock_tracking? %>
         <%= form.label :stock_quantity, 'Stock Quantity', class: "block text-gray-700 text-sm font-bold mb-2" %>
-        <%= form.number_field :stock_quantity, required: true, min: 0, placeholder: "0", 
+        <%= form.number_field :stock_quantity, required: true, min: 0, inputmode: "numeric", placeholder: "0",
               class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
       <% else %>
         <label class="block text-gray-700 text-sm font-bold mb-2">Stock Status</label>

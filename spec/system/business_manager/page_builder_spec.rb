@@ -26,6 +26,10 @@ RSpec.describe 'Page Builder System', type: :system do
       expect(page).to have_content('About Us')
     end
 
+    it 'does not render bulk selection checkboxes' do
+      expect(page).not_to have_css('input[type="checkbox"][data-pages-manager-target="pageCheckbox"]')
+    end
+
     it 'provides page creation interface' do
       expect(page).to have_link('Create Page').or have_link('New Page')
     end
@@ -74,10 +78,10 @@ RSpec.describe 'Page Builder System', type: :system do
     it 'publishes and unpublishes pages' do
       if page.has_button?('Publish')
         click_button 'Publish'
-        expect(page).to have_content('published')
+        expect(page).to have_content(/published/i)
       elsif page.has_button?('Unpublish')
         click_button 'Unpublish' 
-        expect(page).to have_content('unpublished')
+        expect(page).to have_content(/unpublished/i)
       end
     end
   end

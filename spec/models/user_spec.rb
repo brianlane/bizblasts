@@ -10,6 +10,7 @@ RSpec.describe User, type: :model do
     it { is_expected.to have_many(:businesses).through(:client_businesses) }
     it { is_expected.to have_many(:staff_assignments).dependent(:destroy) }
     it { is_expected.to have_many(:assigned_services).through(:staff_assignments).source(:service) }
+    it { is_expected.to have_many(:invalidated_sessions).dependent(:delete_all) }
   end
 
   describe 'validations' do
@@ -94,6 +95,18 @@ RSpec.describe User, type: :model do
         user = build(:user, role: :client, business: business) 
         expect(user).to be_valid 
       end
+    end
+  end
+
+  describe 'dependent destroys' do
+    it 'removes invalidated sessions when the user is destroyed' do
+      business = create(:business)
+      user = create(:user, :manager, business: business)
+      create(:invalidated_session, user: user)
+
+      expect {
+        user.destroy!
+      }.to change(InvalidatedSession, :count).by(-1)
     end
   end
 
@@ -311,6 +324,140 @@ RSpec.describe User, type: :model do
         time_after = Time.current
         
         expect(user.last_policy_notification_at).to be_between(time_before, time_after)
+      end
+    end
+  end
+
+  describe 'unsubscribe token generation' do
+    let(:business) { create(:business) }
+    
+    it 'generates a unique unsubscribe token' do
+      user = create(:user, role: :client)
+      expect(user.unsubscribe_token).to be_present
+      expect(user.unsubscribe_token.length).to eq(64) # 32 hex chars = 64 characters
+    end
+    
+    it 'ensures tokens are unique across User and TenantCustomer tables' do
+      # Create a user with a specific token
+      user = create(:user, role: :client)
+      original_token = user.unsubscribe_token
+      
+      # Create a tenant customer and force it to try to use the same token
+      tenant_customer = build(:tenant_customer, business: business)
+      tenant_customer.unsubscribe_token = original_token
+      
+      # The generate_unsubscribe_token method should detect the collision and generate a new token
+      tenant_customer.send(:generate_unsubscribe_token)
+      
+      expect(tenant_customer.unsubscribe_token).not_to eq(original_token)
+      expect(tenant_customer.unsubscribe_token).to be_present
+    end
+    
+    it 'regenerates a new unique token' do
+      user = create(:user, role: :client)
+      original_token = user.unsubscribe_token
+      
+      user.send(:regenerate_unsubscribe_token)
+      
+      expect(user.unsubscribe_token).not_to eq(original_token)
+      expect(user.unsubscribe_token).to be_present
+    end
+  end
+
+  describe 'default notification preferences' do
+    it 'sets default notification preferences for new users' do
+      user = create(:user, role: :client)
+      
+      expect(user.notification_preferences).to be_present
+      expect(user.notification_preferences['email_booking_confirmation']).to eq(true)
+      expect(user.notification_preferences['sms_booking_reminder']).to eq(true)
+      expect(user.notification_preferences['email_booking_updates']).to eq(true)
+      expect(user.notification_preferences['email_order_updates']).to eq(true)
+      expect(user.notification_preferences['sms_order_updates']).to eq(true)
+      expect(user.notification_preferences['email_payment_confirmations']).to eq(true)
+      expect(user.notification_preferences['email_promotions']).to eq(true)
+      expect(user.notification_preferences['email_blog_updates']).to eq(true)
+      expect(user.notification_preferences['sms_promotions']).to eq(true)
+      expect(user.notification_preferences['email_booking_notifications']).to eq(true)
+      expect(user.notification_preferences['email_marketing_notifications']).to eq(true)
+    end
+
+    it 'does not override existing notification preferences' do
+      existing_prefs = { 'email_booking_confirmation' => false, 'sms_booking_reminder' => true }
+      user = create(:user, role: :client, notification_preferences: existing_prefs)
+      
+      expect(user.notification_preferences).to eq(existing_prefs)
+      expect(user.notification_preferences['email_booking_confirmation']).to eq(false)
+    end
+
+    it 'sets defaults for all user roles' do
+      [:client, :manager, :staff].each do |role|
+        business = role.in?([:manager, :staff]) ? create(:business) : nil
+        user = create(:user, role: role, business: business)
+        
+        expect(user.notification_preferences).to be_present
+        expect(user.notification_preferences['email_booking_confirmation']).to eq(true)
+      end
+    end
+    
+    context 'with notification consent during registration' do
+      it 'enables all notifications when consent is given (default)' do
+        user = build(:user, role: :client)
+        user.bizblasts_notification_consent = '1'
+        user.save!
+        
+        expect(user.notification_preferences).to be_present
+        expect(user.notification_preferences['email_booking_confirmation']).to eq(true)
+        expect(user.notification_preferences['email_promotions']).to eq(true)
+        expect(user.notification_preferences['email_marketing_notifications']).to eq(true)
+        expect(user.notification_preferences['sms_booking_reminder']).to eq(true)
+      end
+      
+      it 'disables all notifications when consent is not given' do
+        user = build(:user, role: :client)
+        user.bizblasts_notification_consent = '0'
+        user.save!
+        
+        expect(user.notification_preferences).to be_present
+        expect(user.notification_preferences['email_booking_confirmation']).to eq(false)
+        expect(user.notification_preferences['email_promotions']).to eq(false)
+        expect(user.notification_preferences['email_marketing_notifications']).to eq(false)
+        expect(user.notification_preferences['sms_booking_reminder']).to eq(false)
+        expect(user.notification_preferences['sms_promotions']).to eq(false)
+      end
+      
+      it 'enables notifications when consent is explicitly true' do
+        user = build(:user, role: :client)
+        user.bizblasts_notification_consent = true
+        user.save!
+        
+        expect(user.notification_preferences).to be_present
+        expect(user.notification_preferences['email_booking_confirmation']).to eq(true)
+        expect(user.notification_preferences['email_promotions']).to eq(true)
+        expect(user.notification_preferences['sms_booking_reminder']).to eq(true)
+      end
+      
+      it 'disables notifications when consent is explicitly false' do
+        user = build(:user, role: :client)
+        user.bizblasts_notification_consent = false
+        user.save!
+        
+        expect(user.notification_preferences).to be_present
+        expect(user.notification_preferences['email_booking_confirmation']).to eq(false)
+        expect(user.notification_preferences['email_promotions']).to eq(false)
+        expect(user.notification_preferences['sms_booking_reminder']).to eq(false)
+      end
+      
+      it 'works for business users too' do
+        business = create(:business)
+        user = build(:user, role: :manager, business: business)
+        user.bizblasts_notification_consent = '0'
+        user.save!
+        
+        expect(user.notification_preferences).to be_present
+        expect(user.notification_preferences['email_booking_confirmation']).to eq(false)
+        expect(user.notification_preferences['email_system_notifications']).to eq(false)
+        expect(user.notification_preferences['sms_booking_reminder']).to eq(false)
       end
     end
   end

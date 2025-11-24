@@ -2,7 +2,7 @@
   <h2 class="text-2xl font-bold text-gray-900 mb-6">Add a Tip</h2>
   
   <div class="mb-4 p-4 bg-blue-50 rounded-lg">
-    <h3 class="font-semibold text-blue-900">Experience: <%= @booking.service.name %></h3>
+    <h3 class="font-semibold text-blue-900">Experience: <%= service_with_variant(@booking) %></h3>
     <p class="text-blue-700 text-sm">
       Completed on <%= @booking.local_start_time.strftime("%B %d, %Y at %I:%M %p") %>
     </p>

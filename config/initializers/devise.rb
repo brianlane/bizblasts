@@ -315,13 +315,13 @@ Devise.setup do |config|
       end
       
       if user
-        Rails.logger.debug "[Devise Setup Warden Hook] Serialize From Session - User found: #{user.email}"
+        Rails.logger.debug "[Devise Setup Warden Hook] Serialize From Session - User ID: #{user.id}"
         # Explicitly set the user in Warden for this request
         # env = manager.env # Get the Rack env from the manager instance
         # env['warden']&.set_user(user, scope: :user, store: false) # store: false prevents reserialization loop
         # Rails.logger.debug "[Devise Setup Warden Hook] Explicitly set user in warden session"
       else
-        Rails.logger.warn "[Devise Setup Warden Hook] Serialize From Session - User NOT found for ID: #{user_id}"
+        Rails.logger.warn "[Devise Setup Warden Hook] Serialize From Session - User not found for ID: [REDACTED]"
       end
       user # Return user or nil
     end
@@ -341,7 +341,7 @@ Devise.setup do |config|
   # apps is `200 OK` and `302 Found` respectively, but new apps are generated with
   # these new defaults that match Hotwire/Turbo behavior.
   # Note: These might become the new default in future versions of Devise.
-  config.responder.error_status = :unprocessable_entity
+  config.responder.error_status = :unprocessable_content
   config.responder.redirect_status = :see_other
 
   # ==> Configuration for :registerable
@@ -349,4 +349,29 @@ Devise.setup do |config|
   # When set to false, does not sign a user in automatically after their password is
   # changed. Defaults to true, so a user is signed in automatically after changing a password.
   # config.sign_in_after_change_password = true
+
+  # ==> Configuration for :magic_link_authenticatable
+
+  # Need to use a custom Devise mailer in order to send magic links.
+  # If you're already using a custom mailer just have it inherit from
+  # Devise::Passwordless::Mailer instead of Devise::Mailer
+  config.mailer = "CustomDeviseMailer"
+
+  # Which algorithm to use for tokenizing magic links. See README for descriptions
+  config.passwordless_tokenizer = "SignedGlobalIDTokenizer"
+
+  # Time period after a magic login link is sent out that it will be valid for.
+  # config.passwordless_login_within = 20.minutes
+
+  # The secret key used to generate passwordless login tokens. The default value
+  # is nil, which means defer to Devise's `secret_key` config value. Changing this
+  # key will render invalid all existing passwordless login tokens. You can
+  # generate your own secret value with e.g. `rake secret`
+  # config.passwordless_secret_key = nil
+
+  # When using the :trackable module and MessageEncryptorTokenizer, set to true to
+  # consider magic link tokens generated before the user's current sign in time to
+  # be expired. In other words, each time you sign in, all existing magic links
+  # will be considered invalid.
+  # config.passwordless_expire_old_tokens_on_sign_in = false
 end

@@ -17,6 +17,9 @@ class BusinessManager::BaseController < ApplicationController
 
   # Check business setup and set flash for managers (not staff)
   before_action :check_business_setup, if: -> { current_user&.manager? }
+  
+  # Handle routing errors gracefully
+  rescue_from ActionController::RoutingError, with: :handle_routing_error
 
   # Endpoint to record dismissal of a specific business setup reminder task for the current user
   def dismiss_setup_reminder
@@ -82,24 +85,26 @@ class BusinessManager::BaseController < ApplicationController
   end
 
   # Define the tenant setting method specifically for this controller
+  # This method now works with both subdomains and custom domains
   def set_tenant_for_business_manager
-    hostname = request.subdomain.presence
-    if hostname.present? && hostname != "www"
-      unless businesses_table_exists?
-        Rails.logger.error("Businesses table missing, cannot set tenant for BusinessManager")
-        flash[:alert] = "Application error: Business context unavailable."
-        redirect_to root_path and return # Or handle appropriately
-      end
-
-      unless find_and_set_business_tenant(hostname)
-        Rails.logger.warn "BusinessManager: Tenant not found for hostname: #{hostname}"
-        tenant_not_found # Reuse existing handler
-      end
-    else
-      # Should not happen if accessed via subdomain route constraint, but handle defensively
-      Rails.logger.error "BusinessManager accessed without a valid subdomain."
-      flash[:alert] = "Invalid access method."
-      redirect_to root_path
+    # The ApplicationController has already set the tenant via set_tenant method
+    # which handles both custom domains and subdomains
+    if ActsAsTenant.current_tenant.present?
+      Rails.logger.debug "[BusinessManager] Using tenant set by ApplicationController: #{ActsAsTenant.current_tenant.hostname}"
+      return
     end
+
+    # If no tenant was set by ApplicationController, this is an error condition
+    Rails.logger.error "[BusinessManager] No tenant found - neither subdomain nor custom domain matched"
+    flash[:alert] = "Business not found."
+    redirect_to root_path
+  end
+  
+  private
+  
+  def handle_routing_error
+    Rails.logger.warn "BusinessManager: Routing error for path: #{request.path}"
+    flash[:alert] = "The page you're looking for doesn't exist."
+    redirect_to business_manager_root_path
   end
 end 

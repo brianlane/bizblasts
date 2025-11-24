@@ -1,0 +1,35 @@
+<% current_business = local_assigns[:business] %>
+<% route_helpers = Rails.application.routes.url_helpers %>
+
+<% enhanced_layout = current_business&.website_layout_enhanced? %>
+<% outer_classes = enhanced_layout ? "newsletter-section py-16 bg-transparent" : "newsletter-section bg-white py-16" %>
+<% card_classes = enhanced_layout ? "bg-[rgba(8,11,28,0.85)] text-white rounded-3xl px-6 py-10 sm:px-10 lg:px-14 border border-white/10 shadow-[0_35px_80px_-40px_rgba(8,11,28,0.9)]" : "bg-black text-white rounded-3xl px-6 py-10 sm:px-10 lg:px-14" %>
+<% email_field_classes = enhanced_layout ? "flex-1 px-4 py-3 rounded-full bg-white/10 text-white placeholder-white/60 border border-white/20 focus:outline-none focus:ring-2 focus:ring-red-400" : "flex-1 px-4 py-3 rounded-full text-black focus:outline-none focus:ring-2 focus:ring-red-400" %>
+<% privacy_text_classes = enhanced_layout ? "mt-3 text-xs text-gray-400/80" : "mt-3 text-xs text-gray-400" %>
+
+<div class="<%= outer_classes %>">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="<%= card_classes %>">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+        <div class="max-w-xl">
+          <p class="text-sm uppercase tracking-[0.3em] accent-text">Stay Updated</p>
+          <h3 class="text-3xl font-bold mt-3"><%= section.content_data['title'].presence || 'Sign up for updates' %></h3>
+          <p class="mt-4 text-gray-300">
+            <%= section.content_data['subtitle'].presence || "Be the first to hear about new services, limited openings, and members-only perks from #{current_business&.name}." %>
+          </p>
+        </div>
+
+        <div class="w-full max-w-md">
+          <%= form_with url: newsletter_subscriptions_path, method: :post, scope: :newsletter_subscription, local: true, html: { class: "flex flex-col sm:flex-row gap-3" } do |f| %>
+            <%= f.email_field :email, placeholder: section.content_data['placeholder'].presence || 'you@example.com', class: email_field_classes, required: true %>
+            <% submit_classes = enhanced_layout ? "px-6 py-3 accent-bg font-semibold rounded-full transition-colors duration-200 cursor-pointer" : "px-6 py-3 bg-red-500 hover:bg-red-400 text-white font-semibold rounded-full transition-colors duration-200 cursor-pointer" %>
+            <%= f.submit section.content_data['button_text'].presence || 'Notify Me', class: submit_classes %>
+          <% end %>
+          <p class="<%= privacy_text_classes %>">We respect your privacy. Unsubscribe at any time.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+

@@ -3,8 +3,6 @@ ActiveAdmin.register_page "Dashboard" do
   menu priority: 1, label: proc { I18n.t("active_admin.dashboard") }
 
   controller do
-    skip_before_action :verify_authenticity_token, only: [:index]
-    
     def index
       # Debug: Output the current tenant to server logs
       Rails.logger.info "DASHBOARD CONTROLLER - Current Tenant: #{ActsAsTenant.current_tenant&.name || 'nil'}"
@@ -140,6 +138,45 @@ ActiveAdmin.register_page "Dashboard" do
     
     columns do
       column do
+        panel "Upcoming Events" do
+          # Show upcoming event services
+          upcoming_events = begin
+            if ActsAsTenant.current_tenant
+              Service.upcoming_events.active.limit(10)
+            else
+              ActsAsTenant.unscoped do
+                Service.upcoming_events.active.limit(10)
+              end
+            end
+          rescue => e
+            Rails.logger.error "Error fetching upcoming events: #{e.message}"
+            Service.none
+          end
+
+          if upcoming_events&.any?
+            table_for upcoming_events do
+              column("Service Name") do |service|
+                link_to(service.name, admin_service_path(service.id))
+              end
+              column("Business") do |service|
+                link_to(service.business.name, admin_business_path(service.business.id))
+              end
+              column("Event Date") do |service|
+                tz = service.business&.time_zone.presence || 'UTC'
+                event_start = service.event_starts_at.in_time_zone(tz)
+                "#{event_start.strftime('%b %d, %Y at %l:%M %p').strip} (#{tz})"
+              end
+              column("Capacity") do |service|
+                "#{service.spots || 0} spots"
+              end
+            end
+          else
+            para "No upcoming events scheduled"
+          end
+        end
+      end
+
+      column do
         panel "Performance Metrics" do
           para "Business analytics would be displayed here, integrating with analytics APIs."
           para "This would include metrics like bookings, revenue, and customer engagement rates."
@@ -153,7 +190,7 @@ ActiveAdmin.register_page "Dashboard" do
           link_to("Tenant Debug Information", admin_debug_path)
         end
         li do
-          link_to("Background Jobs Monitor", admin_solidqueue_jobs_path)
+          link_to("Background Jobs Monitor", admin_solid_queue_jobs_path)
         end
       end
     end
@@ -182,7 +219,7 @@ ActiveAdmin.register_page "Dashboard" do
       
       if SolidQueue::FailedExecution.count > 0
         div style: "margin-top: 15px;" do
-          link_to "View Failed Jobs →", admin_solidqueue_jobs_path, class: "button", style: "background-color: #dc3545; color: white;"
+          link_to "View Failed Jobs →", admin_solid_queue_jobs_path, class: "button", style: "background-color: #dc3545; color: white;"
         end
       end
     end

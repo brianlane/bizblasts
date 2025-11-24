@@ -5,7 +5,16 @@
     <div class="product-images flex-1">
       <% if @product.images.attached? %>
         <% @product.images.each do |img| %>
-          <%= image_tag rails_public_blob_url(img.variant(resize_to_limit: [400, 400])), style: 'margin: 0 10px 10px 0;' %>
+          <%= image_tag(
+                rails_public_blob_url(img.variant(:medium)),
+                srcset: [
+                  "#{rails_public_blob_url(img.variant(:thumb))} 400w",
+                  "#{rails_public_blob_url(img.variant(:medium))} 1200w",
+                  "#{rails_public_blob_url(img.variant(:large))} 2000w"
+                ].join(', '),
+                sizes: '(max-width: 768px) 100vw, 600px',
+                style: 'margin: 0 10px 10px 0;'
+              ) %>
         <% end %>
       <% end %>
     </div>
@@ -112,7 +121,7 @@
           </div>
 
           <!-- Subscription Form -->
-          <%= form_tag subscriptions_path, method: :post, class: "subscription-form" do %>
+          <%= form_with url: new_subscription_path, method: :get, local: true, html: { class: "subscription-form" } do %>
             <%= hidden_field_tag :product_id, @product.id %>
             <%= hidden_field_tag :subscription_type, 'product_subscription' %>
             
@@ -157,8 +166,8 @@
                      class="w-20 border-purple-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500">
             </div>
             
-            <%= submit_tag 'Start Subscription', 
-                  class: 'w-full sm:w-auto px-6 py-3 bg-purple-600 text-white font-medium rounded-md hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2' %>
+            <%= submit_tag 'Start Subscription',
+                  class: 'w-full sm:w-auto px-6 py-3 bg-purple-600 text-white font-medium rounded-md hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 cursor-pointer' %>
           <% end %>
         </div>
       <% end %>
@@ -201,7 +210,7 @@
               <input type="number" name="quantity" id="quantity" value="1" min="1" 
                      class="mt-1 block w-20 border-gray-300 rounded-md shadow-sm">
             </div>
-            <%= submit_tag 'Add to Cart', class: 'mt-4 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors' %>
+            <%= submit_tag 'Add to Cart', class: 'mt-4 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors cursor-pointer' %>
           <% else %>
             <!-- One-time purchase option when subscription is available -->
             <div class="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
@@ -243,7 +252,7 @@
                          class="w-16 border-gray-300 rounded-md shadow-sm">
                 </div>
                 <div class="pt-6">
-                  <%= submit_tag 'Add to Cart', class: 'px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors' %>
+                  <%= submit_tag 'Add to Cart', class: 'px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors cursor-pointer' %>
                 </div>
               </div>
             </div>
@@ -258,7 +267,7 @@
             <input type="number" name="quantity" id="quantity" value="1" min="1" 
                    class="mt-1 block w-20 border-gray-300 rounded-md shadow-sm">
           </div>
-          <%= submit_tag 'Add to Cart', class: 'mt-4 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors' %>
+          <%= submit_tag 'Add to Cart', class: 'mt-4 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors cursor-pointer' %>
         <% end %>
       <% end %>
       

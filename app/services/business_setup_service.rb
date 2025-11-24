@@ -78,11 +78,11 @@ class BusinessSetupService
       }
     end
 
-    # 5. Configure Tax Rates (ESSENTIAL)
-    unless has_tax_rates?
+    # 5. Configure Tax Rates (ESSENTIAL - Only if they added a product)
+    if has_products? && !has_tax_rates?
       items << {
         key: :configure_tax_rates,
-        text: "Configure tax rates for your location",
+        text: "Configure tax rates for your products",
         action: "Set Tax Rates",
         url: business_manager_tax_rates_path,
         priority: :low,

@@ -5,11 +5,24 @@ class ClientBookingsController < ApplicationController
   before_action :ensure_booking_modifiable, only: [:edit, :update, :cancel]
   
   def index
-    # Get bookings for the current user across all businesses using tenant_customer email
-    @bookings = Booking.joins(:tenant_customer)
-                      .where(tenant_customers: { email: current_user.email })
-                      .includes(:service, :staff_member, :business)
-                      .order(start_time: :desc)
+    if on_business_domain?
+      # Tenant-specific case: Show bookings only for this business
+      current_business = ActsAsTenant.current_tenant
+      if current_business
+        @bookings = current_business.bookings.joins(:tenant_customer)
+                                           .where(tenant_customers: { email: current_user.email })
+                                           .includes(:service, :staff_member)
+                                           .order(start_time: :desc)
+      else
+        @bookings = []
+      end
+    else
+      # Main domain case: Show all bookings for this user across all businesses
+      @bookings = Booking.joins(:tenant_customer)
+                        .where(tenant_customers: { email: current_user.email })
+                        .includes(:service, :staff_member, :business)
+                        .order(start_time: :desc)
+    end
   end
   
   def show
@@ -55,7 +68,7 @@ class ClientBookingsController < ApplicationController
       rescue ArgumentError => e
         Rails.logger.warn "[CLIENT BOOKING] Invalid start_time provided: #{params[:booking][:start_time]} — #{e.message}"
         flash.now[:alert] = "Invalid start time format. Please choose a valid time."
-        render :edit, status: :unprocessable_entity and return
+        render :edit, status: :unprocessable_content and return
       end
 
       if new_start_time && @booking.service&.duration.present?
@@ -72,7 +85,7 @@ class ClientBookingsController < ApplicationController
     if @booking.update(permitted_attrs)
       # After booking and add-ons are updated, regenerate/update the invoice
       generate_or_update_invoice_for_booking(@booking)
-      BookingMailer.status_update(@booking).deliver_later
+      NotificationService.booking_status_update(@booking)
       redirect_to client_booking_path(@booking), notice: 'Booking was successfully updated.'
     else
       # If update fails, re-render edit form. Need @available_products and @service again.
@@ -83,7 +96,7 @@ class ClientBookingsController < ApplicationController
                                         .select(&:visible_to_customers?) # Filter out hidden products
                                         .sort_by(&:name)
       flash.now[:alert] = @booking.errors.full_messages.to_sentence
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
   
@@ -121,7 +134,7 @@ class ClientBookingsController < ApplicationController
   def set_booking
     # Security: Validate parameter before database query
     unless params[:id].present? && params[:id].to_i > 0
-      Rails.logger.warn "[SECURITY] Invalid booking ID parameter in client bookings: #{params[:id]}, User: #{current_user&.email}, IP: #{request.remote_ip}"
+      SecureLogger.warn "[SECURITY] Invalid booking ID parameter in client bookings: #{params[:id]}, User: #{current_user&.email}, IP: #{request.remote_ip}"
       redirect_to client_bookings_path, alert: "Invalid booking ID." and return
     end
 
@@ -133,7 +146,7 @@ class ClientBookingsController < ApplicationController
     
     unless @booking
       # Security: Log unauthorized access attempts
-      Rails.logger.warn "[SECURITY] Client attempted to access unauthorized booking: ID=#{params[:id]}, User=#{current_user.email}, IP=#{request.remote_ip}"
+      SecureLogger.warn "[SECURITY] Client attempted to access unauthorized booking: ID=#{params[:id]}, User=#{current_user.email}, IP=#{request.remote_ip}"
       redirect_to client_bookings_path, alert: "Booking not found." and return
     end
   end
@@ -162,7 +175,7 @@ class ClientBookingsController < ApplicationController
       :notes,
       :start_time,
       :end_time,
-      booking_product_add_ons_attributes: {}
+      booking_product_add_ons_attributes: [:id, :product_variant_id, :quantity, :_destroy]
     )
   end
 

@@ -98,6 +98,7 @@ RSpec.describe "BusinessManager::Settings::Subscriptions", type: :request do
         )
       end
       let!(:premium_manager_with_coverage) { create(:user, :manager, business: premium_business_with_coverage) }
+      let!(:coverage_subscription) { create(:subscription, business: premium_business_with_coverage, plan_name: 'premium', status: 'active') }
       let(:coverage_host_params) { { host: "#{premium_business_with_coverage.hostname}.lvh.me" } }
 
       before do

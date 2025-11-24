@@ -27,9 +27,22 @@ RSpec.describe 'Services', type: :request do
            price: 75.0,
            duration: 45)
   end
+  let!(:service_event) do
+    create(:service,
+           business: business,
+           active: true,
+           service_type: :event,
+           name: 'Event Service',
+           description: 'Event desc',
+           min_bookings: 3,
+           max_bookings: 12,
+           price: 120.0,
+           duration: 60,
+           event_starts_at: Time.zone.parse('2025-07-04 14:00'))
+  end
 
   before do
-    host! "#{business.subdomain}.example.com"
+    host! host_for(business)
     ActsAsTenant.current_tenant = business
   end
 
@@ -43,8 +56,11 @@ RSpec.describe 'Services', type: :request do
       get tenant_services_page_path
       expect(response.body).to include(service_std.name)
       expect(response.body).to include(service_exp.name)
+      expect(response.body).to include(service_event.name)
       expect(response.body).to include('Type: Standard')
       expect(response.body).to include('Type: Experience')
+      # Event services use a special card layout with "Limited Date Experience" text
+      expect(response.body).to include('Limited Date Experience')
     end
   end
 
@@ -65,6 +81,16 @@ RSpec.describe 'Services', type: :request do
         expect(response.body).to include("Minimum Bookings: #{service_exp.min_bookings}")
         expect(response.body).to include("Maximum Bookings: #{service_exp.max_bookings}")
         expect(response.body).to include("Spots Available: #{service_exp.spots}")
+      end
+    end
+
+    context 'event service' do
+      it 'returns success and shows event service details' do
+        get tenant_service_path(service_event)
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include(service_event.name)
+        expect(response.body).to include('Event Date:')
+        expect(response.body).to include(service_event.event_starts_at.strftime('%B %d, %Y'))
       end
     end
 

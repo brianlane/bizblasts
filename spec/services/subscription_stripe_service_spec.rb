@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe SubscriptionStripeService, type: :service do
-  let(:business) { create(:business) }
+  let(:business) { create(:business, :standard_tier, stripe_account_id: 'acct_test123') }
   let(:tenant_customer) { create(:tenant_customer, business: business, stripe_customer_id: 'cus_test123') }
   let(:service_model) { create(:service, business: business, price: 75.00, subscription_enabled: true) }
   let(:customer_subscription) do
@@ -58,8 +58,21 @@ RSpec.describe SubscriptionStripeService, type: :service do
       allow(Stripe::Price).to receive(:create).and_return(@mock_stripe_price)
     end
 
-    it 'creates a Stripe subscription successfully' do
+    it 'creates a Stripe subscription successfully with application fee' do
       customer_subscription.update!(stripe_subscription_id: nil)
+      
+      expect(Stripe::Subscription).to receive(:create).with(
+        hash_including(
+          customer: 'cus_test123',
+          application_fee_percent: 5.0, # 5% for standard tier business
+          metadata: hash_including(
+            customer_subscription_id: customer_subscription.id,
+            business_id: business.id,
+            tenant_customer_id: tenant_customer.id
+          )
+        ),
+        { stripe_account: business.stripe_account_id }
+      ).and_return(@mock_stripe_subscription)
       
       result = service_instance.create_stripe_subscription!
       
@@ -83,11 +96,30 @@ RSpec.describe SubscriptionStripeService, type: :service do
       expect(result).to be false
     end
 
+    it 'calculates platform fee based on business tier' do
+      premium_business = create(:business, tier: 'premium', stripe_account_id: 'acct_premium123')
+      premium_tenant_customer = create(:tenant_customer, business: premium_business)
+      premium_subscription = create(:customer_subscription, business: premium_business, tenant_customer: premium_tenant_customer, subscription_price: 75.0)
+      premium_service = SubscriptionStripeService.new(premium_subscription)
+      
+      # Premium tier: 3% of $75 = $2.25 = 225 cents
+      expect(premium_service.send(:calculate_platform_fee_cents, 7500)).to eq(225)
+      
+      # Standard tier: 5% of $75 = $3.75 = 375 cents  
+      expect(service_instance.send(:calculate_platform_fee_cents, 7500)).to eq(375)
+    end
+
     it 'creates Stripe customer if needed' do
       customer_subscription.update!(stripe_subscription_id: nil)
       tenant_customer.update!(stripe_customer_id: nil)
       
-      expect(Stripe::Customer).to receive(:create).and_return(@mock_stripe_customer)
+      expect(Stripe::Customer).to receive(:create).with(
+        hash_including(
+          email: tenant_customer.email,
+          name: tenant_customer.full_name
+        ),
+        { stripe_account: business.stripe_account_id }
+      ).and_return(@mock_stripe_customer)
       
       service_instance.create_stripe_subscription!
       
@@ -102,7 +134,8 @@ RSpec.describe SubscriptionStripeService, type: :service do
           unit_amount: 7500,
           currency: 'usd',
           recurring: { interval: 'month' }
-        )
+        ),
+        { stripe_account: business.stripe_account_id }
       ).and_return(@mock_stripe_price)
       
       service_instance.create_stripe_subscription!
@@ -175,7 +208,9 @@ RSpec.describe SubscriptionStripeService, type: :service do
       result = service_instance.cancel_stripe_subscription!
       
       expect(result).to be true
-      expect(Stripe::Subscription).to have_received(:cancel).with('sub_test123')
+      expect(Stripe::Subscription).to have_received(:cancel).with('sub_test123', {}, {
+        stripe_account: business.stripe_account_id
+      })
     end
 
     it 'returns false if no Stripe subscription ID' do
@@ -213,7 +248,9 @@ RSpec.describe SubscriptionStripeService, type: :service do
       result = service_instance.sync_stripe_subscription!
       
       expect(result).to be true
-      expect(Stripe::Subscription).to have_received(:retrieve).with('sub_test123')
+      expect(Stripe::Subscription).to have_received(:retrieve).with('sub_test123', {
+        stripe_account: business.stripe_account_id
+      })
     end
 
     it 'returns false if no Stripe subscription ID' do
@@ -317,7 +354,9 @@ RSpec.describe SubscriptionStripeService, type: :service do
         result = service_instance.send(:ensure_stripe_customer)
         
         expect(result).to eq(@mock_stripe_customer)
-        expect(Stripe::Customer).to have_received(:retrieve).with('cus_test123')
+        expect(Stripe::Customer).to have_received(:retrieve).with('cus_test123', {
+          stripe_account: business.stripe_account_id
+        })
       end
 
       it 'creates new Stripe customer if needed' do
@@ -521,7 +560,8 @@ RSpec.describe SubscriptionStripeService, type: :service do
       expect(Stripe::Price).to receive(:create).with(
         hash_including(
           recurring: { interval: 'month' }
-        )
+        ),
+        { stripe_account: business.stripe_account_id }
       ).and_return(@mock_stripe_price)
       
       service_instance.send(:create_stripe_price)
@@ -533,7 +573,8 @@ RSpec.describe SubscriptionStripeService, type: :service do
       expect(Stripe::Price).to receive(:create).with(
         hash_including(
           recurring: { interval: 'year' }
-        )
+        ),
+        { stripe_account: business.stripe_account_id }
       ).and_return(@mock_stripe_price)
       
       service_instance.send(:create_stripe_price)

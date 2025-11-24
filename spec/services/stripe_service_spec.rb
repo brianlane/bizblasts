@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe StripeService, type: :service do
-  let(:business) { create(:business, stripe_account_id: 'acct_test123') }
+  let(:business) { create(:business, tier: 'free', stripe_account_id: 'acct_test123') }
   let(:tenant_customer) { create(:tenant_customer, business: business, stripe_customer_id: 'cus_test123') }
   let(:invoice) { create(:invoice, business: business, tenant_customer: tenant_customer, total_amount: 10.00) }
 
@@ -73,8 +73,10 @@ RSpec.describe StripeService, type: :service do
           mode: 'payment',
           success_url: success_url,
           cancel_url: cancel_url,
-          customer: 'cus_test123'
-        )
+          customer: 'cus_test123',
+          payment_intent_data: hash_including(application_fee_amount: 50)
+        ),
+        { stripe_account: business.stripe_account_id }
       )
 
       expect(result[:session]).to eq(mock_session)
@@ -141,8 +143,10 @@ RSpec.describe StripeService, type: :service do
           metadata: hash_including(
             booking_type: 'service_booking',
             booking_data: booking_data.to_json
-          )
-        )
+          ),
+          payment_intent_data: hash_including(application_fee_amount: 50)
+        ),
+        { stripe_account: business.stripe_account_id }
       )
 
       expect(result[:session]).to eq(mock_session)
@@ -473,7 +477,8 @@ RSpec.describe StripeService, type: :service do
           metadata: hash_including(
             tip_id: tip.id.to_s,
             business_id: business.id.to_s
-          )
+          ),
+          payment_intent_data: hash_including(application_fee_amount: 125)
         ),
         { stripe_account: business.stripe_account_id }
       )
@@ -510,28 +515,45 @@ RSpec.describe StripeService, type: :service do
 
   describe "tip fee calculations" do
     describe ".calculate_tip_stripe_fee" do
-      it "calculates 2.9% Stripe fee" do
+      it "calculates 2.9% + $0.30 Stripe fee" do
         fee = StripeService.calculate_tip_stripe_fee(100.0)
-        expect(fee).to eq(2.90)
+        expect(fee).to eq(3.20) # (100.0 * 0.029) + 0.30 = 2.90 + 0.30 = 3.20
       end
 
       it "rounds to 2 decimal places" do
         fee = StripeService.calculate_tip_stripe_fee(33.33)
-        expect(fee).to eq(0.97)
+        expect(fee).to eq(1.27) # (33.33 * 0.029) + 0.30 = 0.97 + 0.30 = 1.27
       end
     end
 
     describe ".calculate_tip_platform_fee" do
-      it "returns zero platform fee for tips" do
-        fee = StripeService.calculate_tip_platform_fee(100.0)
-        expect(fee).to eq(0.0)
+      let(:business) { create(:business, tier: 'premium') }
+      
+      it "calculates platform fee for tips based on business tier" do
+        fee = StripeService.calculate_tip_platform_fee(100.0, business)
+        expect(fee).to eq(3.0) # 3% of $100.00 = $3.00 for premium tier
+      end
+      
+      it "handles different business tiers" do
+        free_business = create(:business, tier: 'free')
+        fee = StripeService.calculate_tip_platform_fee(100.0, free_business)
+        expect(fee).to eq(5.0) # 5% of $100.00 = $5.00 for free tier
       end
     end
 
     describe ".calculate_tip_business_amount" do
-      it "calculates business amount after Stripe fee" do
-        amount = StripeService.calculate_tip_business_amount(100.0)
-        expect(amount).to eq(97.10) # 100 - 2.90 stripe fee
+      let(:business) { create(:business, tier: 'free') }
+      
+      it "calculates business amount after fees (direct charges)" do
+        # In direct charges, business pays Stripe fees directly, so we deduct both Stripe and platform fees
+        amount = StripeService.calculate_tip_business_amount(100.0, business)
+        expect(amount).to eq(91.8) # 100 - 3.20 (Stripe fee with flat fee) - 5.00 (platform fee)
+      end
+      
+      it "calculates business amount for premium tier after fees" do
+        premium_business = create(:business, tier: 'premium')
+        amount = StripeService.calculate_tip_business_amount(100.0, premium_business)
+        expect(amount).to eq(93.8) # 100 - 3.20 (Stripe fee with flat fee) - 3.00 (platform fee)
       end
     end
   end

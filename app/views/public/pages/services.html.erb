@@ -9,13 +9,35 @@
   <% if @business.services.active.any? %>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <% @business.services.active.positioned.each do |service| %>
+        <% variants = service.service_variants.active.by_position %>
+        <% has_variants = variants.any? %>
+        <% default_variant = variants.first if has_variants %>
+        
+        <% if service.event? %>
+          <%= render 'public/pages/event_card',
+              service: service,
+              variants: variants,
+              has_variants: has_variants,
+              default_variant: default_variant %>
+          <% next %>
+        <% end %>
+        
         <div class="border rounded-lg p-4 shadow-sm flex flex-col">
           <%# Display Primary Image if available %>
           <% if service.primary_image&.attached? %>
             <div class="mb-4 relative">
-              <%= link_to tenant_service_path(service) do %>
-                <%= image_tag rails_public_blob_url(service.primary_image.representation(resize_to_limit: [400, 300])), 
-                            class: "w-full h-48 object-cover rounded-md shadow-sm" %>
+              <% link_params = has_variants ? { service_variant_id: default_variant.id } : {} %>
+              <%= link_to tenant_service_path(service, link_params) do %>
+                <% img = service.primary_image %>
+                <%= image_tag(
+                      rails_public_blob_url(img.variant(:medium)),
+                      srcset: [
+                        "#{rails_public_blob_url(img.variant(:thumb))} 400w",
+                        "#{rails_public_blob_url(img.variant(:medium))} 1200w"
+                      ].join(', '),
+                      sizes: '(max-width: 768px) 100vw, 400px',
+                      class: "w-full h-48 object-cover rounded-md shadow-sm"
+                    ) %>
               <% end %>
               <% if service.on_promotion? %>
                 <div class="absolute top-2 right-2">
@@ -35,60 +57,110 @@
 
           <div class="flex items-center gap-2 mb-2">
             <h2 class="text-xl font-semibold">
-              <%= link_to service.name, tenant_service_path(service), class: "hover:underline text-blue-600" %>
+              <% link_params = has_variants ? { service_variant_id: default_variant.id } : {} %>
+              <%= link_to service.name, tenant_service_path(service, link_params), class: "hover:underline text-blue-600" %>
             </h2>
             <% if service.subscription_enabled %>
               <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800" title="Subscription Available">
                 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                 </svg>
-                Subscription
+                Subscription Available
               </span>
             <% end %>
           </div>
 
           <p class="text-gray-700 text-sm flex-grow mb-4"><%= truncate(service.description, length: 150) %></p>
 
-          <!-- Promotional Pricing Display -->
+          <!-- Dynamic Pricing and Duration Display -->
           <div class="pricing-info mb-4">
             <div class="text-sm">
-              <span class="text-gray-600">Duration: <%= service.duration %> mins</span>
-              <% if service.experience? %>
+              <% if has_variants %>
+                <% min_duration = variants.minimum(:duration) %>
+                <% max_duration = variants.maximum(:duration) %>
+                <% duration_display = min_duration == max_duration ? "#{min_duration} mins" : "#{min_duration}-#{max_duration} mins" %>
+                <span class="text-gray-600">Duration: <%= duration_display %></span>
+              <% else %>
+                <span class="text-gray-600">Duration: <%= service.duration %> mins</span>
+              <% end %>
+              <% if service.event? %>
+                <span class="text-gray-600"> | Type: Event</span>
+              <% elsif service.experience? %>
                 <span class="text-gray-600"> | Type: Experience</span>
               <% else %>
                 <span class="text-gray-600"> | Type: Standard</span>
               <% end %>
+              <% if service.event? && service.event_starts_at.present? %>
+                <span class="block text-xs text-purple-700 mt-1 font-medium">
+                  Next Event: <%= format_event_brief(service) %> (<%= ActiveSupport::TimeZone[service.business&.time_zone.presence || Time.zone.name] || Time.zone %>)
+                </span>
+              <% end %>
             </div>
             
             <div class="pricing-section mt-1">
-              <% if service.on_promotion? %>
-                <div class="price-display">
-                  <span class="text-lg font-bold text-green-600">
-                    <%= number_to_currency(service.promotional_price) %>
-                  </span>
-                  <span class="text-sm text-gray-500 line-through ml-1">
-                    <%= number_to_currency(service.price) %>
-                  </span>
-                  <span class="text-xs text-green-600 ml-1">
-                    (Save <%= service.savings_percentage %>%)
-                  </span>
-                </div>
+              <% if has_variants %>
+                <% min_price = variants.minimum(:price) %>
+                <% max_price = variants.maximum(:price) %>
+                <% if service.on_promotion? %>
+                  <%# For variants with promotion, show promotional price range %>
+                  <div class="price-display">
+                    <% min_promo_price = variants.map(&:promotional_price).min %>
+                    <% max_promo_price = variants.map(&:promotional_price).max %>
+                    <% promo_display = min_promo_price == max_promo_price ? number_to_currency(min_promo_price) : "#{number_to_currency(min_promo_price)} - #{number_to_currency(max_promo_price)}" %>
+                    <span class="text-lg font-bold text-green-600">
+                      <%= promo_display %>
+                    </span>
+                    <% price_display = min_price == max_price ? number_to_currency(min_price) : "#{number_to_currency(min_price)} - #{number_to_currency(max_price)}" %>
+                    <span class="text-sm text-gray-500 line-through ml-1">
+                      <%= price_display %>
+                    </span>
+                    <span class="text-xs text-green-600 ml-1">
+                      (Save <%= service.savings_percentage %>%)
+                    </span>
+                  </div>
+                <% else %>
+                  <%# Regular variant pricing %>
+                  <% price_display = min_price == max_price ? number_to_currency(min_price) : "#{number_to_currency(min_price)} - #{number_to_currency(max_price)}" %>
+                  <p class="text-gray-900 font-medium text-sm">
+                    Price: <%= price_display %>
+                  </p>
+                <% end %>
               <% else %>
-                <p class="text-gray-900 font-medium text-sm">
-                  Price: <%= number_to_currency(service.price) %>
-                </p>
+                <%# Service without variants %>
+                <% if service.on_promotion? %>
+                  <div class="price-display">
+                    <span class="text-lg font-bold text-green-600">
+                      <%= number_to_currency(service.promotional_price) %>
+                    </span>
+                    <span class="text-sm text-gray-500 line-through ml-1">
+                      <%= number_to_currency(service.price) %>
+                    </span>
+                    <span class="text-xs text-green-600 ml-1">
+                      (Save <%= service.savings_percentage %>%)
+                    </span>
+                  </div>
+                <% else %>
+                  <p class="text-gray-900 font-medium text-sm">
+                    Price: <%= number_to_currency(service.price) %>
+                  </p>
+                <% end %>
               <% end %>
             </div>
           </div>
 
           <div class="mt-auto space-x-2">
+            <% link_params = has_variants ? { service_variant_id: default_variant.id } : {} %>
             <%= link_to "View Service", 
-                tenant_service_path(service), 
+                tenant_service_path(service, link_params), 
                 class: "inline-block bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 text-sm transition duration-200" %>
             <% first_active_staff = service.staff_members.active.first %>
             <% if first_active_staff.present? || service.standard? %>
+              <% book_params = { service_id: service.id, staff_member_id: first_active_staff&.id } %>
+              <% book_params[:service_variant_id] = default_variant.id if has_variants %>
+              <% default_booking_path = tenant_calendar_path(book_params) %>
+              <% booking_path = book_now_path_with_service_area(fallback_path: default_booking_path, service: service) %>
               <%= link_to "Book Now", 
-                  tenant_calendar_path(service_id: service.id, staff_member_id: first_active_staff&.id), 
+                  booking_path, 
                   class: "inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm transition duration-200" %>
             <% end %>
           </div>

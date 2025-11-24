@@ -14,14 +14,17 @@ class BlogNotificationJob < ApplicationJob
       "(users.notification_preferences->>'email_marketing_updates')::boolean = true"
     )
 
+    # Filter by global unsubscribe and granular preferences
+    subscribed_users = subscribed_users.select { |u| u.can_receive_email?(:blog) }
+
     # Send notifications in batches to avoid overwhelming the email service
-    subscribed_users.find_in_batches(batch_size: 50) do |user_batch|
+    subscribed_users.each_slice(50) do |user_batch|
       user_batch.each do |user|
         begin
-          BlogMailer.new_post_notification(user, blog_post).deliver_later
-          Rails.logger.info "[BLOG] Scheduled email notification for user: #{user.email}"
+          BlogMailer.new_post_notification(user, blog_post).deliver_later(queue: 'mailers')
+          SecureLogger.info "[BLOG] Scheduled email notification for user: #{user.email}"
         rescue => e
-          Rails.logger.error "[BLOG] Failed to schedule email notification for user #{user.email}: #{e.message}"
+          SecureLogger.error "[BLOG] Failed to schedule email notification for user #{user.email}: #{e.message}"
         end
       end
     end

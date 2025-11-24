@@ -1,13 +1,14 @@
 # frozen_string_literal: true
 
-# HealthController provides endpoints for monitoring the application status
-# It includes basic health checks and database connectivity verification
-class HealthController < ApplicationController
-  # Skip any authentication or before actions
-  skip_before_action :verify_authenticity_token, if: -> { request.format.json? }
-  skip_before_action :authenticate_user!
-  skip_before_action :set_tenant  # Health checks should not depend on tenant context
-  skip_before_action :check_database_connection, only: %i[check db_check]
+# HealthController provides JSON endpoints for monitoring application status
+# Inherits from ApiController (ActionController::API) which has no CSRF protection
+# This eliminates CodeQL alerts while maintaining security for monitoring endpoints
+# Related: CWE-352 CSRF protection restructuring
+class HealthController < ApiController
+  # SECURITY: CSRF protection not needed for monitoring endpoints
+  # - ApiController doesn't include RequestForgeryProtection module
+  # - No sessions, no state changes - pure monitoring endpoints
+  # Related: CWE-352 CSRF protection restructuring
 
   # Simple health check endpoint
   def check

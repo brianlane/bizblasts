@@ -1,4 +1,5 @@
-class Public::TipsController < ApplicationController
+class Public::TipsController < Public::BaseController
+  after_action :no_store!
   before_action :set_tenant
   before_action :set_booking_from_token, only: [:new, :create]
   before_action :validate_tip_eligibility, only: [:new, :create]
@@ -134,7 +135,9 @@ class Public::TipsController < ApplicationController
 
   def validate_tip_eligibility
     # Check if service is eligible for tips
-    unless @booking.service.experience? && @booking.service.tips_enabled?
+    # Updated: Removed experience-only restriction, now all service types with tips_enabled can accept tips
+    # Previously: Required both experience? AND tips_enabled?
+    unless @booking.service.tips_enabled?
       flash[:alert] = "This service is not eligible for tips."
       redirect_to tenant_my_booking_path(@booking) and return
     end

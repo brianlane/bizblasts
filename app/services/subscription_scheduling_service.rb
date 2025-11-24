@@ -316,7 +316,7 @@ class SubscriptionSchedulingService
   def send_booking_unavailable_notification
     begin
       if defined?(SubscriptionMailer) && SubscriptionMailer.respond_to?(:booking_unavailable)
-        SubscriptionMailer.booking_unavailable(customer_subscription).deliver_later
+        SubscriptionMailer.booking_unavailable(customer_subscription).deliver_later(queue: 'mailers')
         Rails.logger.info "[EMAIL] Sent booking unavailable notification for subscription #{customer_subscription.id}"
       end
     rescue => e
@@ -333,7 +333,7 @@ class SubscriptionSchedulingService
         due_date: booking.start_time.to_date,
         status: :paid
       )
-      
+
       invoice.save!
       invoice
     end
@@ -342,14 +342,14 @@ class SubscriptionSchedulingService
   def send_booking_notifications(booking)
     begin
       if defined?(BookingMailer) && BookingMailer.respond_to?(:subscription_booking_created)
-        BookingMailer.subscription_booking_created(booking).deliver_later
+        NotificationService.subscription_booking_created(booking)
       end
       if defined?(BusinessMailer) && BusinessMailer.respond_to?(:subscription_booking_received)
-        BusinessMailer.subscription_booking_received(booking).deliver_later
+        BusinessMailer.subscription_booking_received(booking).deliver_later(queue: 'mailers')
       end
-      Rails.logger.info "[EMAIL] Sent booking notifications for booking #{booking.id}"
+      Rails.logger.info "[NOTIFICATION] Sent booking notifications for booking #{booking.id}"
     rescue => e
-      Rails.logger.error "[EMAIL] Failed to send booking notifications: #{e.message}"
+      Rails.logger.error "[NOTIFICATION] Failed to send booking notifications: #{e.message}"
     end
   end
 

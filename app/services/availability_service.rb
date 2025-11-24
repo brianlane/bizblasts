@@ -8,8 +8,9 @@ class AvailabilityService
   # @param date [Date] the date for which to generate slots
   # @param service [Service, optional] the service being booked (to determine duration)
   # @param interval [Integer] the interval between slots in minutes (default: 30)
+  # @param bust_cache [Boolean] whether to bypass the cache
   # @return [Array<Hash>] an array of available slot data with start_time and end_time
-  def self.available_slots(staff_member, date, service = nil, interval: 30)
+  def self.available_slots(staff_member, date, service = nil, interval: 30, bust_cache: false)
     return [] unless staff_member.active?
     
     # PERFORMANCE OPTIMIZATION: Skip past dates completely
@@ -28,7 +29,19 @@ class AvailabilityService
     # Include the business time zone in the cache key so slots are cached per-timezone.
     tz = staff_member.business&.time_zone.presence || 'UTC'
     tz_component = tz.parameterize(separator: '_')
-    cache_key = "avail_#{staff_member.id}_#{date}_#{service&.id}_#{interval}_#{time_component}_tz_#{tz_component}"
+    
+    # Build cache key with all relevant components
+    cache_key = build_availability_cache_key(
+      staff_member: staff_member,
+      date: date,
+      service: service,
+      interval: interval,
+      time_component: time_component,
+      tz_component: tz_component
+    )
+    
+    # Bust the cache if requested
+    Rails.cache.delete(cache_key) if bust_cache
     
     Rails.cache.fetch(cache_key, expires_in: cache_duration) do
       raw_slots = compute_available_slots(staff_member, date, service, interval)
@@ -77,7 +90,7 @@ class AvailabilityService
         daily_bookings = check_daily_booking_limit(staff_member, booking_date, exclude_booking_id)
         
         if daily_bookings >= policy.max_daily_bookings
-          Rails.logger.debug("FAILED: Max daily bookings (#{policy.max_daily_bookings}) reached for date #{booking_date}")
+          Rails.logger.debug("FAILED: Max daily bookings (#{policy.max_daily_bookings}) reached for requested date")
           return false
         end
       end
@@ -96,11 +109,32 @@ class AvailabilityService
   # @param start_date [Date] the start date of the range
   # @param end_date [Date] the end date of the range
   # @param service [Service, optional] the service being booked
+  # @param interval [Integer] the interval between slots in minutes (default: 30)
+  # @param bust_cache [Boolean] whether to bypass the cache
   # @return [Hash] a hash with dates as keys and aggregated available slots as values
-  def self.availability_calendar(staff_member:, start_date:, end_date:, service: nil, interval: 30)
+  def self.availability_calendar(staff_member:, start_date:, end_date:, service: nil, interval: 30, bust_cache: false)
     # Use a cache key based on unique parameters
     tz = staff_member.business&.time_zone.presence || 'UTC'
-    cache_key = ['availability_calendar', staff_member.id, start_date.to_s, end_date.to_s, service&.id, interval, tz].join('/')
+    
+    # Do not automatically select a default service when none is provided.
+    # When service is nil, slot generation will fall back to the generic
+    # interval-based logic so that availability previews are not tied to an
+    # arbitrary service duration. This prevents inaccurate slots when a staff
+    # member offers multiple services with varying durations and also avoids
+    # masking misconfiguration when the staff member has no active services.
+    
+    # Build cache key with all relevant components
+    cache_key = build_calendar_cache_key(
+      staff_member: staff_member,
+      start_date: start_date,
+      end_date: end_date,
+      service: service,
+      interval: interval,
+      tz: tz
+    )
+
+    # Bust the cache if requested
+    Rails.cache.delete(cache_key) if bust_cache
 
     Rails.cache.fetch(cache_key, expires_in: 15.minutes) do
       return {} unless staff_member.active?
@@ -113,13 +147,13 @@ class AvailabilityService
         
         # Limit end_date to the max_advance_days
         if end_date > max_future_date
-          Rails.logger.debug("Limiting end date from #{end_date} to #{max_future_date} due to max_advance_days policy")
+          Rails.logger.debug("Limiting end date to maximum advance days policy (#{policy.max_advance_days} days)")
           end_date = max_future_date
         end
         
         # If start_date is already beyond max_advance_days, return empty hash
         if start_date > max_future_date
-          Rails.logger.debug("Start date #{start_date} exceeds maximum advance days (#{policy.max_advance_days})")
+          Rails.logger.debug("Start date exceeds maximum advance days policy (#{policy.max_advance_days} days)")
           return {}
         end
       end
@@ -128,7 +162,8 @@ class AvailabilityService
       calendar_data = {}
       
       date_range.each do |date|
-        calendar_data[date.to_s] = available_slots(staff_member, date, service, interval: interval)
+        # Pass the service object and cache-busting instruction
+        calendar_data[date.to_s] = available_slots(staff_member, date, service, interval: interval, bust_cache: bust_cache)
       end
       
       calendar_data
@@ -170,11 +205,20 @@ class AvailabilityService
 
     Time.use_zone(tz) do
       slot_duration = service&.duration || interval
-      step_interval = interval
-      time_slots = []
       
-      # Policy checks
+      # Policy checks and step interval calculation
       policy = business&.booking_policy
+      step_interval = if policy&.use_fixed_intervals?
+                        (policy.interval_mins || 30).clamp(5, 120)
+                      elsif policy
+                        # Policy exists but fixed intervals disabled: use service duration for step interval
+                        (service&.duration || interval || 30).clamp(5, 480)
+                      else
+                        # No policy: use passed interval for step interval (original behavior)
+                        (interval || 30).clamp(5, 480)
+                      end
+      
+      time_slots = []
       if policy
         # Adjust to minimum duration
         if policy.min_duration_mins.present? && slot_duration < policy.min_duration_mins
@@ -217,12 +261,29 @@ class AvailabilityService
         next unless start_str && end_str
         start_h, start_m = start_str.split(':').map(&:to_i)
         end_h, end_m = end_str.split(':').map(&:to_i)
+
+        # Build start and end times in the business time-zone
         interval_start = Time.zone.local(date.year, date.month, date.day, start_h, start_m)
-        interval_end = Time.zone.local(date.year, date.month, date.day, end_h, end_m)
+        interval_end   = Time.zone.local(date.year, date.month, date.day, end_h, end_m)
+
+        # Handle overnight intervals (end before start)
         interval_end += 1.day if end_h < start_h
+
+        # SPECIAL CASE: Treat an interval ending at 23:59 as inclusive of the very last
+        # minute of the day so that services can finish exactly at midnight.
+        # Without this, a 2-hour service starting at 22:00 would be excluded because
+        # 22:00 + 120 mins = 00:00 which is > 23:59. By extending the end boundary by
+        # one minute we effectively allow bookings that finish at 00:00.
+        if end_h == 23 && end_m == 59
+          interval_end += 1.minute
+        end
         current = interval_start
         
-        while current + slot_duration.minutes <= interval_end
+        # The loop should check if the current time is a valid start time.
+        # A valid start time is one where the service can be completed before the interval ends.
+        last_possible_start_time = interval_end - slot_duration.minutes
+        
+        while current <= last_possible_start_time
           st = current
           en = current + slot_duration.minutes
           time_slots << { start_time: st, end_time: en } if check_full_availability(staff_member, st, en)
@@ -230,7 +291,12 @@ class AvailabilityService
         end
       end
       
-      filter_booked_slots(time_slots, staff_member, date, slot_duration)
+      result = filter_booked_slots(time_slots, staff_member, date, slot_duration)
+      # Apply service availability filtering if enforced
+      if service.present? && service.enforce_service_availability?
+        result = result.select { |slot| service.available_at?(slot[:start_time]) && service.available_at?(slot[:end_time] - 1.minute) }
+      end
+      result
     end
   end
 
@@ -372,7 +438,38 @@ class AvailabilityService
     query = query.where.not(id: exclude_booking_id) if exclude_booking_id.present?
     
     # PERFORMANCE OPTIMIZATION: Use pluck to get only needed data instead of full objects
-    query.pluck(:id, :start_time, :end_time, :status)
+    bookings = query.pluck(:id, :start_time, :end_time, :status)
+    
+    # Also check external calendar events for conflicts
+    external_conflicts = fetch_external_calendar_conflicts(staff_member, query_start, query_end)
+    
+    # Combine internal bookings and external calendar conflicts
+    bookings + external_conflicts
+  end
+  
+  # Fetch conflicting events from external calendars
+  def self.fetch_external_calendar_conflicts(staff_member, start_time, end_time)
+    return [] unless staff_member.has_calendar_integrations?
+    
+    # Get all active calendar connections for this staff member
+    calendar_connections = staff_member.calendar_connections.active
+    return [] if calendar_connections.empty?
+    
+    # Find external calendar events that overlap with the requested time
+    external_events = ExternalCalendarEvent.joins(:calendar_connection)
+                                          .where(calendar_connections: { id: calendar_connections.ids })
+                                          .where('starts_at < ? AND ends_at > ?', end_time, start_time)
+                                          .pluck(:id, :starts_at, :ends_at, 'NULL')  # NULL for status to match booking format
+    
+    # Transform to match booking format [id, start_time, end_time, status]
+    external_events.map do |event_data|
+      [
+        "external_#{event_data[0]}", # Prefix ID to distinguish from bookings
+        event_data[1], # starts_at
+        event_data[2], # ends_at  
+        'external'     # status
+      ]
+    end
   end
 
   # Check the number of bookings for a staff member on a given date
@@ -420,5 +517,123 @@ class AvailabilityService
     Rails.logger.debug("Past time filtering: #{slots.count} original slots, #{filtered_slots.count} after filtering")
     
     filtered_slots
+  end
+
+  # Build cache key for availability slots with granular versioning
+  def self.build_availability_cache_key(staff_member:, date:, service:, interval:, time_component:, tz_component:)
+    base_key = "avail_#{staff_member.id}_#{date}_#{service&.id}_#{interval}_#{time_component}_tz_#{tz_component}"
+    
+    # Add version components for more granular invalidation
+    version_components = []
+    
+    # Staff availability version (changes when staff schedule changes)
+    if staff_member.updated_at.present?
+      version_components << "staff_#{(staff_member.updated_at.to_f * 1000).to_i}"
+    end
+    
+    # Service availability version (changes when service availability changes)  
+    if service&.updated_at.present?
+      version_components << "svc_#{service.updated_at.to_i}"
+    end
+    
+    # Service enforcement version (separate from service updates)
+    if service&.enforce_service_availability?
+      version_components << "enf_#{service.enforce_service_availability? ? 1 : 0}"
+    end
+    
+    # Business booking policy version (affects minimum advance booking)
+    business = staff_member.business
+    if business&.booking_policy&.updated_at.present?
+      version_components << "policy_#{business.booking_policy.updated_at.to_i}"
+    end
+    
+    # Always include a cache-buster token tied to the staff member so we can
+    # invalidate keys even when the backing cache store cannot delete by pattern.
+    version_components << "v_#{cache_buster_token(staff_member)}"
+    
+    # Combine base key with version components
+    "#{base_key}_v_#{version_components.join('_')}"
+  end
+
+  # Build cache key for availability calendar with granular versioning
+  def self.build_calendar_cache_key(staff_member:, start_date:, end_date:, service:, interval:, tz:)
+    base_key = "availability_calendar_#{staff_member.id}_#{start_date}_#{end_date}_#{service&.id}_#{interval}_#{tz.parameterize(separator: '_')}"
+    
+    # Add version components
+    version_components = []
+    
+    # Staff availability version
+    if staff_member.updated_at.present?
+      version_components << "staff_#{(staff_member.updated_at.to_f * 1000).to_i}"
+    end
+    
+    # Service availability version
+    if service&.updated_at.present?
+      version_components << "svc_#{service.updated_at.to_i}"
+    end
+    
+    # Business booking policy version
+    business = staff_member.business
+    if business&.booking_policy&.updated_at.present?
+      version_components << "policy_#{business.booking_policy.updated_at.to_i}"
+    end
+    
+    # Existing bookings change frequently, so include a less granular component
+    # that changes every 15 minutes to balance performance with accuracy
+    time_bucket = (Time.current.to_i / 900) * 900  # 15-minute buckets
+    version_components << "bookings_#{time_bucket}"
+
+    # Include the same cache-buster token so month view follows external-event changes
+    version_components << "v_#{cache_buster_token(staff_member)}"
+    
+    "#{base_key}_v_#{version_components.join('_')}"
+  end
+
+  # Clear all availability caches for a staff member
+  def self.clear_staff_availability_cache(staff_member)
+    cache_pattern = "avail_#{staff_member.id}_*"
+    calendar_pattern = "availability_calendar_#{staff_member.id}_*"
+    
+    Rails.logger.info("Clearing availability cache for staff member #{staff_member.id}")
+    
+    # In production, we'd want a more sophisticated cache clearing strategy
+    # For now, we'll rely on the versioned cache keys to naturally expire
+
+    # Clear specific patterns only if the cache store implements its own
+    # `delete_matched`. SolidCache exposes the method via inheritance but
+    # does not implement it, so we verify that the method is defined at the
+    # concrete store class level (i.e., not inherited from
+    # ActiveSupport::Cache::Store).
+    # Skip pattern deletion when using SolidCache because its implementation
+    # intentionally raises NotImplementedError. We rely on the rotating
+    # version-token below instead.
+    if Rails.cache.respond_to?(:delete_matched) &&
+       Rails.cache.class.name != "SolidCache::Store" &&
+       Rails.cache.method(:delete_matched).owner != ActiveSupport::Cache::Store
+      Rails.cache.delete_matched(cache_pattern)
+      Rails.cache.delete_matched(calendar_pattern)
+    end
+
+    # Rotate cache-buster token
+    Rails.cache.write(cache_buster_key(staff_member), SecureRandom.hex(6))
+
+    # Also bump service-level tokens so calendar grid cache refreshes
+    staff_member.services.each { |svc| BookingService.invalidate_calendar_cache(svc) }
+  end
+
+  # Clear all availability caches for a service
+  def self.clear_service_availability_cache(service)
+    # With versioned cache keys, old entries will naturally expire
+    # This method is here for explicit cache clearing if needed
+    Rails.logger.info("Service #{service.id} availability cache will be invalidated via version keys")
+  end
+
+  # ---------------- Cache-buster helpers ----------------
+  def self.cache_buster_token(staff_member)
+    Rails.cache.fetch(cache_buster_key(staff_member)) { SecureRandom.hex(6) }
+  end
+
+  def self.cache_buster_key(staff_member)
+    "avail_buster_#{staff_member.id}"
   end
 end

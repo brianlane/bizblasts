@@ -6,6 +6,7 @@ require 'rails_helper'
 # even though the file is named companies_spec.rb. This might be confusing.
 # Consider renaming this file to businesses_spec.rb for clarity.
 RSpec.describe "Admin Businesses", type: :request, admin: true do # Renamed describe block
+  include ActiveJob::TestHelper
   let!(:admin_user) { create(:admin_user) } 
   
   # Updated to use hostname/host_type
@@ -88,7 +89,7 @@ RSpec.describe "Admin Businesses", type: :request, admin: true do # Renamed desc
       expect {
         post admin_businesses_path, params: valid_attributes
       }.to change(Business, :count).by(1)
-      expect(response).to redirect_to(admin_business_path(Business.last.hostname))
+      expect(response).to redirect_to(admin_business_path(Business.last.id))
       follow_redirect!
     end
   end
@@ -269,6 +270,52 @@ RSpec.describe "Admin Businesses", type: :request, admin: true do # Renamed desc
           expect(response.body).not_to include('Domain Coverage Information')
         end
       end
+
+  describe "POST /admin/businesses/:id/send_stripe_connect_reminder" do
+    let!(:reminder_business) { create(:business, host_type: 'subdomain', stripe_account_id: nil) }
+    let!(:manager) { create(:user, :manager, business: reminder_business) }
+
+    around do |example|
+      original_adapter = ActiveJob::Base.queue_adapter
+      ActiveJob::Base.queue_adapter = :test
+      clear_enqueued_jobs
+      example.run
+    ensure
+      clear_enqueued_jobs
+      ActiveJob::Base.queue_adapter = original_adapter
+    end
+
+    before do
+      allow(StripeService).to receive(:create_connect_account) do |biz|
+        biz.update!(stripe_account_id: 'acct_test123')
+        instance_double(Stripe::Account, id: 'acct_test123')
+      end
+    end
+
+    it 'creates a Stripe account if missing, enqueues reminder, and stamps timestamp' do
+      expect {
+        post send_stripe_connect_reminder_admin_business_path(reminder_business.id)
+      }.to have_enqueued_mail(BusinessMailer, :stripe_connect_reminder).with(manager, reminder_business)
+
+      expect(response).to redirect_to(admin_business_path(reminder_business.id))
+      expect(flash[:notice]).to include('Stripe connect reminder email queued')
+
+      reminder_business.reload
+      expect(reminder_business.stripe_account_id).to eq('acct_test123')
+      expect(reminder_business.stripe_connect_reminder_sent_at).to be_within(2.seconds).of(Time.current)
+    end
+
+    it 'returns alert when no business user can be emailed' do
+      manager.destroy
+
+      expect {
+        post send_stripe_connect_reminder_admin_business_path(reminder_business.id)
+      }.not_to have_enqueued_mail(BusinessMailer, :stripe_connect_reminder)
+
+      expect(response).to redirect_to(admin_business_path(reminder_business.id))
+      expect(flash[:alert]).to include('No business manager or staff user available to email.')
+    end
+  end
     end
 
     describe "POST /admin/businesses with domain coverage fields" do

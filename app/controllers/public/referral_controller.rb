@@ -1,5 +1,6 @@
 module Public
-  class ReferralController < PublicController
+  class ReferralController < Public::BaseController
+    after_action :no_store!
     before_action :authenticate_user!
     before_action :ensure_client_user
     before_action :set_business, only: [:show]
@@ -53,13 +54,7 @@ module Public
     end
 
     def generate_referral_url(business, referral_code)
-      if Rails.env.development?
-        "http://#{business.hostname}.lvh.me:3000?ref=#{referral_code}"
-      else
-        protocol = business.host_type_custom_domain? ? 'https' : 'https'
-        host = business.host_type_custom_domain? ? business.hostname : "#{business.hostname}.bizblasts.com"
-        "#{protocol}://#{host}?ref=#{referral_code}"
-      end
+      TenantHost.url_for(business, request, "/?ref=#{referral_code}")
     end
 
     def calculate_user_referral_stats

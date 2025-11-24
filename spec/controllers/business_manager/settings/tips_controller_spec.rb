@@ -10,7 +10,7 @@ RSpec.describe BusinessManager::Settings::TipsController, type: :controller do
   let!(:service) { create(:service, business: business, tips_enabled: false) }
 
   before do
-    request.host = "#{business.subdomain}.example.com"
+    request.host = host_for(business)
     ActsAsTenant.current_tenant = business
   end
 

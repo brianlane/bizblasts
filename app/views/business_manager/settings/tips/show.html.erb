@@ -49,6 +49,18 @@
           <% end %>
         </div>
 
+        <!-- Tip Mailer Settings -->
+        <div class="border-b border-gray-200 pb-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">Tip Reminder Settings</h3>
+          <div class="space-y-4">
+            <div class="flex items-center">
+              <%= form.check_box :tip_mailer_if_no_tip_received, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+              <%= form.label :tip_mailer_if_no_tip_received, "Send tip reminder if no tip received on initial payment", class: "ml-2 text-sm text-gray-700" %>
+            </div>
+            <p class="text-xs text-gray-500 ml-6">When enabled, customers will receive an email reminder to tip after service completion if they didn't tip during the initial payment. This applies to all services with tips enabled.</p>
+          </div>
+        </div>
+
         <!-- Product Tips Settings -->
         <div class="border-b border-gray-200 pb-6">
           <h3 class="text-lg font-medium text-gray-900 mb-4">Product Tips Settings</h3>
@@ -77,18 +89,25 @@
           <h3 class="text-lg font-medium text-gray-900 mb-4">Service Tips Settings</h3>
           <div class="space-y-3">
             <% @business.services.active.each do |service| %>
-              <div class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
-                <div>
-                  <span class="font-medium text-gray-900"><%= service.name %></span>
-                  <span class="text-sm text-gray-500 ml-2">$<%= service.price %></span>
-                  <% if service.service_type.present? %>
-                    <span class="text-xs text-blue-600 ml-2 px-2 py-1 bg-blue-100 rounded-full"><%= service.service_type.humanize %></span>
-                  <% end %>
+              <div class="py-2 px-3 bg-gray-50 rounded-md">
+                <div class="flex items-center justify-between mb-2">
+                  <div>
+                    <span class="font-medium text-gray-900"><%= service.name %></span>
+                    <span class="text-sm text-gray-500 ml-2">$<%= service.price %></span>
+                    <% if service.service_type.present? %>
+                      <span class="text-xs text-blue-600 ml-2 px-2 py-1 bg-blue-100 rounded-full"><%= service.service_type.humanize %></span>
+                    <% end %>
+                  </div>
+                  <div class="flex items-center">
+                    <%= check_box_tag "services[#{service.id}][tips_enabled]", "1", service.tips_enabled?, 
+                        class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+                    <%= label_tag "services[#{service.id}][tips_enabled]", "Enable tips", class: "ml-2 text-sm text-gray-700" %>
+                  </div>
                 </div>
-                <div class="flex items-center">
-                  <%= check_box_tag "services[#{service.id}][tips_enabled]", "1", service.tips_enabled?, 
-                      class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
-                  <%= label_tag "services[#{service.id}][tips_enabled]", "Enable tips", class: "ml-2 text-sm text-gray-700" %>
+                <div class="flex items-center ml-4" style="<%= 'display: none;' unless service.tips_enabled? %>">
+                  <%= check_box_tag "services[#{service.id}][tip_mailer_if_no_tip_received]", "1", service.tip_mailer_if_no_tip_received?, 
+                      class: "h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+                  <%= label_tag "services[#{service.id}][tip_mailer_if_no_tip_received]", "Send tip reminder if no tip received", class: "ml-2 text-xs text-gray-600" %>
                 </div>
               </div>
             <% end %>
@@ -110,10 +129,10 @@
               <h3 class="text-sm font-medium text-blue-800">Important Information</h3>
               <div class="mt-2 text-sm text-blue-700">
                 <ul class="list-disc pl-5 space-y-1">
-                  <li><strong>Experience Services:</strong> Tips are only available after service completion</li>
-                  <li><strong>Standard Services:</strong> Tips can be added during invoice payment</li>
+                  <li><strong>All Services:</strong> Tips can now be added during initial payment or separately after service completion</li>
                   <li><strong>Products:</strong> Tips can be added during checkout</li>
-                  <li>Customers will need to re-enter payment information for tips</li>
+                  <li><strong>Integrated Tipping:</strong> Customers can tip during the initial payment process using your configured percentages</li>
+                  <li><strong>Tip Mailer:</strong> If tip reminder is enabled and no tip was received initially, customers will receive a reminder email after service completion</li>
                   <li><strong>Fee Structure:</strong> Tips are subject to both Stripe and platform fees</li>
                   <li class="ml-4">• Stripe processing fee: 2.9% + $0.30 per transaction</li>
                   <li class="ml-4">• Platform fee: <%= current_business.tier == 'premium' ? '3%' : '5%' %> (based on your <%= current_business.tier.titleize %> tier)</li>
@@ -126,7 +145,7 @@
         </div>
 
         <div class="flex justify-end">
-          <%= form.submit "Save Settings", class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" %>
+          <%= form.submit "Save Settings", class: "cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" %>
         </div>
       <% end %>
     </div>

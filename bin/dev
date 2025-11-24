@@ -1,4 +1,7 @@
 #!/usr/bin/env sh
+
+rails runner "Rails.cache.clear"
+
 rails assets:precompile
 
 if ! gem list foreman -i --silent; then

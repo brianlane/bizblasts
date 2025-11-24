@@ -103,28 +103,28 @@ class EmailSpecification
 
   def execute_mailer_method
     mailer_instance = mailer_class.public_send(method_name, *arguments)
-    
+
     # Check if the mailer method returned nil (early return due to conditions)
     return false if mailer_instance.nil?
-    
-    mailer_instance.deliver_later
+
+    mailer_instance.deliver_later(queue: 'mailers')
     Rails.logger.info "[EmailSpec] Executed #{mailer_class}.#{method_name} with args: #{arguments.map(&:class)}"
     true
   end
 
   def execute_mailer_method_with_delay(wait)
     mailer_instance = mailer_class.public_send(method_name, *arguments)
-    
+
     # Check if the mailer method returned nil (early return due to conditions)
     return false if mailer_instance.nil?
-    
+
     if Rails.env.test?
       # In test environment, don't use delays to avoid issues with job counting
-      mailer_instance.deliver_later
+      mailer_instance.deliver_later(queue: 'mailers')
     else
-      mailer_instance.deliver_later(wait: wait)
+      mailer_instance.deliver_later(wait: wait, queue: 'mailers')
     end
-    
+
     Rails.logger.info "[EmailSpec] Executed #{mailer_class}.#{method_name} with #{wait} delay"
     true
   end

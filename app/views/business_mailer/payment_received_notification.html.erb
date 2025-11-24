@@ -77,7 +77,7 @@
           <h4 style="margin: 10px 0; color: #495057;">Related Booking</h4>
           <div class="detail-row">
             <span class="label">Service:</span>
-            <span class="value"><%= @booking.service.name %></span>
+            <span class="value"><%= service_with_variant(@booking) %></span>
           </div>
           <div class="detail-row">
             <span class="label">Date & Time:</span>
@@ -106,15 +106,15 @@
 
         <div style="text-align: center;">
           <% if @booking.present? %>
-            <a href="https://<%= @business.hostname %>.bizblasts.com/manage/bookings/<%= @booking.id %>" class="cta-button">
+            <a href="<%= tenant_url_for(@business, "/manage/bookings/#{@booking.id}") %>" class="cta-button">
               View Booking Details
             </a>
           <% elsif @order.present? %>
-            <a href="https://<%= @business.hostname %>.bizblasts.com/manage/orders/<%= @order.id %>" class="cta-button">
+            <a href="<%= tenant_url_for(@business, "/manage/orders/#{@order.id}") %>" class="cta-button">
               View Order Details
             </a>
           <% else %>
-            <a href="https://<%= @business.hostname %>.bizblasts.com/manage/invoices/<%= @invoice.id %>" class="cta-button">
+            <a href="<%= tenant_url_for(@business, "/manage/invoices/#{@invoice.id}") %>" class="cta-button">
               View Invoice Details
             </a>
           <% end %>
@@ -126,7 +126,7 @@
       <div class="footer">
         <p style="margin: 0; color: #6c757d; font-size: 14px;">
           This notification was sent because you have payment notifications enabled.<br>
-          <a href="https://<%= @business.hostname %>.bizblasts.com/manage/settings/profile/edit" style="color: #007bff;">Manage notification preferences</a>
+          <a href="<%= tenant_url_for(@business, '/manage/settings/profile/edit') %>" style="color: #007bff;">Manage notification preferences</a>
         </p>
         <p style="margin: 10px 0 0 0; color: #6c757d; font-size: 12px;">
           © <%= Date.current.year %> BizBlasts. All rights reserved.

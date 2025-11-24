@@ -26,8 +26,30 @@
               <fieldset class="inputs">
                 <legend><span><%= day.capitalize %></span></legend>
                 
+                <!-- Full 24 Hour Availability Checkbox -->
+                <div class="full-day-container" style="margin-bottom: 15px;">
+                  <input type="hidden" name="full_day[<%= day %>]" value="0" />
+                  <input type="checkbox" 
+                         id="admin_full_day_<%= day %>" 
+                         name="full_day[<%= day %>]"
+                         value="1"
+                         class="full-day-checkbox" 
+                         data-day="<%= day %>"
+                         <%= 'checked' if @staff_member.availability&.dig(day)&.any? { |slot| slot['start'] == '00:00' && slot['end'] == '23:59' } %>
+                         style="margin-right: 8px;" />
+                  <label for="admin_full_day_<%= day %>" style="font-weight: 500;">
+                    Full 24 Hour Availability
+                  </label>
+                  <p style="color: #666; font-size: 12px; margin: 5px 0 0 25px;">Check this for 24/7 availability on <%= day.capitalize %></p>
+                </div>
+                
                 <div id="<%= day %>-slots" class="time-slots">
-                  <% @staff_member.availability&.dig(day)&.each_with_index do |slot, index| %>
+                  <% 
+                    day_slots = @staff_member.availability&.dig(day) || []
+                    # Filter out full-day slots (00:00-23:59) for display, they're handled by checkbox
+                    display_slots = day_slots.reject { |slot| slot['start'] == '00:00' && slot['end'] == '23:59' }
+                    display_slots.each_with_index do |slot, index|
+                  %>
                     <div class="time-slot-row" style="display: flex; align-items: center; margin-bottom: 10px;">
                       <%= f.hidden_field "availability[#{day}][#{index}][id]", value: index %>
                       
@@ -41,14 +63,14 @@
                           value: slot['end'], 
                           class: "time-input" %>
                           
-                      <button type="button" class="remove-slot-btn" style="margin-left: 10px; color: #d45f5f;">
+                      <button type="button" class="cursor-pointer remove-slot-btn" style="margin-left: 10px; color: #d45f5f;">
                         <span>✕</span>
                       </button>
                     </div>
                   <% end %>
                 </div>
                 
-                <button type="button" class="add-slot-btn" data-day="<%= day %>" style="color: #5E6469; background: none; border: none; cursor: pointer; padding: 5px 0;">
+                <button type="button" class="cursor-pointer add-slot-btn" data-day="<%= day %>" style="color: #5E6469; background: none; border: none; cursor: pointer; padding: 5px 0;">
                   + Add Time Slot
                 </button>
               </fieldset>
@@ -56,7 +78,7 @@
             
             <div class="actions" style="margin-top: 20px;">
               <%= f.submit "Save Availability", class: "button" %>
-              <%= link_to "Cancel", admin_staff_member_path(@staff_member), class: "button" %>
+              <%= link_to "Cancel", admin_staff_member_path(@staff_member), class: "cursor-pointer button" %>
             </div>
           <% end %>
         </div>
@@ -172,29 +194,68 @@
 
 <script>
   function initializeStaffMemberAvailabilityPage() {
+    // Initialize full-day checkbox functionality
+    document.querySelectorAll('.full-day-checkbox').forEach(function(checkbox) {
+      const day = checkbox.dataset.day;
+      const slotsContainer = document.getElementById(day + '-slots');
+      const addButton = document.querySelector(`[data-day="${day}"].add-slot-btn`);
+      
+      // Set initial state
+      updateSlotsVisibility(checkbox, slotsContainer, addButton);
+      
+      checkbox.addEventListener('change', function() {
+        updateSlotsVisibility(this, slotsContainer, addButton);
+      });
+    });
+    
+    function updateSlotsVisibility(checkbox, slotsContainer, addButton) {
+      if (checkbox.checked) {
+        // Hide time slots and add button when full day is checked
+        slotsContainer.style.display = 'none';
+        addButton.style.display = 'none';
+        
+        // Clear existing time slots to prevent conflicts
+        const timeSlots = slotsContainer.querySelectorAll('.time-slot-row');
+        timeSlots.forEach(slot => slot.remove());
+        
+      } else {
+        // Show time slots and add button when full day is unchecked
+        slotsContainer.style.display = 'block';
+        addButton.style.display = 'block';
+        
+        // Add default slot if none exist
+        if (slotsContainer.children.length === 0) {
+          addTimeSlot(checkbox.dataset.day, slotsContainer);
+        }
+      }
+    }
+    
+    function addTimeSlot(day, slotsContainer) {
+      const index = slotsContainer.children.length;
+      
+      const slotHtml = `
+        <div class="time-slot-row" style="display: flex; align-items: center; margin-bottom: 10px;">
+          <input type="hidden" name="staff_member[availability][${day}][${index}][id]" value="${index}">
+          <input type="time" name="staff_member[availability][${day}][${index}][start]" class="time-input" value="09:00">
+          <span style="margin: 0 10px;">to</span>
+          <input type="time" name="staff_member[availability][${day}][${index}][end]" class="time-input" value="17:00">
+          <button type="button" class="cursor-pointer remove-slot-btn" style="margin-left: 10px; color: #d45f5f;">
+            <span>✕</span>
+          </button>
+        </div>
+      `;
+      
+      slotsContainer.insertAdjacentHTML('beforeend', slotHtml);
+      setupRemoveSlotButtons();
+    }
+    
     // Add time slot functionality
     document.querySelectorAll('.add-slot-btn').forEach(function(button) {
       button.addEventListener('click', function() {
         const day = this.dataset.day;
         const slotsContainer = document.getElementById(day + '-slots');
         if (!slotsContainer) return;
-        
-        const index = slotsContainer.children.length;
-        
-        const slotHtml = `
-          <div class="time-slot-row" style="display: flex; align-items: center; margin-bottom: 10px;">
-            <input type="hidden" name="staff_member[availability][${day}][${index}][id]" value="${index}">
-            <input type="time" name="staff_member[availability][${day}][${index}][start]" class="time-input" value="09:00">
-            <span style="margin: 0 10px;">to</span>
-            <input type="time" name="staff_member[availability][${day}][${index}][end]" class="time-input" value="17:00">
-            <button type="button" class="remove-slot-btn" style="margin-left: 10px; color: #d45f5f;">
-              <span>✕</span>
-            </button>
-          </div>
-        `;
-        
-        slotsContainer.insertAdjacentHTML('beforeend', slotHtml);
-        setupRemoveSlotButtons();
+        addTimeSlot(day, slotsContainer);
       });
     });
     

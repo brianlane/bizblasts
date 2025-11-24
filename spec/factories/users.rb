@@ -12,6 +12,8 @@ FactoryBot.define do
     active { true }
     # Confirm users by default for tests
     confirmed_at { Time.current }
+    # Default notification preferences will be set by after_create callback
+    notification_preferences { nil }
     
     trait :unconfirmed do
       confirmed_at { nil }

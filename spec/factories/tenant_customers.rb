@@ -10,6 +10,9 @@ FactoryBot.define do
     notes { Faker::Lorem.paragraph }
     active { true }
     association :business
+    # Default email preferences will be set by after_create callback
+    email_marketing_opt_out { nil }
+    unsubscribed_at { nil }
     
     trait :inactive do
       active { false }

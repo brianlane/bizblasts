@@ -41,12 +41,41 @@ module Admin
       admin?
     end
 
+    # Custom domain management member actions
+    def start_domain_setup?
+      admin?
+    end
+
+    def restart_domain_monitoring?
+      admin?
+    end
+
+    def force_activate_domain?
+      admin?
+    end
+
+    def disable_custom_domain?
+      admin?
+    end
+
+    def domain_status?
+      admin?
+    end
+
+    def stripe_diagnostics?
+      admin?
+    end
+
+    def send_stripe_connect_reminder?
+      admin?
+    end
+
     private
 
     # Helper method to check if the user is an admin.
-    # Assumes the user object is an AdminUser or responds to :admin?.
+    # Ensures user is actually an AdminUser instance for security
     def admin?
-      user.present? # Basic check: is there a logged-in admin user?
+      user.is_a?(AdminUser)
     end
   end
 end 

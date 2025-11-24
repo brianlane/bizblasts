@@ -5,6 +5,7 @@ ActiveAdmin.register User do
   filter :email, label: "Email Address"
   filter :first_name, label: "First Name"
   filter :last_name, label: "Last Name"
+  filter :phone, label: "Phone Number"
   filter :role, as: :select, 
          collection: User.roles.map { |key, value| [key.humanize, key] },
          include_blank: "All Roles"
@@ -159,6 +160,7 @@ ActiveAdmin.register User do
     id_column
     column :email
     column "Name", :full_name
+    column :phone
     column :role do |user|
       user.role&.humanize
     end
@@ -182,10 +184,17 @@ ActiveAdmin.register User do
       user.staff_member&.position
     end
     column "Last Login" do |user|
-      if user.last_sign_in_at
+      # Show the most recent sign-in time (current session or last session)
+      most_recent_signin = user.current_sign_in_at || user.last_sign_in_at
+      
+      if most_recent_signin
+        # Use business time zone or fallback to system default
+        business_tz = user.business&.time_zone.presence || Time.zone.name
+        local_time = most_recent_signin.in_time_zone(business_tz)
+        
         div do
-          div time_ago_in_words(user.last_sign_in_at) + " ago"
-          small user.last_sign_in_at.strftime("%b %d, %Y at %I:%M %p"), style: "color: #6c757d; font-size: 0.85em;"
+          div time_ago_in_words(most_recent_signin) + " ago"
+          small local_time.strftime("%b %d, %Y at %I:%M %p %Z"), style: "color: #6c757d; font-size: 0.85em;"
         end
       else
         "Never"
@@ -193,6 +202,14 @@ ActiveAdmin.register User do
     end
     column "Sign-in Count" do |user|
       user.sign_in_count
+    end
+    column "Notifications Enabled" do |user|
+      if user.notification_preferences.present?
+        enabled_count = user.notification_preferences.count { |_k, v| v == true }
+        "#{enabled_count}/#{user.notification_preferences.size} enabled"
+      else
+        "None"
+      end
     end
     column :active
     column :confirmed_at
@@ -206,6 +223,7 @@ ActiveAdmin.register User do
       row :id
       row :email
       row :full_name
+      row :phone
       row :role do |user|
         user.role&.humanize
       end
@@ -234,14 +252,18 @@ ActiveAdmin.register User do
       # Login Activity Section
       row :last_sign_in_at do |user|
         if user.last_sign_in_at
-          "#{time_ago_in_words(user.last_sign_in_at)} ago (#{user.last_sign_in_at.strftime('%B %d, %Y at %I:%M %p')})"
+          business_tz = user.business&.time_zone.presence || Time.zone.name
+          local_time = user.last_sign_in_at.in_time_zone(business_tz)
+          "#{time_ago_in_words(user.last_sign_in_at)} ago (#{local_time.strftime('%B %d, %Y at %I:%M %p %Z')})"
         else
           "Never logged in"
         end
       end
       row :current_sign_in_at do |user|
         if user.current_sign_in_at
-          "#{time_ago_in_words(user.current_sign_in_at)} ago (#{user.current_sign_in_at.strftime('%B %d, %Y at %I:%M %p')})"
+          business_tz = user.business&.time_zone.presence || Time.zone.name
+          local_time = user.current_sign_in_at.in_time_zone(business_tz)
+          "#{time_ago_in_words(user.current_sign_in_at)} ago (#{local_time.strftime('%B %d, %Y at %I:%M %p %Z')})"
         else
           "No current session"
         end
@@ -256,6 +278,19 @@ ActiveAdmin.register User do
       row :updated_at
       row :reset_password_sent_at
       row :remember_created_at
+      row "Notification Preferences" do |user|
+        if user.notification_preferences.present?
+          ul do
+            user.notification_preferences.keys.sort.each do |key|
+              value = user.notification_preferences[key]
+              enabled = (value == true)
+              li "#{key.to_s.humanize}: #{enabled ? 'Enabled' : 'Disabled'}"
+            end
+          end
+        else
+          "No preferences configured"
+        end
+      end
     end
     
     # Add a panel showing user's login activity timeline

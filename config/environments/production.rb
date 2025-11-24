@@ -48,6 +48,9 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :amazon
 
+  # Enable variant tracking for database-backed variant management
+  config.active_storage.track_variants = true
+
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
   config.assume_ssl = true
 
@@ -121,19 +124,32 @@ Rails.application.configure do
   # Only use :id for inspections in production.
   config.active_record.attributes_for_inspect = [:id]
 
-  # Enable DNS rebinding protection and other `Host` header attacks.
-  config.hosts = [
-    "bizblasts.onrender.com",
-    "bizblasts.com",
-    "www.bizblasts.com",
-    "*.bizblasts.com",
-    "*.bizblasts.onrender.com",
-    ".bizblasts.com",
-    ".*\.bizblasts\.com$/",
-    # Allow Render PR preview URLs (format: bizblasts-pr-XX.onrender.com)
-    /bizblasts-pr-\d+\.onrender\.com/
-  ]
+  # Default allowed hosts are set in `config/application.rb`. Additional
+  # custom domains are added at runtime via
+  # `config/initializers/custom_domain_hosts.rb`.
   
-  # Skip DNS rebinding protection for the default health check endpoint.
-  config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+  # Skip DNS rebinding protection for:
+  # - Health check endpoints
+  # - Active custom domains stored in the database (both apex and www forms)
+  config.host_authorization = {
+    exclude: ->(request) do
+      return true if ["/up", "/healthcheck"].include?(request.path)
+
+      begin
+        return false unless defined?(Business)
+        host = request.host.to_s.downcase.sub(/^www\./, '')
+        candidates = [host, "www.#{host}"]
+        Business.where(host_type: 'custom_domain')
+                .where(status: ['cname_pending', 'cname_monitoring', 'cname_active'])
+                .where('LOWER(hostname) IN (?)', candidates)
+                .exists?
+      rescue StandardError
+        false
+      end
+    end
+  }
+
+  # Do NOT clear hosts in production. Use dynamic host_authorization above and
+  # the custom_domain_hosts initializer to permit specific hosts.
+
 end

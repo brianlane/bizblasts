@@ -5,7 +5,7 @@ RSpec.describe BusinessManager::ServicesController, type: :controller do
   let(:manager_user) { create(:user, :manager, business: business) }
 
   before do
-    request.host = "#{business.subdomain}.example.com"
+    request.host = host_for(business)
     ActsAsTenant.current_tenant = business
     sign_in manager_user
   end
@@ -66,4 +66,53 @@ RSpec.describe BusinessManager::ServicesController, type: :controller do
       expect(service.tips_enabled).to be false
     end
   end
+
+  describe 'enforce_service_availability handling' do
+    let(:base_attributes) do
+      {
+        name: 'Availability Enforcement Test',
+        description: 'Testing enforcement param handling',
+        price: 25.0,
+        duration: 30,
+        active: true
+      }
+    end
+
+    context 'POST #create' do
+      it 'updates enforcement when nested param provided' do
+        post :create, params: { service: base_attributes.merge(enforce_service_availability: '0') }
+
+        created_service = Service.order(created_at: :desc).first
+        expect(created_service.enforce_service_availability?).to be false
+      end
+
+      it 'does not update enforcement when only top-level param provided' do
+        post :create, params: { service: base_attributes, enforce_service_availability: '0' }
+
+        created_service = Service.order(created_at: :desc).first
+        expect(created_service.enforce_service_availability?).to be true
+      end
+    end
+
+    context 'PATCH #update' do
+      let!(:service) { create(:service, business: business, enforce_service_availability: true) }
+
+      it 'updates enforcement when nested param provided' do
+        patch :update, params: { id: service.id, service: { enforce_service_availability: '0' } }
+
+        service.reload
+        expect(service.enforce_service_availability?).to be false
+      end
+
+      it 'raises ParameterMissing when only top-level param provided' do
+        expect {
+          patch :update, params: { id: service.id, enforce_service_availability: '0' }
+        }.to raise_error(ActionController::ParameterMissing)
+
+        service.reload
+        expect(service.enforce_service_availability?).to be true
+      end
+    end
+  end
+
 end 

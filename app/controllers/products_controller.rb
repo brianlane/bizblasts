@@ -1,5 +1,6 @@
 class ProductsController < ApplicationController
-  before_action :set_tenant, if: -> { request.subdomain.present? && request.subdomain != 'www' }
+  # Use ApplicationController's tenant setup for all host types (subdomain, custom domain, main domain)
+  # before_action :set_tenant is already defined globally, so no need to redefine it here.
   include BusinessAccessProtection
   skip_before_action :authenticate_user!
 

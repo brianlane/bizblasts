@@ -21,6 +21,8 @@ module Bizblasts
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 8.0
+    # Configure main domain for multi-tenant OAuth redirects
+    config.main_domain = Rails.env.production? ? 'bizblasts.com' : 'lvh.me'
 
     # Explicitly add ActsAsTenant middleware by requiring its specific file
     # require "acts_as_tenant/middleware" # Reverted - Let gem handle it
@@ -42,6 +44,30 @@ module Bizblasts
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
+    
+    # Add app/lib directory to autoload paths for security utilities
+    config.eager_load_paths << Rails.root.join("app", "lib")
+    
+    # SMS Configuration
+    config.sms_enabled = ActiveModel::Type::Boolean.new.cast(ENV.fetch('ENABLE_SMS', 'true'))
+
+    # Paths that require authentication
+    # Everything else is public by default (simpler and more maintainable)
+    # Defense in depth: Controllers also have authenticate_user!, but this provides a first-pass check
+    config.x.auth_required_paths = [
+      '/manage',        # Business management area
+      '/dashboard',     # User dashboard
+      '/admin',         # Admin panel (has its own authentication, but included for completeness)
+      '/settings',      # Account settings
+      '/profile',       # User profile
+      '/account',       # Account management
+      '/preferences',   # User preferences
+      '/clients',       # Client management
+      # User personal data - requires authentication to view
+      '/my-bookings',   # User's bookings across all businesses
+      '/invoices',      # User's invoices (viewing/paying)
+      '/transactions'   # User's transaction history
+    ]
 
     # Add app/assets/stylesheets to the asset load path
     config.assets.paths << Rails.root.join("app/assets/stylesheets")
@@ -50,6 +76,12 @@ module Bizblasts
     config.hosts << /.+\.lvh\.me/
     config.hosts << /.+\.bizblasts\.com/
     config.hosts << /.+\.bizblasts\.onrender\.com/
+    # Main platform domains (add apex + www to cover redirects)
+    [
+      "bizblasts.com",
+      "www.bizblasts.com",
+      "bizblasts.onrender.com"
+    ].each { |h| config.hosts << h }
     # Allow Render PR preview URLs (format: bizblasts-pr-XX.onrender.com)
     config.hosts << /bizblasts-pr-\d+\.onrender\.com/
 
@@ -64,5 +96,19 @@ module Bizblasts
 
     # SECURITY FIX: Add rack-attack middleware for rate limiting
     config.middleware.use Rack::Attack
+
+    # SECURITY: Webhook signature verification middleware
+    # Verifies Stripe and Twilio signatures before requests reach controllers
+    # This allows controllers to use full CSRF protection without skips
+    # Related: CWE-352 CSRF protection restructuring
+    # Explicitly require before use since it's in lib/
+    require_relative '../lib/middleware/webhook_authenticator'
+    config.middleware.use Middleware::WebhookAuthenticator
+
+    # Set the start of the week to Sunday for consistency across the app
+    config.beginning_of_week = :sunday
+
+    # Note: Active Record encryption is configured in config/initializers/active_record_encryption.rb
+    # with proper fail-fast behavior for production and test environment fallbacks for CI.
   end
 end

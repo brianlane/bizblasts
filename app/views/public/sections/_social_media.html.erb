@@ -1,0 +1,70 @@
+<% current_business = local_assigns[:business] %>
+<% social_links = {
+  'Facebook' => current_business&.facebook_url,
+  'Instagram' => current_business&.instagram_url,
+  'TikTok' => current_business&.tiktok_url,
+  'YouTube' => current_business&.youtube_url,
+  'LinkedIn' => current_business&.linkedin_url,
+  'Pinterest' => current_business&.pinterest_url,
+  'Twitter' => current_business&.twitter_url
+}.select { |_label, url| url.present? } %>
+
+<div class="social-media-section bg-black text-white py-12">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-10">
+      <div class="max-w-xl">
+        <h3 class="text-2xl font-bold"><%= section.content_data['title'].presence || 'Connect With Us' %></h3>
+        <p class="mt-3 text-gray-300">
+          <%= section.content_data['description'].presence || "Follow #{current_business&.name} across the web for updates, project highlights, and exclusive promotions." %>
+        </p>
+      </div>
+
+      <% accent_enabled = current_business&.website_layout_enhanced? %>
+      <div class="grid gap-6 md:grid-cols-2">
+        <div>
+          <p class="text-sm uppercase tracking-[0.3em] <%= accent_enabled ? 'accent-text' : 'text-red-400' %> mb-4">Contact</p>
+          <ul class="space-y-2 text-gray-300">
+            <% if current_business&.phone.present? %>
+              <li><span class="text-white font-medium">Phone:</span> <%= current_business.phone %></li>
+            <% end %>
+            <% if current_business&.email.present? %>
+              <% email_class = accent_enabled ? 'accent-link-white' : 'hover:text-red-300 transition' %>
+              <li><span class="text-white font-medium">Email:</span> <%= mail_to current_business.email, current_business.email, class: email_class %></li>
+            <% end %>
+            <% if current_business&.address.present? %>
+              <li>
+                <span class="text-white font-medium">Address:</span>
+                <div class="mt-1">
+                  <%= current_business.address %><br>
+                  <%= [current_business.city, current_business.state, current_business.zip].compact.join(', ') %>
+                </div>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+
+        <% if social_links.any? %>
+          <div>
+            <p class="text-sm uppercase tracking-[0.3em] <%= accent_enabled ? 'accent-text' : 'text-red-400' %> mb-4">Follow</p>
+            <ul class="space-y-3">
+              <% social_links.each do |label, url| %>
+                <li>
+                  <% link_classes = if accent_enabled
+                                      'inline-flex items-center gap-3 accent-link-white'
+                                    else
+                                      'inline-flex items-center gap-3 text-gray-300 hover:text-red-300 transition'
+                                    end %>
+                  <a href="<%= url %>" target="_blank" rel="noopener noreferrer" class="<%= link_classes %>">
+                    <span class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-sm font-semibold text-white"><%= label.first %></span>
+                    <span class="text-base font-medium"><%= label %></span>
+                  </a>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+

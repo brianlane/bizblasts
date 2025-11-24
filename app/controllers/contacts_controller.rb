@@ -36,7 +36,7 @@ class ContactsController < ApplicationController
     end
 
     # Security: Log contact attempts for monitoring
-    Rails.logger.info "[CONTACT] Contact form submission from IP: #{request.remote_ip}, Email: #{contact_params[:email]}"
+    SecureLogger.info "[CONTACT] Contact form submission from IP: #{request.remote_ip}, Email: #{contact_params[:email]}"
 
     # Send email with sanitized content
     begin

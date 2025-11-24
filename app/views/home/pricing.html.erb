@@ -5,7 +5,7 @@
 ) %>
 
 <!-- Pricing Header -->
-<section class="relative bg-cover bg-center text-white flex items-center h-auto py-16" style="background-image: url('<%= asset_path 'hero-image.png' %>');">
+<section class="relative bg-cover bg-center text-white flex items-center h-auto py-16" style="background-image: url('<%= asset_path('hero-image.png') rescue '/hero-image.png' %>');">
   <div class="absolute inset-0 bg-black opacity-50"></div>
   <div class="container relative z-10 mx-auto px-4">
     <div class="text-center max-w-4xl mx-auto">
@@ -45,9 +45,9 @@
           <tbody class="divide-y divide-gray-200">
             <tr>
               <td class="px-6 py-4 text-sm font-medium text-gray-900">Monthly Cost</td>
-              <td class="px-6 py-4 text-center text-sm font-bold text-primary">$0 - $99</td>
-              <td class="px-6 py-4 text-center text-sm text-gray-600">$8.25 - $49.90</td>
-              <td class="px-6 py-4 text-center text-sm text-gray-600">$16 - $49</td>
+              <td class="px-6 py-4 text-center text-sm font-bold text-primary">$0 - $29.99</td>
+              <td class="px-6 py-4 text-center text-sm text-gray-600">$8.25 - $49.99</td>
+              <td class="px-6 py-4 text-center text-sm text-gray-600">$16 - $49.99+</td>
               <td class="px-6 py-4 text-center text-sm text-gray-600">$30-80+</td>
             </tr>
             <tr class="bg-gray-50">
@@ -141,7 +141,7 @@
       <div class="bg-white rounded-2xl shadow-xl border-2 border-primary overflow-hidden">
         <div class="bg-primary text-white px-6 py-4">
           <h3 class="text-xl font-bold text-center">BizBlasts</h3>
-          <p class="text-center text-lg font-semibold">$0 - $99</p>
+          <p class="text-center text-lg font-semibold">$0 - $29.99</p>
         </div>
         <div class="p-6 space-y-4">
           <div class="flex items-center justify-between">
@@ -290,7 +290,7 @@
         <div class="p-8">
           <div class="text-center mb-8">
             <h3 class="text-2xl font-bold text-dark mb-2">Standard</h3>
-            <div class="text-5xl font-bold text-dark mb-2">$49</div>
+            <div class="text-5xl font-bold text-dark mb-2">$9.99</div>
             <p class="text-gray-600">+ 5% transaction fees</p>
             <p class="text-sm text-gray-500 mt-2">Most popular choice</p>
           </div>
@@ -346,7 +346,7 @@
       <div class="bg-white rounded-2xl p-8 shadow-xl border-2 border-gray-100 hover:border-primary transition-all duration-300">
         <div class="text-center mb-8">
           <h3 class="text-2xl font-bold text-dark mb-2">Premium</h3>
-          <div class="text-5xl font-bold text-dark mb-2">$99</div>
+          <div class="text-5xl font-bold text-dark mb-2">$29.99</div>
           <p class="text-gray-600">+ 3% transaction fees</p>
           <p class="text-sm text-gray-500 mt-2">For established businesses</p>
         </div>
@@ -411,7 +411,7 @@
 <div class="bg-primary text-white py-16">
   <div class="container mx-auto px-4 text-center">
     <h2 class="text-3xl lg:text-4xl font-bold mb-6">Ready to Get Started?</h2>
-    <p class="text-xl mb-8 opacity-90">Join thousands of professionals who trust BizBlasts to grow their business.</p>
+    <p class="text-xl mb-8 opacity-90">Join all of the professionals who trust BizBlasts to grow their business.</p>
     
     <% unless user_signed_in? %>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">

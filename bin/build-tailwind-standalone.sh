@@ -24,4 +24,8 @@ else
     bundle exec rake tailwind:build_standalone
 fi
 
-echo "Tailwind CSS build completed successfully!" 
+# Ensure the compiled asset is available to the Sprockets asset pipeline
+mkdir -p public/assets
+cp ./app/assets/builds/tailwind.css ./public/assets/tailwind.css
+
+echo "Tailwind CSS build completed successfully!"

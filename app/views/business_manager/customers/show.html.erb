@@ -391,7 +391,10 @@
                     </div>
                   </div>
                 </div>
-                <span class="text-amber-600 text-sm font-medium">View →</span>
+                <%= link_to business_manager_payment_path(payment),
+                      class: "text-amber-600 hover:text-amber-800 text-sm font-medium transition-colors" do %>
+                  View →
+                <% end %>
               </div>
             <% end %>
           </div>

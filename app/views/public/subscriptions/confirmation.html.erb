@@ -25,13 +25,29 @@
         <div class="flex items-start space-x-4">
           <% if @customer_subscription.product&.images&.attached? %>
             <div class="flex-shrink-0">
-              <%= image_tag rails_public_blob_url(@customer_subscription.product.images.first.variant(resize_to_limit: [80, 80])), 
-                    class: "w-16 h-16 rounded-lg object-cover" %>
+              <% img = @customer_subscription.product.images.first %>
+              <%= image_tag(
+                    rails_public_blob_url(img.variant(:thumb)),
+                    srcset: [
+                      "#{rails_public_blob_url(img.variant(:thumb))} 400w",
+                      "#{rails_public_blob_url(img.variant(:medium))} 1200w"
+                    ].join(', '),
+                    sizes: '(max-width: 768px) 100vw, 128px',
+                    class: "w-16 h-16 rounded-lg object-cover"
+                  ) %>
             </div>
           <% elsif @customer_subscription.service&.images&.attached? %>
             <div class="flex-shrink-0">
-              <%= image_tag rails_public_blob_url(@customer_subscription.service.images.first.representation(resize_to_limit: [80, 80])), 
-                    class: "w-16 h-16 rounded-lg object-cover" %>
+              <% img = @customer_subscription.service.images.first %>
+              <%= image_tag(
+                    rails_public_blob_url(img.variant(:thumb)),
+                    srcset: [
+                      "#{rails_public_blob_url(img.variant(:thumb))} 400w",
+                      "#{rails_public_blob_url(img.variant(:medium))} 1200w"
+                    ].join(', '),
+                    sizes: '(max-width: 768px) 100vw, 128px',
+                    class: "w-16 h-16 rounded-lg object-cover"
+                  ) %>
             </div>
           <% else %>
             <div class="flex-shrink-0 w-16 h-16 bg-purple-100 rounded-lg flex items-center justify-center">

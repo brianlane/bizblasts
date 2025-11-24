@@ -17,11 +17,11 @@ class PaymentReminderJob < ApplicationJob
         # Update invoice status to overdue if it's still pending
         invoice.update!(status: :overdue) if invoice.pending?
         
-        # Send reminder email
-        InvoiceMailer.payment_reminder(invoice).deliver_now
-        Rails.logger.info "[EMAIL] Sent payment reminder for Invoice ##{invoice.invoice_number}"
+        # Send reminder (email + SMS)
+        NotificationService.invoice_payment_reminder(invoice)
+        Rails.logger.info "[NOTIFICATION] Sent payment reminder for Invoice ##{invoice.invoice_number}"
       rescue => e
-        Rails.logger.error "[EMAIL] Failed to send payment reminder for Invoice ##{invoice.invoice_number}: #{e.message}"
+        Rails.logger.error "[NOTIFICATION] Failed to send payment reminder for Invoice ##{invoice.invoice_number}: #{e.message}"
       end
     end
 

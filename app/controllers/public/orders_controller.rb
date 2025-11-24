@@ -2,10 +2,11 @@
 
 module Public
   class OrdersController < ::OrdersController
+    after_action :no_store!, only: %i[show]
     skip_before_action :authenticate_user!, only: [:new, :create, :show, :validate_promo_code]
     skip_before_action :set_current_tenant, only: [:new, :create, :show, :validate_promo_code]
     skip_before_action :set_tenant_customer,  only: [:new, :create, :show, :validate_promo_code]
-    skip_before_action :verify_authenticity_token, only: [:validate_promo_code]
+
     before_action :set_tenant
     include BusinessAccessProtection
     before_action :check_business_user_checkout_access, only: [:new, :create]
@@ -46,13 +47,24 @@ module Public
     
     # Handle customer identification based on user type (similar to booking logic)
     if current_user&.client?
-      # Logged-in client: find or create their TenantCustomer by email
-      customer = current_tenant.tenant_customers.find_or_create_by!(email: current_user.email) do |c|
-        c.first_name = current_user.first_name
-        c.last_name  = current_user.last_name
-        c.phone      = current_user.phone
+      # Use CustomerLinker to ensure proper data sync
+      begin
+        linker = CustomerLinker.new(current_tenant)
+        customer = linker.link_user_to_customer(current_user)
+      rescue PhoneConflictError => e
+        Rails.logger.error "[OrdersController#create] CustomerLinker phone conflict for user #{current_user.id}: #{e.message}"
+        flash[:alert] = e.message
+        redirect_to new_order_path and return
+      rescue EmailConflictError => e
+        Rails.logger.error "[OrdersController#create] CustomerLinker error for user #{current_user.id}: #{e.message}"
+        flash[:alert] = e.message
+        redirect_to new_order_path and return
+      rescue StandardError => e
+        Rails.logger.error "[OrdersController#create] CustomerLinker error for user #{current_user.id}: #{e.message}"
+        flash[:alert] = "Unable to process order. Please try again."
+        redirect_to new_order_path and return
       end
-      
+
       creation_params = order_params.except(:tenant_customer_attributes, :create_account, :password, :password_confirmation)
       creation_params[:tenant_customer_id] = customer.id
       creation_params[:business_id]        = current_tenant.id
@@ -69,24 +81,28 @@ module Public
           redirect_to new_order_path and return
         end
         
-        # Try to find existing customer by email
-        customer = current_tenant.tenant_customers.find_by(email: nested[:email])
-        
-        if customer
-          # Update existing customer with new info if provided
-          customer.update!(
-            first_name: nested[:first_name].present? ? nested[:first_name] : customer.first_name,
-            last_name: nested[:last_name].present? ? nested[:last_name] : customer.last_name,
-            phone: nested[:phone].present? ? nested[:phone] : customer.phone
-          )
-        else
-          # Create new customer
-          customer = current_tenant.tenant_customers.create!(
+        # Use CustomerLinker for guest customer management
+        begin
+          linker = CustomerLinker.new(current_tenant)
+          customer = linker.find_or_create_guest_customer(
+            nested[:email],
             first_name: nested[:first_name] || 'Unknown',
             last_name: nested[:last_name] || 'Customer',
             phone: nested[:phone],
-            email: nested[:email].presence
+            phone_opt_in: nested[:phone_opt_in] == 'true' || nested[:phone_opt_in] == true
           )
+        rescue PhoneConflictError => e
+          Rails.logger.error "[OrdersController#create] CustomerLinker phone conflict for staff/manager: #{e.message}"
+          flash[:alert] = e.message
+          redirect_to new_order_path and return
+        rescue GuestConflictError => e
+          Rails.logger.error "[OrdersController#create] CustomerLinker guest conflict for staff/manager: #{e.message}"
+          flash[:alert] = e.message
+          redirect_to new_order_path and return
+        rescue StandardError => e
+          Rails.logger.error "[OrdersController#create] CustomerLinker error for staff/manager: #{e.message}"
+          flash[:alert] = "Unable to process customer information. Please try again."
+          redirect_to new_order_path and return
         end
       end
       
@@ -99,24 +115,28 @@ module Public
       nested = order_params[:tenant_customer_attributes] || {}
       full_name = [nested[:first_name], nested[:last_name]].compact.join(' ')
       
-      # Try to find existing customer by email
-      customer = current_tenant.tenant_customers.find_by(email: nested[:email])
-      
-      if customer
-        # Update existing customer with new info if provided
-        customer.update!(
-          first_name: nested[:first_name].present? ? nested[:first_name] : customer.first_name,
-          last_name: nested[:last_name].present? ? nested[:last_name] : customer.last_name,
-          phone: nested[:phone].present? ? nested[:phone] : customer.phone
-        )
-      else
-        # Create new customer
-        customer = current_tenant.tenant_customers.new(
+      # Use CustomerLinker for guest customer management
+      begin
+        linker = CustomerLinker.new(current_tenant)
+        customer = linker.find_or_create_guest_customer(
+          nested[:email],
           first_name: nested[:first_name] || 'Unknown',
           last_name: nested[:last_name] || 'Customer',
           phone: nested[:phone],
-          email: nested[:email]
+          phone_opt_in: nested[:phone_opt_in] == 'true' || nested[:phone_opt_in] == true
         )
+      rescue PhoneConflictError => e
+        Rails.logger.error "[OrdersController#create] CustomerLinker phone conflict for guest: #{e.message}"
+        flash[:alert] = e.message
+        redirect_to new_order_path and return
+      rescue GuestConflictError => e
+        Rails.logger.error "[OrdersController#create] CustomerLinker guest conflict for guest: #{e.message}"
+        flash[:alert] = e.message
+        redirect_to new_order_path and return
+      rescue StandardError => e
+        Rails.logger.error "[OrdersController#create] CustomerLinker error for guest: #{e.message}"
+        flash[:alert] = "Unable to process customer information. Please try again."
+        redirect_to new_order_path and return
       end
 
       # Handle account creation if requested
@@ -169,7 +189,7 @@ module Public
         @order ||= OrderCreator.build_from_cart(@cart) # Build order for re-render if not already done
         @order.tenant_customer = customer # Assign the invalid customer to the order for form population
         flash.now[:alert] = @order.errors.full_messages.to_sentence
-        render :new, status: :unprocessable_entity and return
+        render :new, status: :unprocessable_content and return
       end # End of customer.save if/else
 
     end # End of guest user else block
@@ -207,7 +227,7 @@ module Public
         else
           @order.errors.add(:promo_code, promo_result[:error])
           flash.now[:alert] = @order.errors.full_messages.to_sentence
-          render :new, status: :unprocessable_entity and return
+          render :new, status: :unprocessable_content and return
         end
       end
       
@@ -273,7 +293,7 @@ module Public
       @order.build_tenant_customer unless @order.tenant_customer.present?
       @order.tenant_customer ||= customer if customer.present? # Ensure customer is assigned back to the order for re-render
 
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
   end
 
@@ -298,14 +318,14 @@ module Public
       # Security: Additional authorization check for logged-in users
       if current_user.present?
         unless user_can_view_order?(@order)
-          Rails.logger.warn "[SECURITY] Unauthorized order access attempt: Order=#{@order.id}, User=#{current_user.email}, Customer=#{@order.tenant_customer&.email}, IP=#{request.remote_ip}"
+          SecureLogger.warn "[SECURITY] Unauthorized order access attempt: Order=#{@order.id}, User=#{current_user.email}, Customer=#{@order.tenant_customer&.email}, IP=#{request.remote_ip}"
           flash[:alert] = "You are not authorized to view this order."
           redirect_to tenant_root_path and return
         end
       else
         # For guest users, we'll allow access but log it for monitoring
         # Consider adding guest_access_token similar to invoices for better security
-        Rails.logger.info "[ORDER] Guest access to order: Order=#{@order.id}, Customer=#{@order.tenant_customer&.email}, IP=#{request.remote_ip}"
+        SecureLogger.info "[ORDER] Guest access to order: Order=#{@order.id}, Customer=#{@order.tenant_customer&.email}, IP=#{request.remote_ip}"
       end
       
       # Renders public/orders/show which renders orders/show
@@ -359,6 +379,13 @@ module Public
     end
 
     private
+
+    # Set Cache-Control headers to prevent caching
+    def no_store!
+      response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+      response.headers["Pragma"]        = "no-cache"
+      response.headers["Expires"]       = "0"
+    end
 
     # Build a temporary order object for promo code validation
     def build_temp_order_for_validation

@@ -5,9 +5,7 @@
     <div class="bg-white shadow-lg rounded-lg overflow-hidden">
       <!-- Header -->
       <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-8 text-white text-center">
-        <% if @booking.business.logo.attached? %>
-          <%= image_tag @booking.business.logo, class: "h-12 w-auto mx-auto mb-4", alt: @booking.business.name %>
-        <% end %>
+        <%= business_logo_tag(@booking.business, size: :medium, css_class: "h-12 w-auto mx-auto mb-4") %>
         <h1 class="text-2xl font-bold mb-2">Thank You!</h1>
         <p class="text-blue-100">Show your appreciation for great service</p>
       </div>
@@ -15,7 +13,7 @@
       <!-- Booking Details -->
       <div class="px-6 py-4 bg-blue-50 border-b">
         <div class="text-center">
-          <h2 class="text-lg font-semibold text-gray-800"><%= @booking.service.name %></h2>
+          <h2 class="text-lg font-semibold text-gray-800"><%= service_with_variant(@booking) %></h2>
           <p class="text-sm text-gray-600 mt-1">
             <%= @booking.local_start_time.strftime("%B %d, %Y at %I:%M %p") %>
           </p>

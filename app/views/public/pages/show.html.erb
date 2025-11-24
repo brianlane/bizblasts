@@ -1,12 +1,21 @@
 <% @business = current_tenant %>
 <div class="container mx-auto px-4 py-8">
-  <h1 class="text-3xl font-bold mb-6"><%= @business.name %></h1>
-  <p class="mb-4 text-gray-700"><%= @business.description %></p>
+  <% if @business %>
+    <h1 class="text-3xl font-bold mb-6"><%= @business.name %></h1>
+    <p class="mb-4 text-gray-700"><%= @business.description %></p>
+  <% else %>
+    <h1 class="text-3xl font-bold mb-6">Welcome</h1>
+    <p class="mb-4 text-gray-700">Business information is not available.</p>
+  <% end %>
 
   <h2 class="text-2xl font-bold mb-4">Our Services</h2>
-  <% if @business.services.active.any? %>
+  <% if @business&.services&.active&.any? %>
     <div class="space-y-4">
       <% @business.services.active.positioned.each do |service| %>
+        <% variants = service.service_variants.active.by_position %>
+        <% has_variants = variants.any? %>
+        <% default_variant = variants.first if has_variants %>
+        
         <div class="border rounded-lg p-4 shadow-sm">
           <div class="flex items-center gap-2 mb-2">
             <h3 class="text-xl font-semibold"><%= service.name %></h3>
@@ -15,19 +24,35 @@
                 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                 </svg>
-                Subscription
+                Subscription Available
               </span>
             <% end %>
           </div>
           <p class="text-gray-700 mt-1"><%= service.description %></p>
           <p class="text-gray-900 font-medium mt-2">
-            Duration: <%= service.duration %> minutes | Price: <%= number_to_currency(service.price) %>
+            <% if has_variants %>
+              <% min_duration = variants.minimum(:duration) %>
+              <% max_duration = variants.maximum(:duration) %>
+              <% duration_display = min_duration == max_duration ? "#{min_duration} minutes" : "#{min_duration}-#{max_duration} minutes" %>
+              Duration: <%= duration_display %> | 
+              <% min_price = variants.minimum(:price) %>
+              <% max_price = variants.maximum(:price) %>
+              <% price_display = min_price == max_price ? number_to_currency(min_price) : "#{number_to_currency(min_price)} - #{number_to_currency(max_price)}" %>
+              Price: <%= price_display %>
+            <% else %>
+              Duration: <%= service.duration %> minutes | Price: <%= number_to_currency(service.price) %>
+            <% end %>
           </p>
           <div class="mt-4 space-x-2">
-            <%= link_to "View Service", tenant_service_path(service), class: "inline-block bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700" %>
+            <% view_service_params = has_variants ? { service_variant_id: default_variant.id } : {} %>
+            <%= link_to "View Service", tenant_service_path(service, view_service_params), class: "inline-block bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700" %>
             <% first_active_staff = service.staff_members.active.first %>
+            <% book_params = { service_id: service.id, staff_member_id: first_active_staff&.id } %>
+            <% book_params[:service_variant_id] = default_variant.id if has_variants %>
+            <% default_book_path = tenant_calendar_path(book_params) %>
+            <% booking_path = book_now_path_with_service_area(fallback_path: default_book_path, service: service) %>
             <%= link_to "Book Now", 
-                tenant_calendar_path(service_id: service.id, staff_member_id: first_active_staff&.id), 
+                booking_path, 
                 class: "inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" %>
           </div>
         </div>
@@ -47,7 +72,7 @@
   <% end %>
   <br>
   <br>
-  <% products = @business.products.active.where(product_type: [:standard, :mixed]).positioned %>
+  <% products = @business&.products&.active&.where(product_type: [:standard, :mixed])&.positioned || [] %>
   <% products = products.select(&:visible_to_customers?) %>
   <% products = products.select { |p| p.name.downcase.include?(params[:q].downcase) } if params[:q].present? %>
   <% if products.any? %>
@@ -61,7 +86,7 @@
                 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                 </svg>
-                Subscription
+                Subscription Available
               </span>
             <% end %>
           </div>

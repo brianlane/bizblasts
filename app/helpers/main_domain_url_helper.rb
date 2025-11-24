@@ -12,13 +12,8 @@ module MainDomainUrlHelper
   # @param path [String] The path component of the URL (e.g., '/dashboard').
   # @return [String] The full URL on the main domain.
   def main_domain_url_for(path = '/')
-    # Extract base domain, handling potential ports
-    base_domain = request.domain # request.domain usually excludes port
-    port_string = request.port == 80 || request.port == 443 ? '' : ":#{request.port}"
-    
-    # Ensure path starts with a slash
-    path = path.start_with?('/') ? path : "/#{path}"
-    
-    "#{request.protocol}#{base_domain}#{port_string}#{path}"
+    # Use TenantHost helper for consistent main domain URL generation
+    # Create a mock business with no tenant setup to get main domain behavior
+    TenantHost.main_domain_url_for(request, path)
   end
 end 

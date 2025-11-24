@@ -1,0 +1,36 @@
+<div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; background-color: #ffffff;">
+  <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); color: white; padding: 28px 32px;">
+    <h1 style="margin: 0; font-size: 26px;">BizBlasts</h1>
+    <p style="margin: 8px 0 0; font-size: 16px; opacity: 0.9;">Connect Stripe to start accepting payments</p>
+  </div>
+
+  <div style="padding: 32px;">
+    <p style="font-size: 16px; color: #374151; margin: 0 0 18px;">
+      Hi <%= @user.first_name.presence || @user.email %>,
+    </p>
+
+    <p style="font-size: 16px; color: #4b5563; line-height: 1.6; margin: 0 0 16px;">
+      Your business <strong><%= @business.name %></strong> still needs to finish Stripe onboarding before you can collect payments through BizBlasts. The setup only takes a few minutes.
+    </p>
+
+    <div style="text-align: center; margin: 36px 0;">
+      <a href="<%= @magic_link_url %>" style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); color: white; padding: 16px 36px; text-decoration: none; border-radius: 10px; display: inline-block; font-weight: bold; font-size: 16px; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);">
+        Connect Stripe Now
+      </a>
+    </div>
+
+    <p style="font-size: 15px; color: #6b7280; line-height: 1.6; margin: 0 0 12px;">
+      This secure magic link signs you in automatically and walks you through the Stripe setup. Once complete, you can start accepting online payments immediately.
+    </p>
+
+    <p style="font-size: 15px; color: #6b7280; line-height: 1.6; margin: 0;">
+      Need help? Reply to this email or contact us at <a href="mailto:<%= @support_email %>"><%= @support_email %></a>.
+    </p>
+  </div>
+
+  <div style="background-color: #f9fafb; padding: 28px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 13px; color: #9ca3af;">
+    <p style="margin: 0 0 8px 0;">Thanks,<br>The BizBlasts Team</p>
+    <p style="margin: 0;">Need assistance? Email <a href="mailto:<%= @support_email %>" style="color: #7c3aed; text-decoration: none;"><%= @support_email %></a></p>
+  </div>
+</div>
+

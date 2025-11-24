@@ -61,3 +61,6 @@ test.log
 
 # Ignore coverage files
 coverage/.last_run.json
+/config/credentials/development.key
+
+coverage/

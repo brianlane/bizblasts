@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Business Registration</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f8f9fa;
+    }
+    .email-container {
+      background: white;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      border-bottom: 2px solid #e9ecef;
+      padding-bottom: 20px;
+    }
+    .header h1 {
+      color: #0066cc;
+      margin: 0;
+      font-size: 24px;
+    }
+    .business-info {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 6px;
+      margin: 20px 0;
+      border-left: 4px solid #0066cc;
+    }
+    .business-info h2 {
+      margin: 0 0 15px 0;
+      color: #0066cc;
+      font-size: 18px;
+    }
+    .info-row {
+      margin: 8px 0;
+      display: flex;
+      align-items: flex-start;
+    }
+    .info-label {
+      font-weight: bold;
+      min-width: 120px;
+      color: #555;
+    }
+    .info-value {
+      flex: 1;
+    }
+    .owner-info {
+      background: #fff3cd;
+      padding: 20px;
+      border-radius: 6px;
+      margin: 20px 0;
+      border-left: 4px solid #ffc107;
+    }
+    .owner-info h2 {
+      margin: 0 0 15px 0;
+      color: #856404;
+      font-size: 18px;
+    }
+    .actions {
+      text-align: center;
+      margin: 30px 0;
+    }
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background: #0066cc;
+      color: white !important;
+      text-decoration: none !important;
+      border-radius: 6px;
+      margin: 0 10px;
+      font-weight: bold;
+    }
+    .btn, .btn * {
+      color: white !important;
+      text-decoration: none !important;
+    }
+    .btn:hover {
+      background: #0056b3;
+    }
+    .btn.secondary {
+      background: #6c757d;
+      color: white !important;
+    }
+    .btn.secondary, .btn.secondary * {
+      color: white !important;
+      text-decoration: none !important;
+    }
+    .btn.secondary:hover {
+      background: #5a6268;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #e9ecef;
+      font-size: 14px;
+      color: #666;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .tier-free { background: #d4edda; color: #155724; }
+    .tier-starter { background: #cce5ff; color: #004085; }
+    .tier-premium { background: #f8d7da; color: #721c24; }
+
+    /* Email client specific overrides */
+    a[x-apple-data-detectors] {
+      color: inherit !important;
+      text-decoration: none !important;
+    }
+
+    /* Force white text in buttons for all email clients */
+    .btn a, a.btn, .btn.secondary a, a.btn.secondary {
+      color: white !important;
+      text-decoration: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>🎉 New Business Registration</h1>
+      <p>A new business has registered on BizBlasts</p>
+    </div>
+
+    <div class="business-info">
+      <h2>Business Information</h2>
+      <div class="info-row">
+        <span class="info-label">Business Name:</span>
+        <span class="info-value"><strong><%= @business.name %></strong></span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Industry:</span>
+        <span class="info-value"><%= @business.industry.humanize %></span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Tier:</span>
+        <span class="info-value">
+          <span class="status-badge tier-<%= @business.tier %>"><%= @business.tier.humanize %></span>
+        </span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Domain Setup:</span>
+        <span class="info-value">
+          <% if @business.host_type_subdomain? %>
+            Subdomain: <strong><%= @business.subdomain %>.bizblasts.com</strong>
+          <% elsif @business.host_type_custom_domain? %>
+            Custom Domain: <strong><%= @business.hostname %></strong>
+          <% end %>
+        </span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Phone:</span>
+        <span class="info-value"><%= @business.phone %></span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Email:</span>
+        <span class="info-value"><%= @business.email %></span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Address:</span>
+        <span class="info-value">
+          <%= @business.address %><br>
+          <%= @business.city %>, <%= @business.state %> <%= @business.zip %>
+        </span>
+      </div>
+      <% if @business.description.present? %>
+      <div class="info-row">
+        <span class="info-label">Description:</span>
+        <span class="info-value"><%= @business.description %></span>
+      </div>
+      <% end %>
+      <div class="info-row">
+        <span class="info-label">Registered:</span>
+        <span class="info-value"><%= @business.created_at.strftime("%B %d, %Y at %l:%M %p %Z") %></span>
+      </div>
+    </div>
+
+    <div class="owner-info">
+      <h2>Business Owner</h2>
+      <div class="info-row">
+        <span class="info-label">Name:</span>
+        <span class="info-value"><%= @owner_user.full_name %></span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Email:</span>
+        <span class="info-value"><%= @owner_user.email %></span>
+      </div>
+      <% if @owner_user.phone.present? %>
+      <div class="info-row">
+        <span class="info-label">Phone:</span>
+        <span class="info-value"><%= @owner_user.phone %></span>
+      </div>
+      <% end %>
+      <div class="info-row">
+        <span class="info-label">Role:</span>
+        <span class="info-value"><%= @owner_user.role.humanize %></span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <a href="<%= @business_url %>" class="btn">View Business in Admin</a>
+      <a href="<%= @owner_url %>" class="btn secondary">View Owner Profile</a>
+    </div>
+
+    <div class="footer">
+      <p>This is an automated notification from the BizBlasts admin system.</p>
+      <p>Registration ID: <%= @business.id %> | Owner ID: <%= @owner_user.id %></p>
+    </div>
+  </div>
+</body>
+</html>

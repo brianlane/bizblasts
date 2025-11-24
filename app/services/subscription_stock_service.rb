@@ -604,17 +604,17 @@ class SubscriptionStockService
   # Notification methods
   def send_order_notifications(order)
     begin
-      OrderMailer.subscription_order_created(order).deliver_later if defined?(OrderMailer)
-      BusinessMailer.subscription_order_received(order).deliver_later if defined?(BusinessMailer)
-      Rails.logger.info "[EMAIL] Sent order notifications for order #{order.id}"
+      NotificationService.subscription_order_created(order) if defined?(NotificationService)
+      BusinessMailer.subscription_order_received(order).deliver_later(queue: 'mailers') if defined?(BusinessMailer)
+      Rails.logger.info "[NOTIFICATION] Sent order notifications for order #{order.id}"
     rescue => e
-      Rails.logger.error "[EMAIL] Failed to send order notifications: #{e.message}"
+      Rails.logger.error "[NOTIFICATION] Failed to send order notifications: #{e.message}"
     end
   end
 
   def send_partial_fulfillment_notification(order, missing_quantity)
     begin
-      SubscriptionMailer.partial_fulfillment(customer_subscription, order, missing_quantity).deliver_later if defined?(SubscriptionMailer)
+      SubscriptionMailer.partial_fulfillment(customer_subscription, order, missing_quantity).deliver_later(queue: 'mailers') if defined?(SubscriptionMailer)
       Rails.logger.info "[EMAIL] Sent partial fulfillment notification for subscription #{customer_subscription.id}"
     rescue => e
       Rails.logger.error "[EMAIL] Failed to send partial fulfillment notification: #{e.message}"
@@ -623,7 +623,7 @@ class SubscriptionStockService
 
   def send_substitution_notification(order, substitutions)
     begin
-      SubscriptionMailer.product_substitution(customer_subscription, order, substitutions).deliver_later if defined?(SubscriptionMailer)
+      SubscriptionMailer.product_substitution(customer_subscription, order, substitutions).deliver_later(queue: 'mailers') if defined?(SubscriptionMailer)
       Rails.logger.info "[EMAIL] Sent substitution notification for subscription #{customer_subscription.id}"
     rescue => e
       Rails.logger.error "[EMAIL] Failed to send substitution notification: #{e.message}"
@@ -632,7 +632,7 @@ class SubscriptionStockService
 
   def send_skip_delivery_notification
     begin
-      SubscriptionMailer.delivery_skipped(customer_subscription).deliver_later if defined?(SubscriptionMailer)
+      SubscriptionMailer.delivery_skipped(customer_subscription).deliver_later(queue: 'mailers') if defined?(SubscriptionMailer)
       Rails.logger.info "[EMAIL] Sent skip delivery notification for subscription #{customer_subscription.id}"
     rescue => e
       Rails.logger.error "[EMAIL] Failed to send skip delivery notification: #{e.message}"
@@ -641,7 +641,7 @@ class SubscriptionStockService
 
   def send_stock_issue_notification
     begin
-      SubscriptionMailer.stock_issue_customer_contact(customer_subscription).deliver_later if defined?(SubscriptionMailer)
+      SubscriptionMailer.stock_issue_customer_contact(customer_subscription).deliver_later(queue: 'mailers') if defined?(SubscriptionMailer)
       Rails.logger.info "[EMAIL] Sent stock issue notification for subscription #{customer_subscription.id}"
     rescue => e
       Rails.logger.error "[EMAIL] Failed to send stock issue notification: #{e.message}"
@@ -650,7 +650,7 @@ class SubscriptionStockService
 
   def send_business_stock_alert
     begin
-      BusinessMailer.subscription_stock_alert(customer_subscription).deliver_later if defined?(BusinessMailer)
+      BusinessMailer.subscription_stock_alert(customer_subscription).deliver_later(queue: 'mailers') if defined?(BusinessMailer)
       Rails.logger.info "[EMAIL] Sent business stock alert for subscription #{customer_subscription.id}"
     rescue => e
       Rails.logger.error "[EMAIL] Failed to send business stock alert: #{e.message}"
@@ -659,7 +659,7 @@ class SubscriptionStockService
 
   def send_loyalty_compensation_notification(points_awarded, missing_quantity)
     begin
-      SubscriptionMailer.loyalty_compensation_awarded(customer_subscription, points_awarded, missing_quantity).deliver_later if defined?(SubscriptionMailer)
+      SubscriptionMailer.loyalty_compensation_awarded(customer_subscription, points_awarded, missing_quantity).deliver_later(queue: 'mailers') if defined?(SubscriptionMailer)
       Rails.logger.info "[EMAIL] Sent loyalty compensation notification for subscription #{customer_subscription.id}"
     rescue => e
       Rails.logger.error "[EMAIL] Failed to send loyalty compensation notification: #{e.message}"

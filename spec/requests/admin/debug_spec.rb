@@ -137,7 +137,7 @@ RSpec.describe "Admin Debug Page", type: :request do
   context "when request is within a tenant context" do
     before do 
       # Use hostname instead of subdomain for host!
-      host! "#{tenant1.hostname}.example.com" # Assuming tenant1 is created
+      host! host_for(tenant1) # Using TenantHost helper
       get admin_debug_path
     end
   

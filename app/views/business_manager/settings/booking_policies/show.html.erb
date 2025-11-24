@@ -218,6 +218,48 @@
           </div>
         </div>
 
+        <!-- Fixed Time Intervals Status Card -->
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+          <div class="bg-gradient-to-r from-teal-500 to-cyan-500 p-6">
+            <div class="flex items-center space-x-4">
+              <div class="bg-white/20 p-3 rounded-xl">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 10a2 2 0 1 0 4 0a2 2 0 0 0 -4 0 M6 4v4 M6 12v8 M10 16a2 2 0 1 0 4 0a2 2 0 0 0 -4 0 M12 4v10 M12 18v2 M16 7a2 2 0 1 0 4 0a2 2 0 0 0 -4 0 M18 4v1 M18 9v11"></path>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-white">Time Slot Intervals</h3>
+                <p class="text-teal-100 mt-1">How booking slots are arranged</p>
+              </div>
+            </div>
+          </div>
+          <div class="p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-500 mb-1">Current Setting</p>
+                <p class="text-2xl font-bold text-gray-900">
+                  <% if @booking_policy.use_fixed_intervals? %>
+                    Fixed (<%= pluralize(@booking_policy.interval_mins, 'minute') %>)
+                  <% else %>
+                    Service Duration
+                  <% end %>
+                </p>
+                <% if @booking_policy.use_fixed_intervals? %>
+                  <p class="text-sm text-gray-600 mt-1">Slots start every <%= @booking_policy.interval_mins %> minutes</p>
+                <% else %>
+                  <p class="text-sm text-gray-600 mt-1">Slots follow individual service durations</p>
+                <% end %>
+              </div>
+              <div class="<%= @booking_policy.use_fixed_intervals? ? 'bg-teal-50 text-teal-700' : 'bg-gray-50 text-gray-700' %> px-3 py-2 rounded-full text-sm font-medium">
+                <%= @booking_policy.use_fixed_intervals? ? 'Fixed Intervals' : 'Dynamic' %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Third Row: Automatic Confirmation & Service Area -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <!-- Automatic Confirmation Status Card -->
         <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
           <div class="bg-gradient-to-r from-indigo-500 to-purple-500 p-6">
@@ -243,6 +285,79 @@
               </div>
               <div class="<%= @booking_policy.auto_confirm_bookings? ? 'bg-indigo-50 text-indigo-700' : 'bg-gray-50 text-gray-700' %> px-3 py-2 rounded-full text-sm font-medium">
                 <%= @booking_policy.auto_confirm_bookings? ? 'Enabled' : 'Disabled' %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Service Area Radius Status Card -->
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+          <div class="bg-gradient-to-r from-yellow-500 to-amber-500 p-6">
+            <div class="flex items-center space-x-4">
+              <div class="bg-white/20 p-3 rounded-xl">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0L6.343 16.657a8 8 0 1111.314 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-white">Service Area</h3>
+                <p class="text-yellow-100 mt-1">Geographical booking radius</p>
+              </div>
+            </div>
+          </div>
+          <div class="p-6">
+            <% service_radius_enabled = @booking_policy.try(:service_radius_enabled?) %>
+            <% raw_radius_enabled = @booking_policy.try(:service_radius_enabled) %>
+            <% service_radius_miles = if service_radius_enabled
+                                        @booking_policy.try(:effective_service_radius_miles) || @booking_policy.try(:service_radius_miles)
+                                      else
+                                        @booking_policy.try(:service_radius_miles)
+                                      end %>
+            <% service_radius_active = service_radius_enabled && service_radius_miles.present? %>
+            <% service_radius_incomplete = raw_radius_enabled && !service_radius_active %>
+            <% status_classes =
+              if service_radius_active
+                'bg-yellow-50 text-yellow-700'
+              elsif service_radius_incomplete
+                'bg-amber-50 text-amber-700'
+              else
+                'bg-gray-50 text-gray-700'
+              end %>
+            <% status_label =
+              if service_radius_active
+                'Active'
+              elsif service_radius_incomplete
+                'Needs setup'
+              else
+                'Disabled'
+              end %>
+            <% business_zip = current_business.zip.presence || 'your business ZIP' %>
+
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-500 mb-1">Current Setting</p>
+                <p class="text-2xl font-bold text-gray-900">
+                  <% if service_radius_active %>
+                    Within <%= pluralize(service_radius_miles, 'mile') %> of <%= business_zip %>
+                  <% elsif service_radius_incomplete %>
+                    Incomplete configuration
+                  <% else %>
+                    No restriction
+                  <% end %>
+                </p>
+                <% if service_radius_active %>
+                  <p class="text-sm text-gray-600 mt-1">
+                    Bookings are limited to customers whose ZIP code is within the selected radius of <%= business_zip %>.
+                  </p>
+                <% else %>
+                  <p class="text-sm text-gray-600 mt-1">
+                    All customer locations are currently eligible to book.
+                  </p>
+                <% end %>
+              </div>
+              <div class="<%= status_classes %> px-3 py-2 rounded-full text-sm font-medium">
+                <%= status_label %>
               </div>
             </div>
           </div>

@@ -5,7 +5,8 @@ RSpec.describe Sms::DeliveryProcessor do
     let(:phone_number) { "1234567890" }
     let(:message) { "Test message" }
 
-    it 'returns true (placeholder implementation)' do
+    it 'returns true when SmsService reports success' do
+      allow(SmsService).to receive(:send_message).and_return({ success: true })
       expect(described_class.process_delivery(phone_number, message)).to be true
     end
 
@@ -29,7 +30,9 @@ RSpec.describe Sms::DeliveryProcessor do
   describe '.delivery_status' do
     let(:delivery_id) { "some_delivery_id" }
 
-    it 'returns :delivered (placeholder implementation)' do
+    it 'returns the status symbol from the corresponding SmsMessage' do
+      sms_double = instance_double(SmsMessage, status: 'delivered')
+      allow(SmsMessage).to receive(:find_by).with(external_id: delivery_id).and_return(sms_double)
       expect(described_class.delivery_status(delivery_id)).to eq(:delivered)
     end
 

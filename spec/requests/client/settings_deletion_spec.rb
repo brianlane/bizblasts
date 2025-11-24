@@ -54,7 +54,7 @@ RSpec.describe "Client::Settings Account Deletion", type: :request do
           }
         }.not_to change(User, :count)
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(flash[:alert]).to include('Current password is incorrect')
       end
     end
@@ -69,7 +69,7 @@ RSpec.describe "Client::Settings Account Deletion", type: :request do
           }
         }.not_to change(User, :count)
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(flash[:alert]).to include('must type DELETE')
       end
     end

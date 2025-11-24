@@ -5,7 +5,7 @@ ActiveAdmin.register Service do
   #
   # Uncomment all parameters which should be permitted for assignment
   #
-  permit_params :name, :description, :price, :duration, :active, :business_id
+  permit_params :name, :description, :price, :duration, :active, :business_id, :event_starts_at
   #
   # or
   #
@@ -79,43 +79,10 @@ ActiveAdmin.register Service do
     end
   end
 
-  filter :name
-  filter :description
-  filter :price
-  filter :duration
-  filter :active
-  filter :business
 
-  index do
-    selectable_column
-    id_column
-    column :name
-    column :description
-    column :price do |service|
-      number_to_currency(service.price) if service.price
-    end
-    column :duration do |service|
-      "#{service.duration} minutes" if service.duration
-    end
-    column :active
-    column :business
-    actions
-  end
-
-  form do |f|
-    f.inputs do
-      f.input :name
-      f.input :description
-      f.input :price
-      f.input :duration, label: 'Duration (minutes)'
-      f.input :active
-      f.input :business, collection: Business.order(:name)
-    end
-    f.actions
-  end
 
   # Permit relevant parameters including the association and nested image attributes
-  permit_params :business_id, :name, :description, :duration, :price, :active, :featured, :allow_discounts, :availability_settings, :service_type, staff_member_ids: [], add_on_product_ids: [], min_bookings: [], max_bookings: [], spots: [], images_attributes: [:id, :primary, :position, :_destroy]
+  permit_params :business_id, :name, :description, :duration, :price, :active, :featured, :allow_discounts, :availability_settings, :service_type, :event_starts_at, staff_member_ids: [], add_on_product_ids: [], min_bookings: [], max_bookings: [], spots: [], images_attributes: [:id, :primary, :position, :_destroy]
 
   # Define index block to correctly display business link
   index do
@@ -138,6 +105,9 @@ ActiveAdmin.register Service do
     column :duration
     column :active
     column :featured
+    column :tips_enabled do |service|
+      service.tips_enabled? ? "Yes" : "No"
+    end
     column "Staff Members" do |service|
       service.staff_members.map(&:name).join(", ")
     end
@@ -149,6 +119,7 @@ ActiveAdmin.register Service do
   filter :duration
   filter :active
   filter :featured
+  filter :tips_enabled, as: :select, collection: [['Yes', true], ['No', false]]
 
   # Form definition
   form do |f|
@@ -164,6 +135,7 @@ ActiveAdmin.register Service do
       f.input :allow_discounts, label: 'Allow Discount Codes', hint: 'When unchecked, this service will be excluded from all discount codes and promo codes'
       
       f.input :service_type, as: :select, collection: Service.service_types.keys.map { |k| [k.humanize, k] }, include_blank: false, input_html: { id: 'service_type_select' }
+      f.input :event_starts_at, hint: 'Only required for Event services. Customers will be limited to this date and time.'
 
       f.input :min_bookings
       f.input :max_bookings
@@ -192,7 +164,7 @@ ActiveAdmin.register Service do
     attributes_table do
       row :name
       row :business do |service|
-        link_to service.business.name, admin_business_path(service.business)
+        link_to service.business.name, admin_business_path(service.business.id)
       end
       row :description
       row :duration
@@ -201,6 +173,10 @@ ActiveAdmin.register Service do
       end
       row :active
       row :featured
+      row :tips_enabled do |service|
+        service.tips_enabled? ? "Yes" : "No"
+      end
+      row :event_starts_at if resource.event?
       row :service_type do |service|
         service.service_type.humanize if service.service_type
       end
@@ -254,7 +230,7 @@ ActiveAdmin.register Service do
         redirect_to resource_path(service), notice: "Service was successfully updated."
       else
         flash.now[:error] = service.errors.full_messages.join(', ')
-        render :edit, status: :unprocessable_entity
+        render :edit, status: :unprocessable_content
       end
     end
 
@@ -267,7 +243,7 @@ ActiveAdmin.register Service do
         redirect_to resource_path(service), notice: "Service was successfully created."
       else
         flash.now[:error] = service.errors.full_messages.join(', ')
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
       end
     end
 

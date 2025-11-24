@@ -7,8 +7,12 @@ FactoryBot.define do
 
     amount { invoice.total_amount }
     platform_fee_amount { 0.0 }
-    stripe_fee_amount { 0.0 }
-    business_amount { amount - (platform_fee_amount + stripe_fee_amount) }
+    stripe_fee_amount do
+      amount_cents = (amount * 100).to_i
+      ((amount_cents * 0.029).round + 30) / 100.0
+    end
+    # In direct charges, business pays Stripe fees, so we only deduct platform fee
+    business_amount { amount - stripe_fee_amount - platform_fee_amount }
 
     stripe_payment_intent_id { "pi_#{SecureRandom.hex(8)}" }
     stripe_charge_id { "ch_#{SecureRandom.hex(8)}" }
@@ -21,6 +25,8 @@ FactoryBot.define do
     failure_reason { nil }
     refunded_amount { 0.0 }
     refund_reason { nil }
+    tip_received_on_initial_payment { false }
+    tip_amount_received_initially { 0.0 }
     
     trait :pending do
       status { :pending }

@@ -3,13 +3,15 @@
 source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 8.0.2"
+gem "rails", "~> 8.1.1"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
-gem "propshaft"
+# gem "propshaft" # DISABLED: Using Sprockets for ActiveAdmin compatibility
+# Traditional asset pipeline for ActiveAdmin compatibility
+gem "sprockets-rails"
 # Use postgresql as the database for Active Record
-gem "pg", "~> 1.1"
+gem "pg", "~> 1.6"
 # Use the Puma web server [https://github.com/puma/puma]
-gem "puma", ">= 5.0"
+gem "puma", "~> 7.1"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
 
@@ -28,9 +30,13 @@ gem "aws-sdk-s3", require: false
 # Authentication
 gem "devise"
 gem "devise-jwt"
+gem "devise-passwordless"
 
 # Email delivery
 gem "resend"
+
+# SMS delivery
+gem "twilio-ruby", "~> 7.8"
 
 # Authorization
 gem "pundit"
@@ -39,11 +45,15 @@ gem "pundit"
 gem "rack-attack"
 
 # Admin interface
-gem "activeadmin"
-# gem "sassc-rails" # REMOVED - Conflicts with Propshaft
+gem "activeadmin", "~> 3.4.0"
+gem "jquery-ui-rails" # Required for jQuery UI in Sprockets
+# NOTE: We use Bun/SASS for CSS compilation, not a Ruby gem
 
 # ActiveStorage Validations
 gem 'active_storage_validations'
+
+# HTML sanitization for user-generated content
+gem 'sanitize', '~> 7.0' # Server-side HTML/markdown sanitization
 
 # Multitenancy
 gem "acts_as_tenant"
@@ -60,12 +70,22 @@ gem "thruster", require: false
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 gem "image_processing", "~> 1.2"
 
+gem 'cloudflare-rails'
+
 # Markdown processing with HTML support
 gem "redcarpet"
 gem "rouge" # For syntax highlighting
 
 # Stripe for payments
-gem "stripe", "~> 15.3"
+gem "stripe", "~> 18.0"
+
+# QR Code generation for in-person payments
+gem "rqrcode", "~> 3.1"
+gem "chunky_png", "~> 1.4"
+
+# Headless browser for automated Place ID extraction
+gem "cuprite"
+gem "capybara"
 
 # Use node based css bundling
 gem "cssbundling-rails"
@@ -78,8 +98,6 @@ group :development, :test do
   gem "factory_bot_rails"
   gem "faker"
   gem "rspec-rails"
-  gem "capybara"
-  gem "cuprite"
   gem "webdrivers"
 
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
@@ -89,7 +107,7 @@ group :development, :test do
   gem "rubocop-rails-omakase", require: false
 
   # Testing framework
-  gem "shoulda-matchers", "~> 6.5"
+  gem "shoulda-matchers", "~> 7.0"
   gem "database_cleaner" # Main database_cleaner gem
   gem "database_cleaner-active_record" # For cleaning the database between tests
   
@@ -98,6 +116,7 @@ group :development, :test do
 
   # For checking rendered templates in controller/request specs
   gem "rails-controller-testing"
+  
 end
 
 group :development do
@@ -116,3 +135,13 @@ gem 'ostruct'
 gem "kaminari", "~> 1.2"
 gem "rspec-retry", "~> 0.6.2", group: :test
 gem 'geocoder'
+gem 'zip-codes' # Offline US ZIP code database for fallback geocoding
+
+# Calendar integrations
+gem 'google-apis-calendar_v3', '~> 0.49'
+gem 'googleauth', '~> 1.16'
+gem 'microsoft_graph', '~> 0.22'
+gem 'oauth2', '~> 2.0'
+gem 'icalendar', '~> 2.12'
+gem 'httparty', '~> 0.23'
+# gem 'calendav', '~> 0.3' # Temporarily disabled due to architecture compatibility issues

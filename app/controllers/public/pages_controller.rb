@@ -10,6 +10,7 @@ module Public
     # or move the tenant setting logic here.
     before_action :set_tenant 
     before_action :ensure_html_format, only: [:show]
+    after_action :no_store_cache_headers, only: [:show]
 
     # Skip user authentication for public pages
     skip_before_action :authenticate_user!
@@ -38,11 +39,20 @@ module Public
 
       # PRIORITY: Check for website builder pages FIRST if business has Standard/Premium tier
       # This ensures custom website builder pages take precedence over free tier static pages
-      if current_tenant.standard_tier? || current_tenant.premium_tier?
+      skip_home_builder = (@page_slug == 'home') && current_tenant.website_layout_basic?
+      
+      if !skip_home_builder && (current_tenant.website_layout_enhanced? || current_tenant.standard_tier? || current_tenant.premium_tier?)
         @page = current_tenant.pages.find_by(slug: @page_slug, status: :published)
+        
+        if @page.blank? && current_tenant.website_layout_enhanced?
+          EnhancedWebsiteLayoutService.apply!(current_tenant)
+          @page = current_tenant.pages.find_by(slug: @page_slug, status: :published)
+        end
         
         # If we found a website builder page, render it
         if @page.present?
+          # Track page view for analytics
+          @page.increment_view_count!
           @business = current_tenant
           render template: 'public/pages/website_builder_page'
           return
@@ -120,6 +130,12 @@ module Public
 
     def render_not_found
       render file: Rails.root.join('public/404.html'), layout: false, status: :not_found
+    end
+    
+    def no_store_cache_headers
+      response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+      response.headers["Pragma"]        = "no-cache"
+      response.headers["Expires"]       = "0"
     end
     
     # Re-define set_tenant here IF it's private in ApplicationController

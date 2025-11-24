@@ -34,7 +34,7 @@
             </div>
             <div class="ml-3">
               <p class="text-sm text-yellow-800">
-                <span class="font-medium">Service:</span> <%= @booking.service.name %> (<%= @booking.service.duration %> min)
+                <span class="font-medium">Service:</span> <%= service_with_variant(@booking) %> (<%= service_duration(@booking) %> min)
               </p>
               <p class="text-sm text-yellow-800">
                 <span class="font-medium">Staff:</span> <%= @booking.staff_member.name %>
@@ -84,7 +84,7 @@
           <%# Display total spots for Experience services if applicable %>
           <% if @booking.service.experience? %>
             <p class="mt-1 text-sm text-blue-800 font-semibold">
-              Total Spots Available for <%= @booking.service.name %>: <%= @booking.service.spots || 0 %>
+              Total Spots Available for <%= service_with_variant(@booking) %>: <%= @booking.service_variant&.spots || @booking.service.spots || 0 %>
             </p>
           <% end %>
 
@@ -142,22 +142,51 @@
     const form = document.querySelector('form');
     const timeSelectionContainer = document.querySelector('.mb-6 .grid');
     
+    /**
+     * SECURITY FIX (Alert #24 - CWE-79): Safe URL construction with validation
+     *
+     * BEFORE: String concatenation for URL construction (vulnerable to injection)
+     * AFTER: URLSearchParams for safe encoding + origin validation
+     *
+     * This prevents:
+     * - XSS via query parameters
+     * - Open redirect attacks
+     * - javascript: or data: URI injections
+     */
     function loadTimeSlots() {
       if (!dateField || !staffSelect) return;
-      
+
       const date = dateField.value;
       const staffId = staffSelect.value;
-            
+
       // Show loading indicator
       if (timeSelectionContainer) {
         timeSelectionContainer.innerHTML = '<p class="text-gray-500 col-span-full">Loading available time slots...</p>';
       }
-      
-      // Create the URL with query parameters
-      const url = window.location.pathname + '?date=' + date + '&staff_member_id=' + staffId;
-      
-      // Redirect to the URL with the new parameters
-      window.location.href = url;
+
+      // SECURITY: Use URLSearchParams for safe URL encoding
+      const params = new URLSearchParams();
+      params.set('date', date);
+      params.set('staff_member_id', staffId);
+
+      // Construct URL using trusted pathname + encoded parameters
+      const url = `${window.location.pathname}?${params.toString()}`;
+
+      // SECURITY: Validate URL before redirect
+      try {
+        const urlObj = new URL(url, window.location.origin);
+
+        // Ensure same origin (prevent open redirect)
+        if (urlObj.origin !== window.location.origin) {
+          console.error('Security: Blocked redirect to different origin');
+          return;
+        }
+
+        // Safe to redirect - URL is validated and encoded
+        window.location.href = urlObj.toString();
+      } catch (e) {
+        console.error('Security: Invalid URL constructed:', e);
+      }
     }
     
     if (dateField) {

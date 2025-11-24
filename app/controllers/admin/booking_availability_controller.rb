@@ -15,7 +15,7 @@ module Admin
       
       unless @service && @staff_member
         # Security: Log suspicious access attempts
-        Rails.logger.warn "[SECURITY] Admin attempted to access non-existent service/staff: service_id=#{params[:service_id]}, staff_member_id=#{params[:staff_member_id]}, admin_user=#{current_admin_user&.email}, ip=#{request.remote_ip}"
+        SecureLogger.warn "[SECURITY] Admin attempted to access non-existent service/staff: service_id=#{params[:service_id]}, staff_member_id=#{params[:staff_member_id]}, admin_user=#{current_admin_user&.email}, ip=#{request.remote_ip}"
         flash[:error] = "Service or staff member not found"
         redirect_to admin_staff_members_path and return
       end

@@ -1,0 +1,111 @@
+# frozen_string_literal: true
+
+module Middleware
+  # Webhook signature verification middleware
+  #
+  # This middleware verifies Stripe webhook signatures BEFORE requests reach controllers,
+  # providing defense-in-depth security for external webhook endpoints.
+  #
+  # Supports:
+  # - Stripe webhook signature verification (HMAC-SHA256)
+  #
+  # Security benefits (Defense-in-Depth):
+  # - Signature verification happens at middleware layer (earlier in request cycle)
+  # - Controllers still require CSRF skip (webhooks don't have CSRF tokens)
+  # - Middleware + controller CSRF skip = defense-in-depth
+  # - Tenant context is not modified (maintains isolation)
+  # - Failed verification returns 401 before controller processing
+  #
+  # Architecture:
+  # Layer 1 (Middleware): Verifies cryptographic signatures
+  # Layer 2 (Controller): Skips CSRF check (not applicable to webhooks)
+  # Together: Provides authentication without false token requirements
+  #
+  # Note: Other webhook providers (e.g., Twilio) use ActionController::API
+  # and verify signatures in their controllers directly.
+  #
+  # Related: CWE-352 CSRF protection restructuring
+  class WebhookAuthenticator
+    STRIPE_PATHS = %r{
+      ^/webhooks/stripe$ |
+      ^/manage/settings/stripe_events$
+    }x
+
+    def initialize(app)
+      @app = app
+    end
+
+    def call(env)
+      request = ActionDispatch::Request.new(env)
+
+      if webhook_path?(request.path)
+        Rails.logger.info "[WebhookAuth] Processing webhook request to #{request.path}"
+
+        unless verify_signature(request)
+          Rails.logger.warn "[WebhookAuth] Signature verification failed for #{request.path} from IP #{request.remote_ip}"
+          return unauthorized_response(request.path)
+        end
+
+        Rails.logger.info "[WebhookAuth] Signature verified successfully for #{request.path}"
+      end
+
+      @app.call(env)
+    end
+
+    private
+
+    def webhook_path?(path)
+      STRIPE_PATHS.match?(path)
+    end
+
+    def verify_signature(request)
+      if STRIPE_PATHS.match?(request.path)
+        verify_stripe_signature(request)
+      else
+        false
+      end
+    end
+
+    def verify_stripe_signature(request)
+      payload = request.body.read
+      request.body.rewind # Important: rewind so controller can read again
+      sig_header = request.env['HTTP_STRIPE_SIGNATURE']
+
+      if sig_header.blank?
+        Rails.logger.error "[WebhookAuth] Stripe signature header missing - webhook request rejected"
+        return false
+      end
+
+      endpoint_secret = Rails.application.credentials.dig(:stripe, :webhook_secret) ||
+                       ENV['STRIPE_WEBHOOK_SECRET']
+
+      if endpoint_secret.blank?
+        Rails.logger.error "[WebhookAuth] CRITICAL: Stripe webhook secret not configured! Check Rails credentials or STRIPE_WEBHOOK_SECRET env var"
+        return false
+      end
+
+      begin
+        Stripe::Webhook.construct_event(payload, sig_header, endpoint_secret)
+        true
+      rescue JSON::ParserError => e
+        Rails.logger.warn "[WebhookAuth] Stripe webhook JSON parse error: #{e.message}"
+        false
+      rescue Stripe::SignatureVerificationError => e
+        Rails.logger.warn "[WebhookAuth] Stripe signature verification failed: #{e.message}"
+        false
+      end
+    end
+
+    def unauthorized_response(path)
+      Rails.logger.warn "[WebhookAuth] Returning 401 Unauthorized for #{path}"
+      [
+        401,
+        {
+          'Content-Type' => 'application/json',
+          'X-Webhook-Error' => 'Invalid signature'
+        },
+        ['{"error":"Unauthorized webhook request - invalid signature"}']
+      ]
+    end
+  end
+end

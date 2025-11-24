@@ -1,0 +1,624 @@
+I, [2025-07-03T04:02:12.831205 #135]  INFO -- : [f3f1534e-fd86-44b4-9228-252f0ee1acc4] Processing by Public::BookingController#create as HTML
+I, [2025-07-03T04:02:12.831255 #135]  INFO -- : [f3f1534e-fd86-44b4-9228-252f0ee1acc4]   Parameters: {"authenticity_token" => "[FILTERED]", "booking" => {"service_id" => "9", "staff_member_id" => "6", "tenant_customer_id" => "[FILTERED]", "tenant_customer_attributes" => "[FILTERED]", "create_account" => "0", "password" => "[FILTERED]", "password_confirmation" => "[FILTERED]", "start_time" => "2025-07-02 22:00:00 -0700", "quantity" => "[FILTERED]", "date" => "", "duration" => "60", "notes" => "", "booking_product_add_ons_attributes" => "[FILTERED]", "promo_code" => ""}, "commit" => "Confirm Booking"}
+I, [2025-07-03T04:02:12.839722 #135]  INFO -- : [f3f1534e-fd86-44b4-9228-252f0ee1acc4] [SetTenant] Tenant set: Business #12 (losnemassage)
+     [POST]302losnemassage.bizblasts.com/bookingclientIP="104.28.48.213" requestID="051c7760-1d4b-4c98" responseTimeMS=532 responseBytes=1785 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]200losnemassage.bizblasts.com/assets/custom-86494530.cssclientIP="216.100.61.82" requestID="573ab307-391c-46a6" responseTimeMS=5 responseBytes=11645 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:02:13.088712 #135]  INFO -- : [f3f1534e-fd86-44b4-9228-252f0ee1acc4] [ActiveJob] Enqueued ActionMailer::MailDeliveryJob (Job ID: 0840efd5-d2cc-4044-a098-6584c440ed6b) to SolidQueue(default) with arguments: "BusinessMailer", "new_customer_notification", "deliver_now", {args: [#<GlobalID:0x000079328f21f620 @uri=#<URI::GID gid://bizblasts/TenantCustomer/15>>]}
+I, [2025-07-03T04:02:13.089775 #135]  INFO -- : [f3f1534e-fd86-44b4-9228-252f0ee1acc4] [EMAIL] Scheduled business customer notification for Customer Jared Burstein (jaystar243419@gmail.com)
+I, [2025-07-03T04:02:13.316649 #135]  INFO -- : [f3f1534e-fd86-44b4-9228-252f0ee1acc4] [ActiveJob] Enqueued ActionMailer::MailDeliveryJob (Job ID: eca4d025-d39f-4b75-9ef4-9cef78e1bcb6) to SolidQueue(default) with arguments: "InvoiceMailer", "invoice_created", "deliver_now", {args: [#<GlobalID:0x000079328f288ad0 @uri=#<URI::GID gid://bizblasts/Invoice/24>>]}
+I, [2025-07-03T04:02:13.316826 #135]  INFO -- : [f3f1534e-fd86-44b4-9228-252f0ee1acc4] [EMAIL] Sent invoice created email for Invoice #INV-0BEAA357D0E1
+I, [2025-07-03T04:02:13.348268 #135]  INFO -- : [f3f1534e-fd86-44b4-9228-252f0ee1acc4] [ActiveJob] Enqueued ActionMailer::MailDeliveryJob (Job ID: 13ce661e-b8de-45ba-8840-65c7a7363b1e) to SolidQueue(default) with arguments: "BusinessMailer", "new_booking_notification", "deliver_now", {args: [#<GlobalID:0x000079328f2817f8 @uri=#<URI::GID gid://bizblasts/Booking/14>>]}
+I, [2025-07-03T04:02:13.349168 #135]  INFO -- : [f3f1534e-fd86-44b4-9228-252f0ee1acc4] [EMAIL] Scheduled business booking notification for Booking #14
+I, [2025-07-03T04:02:13.349689 #135]  INFO -- : [f3f1534e-fd86-44b4-9228-252f0ee1acc4] Redirected to https://losnemassage.bizblasts.com/booking/14/confirmation
+I, [2025-07-03T04:02:13.351527 #135]  INFO -- : [f3f1534e-fd86-44b4-9228-252f0ee1acc4] Completed 302 Found in 520ms (ActiveRecord: 355.7ms (31 queries, 0 cached) | GC: 2.7ms)
+I, [2025-07-03T04:02:13.357760 #135]  INFO -- : [c39adad7-bdae-4985-bb25-c4d266cb85c0] Started GET "/" for 162.158.91.118 at 2025-07-03 04:02:13 +0000
+I, [2025-07-03T04:02:13.385399 #135]  INFO -- : [c39adad7-bdae-4985-bb25-c4d266cb85c0] Processing by Public::PagesController#show as HTML
+I, [2025-07-03T04:02:13.406547 #135]  INFO -- : [c39adad7-bdae-4985-bb25-c4d266cb85c0] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:02:13.498158 #135]  INFO -- : [41533f8a-04ba-4fc8-9a49-7c9a52fef3e9] Started GET "/booking/14/confirmation" for 172.68.175.76 at 2025-07-03 04:02:13 +0000
+I, [2025-07-03T04:02:13.536012 #135]  INFO -- : [c39adad7-bdae-4985-bb25-c4d266cb85c0]   Rendered layout layouts/application.html.erb (Duration: 126.4ms | GC: 0.0ms)
+I, [2025-07-03T04:02:13.571361 #135]  INFO -- : [c39adad7-bdae-4985-bb25-c4d266cb85c0] Completed 200 OK in 179ms (Views: 61.0ms | ActiveRecord: 113.1ms (15 queries, 1 cached) | GC: 0.0ms)
+I, [2025-07-03T04:02:13.567818 #135]  INFO -- : [41533f8a-04ba-4fc8-9a49-7c9a52fef3e9] Processing by Public::BookingController#confirmation as HTML
+I, [2025-07-03T04:02:13.575242 #135]  INFO -- : [41533f8a-04ba-4fc8-9a49-7c9a52fef3e9]   Parameters: {"id" => "14"}
+I, [2025-07-03T04:02:13.599544 #135]  INFO -- : [41533f8a-04ba-4fc8-9a49-7c9a52fef3e9] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:02:13.610441 #135]  INFO -- : [41533f8a-04ba-4fc8-9a49-7c9a52fef3e9] [BOOKING] Guest access to booking confirmation: Booking=14, IP=172.68.175.76
+I, [2025-07-03T04:02:13.779945 #135]  INFO -- : [41533f8a-04ba-4fc8-9a49-7c9a52fef3e9]   Rendered layout layouts/application.html.erb (Duration: 160.3ms | GC: 0.0ms)
+I, [2025-07-03T04:02:13.780135 #135]  INFO -- : [41533f8a-04ba-4fc8-9a49-7c9a52fef3e9] Completed 200 OK in 205ms (Views: 15.7ms | ActiveRecord: 173.3ms (10 queries, 1 cached) | GC: 0.0ms)
+I, [2025-07-03T04:02:14.194914 #170]  INFO -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [0840efd5-d2cc-4044-a098-6584c440ed6b] Performing ActionMailer::MailDeliveryJob (Job ID: 0840efd5-d2cc-4044-a098-6584c440ed6b) from SolidQueue(default) enqueued at 2025-07-03T04:02:12.865694578Z with arguments: "BusinessMailer", "new_customer_notification", "deliver_now", {args: [#<GlobalID:0x0000793297562168 @uri=#<URI::GID gid://bizblasts/TenantCustomer/15>>]}
+I, [2025-07-03T04:02:14.293218 #170]  INFO -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [eca4d025-d39f-4b75-9ef4-9cef78e1bcb6] Performing ActionMailer::MailDeliveryJob (Job ID: eca4d025-d39f-4b75-9ef4-9cef78e1bcb6) from SolidQueue(default) enqueued at 2025-07-03T04:02:13.295033500Z with arguments: "InvoiceMailer", "invoice_created", "deliver_now", {args: [#<GlobalID:0x00007932970d22d8 @uri=#<URI::GID gid://bizblasts/Invoice/24>>]}
+I, [2025-07-03T04:02:14.374052 #170]  INFO -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [eca4d025-d39f-4b75-9ef4-9cef78e1bcb6] [EMAIL] InvoiceMailer.invoice_created preparing email for: jaystar243419@gmail.com | Invoice: INV-0BEAA357D0E1
+I, [2025-07-03T04:02:14.374239 #170]  INFO -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [eca4d025-d39f-4b75-9ef4-9cef78e1bcb6] [EMAIL] Preparing InvoiceMailer#invoice_created to: jaystar243419@gmail.com | Subject: Invoice #INV-0BEAA357D0E1 - Løsne Massage
+I, [2025-07-03T04:02:14.397601 #170]  INFO -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [0840efd5-d2cc-4044-a098-6584c440ed6b] [EMAIL] Preparing BusinessMailer#new_customer_notification to: losnemassageaz@gmail.com | Subject: New Customer: Jared Burstein
+     [GET]200losnemassage.bizblasts.com/clientIP="216.100.61.82" requestID="ee6eede3-b380-4cc2" responseTimeMS=221 responseBytes=6208 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]200losnemassage.bizblasts.com/booking/14/confirmationclientIP="104.28.48.213" requestID="f41e2e85-a535-4df0" responseTimeMS=288 responseBytes=4979 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]200losnemassage.bizblasts.com/assets/application-d0b3e67a.jsclientIP="216.100.61.82" requestID="76ccb9ba-5d7d-415d" responseTimeMS=97 responseBytes=226531 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]200losnemassage.bizblasts.com/assets/tailwind-528fd389.cssclientIP="216.100.61.82" requestID="6fc7cae8-a50e-420a" responseTimeMS=5 responseBytes=12466 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]200losnemassage.bizblasts.com/assets/bizblasts-logo-b1518f42.svgclientIP="216.100.61.82" requestID="170f2a47-1cc6-47b8" responseTimeMS=1 responseBytes=1101 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]200losnemassage.bizblasts.com/site.webmanifestclientIP="216.100.61.82" requestID="d9144d5c-54dd-459b" responseTimeMS=1 responseBytes=534 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]200losnemassage.bizblasts.com/assets/icon-d611b7ca.pngclientIP="216.100.61.82" requestID="c8c4be2b-e736-477a" responseTimeMS=1 responseBytes=3863 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:02:14.432884 #170]  INFO -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [0840efd5-d2cc-4044-a098-6584c440ed6b]   Rendered layout layouts/mailer.html.erb (Duration: 28.6ms | GC: 0.0ms)
+I, [2025-07-03T04:02:14.433898 #170]  INFO -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [0840efd5-d2cc-4044-a098-6584c440ed6b] [EMAIL] Mail object created successfully for losnemassageaz@gmail.com (delivery method: resend)
+I, [2025-07-03T04:02:14.511465 #135]  INFO -- : [6cd75aec-eeb0-47e0-a1f9-8e925817a4bb] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:02:14 +0000
+I, [2025-07-03T04:02:14.511878 #135]  INFO -- : [6cd75aec-eeb0-47e0-a1f9-8e925817a4bb] Processing by HealthController#check as */*
+I, [2025-07-03T04:02:14.512313 #135]  INFO -- : [6cd75aec-eeb0-47e0-a1f9-8e925817a4bb] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:02:14.578282 #170]  INFO -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [13ce661e-b8de-45ba-8840-65c7a7363b1e] Performing ActionMailer::MailDeliveryJob (Job ID: 13ce661e-b8de-45ba-8840-65c7a7363b1e) from SolidQueue(default) enqueued at 2025-07-03T04:02:13.321498630Z with arguments: "BusinessMailer", "new_booking_notification", "deliver_now", {args: [#<GlobalID:0x0000793295203780 @uri=#<URI::GID gid://bizblasts/Booking/14>>]}
+I, [2025-07-03T04:02:14.900927 #170]  INFO -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [13ce661e-b8de-45ba-8840-65c7a7363b1e] [EMAIL] Preparing BusinessMailer#new_booking_notification to: losnemassageaz@gmail.com | Subject: New Booking: Jared Burstein - Jared test
+I, [2025-07-03T04:02:14.911370 #170]  INFO -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [13ce661e-b8de-45ba-8840-65c7a7363b1e]   Rendered layout layouts/mailer.html.erb (Duration: 8.3ms | GC: 0.0ms)
+I, [2025-07-03T04:02:14.911852 #170]  INFO -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [13ce661e-b8de-45ba-8840-65c7a7363b1e] [EMAIL] Mail object created successfully for losnemassageaz@gmail.com (delivery method: resend)
+I, [2025-07-03T04:02:14.978259 #170]  INFO -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [0840efd5-d2cc-4044-a098-6584c440ed6b] Performed ActionMailer::MailDeliveryJob (Job ID: 0840efd5-d2cc-4044-a098-6584c440ed6b) from SolidQueue(default) in 976.22ms
+I, [2025-07-03T04:02:15.073864 #170]  INFO -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [eca4d025-d39f-4b75-9ef4-9cef78e1bcb6]   Rendered layout layouts/mailer.html.erb (Duration: 667.7ms | GC: 1.7ms)
+I, [2025-07-03T04:02:15.074645 #170]  INFO -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [eca4d025-d39f-4b75-9ef4-9cef78e1bcb6] [EMAIL] Mail object created successfully for jaystar243419@gmail.com (delivery method: resend)
+I, [2025-07-03T04:02:15.074721 #170]  INFO -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [eca4d025-d39f-4b75-9ef4-9cef78e1bcb6] [EMAIL] InvoiceMailer.invoice_created mail object created successfully for: jaystar243419@gmail.com
+E, [2025-07-03T04:02:15.264898 #170] ERROR -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [eca4d025-d39f-4b75-9ef4-9cef78e1bcb6] Error performing ActionMailer::MailDeliveryJob (Job ID: eca4d025-d39f-4b75-9ef4-9cef78e1bcb6) from SolidQueue(default) in 1086.62ms: Resend::Error::RateLimitExceededError (Too many requests. You can only make 2 requests per second. See rate limit response headers for more information. Or contact support to increase rate limit.):
+/opt/render/project/.gems/ruby/3.4.0/gems/resend-0.22.0/lib/resend/request.rb:52:in 'Resend::Request#handle_error!'
+/opt/render/project/.gems/ruby/3.4.0/gems/resend-0.22.0/lib/resend/request.rb:42:in 'Resend::Request#perform'
+/opt/render/project/.gems/ruby/3.4.0/gems/resend-0.22.0/lib/resend/emails.rb:11:in 'Resend::Emails.send'
+/opt/render/project/.gems/ruby/3.4.0/gems/resend-0.22.0/lib/resend/mailer.rb:41:in 'Resend::Mailer#deliver!'
+/opt/render/project/.gems/ruby/3.4.0/gems/mail-2.8.1/lib/mail/message.rb:2145:in 'Mail::Message#do_delivery'
+/opt/render/project/.gems/ruby/3.4.0/gems/mail-2.8.1/lib/mail/message.rb:253:in 'block in Mail::Message#deliver'
+/opt/render/project/.gems/ruby/3.4.0/gems/actionmailer-8.0.2/lib/action_mailer/base.rb:595:in 'block in ActionMailer::Base.deliver_mail'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/notifications.rb:212:in 'ActiveSupport::Notifications.instrument'
+/opt/render/project/.gems/ruby/3.4.0/gems/actionmailer-8.0.2/lib/action_mailer/base.rb:593:in 'ActionMailer::Base.deliver_mail'
+/opt/render/project/.gems/ruby/3.4.0/gems/mail-2.8.1/lib/mail/message.rb:253:in 'Mail::Message#deliver'
+/opt/render/project/.gems/ruby/3.4.0/gems/actionmailer-8.0.2/lib/action_mailer/message_delivery.rb:126:in 'block (2 levels) in ActionMailer::MessageDelivery#deliver_now'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/callbacks.rb:100:in 'ActiveSupport::Callbacks#run_callbacks'
+/opt/render/project/.gems/ruby/3.4.0/gems/actionmailer-8.0.2/lib/action_mailer/message_delivery.rb:125:in 'block in ActionMailer::MessageDelivery#deliver_now'
+/opt/render/project/.gems/ruby/3.4.0/gems/actionmailer-8.0.2/lib/action_mailer/rescuable.rb:21:in 'ActionMailer::Rescuable#handle_exceptions'
+/opt/render/project/.gems/ruby/3.4.0/gems/actionmailer-8.0.2/lib/action_mailer/message_delivery.rb:124:in 'ActionMailer::MessageDelivery#deliver_now'
+/opt/render/project/.gems/ruby/3.4.0/gems/actionmailer-8.0.2/lib/action_mailer/mail_delivery_job.rb:28:in 'ActionMailer::MailDeliveryJob#perform'
+/opt/render/project/.gems/ruby/3.4.0/gems/activejob-8.0.2/lib/active_job/execution.rb:68:in 'block in ActiveJob::Execution#_perform_job'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/callbacks.rb:120:in 'block in ActiveSupport::Callbacks#run_callbacks'
+/opt/render/project/.gems/ruby/3.4.0/gems/i18n-1.14.7/lib/i18n.rb:353:in 'I18n::Base#with_locale'
+/opt/render/project/.gems/ruby/3.4.0/gems/activejob-8.0.2/lib/active_job/translation.rb:9:in 'block (2 levels) in <module:Translation>'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/callbacks.rb:129:in 'BasicObject#instance_exec'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/callbacks.rb:129:in 'block in ActiveSupport::Callbacks#run_callbacks'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/core_ext/time/zones.rb:65:in 'Time.use_zone'
+/opt/render/project/.gems/ruby/3.4.0/gems/activejob-8.0.2/lib/active_job/timezones.rb:9:in 'block (2 levels) in <module:Timezones>'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/callbacks.rb:129:in 'BasicObject#instance_exec'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/callbacks.rb:129:in 'block in ActiveSupport::Callbacks#run_callbacks'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/callbacks.rb:140:in 'ActiveSupport::Callbacks#run_callbacks'
+/opt/render/project/.gems/ruby/3.4.0/gems/activejob-8.0.2/lib/active_job/execution.rb:67:in 'ActiveJob::Execution#_perform_job'
+/opt/render/project/.gems/ruby/3.4.0/gems/activejob-8.0.2/lib/active_job/instrumentation.rb:32:in 'ActiveJob::Instrumentation#_perform_job'
+     [GET]200losnemassage.bizblasts.com/assets/icon-5a5b546a.svgclientIP="216.100.61.82" requestID="bc00107a-f0b9-46a8" responseTimeMS=3 responseBytes=867 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+/opt/render/project/.gems/ruby/3.4.0/gems/activejob-8.0.2/lib/active_job/execution.rb:51:in 'ActiveJob::Execution#perform_now'
+/opt/render/project/.gems/ruby/3.4.0/gems/activejob-8.0.2/lib/active_job/instrumentation.rb:26:in 'block in ActiveJob::Instrumentation#perform_now'
+/opt/render/project/.gems/ruby/3.4.0/gems/activerecord-8.0.2/lib/active_record/railties/job_runtime.rb:13:in 'block in ActiveRecord::Railties::JobRuntime#instrument'
+/opt/render/project/.gems/ruby/3.4.0/gems/activejob-8.0.2/lib/active_job/instrumentation.rb:40:in 'block in ActiveJob::Instrumentation#instrument'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/notifications.rb:210:in 'block in ActiveSupport::Notifications.instrument'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/notifications/instrumenter.rb:58:in 'ActiveSupport::Notifications::Instrumenter#instrument'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/notifications.rb:210:in 'ActiveSupport::Notifications.instrument'
+/opt/render/project/.gems/ruby/3.4.0/gems/activejob-8.0.2/lib/active_job/instrumentation.rb:39:in 'ActiveJob::Instrumentation#instrument'
+/opt/render/project/.gems/ruby/3.4.0/gems/activerecord-8.0.2/lib/active_record/railties/job_runtime.rb:11:in 'ActiveRecord::Railties::JobRuntime#instrument'
+/opt/render/project/.gems/ruby/3.4.0/gems/activejob-8.0.2/lib/active_job/instrumentation.rb:26:in 'ActiveJob::Instrumentation#perform_now'
+/opt/render/project/.gems/ruby/3.4.0/gems/activejob-8.0.2/lib/active_job/logging.rb:32:in 'block in ActiveJob::Logging#perform_now'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/tagged_logging.rb:143:in 'block in ActiveSupport::TaggedLogging#tagged'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/tagged_logging.rb:38:in 'ActiveSupport::TaggedLogging::Formatter#tagged'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/tagged_logging.rb:143:in 'ActiveSupport::TaggedLogging#tagged'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/broadcast_logger.rb:241:in 'ActiveSupport::BroadcastLogger#method_missing'
+/opt/render/project/.gems/ruby/3.4.0/gems/activejob-8.0.2/lib/active_job/logging.rb:39:in 'ActiveJob::Logging#tag_logger'
+/opt/render/project/.gems/ruby/3.4.0/gems/activejob-8.0.2/lib/active_job/logging.rb:32:in 'ActiveJob::Logging#perform_now'
+/opt/render/project/.gems/ruby/3.4.0/gems/activejob-8.0.2/lib/active_job/execution.rb:29:in 'block in ActiveJob::Execution::ClassMethods#execute'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/callbacks.rb:120:in 'block in ActiveSupport::Callbacks#run_callbacks'
+/opt/render/project/.gems/ruby/3.4.0/gems/activejob-8.0.2/lib/active_job/railtie.rb:95:in 'block (4 levels) in <class:Railtie>'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/reloader.rb:77:in 'block in ActiveSupport::Reloader.wrap'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/execution_wrapper.rb:87:in 'ActiveSupport::ExecutionWrapper.wrap'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/reloader.rb:74:in 'ActiveSupport::Reloader.wrap'
+/opt/render/project/.gems/ruby/3.4.0/gems/activejob-8.0.2/lib/active_job/railtie.rb:94:in 'block (3 levels) in <class:Railtie>'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/callbacks.rb:129:in 'BasicObject#instance_exec'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/callbacks.rb:129:in 'block in ActiveSupport::Callbacks#run_callbacks'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/callbacks.rb:140:in 'ActiveSupport::Callbacks#run_callbacks'
+/opt/render/project/.gems/ruby/3.4.0/gems/activejob-8.0.2/lib/active_job/execution.rb:27:in 'ActiveJob::Execution::ClassMethods#execute'
+/opt/render/project/.gems/ruby/3.4.0/gems/solid_queue-1.1.5/app/models/solid_queue/claimed_execution.rb:102:in 'SolidQueue::ClaimedExecution#execute'
+/opt/render/project/.gems/ruby/3.4.0/gems/solid_queue-1.1.5/app/models/solid_queue/claimed_execution.rb:64:in 'SolidQueue::ClaimedExecution#perform'
+/opt/render/project/.gems/ruby/3.4.0/gems/solid_queue-1.1.5/lib/solid_queue/pool.rb:23:in 'block (2 levels) in SolidQueue::Pool#post'
+/opt/render/project/.gems/ruby/3.4.0/gems/activesupport-8.0.2/lib/active_support/execution_wrapper.rb:91:in 'ActiveSupport::ExecutionWrapper.wrap'
+/opt/render/project/.gems/ruby/3.4.0/gems/solid_queue-1.1.5/lib/solid_queue/app_executor.rb:7:in 'SolidQueue::AppExecutor#wrap_in_app_executor'
+/opt/render/project/.gems/ruby/3.4.0/gems/solid_queue-1.1.5/lib/solid_queue/pool.rb:22:in 'block in SolidQueue::Pool#post'
+/opt/render/project/.gems/ruby/3.4.0/gems/concurrent-ruby-1.3.5/lib/concurrent-ruby/concurrent/promises.rb:1593:in 'Concurrent::Promises::AbstractPromise#evaluate_to'
+/opt/render/project/.gems/ruby/3.4.0/gems/concurrent-ruby-1.3.5/lib/concurrent-ruby/concurrent/promises.rb:1776:in 'block in Concurrent::Promises::ChainPromise#on_resolvable'
+/opt/render/project/.gems/ruby/3.4.0/gems/concurrent-ruby-1.3.5/lib/concurrent-ruby/concurrent/executor/ruby_thread_pool_executor.rb:359:in 'Concurrent::RubyThreadPoolExecutor::Worker#run_task'
+/opt/render/project/.gems/ruby/3.4.0/gems/concurrent-ruby-1.3.5/lib/concurrent-ruby/concurrent/executor/ruby_thread_pool_executor.rb:350:in 'block (3 levels) in Concurrent::RubyThreadPoolExecutor::Worker#create_worker'
+<internal:kernel>:168:in 'Kernel#loop'
+/opt/render/project/.gems/ruby/3.4.0/gems/concurrent-ruby-1.3.5/lib/concurrent-ruby/concurrent/executor/ruby_thread_pool_executor.rb:341:in 'block (2 levels) in Concurrent::RubyThreadPoolExecutor::Worker#create_worker'
+/opt/render/project/.gems/ruby/3.4.0/gems/concurrent-ruby-1.3.5/lib/concurrent-ruby/concurrent/executor/ruby_thread_pool_executor.rb:340:in 'Kernel#catch'
+/opt/render/project/.gems/ruby/3.4.0/gems/concurrent-ruby-1.3.5/lib/concurrent-ruby/concurrent/executor/ruby_thread_pool_executor.rb:340:in 'block in Concurrent::RubyThreadPoolExecutor::Worker#create_worker'
+I, [2025-07-03T04:02:15.370324 #170]  INFO -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [13ce661e-b8de-45ba-8840-65c7a7363b1e] Performed ActionMailer::MailDeliveryJob (Job ID: 13ce661e-b8de-45ba-8840-65c7a7363b1e) from SolidQueue(default) in 946.01ms
+E, [2025-07-03T04:02:15.573300 #170] ERROR -- : SolidQueue-1.1.5 Error in thread (0.0ms)  error: "Resend::Error::RateLimitExceededError Too many requests. You can only make 2 requests per second. See rate limit response headers for more information. Or contact support to increase rate limit."
+I, [2025-07-03T04:02:19.511143 #135]  INFO -- : [40dbf3ce-6158-4459-be23-ec698dfd1909] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:02:19 +0000
+I, [2025-07-03T04:02:19.511651 #135]  INFO -- : [40dbf3ce-6158-4459-be23-ec698dfd1909] Processing by HealthController#check as */*
+I, [2025-07-03T04:02:19.512195 #135]  INFO -- : [40dbf3ce-6158-4459-be23-ec698dfd1909] Completed 200 OK in 0ms (Views: 0.1ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:02:24.511739 #135]  INFO -- : [03d6d563-ac4f-4bc0-a160-55ee7d3fd014] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:02:24 +0000
+I, [2025-07-03T04:02:24.512203 #135]  INFO -- : [03d6d563-ac4f-4bc0-a160-55ee7d3fd014] Processing by HealthController#check as */*
+I, [2025-07-03T04:02:24.512649 #135]  INFO -- : [03d6d563-ac4f-4bc0-a160-55ee7d3fd014] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+     [GET]200losnemassage.bizblasts.com/calendar?service_id=9&staff_member_id=6clientIP="216.100.61.82" requestID="38702205-703d-423b" responseTimeMS=47 responseBytes=16340 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:02:25.135443 #135]  INFO -- : [5628dbca-d192-4482-9802-5aff022c1495] Started GET "/calendar?service_id=9&staff_member_id=6" for 162.158.91.118 at 2025-07-03 04:02:25 +0000
+I, [2025-07-03T04:02:25.144043 #135]  INFO -- : [5628dbca-d192-4482-9802-5aff022c1495] Processing by Public::TenantCalendarController#index as HTML
+I, [2025-07-03T04:02:25.144112 #135]  INFO -- : [5628dbca-d192-4482-9802-5aff022c1495]   Parameters: {"service_id" => "9", "staff_member_id" => "6"}
+I, [2025-07-03T04:02:25.149582 #135]  INFO -- : [5628dbca-d192-4482-9802-5aff022c1495] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:02:25.167542 #135]  INFO -- : [5628dbca-d192-4482-9802-5aff022c1495]   Rendered layout layouts/application.html.erb (Duration: 8.6ms | GC: 0.0ms)
+I, [2025-07-03T04:02:25.167694 #135]  INFO -- : [5628dbca-d192-4482-9802-5aff022c1495] Completed 200 OK in 24ms (Views: 7.3ms | ActiveRecord: 9.0ms (8 queries, 0 cached) | GC: 0.0ms)
+     [GET]302losnemassage.bizblasts.com/payments/new?invoice_id=24clientIP="104.28.48.213" requestID="101e40c2-9300-4039" responseTimeMS=709 responseBytes=1914 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:02:26.103453 #135]  INFO -- : [ef98341b-ead9-4c78-9c81-c26c49872719] Started GET "/payments/new?invoice_id=24" for 172.68.174.82 at 2025-07-03 04:02:26 +0000
+I, [2025-07-03T04:02:26.109457 #135]  INFO -- : [ef98341b-ead9-4c78-9c81-c26c49872719] Processing by Public::PaymentsController#new as HTML
+I, [2025-07-03T04:02:26.109495 #135]  INFO -- : [ef98341b-ead9-4c78-9c81-c26c49872719]   Parameters: {"invoice_id" => "24"}
+I, [2025-07-03T04:02:26.113579 #135]  INFO -- : [ef98341b-ead9-4c78-9c81-c26c49872719] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:02:26.810404 #135]  INFO -- : [ef98341b-ead9-4c78-9c81-c26c49872719] Redirected to https://checkout.stripe.com/c/pay/cs_live_a1sYrkF1xZ6axLqDm3JJN0xJyJ09sSl0Y8HmprKUzCwNufY8UA1tkJMkXs#fidkdWxOYHwnPyd1blppbHNgWjA0V0t%2FTnA3TmJ%2FN1JCYXAyV0dtPHB2QGN%2FVGZzUXRucjBjdm9udzJgYmJWcW13aUBKTTIwQ05cNjZLQGZUYUtUdkcydGo1V0ZSR0pwUVRtU2lHa3ZSSm5TNTVcUFByf2RnNicpJ2N3amhWYHdzYHcnP3F3cGApJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl
+I, [2025-07-03T04:02:26.810585 #135]  INFO -- : [ef98341b-ead9-4c78-9c81-c26c49872719] Completed 302 Found in 701ms (ActiveRecord: 11.5ms (9 queries, 2 cached) | GC: 0.0ms)
+I, [2025-07-03T04:02:27.698054 #135]  INFO -- : [c1e9a1e7-48bf-46f8-8653-84f6ed9bede3] Started GET "/payments/new?invoice_id=24" for 172.68.174.11 at 2025-07-03 04:02:27 +0000
+I, [2025-07-03T04:02:27.774729 #135]  INFO -- : [c1e9a1e7-48bf-46f8-8653-84f6ed9bede3] Processing by Public::PaymentsController#new as HTML
+I, [2025-07-03T04:02:27.774782 #135]  INFO -- : [c1e9a1e7-48bf-46f8-8653-84f6ed9bede3]   Parameters: {"invoice_id" => "24"}
+I, [2025-07-03T04:02:27.779193 #135]  INFO -- : [c1e9a1e7-48bf-46f8-8653-84f6ed9bede3] [SetTenant] Tenant set: Business #12 (losnemassage)
+     [GET]302losnemassage.bizblasts.com/payments/new?invoice_id=24clientIP="104.28.48.213" requestID="de042c32-fe74-48e6" responseTimeMS=711 responseBytes=1918 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:02:28.405957 #135]  INFO -- : [c1e9a1e7-48bf-46f8-8653-84f6ed9bede3] Redirected to https://checkout.stripe.com/c/pay/cs_live_a1bwQup0hlepI8uxNkBFwvhtkPEwQtB6qWwv9WXC2ItBjQyqTClxucdYvi#fidkdWxOYHwnPyd1blppbHNgWjA0V0t%2FTnA3TmJ%2FN1JCYXAyV0dtPHB2QGN%2FVGZzUXRucjBjdm9udzJgYmJWcW13aUBKTTIwQ05cNjZLQGZUYUtUdkcydGo1V0ZSR0pwUVRtU2lHa3ZSSm5TNTVcUFByf2RnNicpJ2N3amhWYHdzYHcnP3F3cGApJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl
+I, [2025-07-03T04:02:28.406138 #135]  INFO -- : [c1e9a1e7-48bf-46f8-8653-84f6ed9bede3] Completed 302 Found in 631ms (ActiveRecord: 94.1ms (7 queries, 2 cached) | GC: 17.4ms)
+I, [2025-07-03T04:02:29.512393 #135]  INFO -- : [99a44f2e-3309-44fd-9110-601e8185093e] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:02:29 +0000
+I, [2025-07-03T04:02:29.512852 #135]  INFO -- : [99a44f2e-3309-44fd-9110-601e8185093e] Processing by HealthController#check as */*
+I, [2025-07-03T04:02:29.513517 #135]  INFO -- : [99a44f2e-3309-44fd-9110-601e8185093e] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:02:29.513001 #135]  INFO -- : [e587f83a-2fa1-431d-8bcc-4483b73a39a0] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:02:29 +0000
+I, [2025-07-03T04:02:29.514190 #135]  INFO -- : [e587f83a-2fa1-431d-8bcc-4483b73a39a0] Processing by HealthController#check as */*
+I, [2025-07-03T04:02:29.515057 #135]  INFO -- : [e587f83a-2fa1-431d-8bcc-4483b73a39a0] Completed 200 OK in 1ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.6ms)
+I, [2025-07-03T04:02:34.511016 #135]  INFO -- : [6cdaa91b-e8ca-4b3f-bb05-c4dacb886371] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:02:34 +0000
+I, [2025-07-03T04:02:34.511496 #135]  INFO -- : [6cdaa91b-e8ca-4b3f-bb05-c4dacb886371] Processing by HealthController#check as */*
+I, [2025-07-03T04:02:34.511931 #135]  INFO -- : [6cdaa91b-e8ca-4b3f-bb05-c4dacb886371] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:02:34.987760 #135]  INFO -- : [a256d4b3-90f7-4140-a4ed-63ca6aecf839] Started GET "/calendar?service_id=9&staff_member_id=6" for 162.158.91.118 at 2025-07-03 04:02:34 +0000
+I, [2025-07-03T04:02:34.994154 #135]  INFO -- : [a256d4b3-90f7-4140-a4ed-63ca6aecf839] Processing by Public::TenantCalendarController#index as HTML
+I, [2025-07-03T04:02:34.994188 #135]  INFO -- : [a256d4b3-90f7-4140-a4ed-63ca6aecf839]   Parameters: {"service_id" => "9", "staff_member_id" => "6"}
+I, [2025-07-03T04:02:34.997420 #135]  INFO -- : [a256d4b3-90f7-4140-a4ed-63ca6aecf839] [SetTenant] Tenant set: Business #12 (losnemassage)
+     [GET]200losnemassage.bizblasts.com/calendar?service_id=9&staff_member_id=6clientIP="216.100.61.82" requestID="c7a5f952-47f5-4ec1" responseTimeMS=39 responseBytes=16337 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:02:35.017097 #135]  INFO -- : [a256d4b3-90f7-4140-a4ed-63ca6aecf839]   Rendered layout layouts/application.html.erb (Duration: 10.3ms | GC: 1.9ms)
+I, [2025-07-03T04:02:35.017236 #135]  INFO -- : [a256d4b3-90f7-4140-a4ed-63ca6aecf839] Completed 200 OK in 23ms (Views: 10.0ms | ActiveRecord: 4.7ms (8 queries, 0 cached) | GC: 2.9ms)
+I, [2025-07-03T04:02:39.510793 #135]  INFO -- : [e2eb4e02-6fa3-4db6-b3bb-f9b78a661c92] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:02:39 +0000
+I, [2025-07-03T04:02:39.511309 #135]  INFO -- : [e2eb4e02-6fa3-4db6-b3bb-f9b78a661c92] Processing by HealthController#check as */*
+I, [2025-07-03T04:02:39.511825 #135]  INFO -- : [e2eb4e02-6fa3-4db6-b3bb-f9b78a661c92] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+     [POST]307bizblasts.com/webhooks/stripeclientIP="52.15.183.38" requestID="" responseTimeMS=0 responseBytes=53 userAgent="Stripe/1.0 (+https://stripe.com/docs/webhooks)"
+I, [2025-07-03T04:02:44.511412 #135]  INFO -- : [e4d38977-7e44-4438-a644-36e919f1c858] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:02:44 +0000
+I, [2025-07-03T04:02:44.512010 #135]  INFO -- : [e4d38977-7e44-4438-a644-36e919f1c858] Processing by HealthController#check as */*
+I, [2025-07-03T04:02:44.512581 #135]  INFO -- : [e4d38977-7e44-4438-a644-36e919f1c858] Completed 200 OK in 0ms (Views: 0.1ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:02:44.554943 #135]  INFO -- : [107903b2-1117-4615-a636-0828a73a2d2f] Started GET "/invoices/24?payment_success=true&token=[FILTERED]" for 172.68.175.34 at 2025-07-03 04:02:44 +0000
+I, [2025-07-03T04:02:44.562320 #135]  INFO -- : [107903b2-1117-4615-a636-0828a73a2d2f] Processing by Public::InvoicesController#show as HTML
+I, [2025-07-03T04:02:44.562371 #135]  INFO -- : [107903b2-1117-4615-a636-0828a73a2d2f]   Parameters: {"payment_success" => "true", "token" => "[FILTERED]", "id" => "24"}
+I, [2025-07-03T04:02:44.567638 #135]  INFO -- : [107903b2-1117-4615-a636-0828a73a2d2f] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:02:44.590362 #135]  INFO -- : [107903b2-1117-4615-a636-0828a73a2d2f]   Rendered layout layouts/application.html.erb (Duration: 10.5ms | GC: 0.5ms)
+     [GET]200losnemassage.bizblasts.com/invoices/24?payment_success=true&token=nVH93J-iK0aTgvjkvYiN1viezghVN5P4zHIEHFr7pfIclientIP="104.28.48.213" requestID="b323074d-ed22-4f8d" responseTimeMS=40 responseBytes=5014 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:02:44.590546 #135]  INFO -- : [107903b2-1117-4615-a636-0828a73a2d2f] Completed 200 OK in 28ms (Views: 6.3ms | ActiveRecord: 15.8ms (9 queries, 2 cached) | GC: 1.0ms)
+     [GET]200losnemassage.bizblasts.com/available-slots?service_id=9&date=2025-07-02clientIP="216.100.61.82" requestID="a5c2dc89-2262-48d5" responseTimeMS=218 responseBytes=1764 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]200losnemassage.bizblasts.com/available-slots?service_id=9&date=2025-07-02clientIP="216.100.61.82" requestID="de87e50f-a4a1-4ecc" responseTimeMS=24 responseBytes=1740 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]200losnemassage.bizblasts.com/available-slots?service_id=9&date=2025-07-02clientIP="216.100.61.82" requestID="753bbce7-22e2-4cc1" responseTimeMS=25 responseBytes=1764 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:02:48.562867 #135]  INFO -- : [e152f208-3787-467c-a86e-3baf3fc850f5] Started GET "/available-slots?service_id=9&date=2025-07-02" for 162.158.91.118 at 2025-07-03 04:02:48 +0000
+I, [2025-07-03T04:02:48.563935 #135]  INFO -- : [13de15a2-7c53-4ad1-afb6-ed6a11c720cb] Started GET "/available-slots?service_id=9&date=2025-07-02" for 172.68.175.87 at 2025-07-03 04:02:48 +0000
+I, [2025-07-03T04:02:48.569860 #135]  INFO -- : [931b7a82-d62d-4875-8520-864c5daefa8b] Started GET "/available-slots?service_id=9&date=2025-07-02" for 172.68.175.109 at 2025-07-03 04:02:48 +0000
+I, [2025-07-03T04:02:48.570838 #135]  INFO -- : [e152f208-3787-467c-a86e-3baf3fc850f5] Processing by Public::TenantCalendarController#available_slots as JSON
+I, [2025-07-03T04:02:48.570949 #135]  INFO -- : [e152f208-3787-467c-a86e-3baf3fc850f5]   Parameters: {"service_id" => "9", "date" => "2025-07-02"}
+I, [2025-07-03T04:02:48.571324 #135]  INFO -- : [13de15a2-7c53-4ad1-afb6-ed6a11c720cb] Processing by Public::TenantCalendarController#available_slots as JSON
+I, [2025-07-03T04:02:48.571965 #135]  INFO -- : [13de15a2-7c53-4ad1-afb6-ed6a11c720cb]   Parameters: {"service_id" => "9", "date" => "2025-07-02"}
+I, [2025-07-03T04:02:48.576310 #135]  INFO -- : [e152f208-3787-467c-a86e-3baf3fc850f5] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:02:48.576808 #135]  INFO -- : [13de15a2-7c53-4ad1-afb6-ed6a11c720cb] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:02:48.580524 #135]  INFO -- : [931b7a82-d62d-4875-8520-864c5daefa8b] Processing by Public::TenantCalendarController#available_slots as JSON
+I, [2025-07-03T04:02:48.580624 #135]  INFO -- : [931b7a82-d62d-4875-8520-864c5daefa8b]   Parameters: {"service_id" => "9", "date" => "2025-07-02"}
+I, [2025-07-03T04:02:48.584909 #135]  INFO -- : [e152f208-3787-467c-a86e-3baf3fc850f5] Completed 200 OK in 13ms (Views: 0.1ms | ActiveRecord: 9.1ms (8 queries, 0 cached) | GC: 0.6ms)
+I, [2025-07-03T04:02:48.586152 #135]  INFO -- : [13de15a2-7c53-4ad1-afb6-ed6a11c720cb] Completed 200 OK in 14ms (Views: 0.1ms | ActiveRecord: 11.1ms (8 queries, 0 cached) | GC: 0.8ms)
+I, [2025-07-03T04:02:48.687703 #135]  INFO -- : [931b7a82-d62d-4875-8520-864c5daefa8b] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:02:48.777681 #135]  INFO -- : [931b7a82-d62d-4875-8520-864c5daefa8b] Completed 200 OK in 197ms (Views: 0.1ms | ActiveRecord: 96.4ms (8 queries, 0 cached) | GC: 0.5ms)
+I, [2025-07-03T04:02:49.511198 #135]  INFO -- : [6c5b5f30-59e3-4be8-8601-3631f777e10f] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:02:49 +0000
+I, [2025-07-03T04:02:49.511695 #135]  INFO -- : [6c5b5f30-59e3-4be8-8601-3631f777e10f] Processing by HealthController#check as */*
+I, [2025-07-03T04:02:49.512248 #135]  INFO -- : [6c5b5f30-59e3-4be8-8601-3631f777e10f] Completed 200 OK in 0ms (Views: 0.1ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+     [GET]200losnemassage.bizblasts.com/available-slots?service_id=9&date=2025-07-03clientIP="216.100.61.82" requestID="da960f28-8b3f-40b0" responseTimeMS=18 responseBytes=1793 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]200losnemassage.bizblasts.com/available-slots?service_id=9&date=2025-07-03clientIP="216.100.61.82" requestID="b56f7a45-ed60-4d71" responseTimeMS=19 responseBytes=1809 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]200losnemassage.bizblasts.com/available-slots?service_id=9&date=2025-07-03clientIP="216.100.61.82" requestID="e9699383-a487-4a6d" responseTimeMS=17 responseBytes=1801 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:02:54.190752 #135]  INFO -- : [5628a7d6-6821-4b20-a722-f9cba085cff1] Started GET "/available-slots?service_id=9&date=2025-07-03" for 162.158.91.118 at 2025-07-03 04:02:54 +0000
+I, [2025-07-03T04:02:54.197100 #135]  INFO -- : [5628a7d6-6821-4b20-a722-f9cba085cff1] Processing by Public::TenantCalendarController#available_slots as JSON
+I, [2025-07-03T04:02:54.197142 #135]  INFO -- : [5628a7d6-6821-4b20-a722-f9cba085cff1]   Parameters: {"service_id" => "9", "date" => "2025-07-03"}
+I, [2025-07-03T04:02:54.201306 #135]  INFO -- : [5628a7d6-6821-4b20-a722-f9cba085cff1] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:02:54.207276 #135]  INFO -- : [5628a7d6-6821-4b20-a722-f9cba085cff1] Completed 200 OK in 10ms (Views: 0.3ms | ActiveRecord: 5.6ms (8 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:02:54.262322 #135]  INFO -- : [6e049ccf-6c0d-463c-854a-f14758e70ca6] Started GET "/available-slots?service_id=9&date=2025-07-03" for 162.158.91.117 at 2025-07-03 04:02:54 +0000
+I, [2025-07-03T04:02:54.268535 #135]  INFO -- : [6e049ccf-6c0d-463c-854a-f14758e70ca6] Processing by Public::TenantCalendarController#available_slots as JSON
+I, [2025-07-03T04:02:54.268575 #135]  INFO -- : [6e049ccf-6c0d-463c-854a-f14758e70ca6]   Parameters: {"service_id" => "9", "date" => "2025-07-03"}
+I, [2025-07-03T04:02:54.272093 #135]  INFO -- : [6e049ccf-6c0d-463c-854a-f14758e70ca6] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:02:54.277278 #135]  INFO -- : [6e049ccf-6c0d-463c-854a-f14758e70ca6] Completed 200 OK in 9ms (Views: 0.2ms | ActiveRecord: 4.7ms (8 queries, 0 cached) | GC: 0.1ms)
+I, [2025-07-03T04:02:54.280891 #135]  INFO -- : [c456cee9-da11-4d2f-8fc6-a9006f616568] Started GET "/available-slots?service_id=9&date=2025-07-03" for 162.158.91.118 at 2025-07-03 04:02:54 +0000
+I, [2025-07-03T04:02:54.286497 #135]  INFO -- : [c456cee9-da11-4d2f-8fc6-a9006f616568] Processing by Public::TenantCalendarController#available_slots as JSON
+I, [2025-07-03T04:02:54.286532 #135]  INFO -- : [c456cee9-da11-4d2f-8fc6-a9006f616568]   Parameters: {"service_id" => "9", "date" => "2025-07-03"}
+I, [2025-07-03T04:02:54.290032 #135]  INFO -- : [c456cee9-da11-4d2f-8fc6-a9006f616568] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:02:54.295819 #135]  INFO -- : [c456cee9-da11-4d2f-8fc6-a9006f616568] Completed 200 OK in 9ms (Views: 0.2ms | ActiveRecord: 4.9ms (8 queries, 0 cached) | GC: 0.2ms)
+I, [2025-07-03T04:02:54.511819 #135]  INFO -- : [9a2801d9-c290-4271-8dcd-ac4f53620999] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:02:54 +0000
+I, [2025-07-03T04:02:54.512280 #135]  INFO -- : [9a2801d9-c290-4271-8dcd-ac4f53620999] Processing by HealthController#check as */*
+I, [2025-07-03T04:02:54.512764 #135]  INFO -- : [9a2801d9-c290-4271-8dcd-ac4f53620999] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+     [POST]307bizblasts.com/webhooks/stripeclientIP="3.130.192.231" requestID="" responseTimeMS=0 responseBytes=53 userAgent="Stripe/1.0 (+https://stripe.com/docs/webhooks)"
+I, [2025-07-03T04:02:59.511721 #135]  INFO -- : [1a2f0974-0623-4fce-9410-fc85a2a72a71] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:02:59 +0000
+I, [2025-07-03T04:02:59.512373 #135]  INFO -- : [1a2f0974-0623-4fce-9410-fc85a2a72a71] Processing by HealthController#check as */*
+I, [2025-07-03T04:02:59.512896 #135]  INFO -- : [1a2f0974-0623-4fce-9410-fc85a2a72a71] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:02:59.511878 #135]  INFO -- : [e72d406a-c712-4299-876c-91a975fda65f] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:02:59 +0000
+I, [2025-07-03T04:02:59.513658 #135]  INFO -- : [e72d406a-c712-4299-876c-91a975fda65f] Processing by HealthController#check as */*
+I, [2025-07-03T04:02:59.513961 #135]  INFO -- : [e72d406a-c712-4299-876c-91a975fda65f] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+     [GET]304losnemassage.bizblasts.com/available-slots?service_id=9&date=2025-07-02clientIP="216.100.61.82" requestID="b0f20b44-b219-45fa" responseTimeMS=92 responseBytes=970 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]304losnemassage.bizblasts.com/available-slots?service_id=9&date=2025-07-02clientIP="216.100.61.82" requestID="63a366a5-dd2f-4085" responseTimeMS=90 responseBytes=982 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]304losnemassage.bizblasts.com/available-slots?service_id=9&date=2025-07-02clientIP="216.100.61.82" requestID="f56c7eda-533f-44b3" responseTimeMS=93 responseBytes=974 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:03:00.184385 #135]  INFO -- : [73edb943-f4a1-4eed-ae8c-21f558745073] Started GET "/available-slots?service_id=9&date=2025-07-02" for 172.68.175.87 at 2025-07-03 04:03:00 +0000
+I, [2025-07-03T04:03:00.186047 #135]  INFO -- : [a5791d4f-1511-4927-8896-beb6b35ef97d] Started GET "/available-slots?service_id=9&date=2025-07-02" for 172.68.175.109 at 2025-07-03 04:03:00 +0000
+I, [2025-07-03T04:03:00.187882 #135]  INFO -- : [0d9e6b32-73d9-4408-853e-3977004c2817] Started GET "/available-slots?service_id=9&date=2025-07-02" for 162.158.91.118 at 2025-07-03 04:03:00 +0000
+I, [2025-07-03T04:03:00.192488 #135]  INFO -- : [73edb943-f4a1-4eed-ae8c-21f558745073] Processing by Public::TenantCalendarController#available_slots as JSON
+I, [2025-07-03T04:03:00.192587 #135]  INFO -- : [73edb943-f4a1-4eed-ae8c-21f558745073]   Parameters: {"service_id" => "9", "date" => "2025-07-02"}
+I, [2025-07-03T04:03:00.194448 #135]  INFO -- : [a5791d4f-1511-4927-8896-beb6b35ef97d] Processing by Public::TenantCalendarController#available_slots as JSON
+I, [2025-07-03T04:03:00.194563 #135]  INFO -- : [a5791d4f-1511-4927-8896-beb6b35ef97d]   Parameters: {"service_id" => "9", "date" => "2025-07-02"}
+I, [2025-07-03T04:03:00.195948 #135]  INFO -- : [0d9e6b32-73d9-4408-853e-3977004c2817] Processing by Public::TenantCalendarController#available_slots as JSON
+I, [2025-07-03T04:03:00.196018 #135]  INFO -- : [0d9e6b32-73d9-4408-853e-3977004c2817]   Parameters: {"service_id" => "9", "date" => "2025-07-02"}
+I, [2025-07-03T04:03:00.198622 #135]  INFO -- : [73edb943-f4a1-4eed-ae8c-21f558745073] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:03:00.200421 #135]  INFO -- : [a5791d4f-1511-4927-8896-beb6b35ef97d] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:03:00.200907 #135]  INFO -- : [0d9e6b32-73d9-4408-853e-3977004c2817] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:03:00.271590 #135]  INFO -- : [73edb943-f4a1-4eed-ae8c-21f558745073] Completed 200 OK in 79ms (Views: 0.2ms | ActiveRecord: 74.8ms (8 queries, 0 cached) | GC: 0.3ms)
+I, [2025-07-03T04:03:00.275635 #135]  INFO -- : [a5791d4f-1511-4927-8896-beb6b35ef97d] Completed 200 OK in 81ms (Views: 0.1ms | ActiveRecord: 77.3ms (8 queries, 0 cached) | GC: 0.3ms)
+I, [2025-07-03T04:03:00.278147 #135]  INFO -- : [0d9e6b32-73d9-4408-853e-3977004c2817] Completed 200 OK in 82ms (Views: 0.1ms | ActiveRecord: 78.1ms (8 queries, 0 cached) | GC: 0.3ms)
+     [GET]304losnemassage.bizblasts.com/available-slots?service_id=9&date=2025-07-02clientIP="216.100.61.82" requestID="7a5fc584-6289-4094" responseTimeMS=23 responseBytes=984 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]304losnemassage.bizblasts.com/available-slots?service_id=9&date=2025-07-02clientIP="216.100.61.82" requestID="1a3db7ec-f1a4-41ab" responseTimeMS=25 responseBytes=978 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]304losnemassage.bizblasts.com/available-slots?service_id=9&date=2025-07-02clientIP="216.100.61.82" requestID="6f4d0f39-6195-45dc" responseTimeMS=27 responseBytes=978 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:03:04.363361 #135]  INFO -- : [c2cfd533-6691-4cf0-a610-b8a8d85feb82] Started GET "/available-slots?service_id=9&date=2025-07-02" for 172.68.175.87 at 2025-07-03 04:03:04 +0000
+I, [2025-07-03T04:03:04.365353 #135]  INFO -- : [f6650223-d3a3-45e6-9a72-7e15cd55311a] Started GET "/available-slots?service_id=9&date=2025-07-02" for 162.158.91.117 at 2025-07-03 04:03:04 +0000
+I, [2025-07-03T04:03:04.365984 #135]  INFO -- : [775ba41c-066a-47c0-b7bb-e50296256bd0] Started GET "/available-slots?service_id=9&date=2025-07-02" for 162.158.91.118 at 2025-07-03 04:03:04 +0000
+I, [2025-07-03T04:03:04.371937 #135]  INFO -- : [c2cfd533-6691-4cf0-a610-b8a8d85feb82] Processing by Public::TenantCalendarController#available_slots as JSON
+I, [2025-07-03T04:03:04.372034 #135]  INFO -- : [c2cfd533-6691-4cf0-a610-b8a8d85feb82]   Parameters: {"service_id" => "9", "date" => "2025-07-02"}
+I, [2025-07-03T04:03:04.373942 #135]  INFO -- : [775ba41c-066a-47c0-b7bb-e50296256bd0] Processing by Public::TenantCalendarController#available_slots as JSON
+I, [2025-07-03T04:03:04.374002 #135]  INFO -- : [775ba41c-066a-47c0-b7bb-e50296256bd0]   Parameters: {"service_id" => "9", "date" => "2025-07-02"}
+I, [2025-07-03T04:03:04.374858 #135]  INFO -- : [f6650223-d3a3-45e6-9a72-7e15cd55311a] Processing by Public::TenantCalendarController#available_slots as JSON
+I, [2025-07-03T04:03:04.374933 #135]  INFO -- : [f6650223-d3a3-45e6-9a72-7e15cd55311a]   Parameters: {"service_id" => "9", "date" => "2025-07-02"}
+I, [2025-07-03T04:03:04.376725 #135]  INFO -- : [c2cfd533-6691-4cf0-a610-b8a8d85feb82] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:03:04.379753 #135]  INFO -- : [775ba41c-066a-47c0-b7bb-e50296256bd0] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:03:04.381410 #135]  INFO -- : [f6650223-d3a3-45e6-9a72-7e15cd55311a] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:03:04.384164 #135]  INFO -- : [c2cfd533-6691-4cf0-a610-b8a8d85feb82] Completed 200 OK in 12ms (Views: 0.1ms | ActiveRecord: 8.2ms (8 queries, 0 cached) | GC: 0.5ms)
+I, [2025-07-03T04:03:04.387041 #135]  INFO -- : [775ba41c-066a-47c0-b7bb-e50296256bd0] Completed 200 OK in 13ms (Views: 0.1ms | ActiveRecord: 10.0ms (8 queries, 0 cached) | GC: 0.6ms)
+I, [2025-07-03T04:03:04.388312 #135]  INFO -- : [f6650223-d3a3-45e6-9a72-7e15cd55311a] Completed 200 OK in 13ms (Views: 0.1ms | ActiveRecord: 9.6ms (8 queries, 0 cached) | GC: 0.3ms)
+I, [2025-07-03T04:03:04.585739 #135]  INFO -- : [dd16b58d-5c76-4c5d-9bb8-19cd0b06320e] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:03:04 +0000
+I, [2025-07-03T04:03:04.586235 #135]  INFO -- : [dd16b58d-5c76-4c5d-9bb8-19cd0b06320e] Processing by HealthController#check as */*
+I, [2025-07-03T04:03:04.586852 #135]  INFO -- : [dd16b58d-5c76-4c5d-9bb8-19cd0b06320e] Completed 200 OK in 0ms (Views: 0.1ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+     [GET]200losnemassage.bizblasts.com/manage/transactionsclientIP="68.99.200.216" requestID="bfdd603c-26a1-4a6b" responseTimeMS=120 responseBytes=7597 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:03:06.692895 #135]  INFO -- : [8b650d00-64f5-42f2-b7a1-2ab1b0780bd4] Started GET "/manage/transactions" for 172.68.174.117 at 2025-07-03 04:03:06 +0000
+I, [2025-07-03T04:03:06.712149 #135]  INFO -- : [8b650d00-64f5-42f2-b7a1-2ab1b0780bd4] Processing by BusinessManager::TransactionsController#index as HTML
+I, [2025-07-03T04:03:06.716661 #135]  INFO -- : [8b650d00-64f5-42f2-b7a1-2ab1b0780bd4] [SECURITY] {timestamp: "2025-07-03T04:03:06Z", type: "auth_login_success", details: {user_id: 9, ip_address: "172.68.174.117", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"}, environment: "production"}
+I, [2025-07-03T04:03:06.729927 #135]  INFO -- : [8b650d00-64f5-42f2-b7a1-2ab1b0780bd4] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:03:06.808966 #135]  INFO -- : [8b650d00-64f5-42f2-b7a1-2ab1b0780bd4]   Rendered layout layouts/business_manager.html.erb (Duration: 26.1ms | GC: 0.2ms)
+I, [2025-07-03T04:03:06.809187 #135]  INFO -- : [8b650d00-64f5-42f2-b7a1-2ab1b0780bd4] Completed 200 OK in 97ms (Views: 7.1ms | ActiveRecord: 77.5ms (40 queries, 8 cached) | GC: 0.7ms)
+I, [2025-07-03T04:03:09.511785 #135]  INFO -- : [e236cad8-6a34-4101-b3fc-75f197cf9816] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:03:09 +0000
+I, [2025-07-03T04:03:09.512238 #135]  INFO -- : [e236cad8-6a34-4101-b3fc-75f197cf9816] Processing by HealthController#check as */*
+I, [2025-07-03T04:03:09.512654 #135]  INFO -- : [e236cad8-6a34-4101-b3fc-75f197cf9816] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:03:14.511992 #135]  INFO -- : [662c1a4b-98e9-4e12-896b-e2f984b27294] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:03:14 +0000
+I, [2025-07-03T04:03:14.512592 #135]  INFO -- : [662c1a4b-98e9-4e12-896b-e2f984b27294] Processing by HealthController#check as */*
+I, [2025-07-03T04:03:14.513275 #135]  INFO -- : [662c1a4b-98e9-4e12-896b-e2f984b27294] Completed 200 OK in 1ms (Views: 0.1ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:03:19.511225 #135]  INFO -- : [a65052dd-16b4-46f8-9c7f-457598fea7a3] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:03:19 +0000
+I, [2025-07-03T04:03:19.511599 #135]  INFO -- : [a65052dd-16b4-46f8-9c7f-457598fea7a3] Processing by HealthController#check as */*
+I, [2025-07-03T04:03:19.511997 #135]  INFO -- : [a65052dd-16b4-46f8-9c7f-457598fea7a3] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:03:24.510977 #135]  INFO -- : [3438c914-9484-46f2-b8e2-e058d20c98b3] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:03:24 +0000
+I, [2025-07-03T04:03:24.511463 #135]  INFO -- : [3438c914-9484-46f2-b8e2-e058d20c98b3] Processing by HealthController#check as */*
+I, [2025-07-03T04:03:24.511948 #135]  INFO -- : [3438c914-9484-46f2-b8e2-e058d20c98b3] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:03:29.511311 #135]  INFO -- : [4e10fcb8-e440-4175-a226-3728b486c22f] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:03:29 +0000
+I, [2025-07-03T04:03:29.511946 #135]  INFO -- : [4e10fcb8-e440-4175-a226-3728b486c22f] Processing by HealthController#check as */*
+I, [2025-07-03T04:03:29.512421 #135]  INFO -- : [4e10fcb8-e440-4175-a226-3728b486c22f] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:03:29.512574 #135]  INFO -- : [b44f1f35-a853-4585-8078-afb0d8d1ecba] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:03:29 +0000
+I, [2025-07-03T04:03:29.513194 #135]  INFO -- : [b44f1f35-a853-4585-8078-afb0d8d1ecba] Processing by HealthController#check as */*
+I, [2025-07-03T04:03:29.513462 #135]  INFO -- : [b44f1f35-a853-4585-8078-afb0d8d1ecba] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:03:33.618340 #135]  INFO -- : [6bb6d545-3f7d-48ac-aa36-ed3349bd73a2] Started GET "/payments/new?invoice_id=24" for 172.68.174.83 at 2025-07-03 04:03:33 +0000
+I, [2025-07-03T04:03:33.625137 #135]  INFO -- : [6bb6d545-3f7d-48ac-aa36-ed3349bd73a2] Processing by Public::PaymentsController#new as HTML
+I, [2025-07-03T04:03:33.625175 #135]  INFO -- : [6bb6d545-3f7d-48ac-aa36-ed3349bd73a2]   Parameters: {"invoice_id" => "24"}
+I, [2025-07-03T04:03:33.629741 #135]  INFO -- : [6bb6d545-3f7d-48ac-aa36-ed3349bd73a2] [SetTenant] Tenant set: Business #12 (losnemassage)
+     [GET]302losnemassage.bizblasts.com/payments/new?invoice_id=24clientIP="104.28.48.213" requestID="40d30e01-62d9-4e70" responseTimeMS=606 responseBytes=1920 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:03:34.221046 #135]  INFO -- : [6bb6d545-3f7d-48ac-aa36-ed3349bd73a2] Redirected to https://checkout.stripe.com/c/pay/cs_live_a1vqc5YBGGyQ02icx2hn1hzOfnDtGcvinEg4LiqFJkAhPx3DieZibVob2N#fidkdWxOYHwnPyd1blppbHNgWjA0V0t%2FTnA3TmJ%2FN1JCYXAyV0dtPHB2QGN%2FVGZzUXRucjBjdm9udzJgYmJWcW13aUBKTTIwQ05cNjZLQGZUYUtUdkcydGo1V0ZSR0pwUVRtU2lHa3ZSSm5TNTVcUFByf2RnNicpJ2N3amhWYHdzYHcnP3F3cGApJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl
+I, [2025-07-03T04:03:34.222333 #135]  INFO -- : [6bb6d545-3f7d-48ac-aa36-ed3349bd73a2] Completed 302 Found in 597ms (ActiveRecord: 4.6ms (7 queries, 2 cached) | GC: 0.7ms)
+I, [2025-07-03T04:03:34.511619 #135]  INFO -- : [390a8b2b-07a7-4db5-b082-96409a634c57] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:03:34 +0000
+I, [2025-07-03T04:03:34.512119 #135]  INFO -- : [390a8b2b-07a7-4db5-b082-96409a634c57] Processing by HealthController#check as */*
+I, [2025-07-03T04:03:34.512611 #135]  INFO -- : [390a8b2b-07a7-4db5-b082-96409a634c57] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:03:34.664418 #135]  INFO -- : [6b2d1c42-02b7-4c9c-98bf-d909437cf64e] Started GET "/payments/new?invoice_id=24" for 162.158.186.98 at 2025-07-03 04:03:34 +0000
+I, [2025-07-03T04:03:34.671379 #135]  INFO -- : [6b2d1c42-02b7-4c9c-98bf-d909437cf64e] Processing by Public::PaymentsController#new as HTML
+I, [2025-07-03T04:03:34.671418 #135]  INFO -- : [6b2d1c42-02b7-4c9c-98bf-d909437cf64e]   Parameters: {"invoice_id" => "24"}
+I, [2025-07-03T04:03:34.675242 #135]  INFO -- : [6b2d1c42-02b7-4c9c-98bf-d909437cf64e] [SetTenant] Tenant set: Business #12 (losnemassage)
+     [GET]302losnemassage.bizblasts.com/payments/new?invoice_id=24clientIP="104.28.48.213" requestID="2761ea33-d275-433a" responseTimeMS=539 responseBytes=1928 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:03:35.201163 #135]  INFO -- : [6b2d1c42-02b7-4c9c-98bf-d909437cf64e] Redirected to https://checkout.stripe.com/c/pay/cs_live_a1h4Q4JiOW7zPSByLY2q6m8OMVqvZc26I5ZtOMPEcAfvXvIFgvo2Gq7UTY#fidkdWxOYHwnPyd1blppbHNgWjA0V0t%2FTnA3TmJ%2FN1JCYXAyV0dtPHB2QGN%2FVGZzUXRucjBjdm9udzJgYmJWcW13aUBKTTIwQ05cNjZLQGZUYUtUdkcydGo1V0ZSR0pwUVRtU2lHa3ZSSm5TNTVcUFByf2RnNicpJ2N3amhWYHdzYHcnP3F3cGApJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl
+I, [2025-07-03T04:03:35.201322 #135]  INFO -- : [6b2d1c42-02b7-4c9c-98bf-d909437cf64e] Completed 302 Found in 530ms (ActiveRecord: 3.3ms (7 queries, 2 cached) | GC: 0.5ms)
+     [GET]200losnemassage.bizblasts.com/invoices/24?payment_cancelled=true&token=nVH93J-iK0aTgvjkvYiN1viezghVN5P4zHIEHFr7pfIclientIP="104.28.48.213" requestID="ca5b63bd-9d4b-49b4" responseTimeMS=23 responseBytes=5023 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:03:38.660608 #135]  INFO -- : [e744ce75-ec5c-4d3e-be6a-31a22f4e95ce] Started GET "/invoices/24?payment_cancelled=true&token=[FILTERED]" for 172.68.174.186 at 2025-07-03 04:03:38 +0000
+I, [2025-07-03T04:03:38.666818 #135]  INFO -- : [e744ce75-ec5c-4d3e-be6a-31a22f4e95ce] Processing by Public::InvoicesController#show as HTML
+I, [2025-07-03T04:03:38.666860 #135]  INFO -- : [e744ce75-ec5c-4d3e-be6a-31a22f4e95ce]   Parameters: {"payment_cancelled" => "true", "token" => "[FILTERED]", "id" => "24"}
+I, [2025-07-03T04:03:38.671088 #135]  INFO -- : [e744ce75-ec5c-4d3e-be6a-31a22f4e95ce] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:03:38.678006 #135]  INFO -- : [e744ce75-ec5c-4d3e-be6a-31a22f4e95ce]   Rendered layout layouts/application.html.erb (Duration: 4.3ms | GC: 0.2ms)
+I, [2025-07-03T04:03:38.678227 #135]  INFO -- : [e744ce75-ec5c-4d3e-be6a-31a22f4e95ce] Completed 200 OK in 11ms (Views: 3.0ms | ActiveRecord: 5.8ms (9 queries, 2 cached) | GC: 0.2ms)
+I, [2025-07-03T04:03:39.511761 #135]  INFO -- : [77ee5a72-74fa-4fd5-b239-81efadbbcc3d] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:03:39 +0000
+I, [2025-07-03T04:03:39.512216 #135]  INFO -- : [77ee5a72-74fa-4fd5-b239-81efadbbcc3d] Processing by HealthController#check as */*
+I, [2025-07-03T04:03:39.512662 #135]  INFO -- : [77ee5a72-74fa-4fd5-b239-81efadbbcc3d] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+     [GET]200losnemassage.bizblasts.com/invoices/24?payment_cancelled=true&token=nVH93J-iK0aTgvjkvYiN1viezghVN5P4zHIEHFr7pfIclientIP="104.28.48.213" requestID="ac3e41a7-7b49-4224" responseTimeMS=23 responseBytes=5015 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:03:41.489297 #135]  INFO -- : [d70fce0d-e750-42f7-a7fa-a60307882cd6] Started GET "/invoices/24?payment_cancelled=true&token=[FILTERED]" for 172.68.174.106 at 2025-07-03 04:03:41 +0000
+I, [2025-07-03T04:03:41.496998 #135]  INFO -- : [d70fce0d-e750-42f7-a7fa-a60307882cd6] Processing by Public::InvoicesController#show as HTML
+I, [2025-07-03T04:03:41.497041 #135]  INFO -- : [d70fce0d-e750-42f7-a7fa-a60307882cd6]   Parameters: {"payment_cancelled" => "true", "token" => "[FILTERED]", "id" => "24"}
+I, [2025-07-03T04:03:41.501818 #135]  INFO -- : [d70fce0d-e750-42f7-a7fa-a60307882cd6] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:03:41.508411 #135]  INFO -- : [d70fce0d-e750-42f7-a7fa-a60307882cd6]   Rendered layout layouts/application.html.erb (Duration: 3.7ms | GC: 0.0ms)
+I, [2025-07-03T04:03:41.508563 #135]  INFO -- : [d70fce0d-e750-42f7-a7fa-a60307882cd6] Completed 200 OK in 11ms (Views: 3.0ms | ActiveRecord: 5.5ms (9 queries, 2 cached) | GC: 0.0ms)
+I, [2025-07-03T04:03:44.511348 #135]  INFO -- : [462d43b2-5fcf-4ea0-b5f6-472b64915bfb] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:03:44 +0000
+I, [2025-07-03T04:03:44.511842 #135]  INFO -- : [462d43b2-5fcf-4ea0-b5f6-472b64915bfb] Processing by HealthController#check as */*
+I, [2025-07-03T04:03:44.512395 #135]  INFO -- : [462d43b2-5fcf-4ea0-b5f6-472b64915bfb] Completed 200 OK in 0ms (Views: 0.1ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:03:49.511346 #135]  INFO -- : [3106a362-a222-4c60-b48c-32b9e0543a92] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:03:49 +0000
+I, [2025-07-03T04:03:49.511887 #135]  INFO -- : [3106a362-a222-4c60-b48c-32b9e0543a92] Processing by HealthController#check as */*
+I, [2025-07-03T04:03:49.512516 #135]  INFO -- : [3106a362-a222-4c60-b48c-32b9e0543a92] Completed 200 OK in 1ms (Views: 0.1ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:03:54.511520 #135]  INFO -- : [6aa212dc-5362-4c40-a6c4-e7214a940149] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:03:54 +0000
+I, [2025-07-03T04:03:54.511940 #135]  INFO -- : [6aa212dc-5362-4c40-a6c4-e7214a940149] Processing by HealthController#check as */*
+I, [2025-07-03T04:03:54.512395 #135]  INFO -- : [6aa212dc-5362-4c40-a6c4-e7214a940149] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+     [GET]200losnemassage.bizblasts.com/invoices/24?payment_cancelled=true&token=nVH93J-iK0aTgvjkvYiN1viezghVN5P4zHIEHFr7pfIclientIP="104.28.48.213" requestID="4e3f804f-17d2-4f84" responseTimeMS=21 responseBytes=5005 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]200losnemassage.bizblasts.com/site.webmanifestclientIP="104.28.48.213" requestID="5278a405-b3ea-4417" responseTimeMS=1 responseBytes=534 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:03:56.427771 #135]  INFO -- : [e757ce9b-bdee-4baf-97ea-83ff14344668] Started GET "/invoices/24?payment_cancelled=true&token=[FILTERED]" for 162.158.186.98 at 2025-07-03 04:03:56 +0000
+I, [2025-07-03T04:03:56.434272 #135]  INFO -- : [e757ce9b-bdee-4baf-97ea-83ff14344668] Processing by Public::InvoicesController#show as HTML
+I, [2025-07-03T04:03:56.434303 #135]  INFO -- : [e757ce9b-bdee-4baf-97ea-83ff14344668]   Parameters: {"payment_cancelled" => "true", "token" => "[FILTERED]", "id" => "24"}
+I, [2025-07-03T04:03:56.439004 #135]  INFO -- : [e757ce9b-bdee-4baf-97ea-83ff14344668] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:03:56.445387 #135]  INFO -- : [e757ce9b-bdee-4baf-97ea-83ff14344668]   Rendered layout layouts/application.html.erb (Duration: 3.9ms | GC: 0.2ms)
+I, [2025-07-03T04:03:56.445559 #135]  INFO -- : [e757ce9b-bdee-4baf-97ea-83ff14344668] Completed 200 OK in 11ms (Views: 2.9ms | ActiveRecord: 5.8ms (9 queries, 2 cached) | GC: 0.2ms)
+I, [2025-07-03T04:03:59.511868 #135]  INFO -- : [c8f1847d-f0bf-430f-8750-f74215298527] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:03:59 +0000
+I, [2025-07-03T04:03:59.512523 #135]  INFO -- : [c8f1847d-f0bf-430f-8750-f74215298527] Processing by HealthController#check as */*
+I, [2025-07-03T04:03:59.513026 #135]  INFO -- : [c8f1847d-f0bf-430f-8750-f74215298527] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:03:59.512036 #135]  INFO -- : [e91eb32d-c419-44c9-8369-3843b0e3e8fe] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:03:59 +0000
+I, [2025-07-03T04:03:59.513744 #135]  INFO -- : [e91eb32d-c419-44c9-8369-3843b0e3e8fe] Processing by HealthController#check as */*
+I, [2025-07-03T04:03:59.514126 #135]  INFO -- : [e91eb32d-c419-44c9-8369-3843b0e3e8fe] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+     [GET]200losnemassage.bizblasts.com/assets/custom-86494530.cssclientIP="68.99.200.216" requestID="9dc36a83-ad63-4efb" responseTimeMS=5 responseBytes=11645 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]200losnemassage.bizblasts.com/assets/tailwind-528fd389.cssclientIP="68.99.200.216" requestID="3852a86a-a576-4b8a" responseTimeMS=4 responseBytes=12466 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]200losnemassage.bizblasts.com/users/sign_inclientIP="68.99.200.216" requestID="ef6347a4-cf09-43c5" responseTimeMS=23 responseBytes=5274 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]302losnemassage.bizblasts.com/manage/bookings/14clientIP="68.99.200.216" requestID="6bbf6c70-e089-4afa" responseTimeMS=17 responseBytes=1144 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]200losnemassage.bizblasts.com/assets/icon-5a5b546a.svgclientIP="68.99.200.216" requestID="5798ab59-09a2-47b9" responseTimeMS=1 responseBytes=867 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]200losnemassage.bizblasts.com/assets/application-d0b3e67a.jsclientIP="68.99.200.216" requestID="1db9b0fe-c46c-4b52" responseTimeMS=51 responseBytes=226531 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]200losnemassage.bizblasts.com/assets/icon-d611b7ca.pngclientIP="68.99.200.216" requestID="4b933483-0873-47ac" responseTimeMS=1 responseBytes=3863 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:04:03.125606 #135]  INFO -- : [c7c44fc4-5ea6-41ad-b0b5-43a5fa38ab2b] Started GET "/manage/bookings/14" for 162.158.187.45 at 2025-07-03 04:04:03 +0000
+I, [2025-07-03T04:04:03.134528 #135]  INFO -- : [c7c44fc4-5ea6-41ad-b0b5-43a5fa38ab2b] Processing by BusinessManager::BookingsController#show as HTML
+I, [2025-07-03T04:04:03.134571 #135]  INFO -- : [c7c44fc4-5ea6-41ad-b0b5-43a5fa38ab2b]   Parameters: {"id" => "14"}
+I, [2025-07-03T04:04:03.138938 #135]  INFO -- : [c7c44fc4-5ea6-41ad-b0b5-43a5fa38ab2b] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:04:03.141232 #135]  INFO -- : [c7c44fc4-5ea6-41ad-b0b5-43a5fa38ab2b] Redirected to https://losnemassage.bizblasts.com/users/sign_in
+I, [2025-07-03T04:04:03.141400 #135]  INFO -- : [c7c44fc4-5ea6-41ad-b0b5-43a5fa38ab2b] Filter chain halted as :authorize_access_to_business_manager rendered or redirected
+I, [2025-07-03T04:04:03.141489 #135]  INFO -- : [c7c44fc4-5ea6-41ad-b0b5-43a5fa38ab2b] Completed 302 Found in 7ms (ActiveRecord: 4.2ms (4 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:04:03.255462 #135]  INFO -- : [6abde4c9-348f-4249-88b2-8cee0b6a2fe4] Started GET "/users/sign_in" for 172.68.175.66 at 2025-07-03 04:04:03 +0000
+I, [2025-07-03T04:04:03.262564 #135]  INFO -- : [6abde4c9-348f-4249-88b2-8cee0b6a2fe4] Processing by Users::SessionsController#new as HTML
+I, [2025-07-03T04:04:03.267646 #135]  INFO -- : [6abde4c9-348f-4249-88b2-8cee0b6a2fe4] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:04:03.273772 #135]  INFO -- : [6abde4c9-348f-4249-88b2-8cee0b6a2fe4]   Rendered layout layouts/application.html.erb (Duration: 3.5ms | GC: 0.0ms)
+I, [2025-07-03T04:04:03.273929 #135]  INFO -- : [6abde4c9-348f-4249-88b2-8cee0b6a2fe4] Completed 200 OK in 11ms (Views: 5.4ms | ActiveRecord: 3.0ms (3 queries, 0 cached) | GC: 0.2ms)
+I, [2025-07-03T04:04:04.511647 #135]  INFO -- : [5258e912-80f3-468a-b233-7c562a79aaa5] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:04:04 +0000
+I, [2025-07-03T04:04:04.512053 #135]  INFO -- : [5258e912-80f3-468a-b233-7c562a79aaa5] Processing by HealthController#check as */*
+I, [2025-07-03T04:04:04.512492 #135]  INFO -- : [5258e912-80f3-468a-b233-7c562a79aaa5] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+     [GET]301bizblasts.com/clientIP="68.99.200.216" requestID="" responseTimeMS=0 responseBytes=139 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:04:07.247158 #135]  INFO -- : [898e57a3-05aa-4cba-b1d6-306aad4ec2c4] Started GET "/" for 172.68.175.35 at 2025-07-03 04:04:07 +0000
+I, [2025-07-03T04:04:07.253662 #135]  INFO -- : [898e57a3-05aa-4cba-b1d6-306aad4ec2c4] Processing by HomeController#index as HTML
+I, [2025-07-03T04:04:07.255598 #135]  INFO -- : [898e57a3-05aa-4cba-b1d6-306aad4ec2c4]   Rendered layout layouts/application.html.erb (Duration: 0.6ms | GC: 0.0ms)
+I, [2025-07-03T04:04:07.255686 #135]  INFO -- : [898e57a3-05aa-4cba-b1d6-306aad4ec2c4] Completed 200 OK in 2ms (Views: 0.8ms | ActiveRecord: 0.6ms (1 query, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:04:07.630615 #135]  INFO -- : [ddda7095-5076-4cc0-8515-c93138b13e3f] Started GET "/apple-touch-icon-120x120-precomposed.png" for 172.69.74.196 at 2025-07-03 04:04:07 +0000
+     [GET]200www.bizblasts.com/clientIP="68.99.200.216" requestID="47996201-7bfe-4001" responseTimeMS=14 responseBytes=9661 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]404www.bizblasts.com/apple-touch-icon-120x120-precomposed.pngclientIP="146.75.203.11" requestID="0f1f2377-dc14-4bf7" responseTimeMS=10 responseBytes=1636 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Safari"
+     [GET]404www.bizblasts.com/apple-touch-icon-120x120.pngclientIP="146.75.203.11" requestID="f1ba83b5-f2ba-4735" responseTimeMS=10 responseBytes=1636 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Safari"
+E, [2025-07-03T04:04:07.637618 #135] ERROR -- : [ddda7095-5076-4cc0-8515-c93138b13e3f]   
+[ddda7095-5076-4cc0-8515-c93138b13e3f] ActionController::RoutingError (No route matches [GET] "/apple-touch-icon-120x120-precomposed.png"):
+[ddda7095-5076-4cc0-8515-c93138b13e3f]   
+I, [2025-07-03T04:04:07.804727 #135]  INFO -- : [84887b94-984c-461d-9390-857ef8ce64e2] Started GET "/apple-touch-icon-120x120.png" for 172.69.74.196 at 2025-07-03 04:04:07 +0000
+E, [2025-07-03T04:04:07.811680 #135] ERROR -- : [84887b94-984c-461d-9390-857ef8ce64e2]   
+[84887b94-984c-461d-9390-857ef8ce64e2] ActionController::RoutingError (No route matches [GET] "/apple-touch-icon-120x120.png"):
+[84887b94-984c-461d-9390-857ef8ce64e2]   
+     [GET]200www.bizblasts.com/assets/icon-d611b7ca.pngclientIP="146.75.203.11" requestID="03d40d4e-61fe-42d4" responseTimeMS=1 responseBytes=3863 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Safari"
+     [POST]303losnemassage.bizblasts.com/users/sign_inclientIP="68.99.200.216" requestID="047deac6-eb10-48e0" responseTimeMS=235 responseBytes=1704 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]200losnemassage.bizblasts.com/manage/dashboardclientIP="68.99.200.216" requestID="19ef1a52-8ef8-4462" responseTimeMS=37 responseBytes=7176 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:04:09.247618 #135]  INFO -- : [79c836f1-ed79-4706-873c-dfa5d1a73587] Started POST "/users/sign_in" for 172.68.174.6 at 2025-07-03 04:04:09 +0000
+I, [2025-07-03T04:04:09.257154 #135]  INFO -- : [79c836f1-ed79-4706-873c-dfa5d1a73587] Processing by Users::SessionsController#create as HTML
+I, [2025-07-03T04:04:09.257214 #135]  INFO -- : [79c836f1-ed79-4706-873c-dfa5d1a73587]   Parameters: {"authenticity_token" => "[FILTERED]", "user" => {"email" => "[FILTERED]", "password" => "[FILTERED]", "remember_me" => "0"}, "commit" => "Sign In"}
+W, [2025-07-03T04:04:09.257565 #135]  WARN -- : [79c836f1-ed79-4706-873c-dfa5d1a73587] [SECURITY] {timestamp: "2025-07-03T04:04:09Z", type: "auth_login_failure", details: {user_id: nil, ip_address: "172.68.174.6", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"}, environment: "production"}
+I, [2025-07-03T04:04:09.261267 #135]  INFO -- : [79c836f1-ed79-4706-873c-dfa5d1a73587] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:04:09.471873 #135]  INFO -- : [79c836f1-ed79-4706-873c-dfa5d1a73587] [SECURITY] {timestamp: "2025-07-03T04:04:09Z", type: "auth_login_success", details: {user_id: 9, ip_address: "172.68.174.6", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"}, environment: "production"}
+I, [2025-07-03T04:04:09.477137 #135]  INFO -- : [79c836f1-ed79-4706-873c-dfa5d1a73587] Redirected to https://losnemassage.bizblasts.com/manage/dashboard
+I, [2025-07-03T04:04:09.477242 #135]  INFO -- : [79c836f1-ed79-4706-873c-dfa5d1a73587] Completed 303 See Other in 220ms (ActiveRecord: 6.7ms (6 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:04:09.510871 #135]  INFO -- : [e7077104-cc54-4882-8591-538c8cff9e95] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:04:09 +0000
+I, [2025-07-03T04:04:09.511339 #135]  INFO -- : [e7077104-cc54-4882-8591-538c8cff9e95] Processing by HealthController#check as */*
+I, [2025-07-03T04:04:09.511803 #135]  INFO -- : [e7077104-cc54-4882-8591-538c8cff9e95] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:04:09.702567 #135]  INFO -- : [2acf3d41-2f15-425e-9a31-750af566d193] Started GET "/manage/dashboard" for 172.68.174.155 at 2025-07-03 04:04:09 +0000
+I, [2025-07-03T04:04:09.708930 #135]  INFO -- : [2acf3d41-2f15-425e-9a31-750af566d193] Processing by BusinessManager::DashboardController#index as HTML
+I, [2025-07-03T04:04:09.710301 #135]  INFO -- : [2acf3d41-2f15-425e-9a31-750af566d193] [SECURITY] {timestamp: "2025-07-03T04:04:09Z", type: "auth_login_success", details: {user_id: 9, ip_address: "172.68.174.155", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"}, environment: "production"}
+I, [2025-07-03T04:04:09.716907 #135]  INFO -- : [2acf3d41-2f15-425e-9a31-750af566d193] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:04:09.734036 #135]  INFO -- : [2acf3d41-2f15-425e-9a31-750af566d193]   Rendered layout layouts/business_manager.html.erb (Duration: 8.7ms | GC: 0.0ms)
+I, [2025-07-03T04:04:09.734216 #135]  INFO -- : [2acf3d41-2f15-425e-9a31-750af566d193] Completed 200 OK in 25ms (Views: 4.6ms | ActiveRecord: 13.7ms (35 queries, 8 cached) | GC: 0.0ms)
+I, [2025-07-03T04:04:14.511529 #135]  INFO -- : [f3f570ea-67bb-4d43-9d0d-ff230949968c] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:04:14 +0000
+I, [2025-07-03T04:04:14.511969 #135]  INFO -- : [f3f570ea-67bb-4d43-9d0d-ff230949968c] Processing by HealthController#check as */*
+I, [2025-07-03T04:04:14.512440 #135]  INFO -- : [f3f570ea-67bb-4d43-9d0d-ff230949968c] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:04:14.737700 #135]  INFO -- : [c0c1891c-27f1-4fca-a0ac-b0fc2a790409] Started GET "/manage/bookings" for 172.70.215.39 at 2025-07-03 04:04:14 +0000
+I, [2025-07-03T04:04:14.775195 #135]  INFO -- : [c0c1891c-27f1-4fca-a0ac-b0fc2a790409] Processing by BusinessManager::BookingsController#index as HTML
+I, [2025-07-03T04:04:14.776698 #135]  INFO -- : [c0c1891c-27f1-4fca-a0ac-b0fc2a790409] [SECURITY] {timestamp: "2025-07-03T04:04:14Z", type: "auth_login_success", details: {user_id: 9, ip_address: "172.70.215.39", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"}, environment: "production"}
+I, [2025-07-03T04:04:14.972837 #135]  INFO -- : [c0c1891c-27f1-4fca-a0ac-b0fc2a790409] [SetTenant] Tenant set: Business #12 (losnemassage)
+     [GET]200losnemassage.bizblasts.com/manage/bookingsclientIP="68.99.200.216" requestID="87da7ade-b27b-4081" responseTimeMS=352 responseBytes=8960 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:04:15.085412 #135]  INFO -- : [c0c1891c-27f1-4fca-a0ac-b0fc2a790409]   Rendered layout layouts/business_manager.html.erb (Duration: 8.0ms | GC: 0.0ms)
+I, [2025-07-03T04:04:15.085655 #135]  INFO -- : [c0c1891c-27f1-4fca-a0ac-b0fc2a790409] Completed 200 OK in 310ms (Views: 5.6ms | ActiveRecord: 296.1ms (33 queries, 8 cached) | GC: 0.0ms)
+I, [2025-07-03T04:04:19.511876 #135]  INFO -- : [43d822c2-2dcf-46bf-8ff9-04033b76bc02] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:04:19 +0000
+I, [2025-07-03T04:04:19.512366 #135]  INFO -- : [43d822c2-2dcf-46bf-8ff9-04033b76bc02] Processing by HealthController#check as */*
+I, [2025-07-03T04:04:19.512823 #135]  INFO -- : [43d822c2-2dcf-46bf-8ff9-04033b76bc02] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:04:21.716466 #135]  INFO -- : [36841701-c5b9-4b78-a7b6-c0c5c0a17313] Started PATCH "/manage/bookings/14/confirm" for 172.70.215.39 at 2025-07-03 04:04:21 +0000
+I, [2025-07-03T04:04:21.722883 #135]  INFO -- : [36841701-c5b9-4b78-a7b6-c0c5c0a17313] Processing by BusinessManager::BookingsController#confirm as HTML
+I, [2025-07-03T04:04:21.722914 #135]  INFO -- : [36841701-c5b9-4b78-a7b6-c0c5c0a17313]   Parameters: {"authenticity_token" => "[FILTERED]", "id" => "14"}
+I, [2025-07-03T04:04:21.726003 #135]  INFO -- : [36841701-c5b9-4b78-a7b6-c0c5c0a17313] [SECURITY] {timestamp: "2025-07-03T04:04:21Z", type: "auth_login_success", details: {user_id: 9, ip_address: "172.70.215.39", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"}, environment: "production"}
+I, [2025-07-03T04:04:21.733474 #135]  INFO -- : [36841701-c5b9-4b78-a7b6-c0c5c0a17313] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:04:21.774915 #135]  INFO -- : [36841701-c5b9-4b78-a7b6-c0c5c0a17313] [ActiveJob] Enqueued ActionMailer::MailDeliveryJob (Job ID: a3a8dd63-dbed-493a-9620-553895d308fc) to SolidQueue(default) with arguments: "BookingMailer", "status_update", "deliver_now", {args: [#<GlobalID:0x00007932948f0940 @uri=#<URI::GID gid://bizblasts/Booking/14>>]}
+I, [2025-07-03T04:04:21.775281 #135]  INFO -- : [36841701-c5b9-4b78-a7b6-c0c5c0a17313] Redirected to https://losnemassage.bizblasts.com/manage/bookings/14
+     [POST]302losnemassage.bizblasts.com/manage/bookings/14/confirmclientIP="68.99.200.216" requestID="bca75436-928b-4e4a" responseTimeMS=61 responseBytes=1826 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]200losnemassage.bizblasts.com/manage/bookings/14clientIP="68.99.200.216" requestID="add39aec-edf5-4051" responseTimeMS=86 responseBytes=7368 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:04:21.775475 #135]  INFO -- : [36841701-c5b9-4b78-a7b6-c0c5c0a17313] Completed 302 Found in 52ms (ActiveRecord: 23.6ms (37 queries, 8 cached) | GC: 0.0ms)
+I, [2025-07-03T04:04:21.886113 #170]  INFO -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [a3a8dd63-dbed-493a-9620-553895d308fc] Performing ActionMailer::MailDeliveryJob (Job ID: a3a8dd63-dbed-493a-9620-553895d308fc) from SolidQueue(default) enqueued at 2025-07-03T04:04:21.766880311Z with arguments: "BookingMailer", "status_update", "deliver_now", {args: [#<GlobalID:0x0000793294982430 @uri=#<URI::GID gid://bizblasts/Booking/14>>]}
+I, [2025-07-03T04:04:21.890358 #170]  INFO -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [a3a8dd63-dbed-493a-9620-553895d308fc] [EMAIL] Preparing BookingMailer#status_update to: jaystar243419@gmail.com | Subject: Booking Status Update - Løsne Massage
+I, [2025-07-03T04:04:21.897153 #170]  INFO -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [a3a8dd63-dbed-493a-9620-553895d308fc]   Rendered layout layouts/mailer.html.erb (Duration: 4.1ms | GC: 0.0ms)
+I, [2025-07-03T04:04:21.899415 #170]  INFO -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [a3a8dd63-dbed-493a-9620-553895d308fc]   Rendered layout layouts/mailer.text.erb (Duration: 1.6ms | GC: 0.0ms)
+I, [2025-07-03T04:04:21.901109 #170]  INFO -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [a3a8dd63-dbed-493a-9620-553895d308fc] [EMAIL] Mail object created successfully for jaystar243419@gmail.com (delivery method: resend)
+I, [2025-07-03T04:04:21.911056 #135]  INFO -- : [0cabc004-c416-4615-865b-ba1677591dfa] Started GET "/manage/bookings/14" for 172.68.175.67 at 2025-07-03 04:04:21 +0000
+I, [2025-07-03T04:04:21.917049 #135]  INFO -- : [0cabc004-c416-4615-865b-ba1677591dfa] Processing by BusinessManager::BookingsController#show as HTML
+I, [2025-07-03T04:04:21.917118 #135]  INFO -- : [0cabc004-c416-4615-865b-ba1677591dfa]   Parameters: {"id" => "14"}
+I, [2025-07-03T04:04:21.918506 #135]  INFO -- : [0cabc004-c416-4615-865b-ba1677591dfa] [SECURITY] {timestamp: "2025-07-03T04:04:21Z", type: "auth_login_success", details: {user_id: 9, ip_address: "172.68.175.67", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"}, environment: "production"}
+I, [2025-07-03T04:04:21.925783 #135]  INFO -- : [0cabc004-c416-4615-865b-ba1677591dfa] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:04:21.991973 #135]  INFO -- : [0cabc004-c416-4615-865b-ba1677591dfa]   Rendered layout layouts/business_manager.html.erb (Duration: 7.9ms | GC: 0.0ms)
+I, [2025-07-03T04:04:21.992156 #135]  INFO -- : [0cabc004-c416-4615-865b-ba1677591dfa] Completed 200 OK in 75ms (Views: 6.0ms | ActiveRecord: 58.8ms (35 queries, 8 cached) | GC: 0.0ms)
+I, [2025-07-03T04:04:22.625270 #170]  INFO -- : [ActiveJob] [ActionMailer::MailDeliveryJob] [a3a8dd63-dbed-493a-9620-553895d308fc] Performed ActionMailer::MailDeliveryJob (Job ID: a3a8dd63-dbed-493a-9620-553895d308fc) from SolidQueue(default) in 740.73ms
+I, [2025-07-03T04:04:24.511680 #135]  INFO -- : [7ef6b1b7-f871-45a6-a65e-88959100ebdb] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:04:24 +0000
+I, [2025-07-03T04:04:24.512119 #135]  INFO -- : [7ef6b1b7-f871-45a6-a65e-88959100ebdb] Processing by HealthController#check as */*
+I, [2025-07-03T04:04:24.512555 #135]  INFO -- : [7ef6b1b7-f871-45a6-a65e-88959100ebdb] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:04:29.511876 #135]  INFO -- : [10561e89-7582-403b-9e04-7764c0a799af] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:04:29 +0000
+I, [2025-07-03T04:04:29.512317 #135]  INFO -- : [10561e89-7582-403b-9e04-7764c0a799af] Processing by HealthController#check as */*
+I, [2025-07-03T04:04:29.512785 #135]  INFO -- : [10561e89-7582-403b-9e04-7764c0a799af] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:04:29.513353 #135]  INFO -- : [caaf6e3d-26e4-4385-8c3e-93ea3ad62592] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:04:29 +0000
+I, [2025-07-03T04:04:29.513599 #135]  INFO -- : [caaf6e3d-26e4-4385-8c3e-93ea3ad62592] Processing by HealthController#check as */*
+I, [2025-07-03T04:04:29.513886 #135]  INFO -- : [caaf6e3d-26e4-4385-8c3e-93ea3ad62592] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+     [GET]302losnemassage.bizblasts.com/transactions/24?type=invoiceclientIP="68.99.200.216" requestID="3dff8346-9542-4003" responseTimeMS=42 responseBytes=1694 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:04:32.909433 #135]  INFO -- : [9a2195ce-7a8b-450d-a128-40f588606d44] Started GET "/transactions/24?type=invoice" for 172.70.215.39 at 2025-07-03 04:04:32 +0000
+I, [2025-07-03T04:04:32.918721 #135]  INFO -- : [9a2195ce-7a8b-450d-a128-40f588606d44] Processing by Public::TransactionsController#show as HTML
+I, [2025-07-03T04:04:32.918762 #135]  INFO -- : [9a2195ce-7a8b-450d-a128-40f588606d44]   Parameters: {"type" => "invoice", "id" => "24"}
+I, [2025-07-03T04:04:32.920549 #135]  INFO -- : [9a2195ce-7a8b-450d-a128-40f588606d44] [SECURITY] {timestamp: "2025-07-03T04:04:32Z", type: "auth_login_success", details: {user_id: 9, ip_address: "172.70.215.39", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"}, environment: "production"}
+I, [2025-07-03T04:04:32.949054 #135]  INFO -- : [9a2195ce-7a8b-450d-a128-40f588606d44] Redirected to https://losnemassage.bizblasts.com/manage/invoices/24
+I, [2025-07-03T04:04:32.949209 #135]  INFO -- : [9a2195ce-7a8b-450d-a128-40f588606d44] Completed 302 Found in 30ms (ActiveRecord: 23.4ms (25 queries, 1 cached) | GC: 0.0ms)
+     [GET]200losnemassage.bizblasts.com/manage/invoices/24clientIP="68.99.200.216" requestID="d6b5c463-7355-4c72" responseTimeMS=49 responseBytes=6700 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:04:33.061133 #135]  INFO -- : [dd61a17b-c4df-43b3-b9e6-20d6f9be66c2] Started GET "/manage/invoices/24" for 172.68.174.95 at 2025-07-03 04:04:33 +0000
+I, [2025-07-03T04:04:33.071874 #135]  INFO -- : [dd61a17b-c4df-43b3-b9e6-20d6f9be66c2] Processing by BusinessManager::InvoicesController#show as HTML
+I, [2025-07-03T04:04:33.071915 #135]  INFO -- : [dd61a17b-c4df-43b3-b9e6-20d6f9be66c2]   Parameters: {"id" => "24"}
+I, [2025-07-03T04:04:33.073143 #135]  INFO -- : [dd61a17b-c4df-43b3-b9e6-20d6f9be66c2] [SECURITY] {timestamp: "2025-07-03T04:04:33Z", type: "auth_login_success", details: {user_id: 9, ip_address: "172.68.174.95", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"}, environment: "production"}
+I, [2025-07-03T04:04:33.081311 #135]  INFO -- : [dd61a17b-c4df-43b3-b9e6-20d6f9be66c2] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:04:33.106447 #135]  INFO -- : [dd61a17b-c4df-43b3-b9e6-20d6f9be66c2]   Rendered layout layouts/business_manager.html.erb (Duration: 8.1ms | GC: 0.0ms)
+I, [2025-07-03T04:04:33.106621 #135]  INFO -- : [dd61a17b-c4df-43b3-b9e6-20d6f9be66c2] Completed 200 OK in 35ms (Views: 5.2ms | ActiveRecord: 18.7ms (31 queries, 8 cached) | GC: 0.0ms)
+I, [2025-07-03T04:04:34.510911 #135]  INFO -- : [f46f5e93-6789-4701-b09e-06c14eeda0cd] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:04:34 +0000
+I, [2025-07-03T04:04:34.511376 #135]  INFO -- : [f46f5e93-6789-4701-b09e-06c14eeda0cd] Processing by HealthController#check as */*
+I, [2025-07-03T04:04:34.511820 #135]  INFO -- : [f46f5e93-6789-4701-b09e-06c14eeda0cd] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:04:38.280217 #135]  INFO -- : [798a2222-598b-4b1b-9455-c9779e549d18] Started GET "/manage/customers/15" for 172.68.174.95 at 2025-07-03 04:04:38 +0000
+I, [2025-07-03T04:04:38.371946 #135]  INFO -- : [798a2222-598b-4b1b-9455-c9779e549d18] Processing by BusinessManager::CustomersController#show as HTML
+I, [2025-07-03T04:04:38.372007 #135]  INFO -- : [798a2222-598b-4b1b-9455-c9779e549d18]   Parameters: {"id" => "15"}
+I, [2025-07-03T04:04:38.374116 #135]  INFO -- : [798a2222-598b-4b1b-9455-c9779e549d18] [SECURITY] {timestamp: "2025-07-03T04:04:38Z", type: "auth_login_success", details: {user_id: 9, ip_address: "172.68.174.95", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"}, environment: "production"}
+I, [2025-07-03T04:04:38.382050 #135]  INFO -- : [798a2222-598b-4b1b-9455-c9779e549d18] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:04:38.534156 #135]  INFO -- : [798a2222-598b-4b1b-9455-c9779e549d18]   Rendered layout layouts/business_manager.html.erb (Duration: 29.9ms | GC: 1.7ms)
+I, [2025-07-03T04:04:38.534513 #135]  INFO -- : [798a2222-598b-4b1b-9455-c9779e549d18] Completed 200 OK in 162ms (Views: 16.1ms | ActiveRecord: 113.7ms (41 queries, 8 cached) | GC: 21.5ms)
+     [GET]200losnemassage.bizblasts.com/manage/customers/15clientIP="68.99.200.216" requestID="7b96df0e-14b6-434a" responseTimeMS=259 responseBytes=8411 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:04:39.511172 #135]  INFO -- : [36eedbc9-2de8-45ec-91b3-470bb3c49c07] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:04:39 +0000
+I, [2025-07-03T04:04:39.511598 #135]  INFO -- : [36eedbc9-2de8-45ec-91b3-470bb3c49c07] Processing by HealthController#check as */*
+I, [2025-07-03T04:04:39.512065 #135]  INFO -- : [36eedbc9-2de8-45ec-91b3-470bb3c49c07] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:04:44.511453 #135]  INFO -- : [cc22be4b-7ab1-484b-ad95-aa8360a7688e] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:04:44 +0000
+I, [2025-07-03T04:04:44.511879 #135]  INFO -- : [cc22be4b-7ab1-484b-ad95-aa8360a7688e] Processing by HealthController#check as */*
+I, [2025-07-03T04:04:44.512363 #135]  INFO -- : [cc22be4b-7ab1-484b-ad95-aa8360a7688e] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+     [GET]200losnemassage.bizblasts.com/manage/invoices/24clientIP="68.99.200.216" requestID="66edf66a-aafa-4430" responseTimeMS=42 responseBytes=6701 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:04:46.222155 #135]  INFO -- : [0904907b-8cbc-45b2-a9ed-20c6c625b0fc] Started GET "/manage/invoices/24" for 172.68.175.36 at 2025-07-03 04:04:46 +0000
+I, [2025-07-03T04:04:46.229775 #135]  INFO -- : [0904907b-8cbc-45b2-a9ed-20c6c625b0fc] Processing by BusinessManager::InvoicesController#show as HTML
+I, [2025-07-03T04:04:46.229827 #135]  INFO -- : [0904907b-8cbc-45b2-a9ed-20c6c625b0fc]   Parameters: {"id" => "24"}
+I, [2025-07-03T04:04:46.231442 #135]  INFO -- : [0904907b-8cbc-45b2-a9ed-20c6c625b0fc] [SECURITY] {timestamp: "2025-07-03T04:04:46Z", type: "auth_login_success", details: {user_id: 9, ip_address: "172.68.175.36", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"}, environment: "production"}
+I, [2025-07-03T04:04:46.242352 #135]  INFO -- : [0904907b-8cbc-45b2-a9ed-20c6c625b0fc] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:04:46.259438 #135]  INFO -- : [0904907b-8cbc-45b2-a9ed-20c6c625b0fc]   Rendered layout layouts/business_manager.html.erb (Duration: 4.1ms | GC: 0.7ms)
+I, [2025-07-03T04:04:46.259609 #135]  INFO -- : [0904907b-8cbc-45b2-a9ed-20c6c625b0fc] Completed 200 OK in 30ms (Views: 3.6ms | ActiveRecord: 13.5ms (31 queries, 8 cached) | GC: 2.5ms)
+I, [2025-07-03T04:04:49.511958 #135]  INFO -- : [d2c4649f-b42b-42cf-813b-757f98c6c7f5] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:04:49 +0000
+I, [2025-07-03T04:04:49.512526 #135]  INFO -- : [d2c4649f-b42b-42cf-813b-757f98c6c7f5] Processing by HealthController#check as */*
+I, [2025-07-03T04:04:49.513142 #135]  INFO -- : [d2c4649f-b42b-42cf-813b-757f98c6c7f5] Completed 200 OK in 0ms (Views: 0.1ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:04:54.511234 #135]  INFO -- : [97f7ca6a-c22c-4660-9897-56e3ff40ab0c] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:04:54 +0000
+I, [2025-07-03T04:04:54.511745 #135]  INFO -- : [97f7ca6a-c22c-4660-9897-56e3ff40ab0c] Processing by HealthController#check as */*
+I, [2025-07-03T04:04:54.512249 #135]  INFO -- : [97f7ca6a-c22c-4660-9897-56e3ff40ab0c] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:04:59.511965 #135]  INFO -- : [3fe0c542-3f74-4166-9a43-308d7085d72b] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:04:59 +0000
+I, [2025-07-03T04:04:59.512514 #135]  INFO -- : [3fe0c542-3f74-4166-9a43-308d7085d72b] Processing by HealthController#check as */*
+I, [2025-07-03T04:04:59.513204 #135]  INFO -- : [3fe0c542-3f74-4166-9a43-308d7085d72b] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:04:59.512703 #135]  INFO -- : [c3138cbe-102c-4766-a062-769d99da199f] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:04:59 +0000
+I, [2025-07-03T04:04:59.513893 #135]  INFO -- : [c3138cbe-102c-4766-a062-769d99da199f] Processing by HealthController#check as */*
+I, [2025-07-03T04:04:59.514288 #135]  INFO -- : [c3138cbe-102c-4766-a062-769d99da199f] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:05:04.511329 #135]  INFO -- : [0b4a9e18-40c6-4e7c-8c5e-f70330bba1ee] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:05:04 +0000
+I, [2025-07-03T04:05:04.511746 #135]  INFO -- : [0b4a9e18-40c6-4e7c-8c5e-f70330bba1ee] Processing by HealthController#check as */*
+I, [2025-07-03T04:05:04.512223 #135]  INFO -- : [0b4a9e18-40c6-4e7c-8c5e-f70330bba1ee] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+     [GET]200losnemassage.bizblasts.com/manage/customers/15clientIP="68.99.200.216" requestID="8f38f06a-17d8-4ec2" responseTimeMS=40 responseBytes=8441 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:05:09.432266 #135]  INFO -- : [b062f8ae-3bf5-4051-b825-e15163c951d7] Started GET "/manage/customers/15" for 172.70.215.39 at 2025-07-03 04:05:09 +0000
+I, [2025-07-03T04:05:09.437969 #135]  INFO -- : [b062f8ae-3bf5-4051-b825-e15163c951d7] Processing by BusinessManager::CustomersController#show as HTML
+I, [2025-07-03T04:05:09.438005 #135]  INFO -- : [b062f8ae-3bf5-4051-b825-e15163c951d7]   Parameters: {"id" => "15"}
+I, [2025-07-03T04:05:09.439368 #135]  INFO -- : [b062f8ae-3bf5-4051-b825-e15163c951d7] [SECURITY] {timestamp: "2025-07-03T04:05:09Z", type: "auth_login_success", details: {user_id: 9, ip_address: "172.70.215.39", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"}, environment: "production"}
+I, [2025-07-03T04:05:09.446406 #135]  INFO -- : [b062f8ae-3bf5-4051-b825-e15163c951d7] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:05:09.467928 #135]  INFO -- : [b062f8ae-3bf5-4051-b825-e15163c951d7]   Rendered layout layouts/business_manager.html.erb (Duration: 11.3ms | GC: 0.8ms)
+I, [2025-07-03T04:05:09.468123 #135]  INFO -- : [b062f8ae-3bf5-4051-b825-e15163c951d7] Completed 200 OK in 30ms (Views: 6.4ms | ActiveRecord: 14.3ms (41 queries, 8 cached) | GC: 2.0ms)
+I, [2025-07-03T04:05:09.511565 #135]  INFO -- : [d81efd46-0468-4470-95f9-3d163bed9b74] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:05:09 +0000
+I, [2025-07-03T04:05:09.511976 #135]  INFO -- : [d81efd46-0468-4470-95f9-3d163bed9b74] Processing by HealthController#check as */*
+I, [2025-07-03T04:05:09.512432 #135]  INFO -- : [d81efd46-0468-4470-95f9-3d163bed9b74] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:05:14.511300 #135]  INFO -- : [497e0fa6-dc7f-4ff3-b7f3-ad44ea748cc9] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:05:14 +0000
+I, [2025-07-03T04:05:14.511730 #135]  INFO -- : [497e0fa6-dc7f-4ff3-b7f3-ad44ea748cc9] Processing by HealthController#check as */*
+I, [2025-07-03T04:05:14.512250 #135]  INFO -- : [497e0fa6-dc7f-4ff3-b7f3-ad44ea748cc9] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:05:17.121552 #135]  INFO -- : [3e1296fc-a80b-4cd7-84f2-64197598a7a2] Started GET "/manage/bookings/14" for 172.70.215.39 at 2025-07-03 04:05:17 +0000
+I, [2025-07-03T04:05:17.127819 #135]  INFO -- : [3e1296fc-a80b-4cd7-84f2-64197598a7a2] Processing by BusinessManager::BookingsController#show as HTML
+I, [2025-07-03T04:05:17.127850 #135]  INFO -- : [3e1296fc-a80b-4cd7-84f2-64197598a7a2]   Parameters: {"id" => "14"}
+I, [2025-07-03T04:05:17.129342 #135]  INFO -- : [3e1296fc-a80b-4cd7-84f2-64197598a7a2] [SECURITY] {timestamp: "2025-07-03T04:05:17Z", type: "auth_login_success", details: {user_id: 9, ip_address: "172.70.215.39", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"}, environment: "production"}
+I, [2025-07-03T04:05:17.138030 #135]  INFO -- : [3e1296fc-a80b-4cd7-84f2-64197598a7a2] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:05:17.158422 #135]  INFO -- : [3e1296fc-a80b-4cd7-84f2-64197598a7a2]   Rendered layout layouts/business_manager.html.erb (Duration: 3.9ms | GC: 0.0ms)
+     [GET]200losnemassage.bizblasts.com/manage/bookings/14clientIP="68.99.200.216" requestID="0b268d6f-dcb5-4bc1" responseTimeMS=41 responseBytes=7327 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:05:17.158568 #135]  INFO -- : [3e1296fc-a80b-4cd7-84f2-64197598a7a2] Completed 200 OK in 31ms (Views: 3.3ms | ActiveRecord: 17.7ms (35 queries, 8 cached) | GC: 1.0ms)
+I, [2025-07-03T04:05:19.511708 #135]  INFO -- : [3c5c9025-9329-45e5-a6e9-b8646f4ba596] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:05:19 +0000
+I, [2025-07-03T04:05:19.512265 #135]  INFO -- : [3c5c9025-9329-45e5-a6e9-b8646f4ba596] Processing by HealthController#check as */*
+I, [2025-07-03T04:05:19.513108 #135]  INFO -- : [3c5c9025-9329-45e5-a6e9-b8646f4ba596] Completed 200 OK in 1ms (Views: 0.1ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.2ms)
+I, [2025-07-03T04:05:24.511250 #135]  INFO -- : [93a812d5-15a5-4565-96ea-83c90ca5591d] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:05:24 +0000
+I, [2025-07-03T04:05:24.511711 #135]  INFO -- : [93a812d5-15a5-4565-96ea-83c90ca5591d] Processing by HealthController#check as */*
+I, [2025-07-03T04:05:24.512218 #135]  INFO -- : [93a812d5-15a5-4565-96ea-83c90ca5591d] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:05:29.511733 #135]  INFO -- : [2cc9d0fa-90a7-4539-9bac-b8fa99942d57] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:05:29 +0000
+I, [2025-07-03T04:05:29.512198 #135]  INFO -- : [2cc9d0fa-90a7-4539-9bac-b8fa99942d57] Processing by HealthController#check as */*
+I, [2025-07-03T04:05:29.512818 #135]  INFO -- : [2cc9d0fa-90a7-4539-9bac-b8fa99942d57] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:05:29.512365 #135]  INFO -- : [7f536780-0de3-4f94-a456-a43bf5813b94] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:05:29 +0000
+I, [2025-07-03T04:05:29.513487 #135]  INFO -- : [7f536780-0de3-4f94-a456-a43bf5813b94] Processing by HealthController#check as */*
+I, [2025-07-03T04:05:29.514022 #135]  INFO -- : [7f536780-0de3-4f94-a456-a43bf5813b94] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.2ms)
+I, [2025-07-03T04:05:34.514589 #135]  INFO -- : [3e348171-e417-45c5-aeb5-7c7fa6e0beb4] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:05:34 +0000
+I, [2025-07-03T04:05:34.516563 #135]  INFO -- : [3e348171-e417-45c5-aeb5-7c7fa6e0beb4] Processing by HealthController#check as */*
+I, [2025-07-03T04:05:34.517612 #135]  INFO -- : [3e348171-e417-45c5-aeb5-7c7fa6e0beb4] Completed 200 OK in 1ms (Views: 0.1ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+     [GET]200losnemassage.bizblasts.com/manage/bookingsclientIP="68.99.200.216" requestID="145ccc7c-54d2-4bb5" responseTimeMS=40 responseBytes=8626 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:05:37.787199 #135]  INFO -- : [b0a47943-8c9f-454a-8f04-5412722ad107] Started GET "/manage/bookings" for 172.68.174.145 at 2025-07-03 04:05:37 +0000
+I, [2025-07-03T04:05:37.794696 #135]  INFO -- : [b0a47943-8c9f-454a-8f04-5412722ad107] Processing by BusinessManager::BookingsController#index as HTML
+I, [2025-07-03T04:05:37.796582 #135]  INFO -- : [b0a47943-8c9f-454a-8f04-5412722ad107] [SECURITY] {timestamp: "2025-07-03T04:05:37Z", type: "auth_login_success", details: {user_id: 9, ip_address: "172.68.174.145", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"}, environment: "production"}
+I, [2025-07-03T04:05:37.804123 #135]  INFO -- : [b0a47943-8c9f-454a-8f04-5412722ad107] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:05:37.821433 #135]  INFO -- : [b0a47943-8c9f-454a-8f04-5412722ad107]   Rendered layout layouts/business_manager.html.erb (Duration: 6.5ms | GC: 0.2ms)
+I, [2025-07-03T04:05:37.821596 #135]  INFO -- : [b0a47943-8c9f-454a-8f04-5412722ad107] Completed 200 OK in 27ms (Views: 4.4ms | ActiveRecord: 12.4ms (33 queries, 8 cached) | GC: 0.4ms)
+I, [2025-07-03T04:05:39.511563 #135]  INFO -- : [d426094e-92b5-457a-8cde-29813b4e9aac] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:05:39 +0000
+I, [2025-07-03T04:05:39.511978 #135]  INFO -- : [d426094e-92b5-457a-8cde-29813b4e9aac] Processing by HealthController#check as */*
+I, [2025-07-03T04:05:39.512452 #135]  INFO -- : [d426094e-92b5-457a-8cde-29813b4e9aac] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+     [GET]200losnemassage.bizblasts.com/manage/bookings/14clientIP="68.99.200.216" requestID="2aa3d485-becf-4ca2" responseTimeMS=41 responseBytes=7338 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:05:41.410617 #135]  INFO -- : [741ad6b6-3a92-477d-a410-70dac63d4b09] Started GET "/manage/bookings/14" for 172.68.174.148 at 2025-07-03 04:05:41 +0000
+I, [2025-07-03T04:05:41.417509 #135]  INFO -- : [741ad6b6-3a92-477d-a410-70dac63d4b09] Processing by BusinessManager::BookingsController#show as HTML
+I, [2025-07-03T04:05:41.417546 #135]  INFO -- : [741ad6b6-3a92-477d-a410-70dac63d4b09]   Parameters: {"id" => "14"}
+I, [2025-07-03T04:05:41.418958 #135]  INFO -- : [741ad6b6-3a92-477d-a410-70dac63d4b09] [SECURITY] {timestamp: "2025-07-03T04:05:41Z", type: "auth_login_success", details: {user_id: 9, ip_address: "172.68.174.148", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"}, environment: "production"}
+I, [2025-07-03T04:05:41.425664 #135]  INFO -- : [741ad6b6-3a92-477d-a410-70dac63d4b09] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:05:41.443966 #135]  INFO -- : [741ad6b6-3a92-477d-a410-70dac63d4b09]   Rendered layout layouts/business_manager.html.erb (Duration: 3.6ms | GC: 0.2ms)
+I, [2025-07-03T04:05:41.444114 #135]  INFO -- : [741ad6b6-3a92-477d-a410-70dac63d4b09] Completed 200 OK in 26ms (Views: 3.0ms | ActiveRecord: 11.6ms (35 queries, 8 cached) | GC: 0.7ms)
+I, [2025-07-03T04:05:44.258681 #135]  INFO -- : [85f962dd-902a-497d-9754-7d4e0449fd1d] Started GET "/transactions/24?type=invoice" for 172.68.175.98 at 2025-07-03 04:05:44 +0000
+I, [2025-07-03T04:05:44.264786 #135]  INFO -- : [85f962dd-902a-497d-9754-7d4e0449fd1d] Processing by Public::TransactionsController#show as HTML
+I, [2025-07-03T04:05:44.264839 #135]  INFO -- : [85f962dd-902a-497d-9754-7d4e0449fd1d]   Parameters: {"type" => "invoice", "id" => "24"}
+I, [2025-07-03T04:05:44.266540 #135]  INFO -- : [85f962dd-902a-497d-9754-7d4e0449fd1d] [SECURITY] {timestamp: "2025-07-03T04:05:44Z", type: "auth_login_success", details: {user_id: 9, ip_address: "172.68.175.98", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"}, environment: "production"}
+I, [2025-07-03T04:05:44.273185 #135]  INFO -- : [85f962dd-902a-497d-9754-7d4e0449fd1d] Redirected to https://losnemassage.bizblasts.com/manage/invoices/24
+I, [2025-07-03T04:05:44.273291 #135]  INFO -- : [85f962dd-902a-497d-9754-7d4e0449fd1d] Completed 302 Found in 8ms (ActiveRecord: 4.6ms (13 queries, 1 cached) | GC: 0.2ms)
+I, [2025-07-03T04:05:44.407834 #135]  INFO -- : [7d3cf15f-9be9-4118-bcb3-ab527e18ac89] Started GET "/manage/invoices/24" for 172.70.215.39 at 2025-07-03 04:05:44 +0000
+I, [2025-07-03T04:05:44.413836 #135]  INFO -- : [7d3cf15f-9be9-4118-bcb3-ab527e18ac89] Processing by BusinessManager::InvoicesController#show as HTML
+I, [2025-07-03T04:05:44.413869 #135]  INFO -- : [7d3cf15f-9be9-4118-bcb3-ab527e18ac89]   Parameters: {"id" => "24"}
+I, [2025-07-03T04:05:44.415395 #135]  INFO -- : [7d3cf15f-9be9-4118-bcb3-ab527e18ac89] [SECURITY] {timestamp: "2025-07-03T04:05:44Z", type: "auth_login_success", details: {user_id: 9, ip_address: "172.70.215.39", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"}, environment: "production"}
+I, [2025-07-03T04:05:44.422389 #135]  INFO -- : [7d3cf15f-9be9-4118-bcb3-ab527e18ac89] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:05:44.436161 #135]  INFO -- : [7d3cf15f-9be9-4118-bcb3-ab527e18ac89]   Rendered layout layouts/business_manager.html.erb (Duration: 3.3ms | GC: 0.2ms)
+I, [2025-07-03T04:05:44.436308 #135]  INFO -- : [7d3cf15f-9be9-4118-bcb3-ab527e18ac89] Completed 200 OK in 22ms (Views: 2.7ms | ActiveRecord: 11.9ms (31 queries, 8 cached) | GC: 0.6ms)
+I, [2025-07-03T04:05:44.511815 #135]  INFO -- : [0d0b520f-a9f5-48cc-a2bf-fbd0fac2ae50] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:05:44 +0000
+I, [2025-07-03T04:05:44.512342 #135]  INFO -- : [0d0b520f-a9f5-48cc-a2bf-fbd0fac2ae50] Processing by HealthController#check as */*
+     [GET]302losnemassage.bizblasts.com/transactions/24?type=invoiceclientIP="68.99.200.216" requestID="51924b8f-9e8c-4b03" responseTimeMS=18 responseBytes=1690 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+     [GET]200losnemassage.bizblasts.com/manage/invoices/24clientIP="68.99.200.216" requestID="204cc782-7f79-445b" responseTimeMS=36 responseBytes=6713 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:05:44.512898 #135]  INFO -- : [0d0b520f-a9f5-48cc-a2bf-fbd0fac2ae50] Completed 200 OK in 0ms (Views: 0.1ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:05:49.511103 #135]  INFO -- : [36f0fa8d-1368-4630-8344-e7384197e195] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:05:49 +0000
+I, [2025-07-03T04:05:49.511534 #135]  INFO -- : [36f0fa8d-1368-4630-8344-e7384197e195] Processing by HealthController#check as */*
+I, [2025-07-03T04:05:49.512030 #135]  INFO -- : [36f0fa8d-1368-4630-8344-e7384197e195] Completed 200 OK in 0ms (Views: 0.1ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+     [GET]200losnemassage.bizblasts.com/manage/customers/15clientIP="68.99.200.216" requestID="dea25ed6-4b27-4d93" responseTimeMS=44 responseBytes=8410 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:05:50.348799 #135]  INFO -- : [f2b6796f-dfe3-4ce5-968d-d7bb992085e4] Started GET "/manage/customers/15" for 172.70.215.39 at 2025-07-03 04:05:50 +0000
+I, [2025-07-03T04:05:50.354568 #135]  INFO -- : [f2b6796f-dfe3-4ce5-968d-d7bb992085e4] Processing by BusinessManager::CustomersController#show as HTML
+I, [2025-07-03T04:05:50.354601 #135]  INFO -- : [f2b6796f-dfe3-4ce5-968d-d7bb992085e4]   Parameters: {"id" => "15"}
+I, [2025-07-03T04:05:50.355914 #135]  INFO -- : [f2b6796f-dfe3-4ce5-968d-d7bb992085e4] [SECURITY] {timestamp: "2025-07-03T04:05:50Z", type: "auth_login_success", details: {user_id: 9, ip_address: "172.70.215.39", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"}, environment: "production"}
+I, [2025-07-03T04:05:50.362756 #135]  INFO -- : [f2b6796f-dfe3-4ce5-968d-d7bb992085e4] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:05:50.386263 #135]  INFO -- : [f2b6796f-dfe3-4ce5-968d-d7bb992085e4]   Rendered layout layouts/business_manager.html.erb (Duration: 13.2ms | GC: 0.2ms)
+I, [2025-07-03T04:05:50.386458 #135]  INFO -- : [f2b6796f-dfe3-4ce5-968d-d7bb992085e4] Completed 200 OK in 32ms (Views: 8.1ms | ActiveRecord: 15.2ms (41 queries, 8 cached) | GC: 0.6ms)
+I, [2025-07-03T04:05:54.511917 #135]  INFO -- : [d8743e64-86c3-4e29-8326-1f21899996bf] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:05:54 +0000
+I, [2025-07-03T04:05:54.512467 #135]  INFO -- : [d8743e64-86c3-4e29-8326-1f21899996bf] Processing by HealthController#check as */*
+I, [2025-07-03T04:05:54.513020 #135]  INFO -- : [d8743e64-86c3-4e29-8326-1f21899996bf] Completed 200 OK in 0ms (Views: 0.1ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+     [GET]200losnemassage.bizblasts.com/manage/dashboardclientIP="68.99.200.216" requestID="e17a3ea6-2e99-428f" responseTimeMS=314 responseBytes=7110 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:05:58.100398 #135]  INFO -- : [f2b1e588-b278-4182-8005-6fefe67aa3dc] Started GET "/manage/dashboard" for 172.70.215.39 at 2025-07-03 04:05:58 +0000
+I, [2025-07-03T04:05:58.190101 #135]  INFO -- : [f2b1e588-b278-4182-8005-6fefe67aa3dc] Processing by BusinessManager::DashboardController#index as HTML
+I, [2025-07-03T04:05:58.191693 #135]  INFO -- : [f2b1e588-b278-4182-8005-6fefe67aa3dc] [SECURITY] {timestamp: "2025-07-03T04:05:58Z", type: "auth_login_success", details: {user_id: 9, ip_address: "172.70.215.39", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"}, environment: "production"}
+I, [2025-07-03T04:05:58.371484 #135]  INFO -- : [f2b1e588-b278-4182-8005-6fefe67aa3dc] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:05:58.410615 #135]  INFO -- : [f2b1e588-b278-4182-8005-6fefe67aa3dc]   Rendered layout layouts/business_manager.html.erb (Duration: 16.3ms | GC: 0.2ms)
+I, [2025-07-03T04:05:58.410763 #135]  INFO -- : [f2b1e588-b278-4182-8005-6fefe67aa3dc] Completed 200 OK in 221ms (Views: 4.7ms | ActiveRecord: 206.9ms (35 queries, 8 cached) | GC: 0.5ms)
+I, [2025-07-03T04:05:59.511645 #135]  INFO -- : [fbf61e26-e248-4bef-8701-c488db79606f] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:05:59 +0000
+I, [2025-07-03T04:05:59.512231 #135]  INFO -- : [fbf61e26-e248-4bef-8701-c488db79606f] Processing by HealthController#check as */*
+I, [2025-07-03T04:05:59.512690 #135]  INFO -- : [fbf61e26-e248-4bef-8701-c488db79606f] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:05:59.511798 #135]  INFO -- : [e74872f6-75e6-4f89-9f5b-4310e27e348e] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:05:59 +0000
+I, [2025-07-03T04:05:59.513364 #135]  INFO -- : [e74872f6-75e6-4f89-9f5b-4310e27e348e] Processing by HealthController#check as */*
+I, [2025-07-03T04:05:59.513835 #135]  INFO -- : [e74872f6-75e6-4f89-9f5b-4310e27e348e] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:06:04.511724 #135]  INFO -- : [ad2c1ce1-b64d-49e2-a476-9716c4a2f56a] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:06:04 +0000
+I, [2025-07-03T04:06:04.512256 #135]  INFO -- : [ad2c1ce1-b64d-49e2-a476-9716c4a2f56a] Processing by HealthController#check as */*
+I, [2025-07-03T04:06:04.512815 #135]  INFO -- : [ad2c1ce1-b64d-49e2-a476-9716c4a2f56a] Completed 200 OK in 0ms (Views: 0.1ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+I, [2025-07-03T04:06:09.511521 #135]  INFO -- : [66383c5b-f6b6-4b5c-818a-52afed3732a4] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:06:09 +0000
+I, [2025-07-03T04:06:09.512104 #135]  INFO -- : [66383c5b-f6b6-4b5c-818a-52afed3732a4] Processing by HealthController#check as */*
+I, [2025-07-03T04:06:09.512623 #135]  INFO -- : [66383c5b-f6b6-4b5c-818a-52afed3732a4] Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+     [GET]200losnemassage.bizblasts.com/manage/transactionsclientIP="68.99.200.216" requestID="f559e4de-cebd-4daa" responseTimeMS=51 responseBytes=7512 userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+I, [2025-07-03T04:06:11.930948 #135]  INFO -- : [b2bc2735-7cad-4187-a378-ee2473f224a3] Started GET "/manage/transactions" for 172.68.175.98 at 2025-07-03 04:06:11 +0000
+I, [2025-07-03T04:06:11.944549 #135]  INFO -- : [b2bc2735-7cad-4187-a378-ee2473f224a3] Processing by BusinessManager::TransactionsController#index as HTML
+I, [2025-07-03T04:06:11.946225 #135]  INFO -- : [b2bc2735-7cad-4187-a378-ee2473f224a3] [SECURITY] {timestamp: "2025-07-03T04:06:11Z", type: "auth_login_success", details: {user_id: 9, ip_address: "172.68.175.98", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"}, environment: "production"}
+I, [2025-07-03T04:06:11.955925 #135]  INFO -- : [b2bc2735-7cad-4187-a378-ee2473f224a3] [SetTenant] Tenant set: Business #12 (losnemassage)
+I, [2025-07-03T04:06:11.977508 #135]  INFO -- : [b2bc2735-7cad-4187-a378-ee2473f224a3]   Rendered layout layouts/business_manager.html.erb (Duration: 10.5ms | GC: 0.3ms)
+I, [2025-07-03T04:06:11.977695 #135]  INFO -- : [b2bc2735-7cad-4187-a378-ee2473f224a3] Completed 200 OK in 33ms (Views: 6.0ms | ActiveRecord: 17.6ms (40 queries, 8 cached) | GC: 0.6ms)
+I, [2025-07-03T04:06:14.511427 #135]  INFO -- : [30a0927e-2120-4985-8b87-eff5ac76d8c5] Started GET "/healthcheck" for 10.219.21.171 at 2025-07-03 04:06:14 +0000

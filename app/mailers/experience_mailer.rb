@@ -13,7 +13,7 @@ class ExperienceMailer < ApplicationMailer
     )
     
     # Set business context for email styling
-    @business_logo = @business.logo.attached? ? url_for(@business.logo) : nil
+    @business_logo = business_logo_url(@business, size: :medium)
     @business_colors = {
       primary: @business.primary_color || '#3B82F6',
       secondary: @business.secondary_color || '#1F2937'

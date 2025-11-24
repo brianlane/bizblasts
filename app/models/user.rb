@@ -4,8 +4,13 @@
 # Clients can associate with multiple businesses via ClientBusiness.
 # Staff/Managers belong to a single business.
 class User < ApplicationRecord
+  include UnsubscribeTokenGenerator
+  
   # Custom exception for account deletion errors
   class AccountDeletionError < StandardError; end
+  
+  # Virtual attribute for notification consent checkbox in registration
+  attr_accessor :bizblasts_notification_consent
 
   # Associations
   belongs_to :business, optional: true, inverse_of: :users
@@ -19,17 +24,28 @@ class User < ApplicationRecord
   has_many :policy_acceptances, dependent: :destroy
   # Track which setup reminder tasks the user has dismissed
   has_many :setup_reminder_dismissals, dependent: :destroy
+  has_many :user_sidebar_items, dependent: :destroy
+  has_many :invalidated_sessions, dependent: :delete_all
   
   # Referral system associations
   has_many :referrals_made, class_name: 'Referral', foreign_key: 'referrer_id', dependent: :destroy
   
   # Devise modules - Removed :validatable to use custom email uniqueness
   devise :database_authenticatable, :registerable,
-         :recoverable, :rememberable, :confirmable, :trackable # Added :confirmable for email verification and :trackable for login tracking
+         :recoverable, :rememberable, :confirmable, :trackable, :magic_link_authenticatable # Added :confirmable for email verification and :trackable for login tracking
+
+  # Encrypt phone numbers with deterministic encryption to allow querying
+  encrypts :phone, deterministic: true
 
   # Callbacks
+  before_validation :normalize_phone_number, if: :phone_needs_normalization?
   after_update :send_domain_request_notification, if: :premium_business_confirmed_email?
   after_update :clear_tenant_customer_cache, if: :saved_change_to_email?
+  after_update :sync_email_to_tenant_customers, if: -> { client? && saved_change_to_email? && confirmed? }
+  after_update :sync_phone_to_tenant_customers, if: -> { client? && saved_change_to_phone? && phone.present? }
+  after_create :generate_unsubscribe_token
+  after_create :set_default_notification_preferences
+  before_create :generate_session_token
 
   # Validations
   validates :email, presence: true,
@@ -58,6 +74,16 @@ class User < ApplicationRecord
   scope :active, -> { where(active: true) }
   scope :business_users, -> { where(role: [:manager, :staff]) }
   scope :clients, -> { where(role: :client) }
+  scope :subscribed_to_emails, -> { where(unsubscribed_at: nil) }
+  scope :unsubscribed_from_emails, -> { where.not(unsubscribed_at: nil) }
+
+  # Encrypted phone lookup scope
+  scope :for_phone, ->(plain_phone) {
+    normalized = PhoneNormalizer.normalize(plain_phone)
+    return none if normalized.blank?
+
+    where(phone: normalized)
+  }
 
   # Methods
   def active_for_authentication?
@@ -110,7 +136,7 @@ class User < ApplicationRecord
   # Ransackable Attributes & Associations
   def self.ransackable_attributes(auth_object = nil)
     # Allow searching by associated business name via business_name, including login tracking fields
-    %w[id email role first_name last_name active created_at updated_at business_id sign_in_count current_sign_in_at last_sign_in_at]
+    %w[id email role first_name last_name phone active created_at updated_at business_id sign_in_count current_sign_in_at last_sign_in_at]
   end
 
   def self.ransackable_associations(auth_object = nil)
@@ -216,6 +242,23 @@ class User < ApplicationRecord
     @tenant_customer_ids = nil
   end
   
+  # Get linked tenant customer for a specific business
+  def tenant_customer_for(business)
+    return nil unless client?
+    TenantCustomer.find_by(user_id: id, business: business)
+  end
+  
+  # Get all linked tenant customers
+  def linked_tenant_customers
+    return TenantCustomer.none unless client?
+    TenantCustomer.where(user_id: id)
+  end
+
+  # Alias for linked_tenant_customers to maintain compatibility with view templates
+  def tenant_customers
+    linked_tenant_customers
+  end
+  
   # Clear all policy-related caches
   def clear_policy_caches
     @missing_required_policies = nil
@@ -230,7 +273,232 @@ class User < ApplicationRecord
     Rails.cache.delete("policy_status_check_#{id}")
   end
 
+  # Returns true if the user can receive a given type of email (e.g., :marketing, :blog, :booking, etc.)
+  def can_receive_email?(type)
+    return true if type == :transactional # Always allow transactional emails
+    return false if unsubscribed_from_emails?
+
+    # Map type to notification_preferences key(s)
+    key_map = {
+      marketing: %w[email_marketing_notifications email_promotional_offers email_marketing_updates email_promotions],
+      blog: %w[email_blog_notifications email_blog_updates blog_post_notifications],
+      booking: %w[email_booking_notifications email_booking_confirmation email_booking_updates],
+      order: %w[email_order_notifications email_order_updates],
+      payment: %w[email_payment_notifications email_payment_confirmations],
+      customer: %w[email_customer_notifications],
+      system: %w[system_notifications],
+      subscription: %w[email_subscription_notifications]
+    }
+    keys = key_map[type.to_sym] || []
+    return true if keys.empty? # If unknown type, default to allow
+    
+    # If no notification preferences are set, default to true
+    return true if notification_preferences.nil? || notification_preferences.empty?
+    
+    # Check if ANY of the relevant keys are enabled (not explicitly set to false)
+    # This allows users to receive emails from a category if they have at least one preference enabled
+    # Treat nil as enabled (default) to maintain backward compatibility
+    keys.any? { |k| notification_preferences[k] != false }
+  end
+
+  # SMS opt-in methods for User model (business users)
+  def can_receive_sms?(type)
+    return false unless phone.present? # Must have phone number
+    return false unless business&.sms_enabled? # Business must have SMS enabled
+    return false unless phone_opt_in? # Must be opted in
+
+    # Users with business roles can receive business notifications
+    case type.to_sym
+    when :marketing
+      phone_opt_in? && business&.sms_marketing_enabled? && !phone_marketing_opt_out?
+    when :booking, :order, :payment, :reminder, :system, :subscription, :customer
+      phone_opt_in?
+    else
+      phone_opt_in?
+    end
+  end
+
+  def phone_opt_in?
+    # For User model, check if phone_opt_in attribute exists and is true
+    respond_to?(:phone_opt_in) ? phone_opt_in : false
+  end
+
+  def phone_marketing_opt_out?
+    # For User model, check if phone_marketing_opt_out attribute exists
+    respond_to?(:phone_marketing_opt_out) ? phone_marketing_opt_out : false
+  end
+
+  # Opt user into SMS notifications
+  def opt_into_sms!
+    update!(
+      phone_opt_in: true,
+      phone_opt_in_at: Time.current
+    )
+  end
+
+  # Opt user out of SMS notifications  
+  def opt_out_of_sms!
+    update!(
+      phone_opt_in: false,
+      phone_opt_in_at: nil
+    )
+  end
+
+  # Opt user out of marketing SMS only
+  def opt_out_of_sms_marketing!
+    update!(phone_marketing_opt_out: true)
+  end
+
+  def unsubscribed_from_emails?
+    # Check if globally unsubscribed via button (unsubscribed_at set)
+    return true if unsubscribed_at.present?
+    
+    # Check if all email notification preferences are false
+    return false if notification_preferences.nil? || notification_preferences.empty?
+    
+    email_preferences = %w[
+      email_booking_notifications email_customer_notifications email_payment_notifications 
+      email_subscription_notifications email_marketing_notifications email_blog_notifications
+      email_system_notifications email_marketing_updates email_blog_updates
+    ]
+    
+    email_preferences.all? { |pref| notification_preferences[pref] == false }
+  end
+
+  def subscribed_to_emails?
+    !unsubscribed_from_emails?
+  end
+
+  def sidebar_items_config
+    if user_sidebar_items.exists?
+      defaults = UserSidebarItem.default_items_for(self).index_by { |item| item[:key] }
+      visible_items = user_sidebar_items.order(:position).select { |item| item.visible }
+      return [] if user_sidebar_items.count > 0 && visible_items.empty?
+      visible_items.map do |item|
+        label = defaults[item.item_key]&.dig(:label) || item.item_key.humanize
+        OpenStruct.new(item_key: item.item_key, label: label, position: item.position, visible: item.visible)
+      end
+    else
+      UserSidebarItem.default_items_for(self).map.with_index do |item, idx|
+        OpenStruct.new(item_key: item[:key], label: item[:label], position: idx, visible: true)
+      end
+    end
+  end
+
+  # Unsubscribe system methods
+
+  def unsubscribe_from_emails!
+    update!(
+      unsubscribed_at: Time.current,
+      email_marketing_opt_out: true
+    )
+    # Update notification preferences to disable email notifications
+    update_notification_preferences_for_unsubscribe
+  end
+
+  def resubscribe_to_emails!
+    update!(
+      unsubscribed_at: nil,
+      email_marketing_opt_out: false
+    )
+    regenerate_unsubscribe_token
+  end
+
+  def update_notification_preferences_for_unsubscribe
+    return unless notification_preferences.present?
+
+    # Disable all email-related notification preferences
+    updated_preferences = notification_preferences.dup
+    email_preferences = %w[
+      email_booking_confirmation
+      email_booking_updates
+      email_order_updates
+      email_payment_confirmations
+      email_promotions
+      email_blog_updates
+      email_booking_notifications
+      email_customer_notifications
+      email_payment_notifications
+      email_subscription_notifications
+      email_marketing_notifications
+      email_blog_notifications
+      email_system_notifications
+      email_marketing_updates
+    ]
+
+    email_preferences.each do |pref|
+      updated_preferences[pref] = false
+    end
+
+    update_column(:notification_preferences, updated_preferences)
+  end
+
+  # Session token methods for global logout
+  def invalidate_all_sessions!
+    SecureLogger.info "[User#invalidate_all_sessions!] User #{id}: Invalidating all sessions"
+    update!(session_token: SecureRandom.hex(32))
+    SecureLogger.info "[User#invalidate_all_sessions!] User #{id}: Session token updated successfully"
+  end
+
+  def valid_session?(token)
+    return false if session_token.blank? # Handle legacy users without session tokens
+    return false if token.blank? # Handle sessions without tokens
+    session_token == token
+  end
+
+  def generate_session_token
+    self.session_token = SecureRandom.hex(32)
+  end
+
+  def rotate_session_token!
+    update!(session_token: SecureRandom.hex(32))
+  end
+
   private # Ensure private keyword exists or add it if needed
+
+  def set_default_notification_preferences
+    # Only set defaults if notification_preferences is nil or empty
+    return if notification_preferences.present?
+    
+    # Check if user consented to notifications during registration
+    # If bizblasts_notification_consent is explicitly false (unchecked), set all notifications to false
+    # If not provided or true (checked), enable all notifications
+    consent_given = bizblasts_notification_consent != false && bizblasts_notification_consent != '0'
+    
+    default_preferences = {
+      # Booking & Service Notifications
+      email_booking_confirmation: consent_given,
+      sms_booking_reminder: consent_given,
+      email_booking_updates: consent_given,
+      
+      # Order & Product Notifications
+      email_order_updates: consent_given,
+      sms_order_updates: consent_given,
+      email_payment_confirmations: consent_given,
+      
+      # Marketing & Promotional
+      email_promotions: consent_given,
+      email_blog_updates: consent_given,
+      sms_promotions: consent_given,
+      
+      # Additional notification types from the system
+      email_booking_notifications: consent_given,
+      email_customer_notifications: consent_given,
+      email_payment_notifications: consent_given,
+      email_subscription_notifications: consent_given,
+      email_marketing_notifications: consent_given,
+      email_blog_notifications: consent_given,
+      email_system_notifications: consent_given,
+      email_marketing_updates: consent_given
+    }
+    
+    # Use update_attribute to ensure the change persists even in CI environments
+    if update_attribute(:notification_preferences, default_preferences)
+      SecureLogger.info "[USER] Set default notification preferences for User ##{id} (#{email}) - consent: #{consent_given}"
+    else
+      SecureLogger.error "[USER] Failed to set default notification preferences for User ##{id} (#{email})"
+    end
+  end
 
   def add_client_warnings(result)
     if client_businesses.any?
@@ -402,10 +670,10 @@ class User < ApplicationRecord
   # Send domain request notification email
   def send_domain_request_notification
     begin
-      BusinessMailer.domain_request_notification(self).deliver_later
-      Rails.logger.info "[EMAIL] Sent domain request notification for User ##{id} - Business: #{business.name}"
+      BusinessMailer.domain_request_notification(self).deliver_later(queue: 'mailers')
+      SecureLogger.info "[EMAIL] Sent domain request notification for User ##{id} - Business: #{business.name}"
     rescue => e
-      Rails.logger.error "[EMAIL] Failed to send domain request notification for User ##{id}: #{e.message}"
+      SecureLogger.error "[EMAIL] Failed to send domain request notification for User ##{id}: #{e.message}"
     end
   end
 
@@ -417,7 +685,7 @@ class User < ApplicationRecord
   def email_uniqueness_by_role_type
     return unless email.present? && email_changed? # Only validate if email is present and changed
 
-    # Enforce global email uniqueness across all roles
+    # Enforce global email uniqueness across all users
     if User.where.not(id: id).exists?(email: email)
       errors.add(:email, :taken)
     end
@@ -454,5 +722,112 @@ class User < ApplicationRecord
       PolicyAcceptance.has_accepted_policy?(self, policy_type, current_version.version)
     end
   end
+  
+  # Sync email changes to linked tenant customers (after email confirmation)
+  def sync_email_to_tenant_customers
+    return unless client?
+    
+    old_email = email_before_last_save
+    new_email = email.downcase.strip
+    
+    SecureLogger.info "[USER] Syncing email change from #{old_email} to #{new_email} for user #{id}"                                                           
+    
+    # Use transaction to ensure atomicity and handle uniqueness conflicts
+    ActiveRecord::Base.transaction do
+      linked = linked_tenant_customers.lock
 
+      # Check for any conflicting customer in the same businesses
+      business_ids = linked.pluck(:business_id)
+      conflicts = TenantCustomer.where(business_id: business_ids, email: new_email)
+                                 .where.not(user_id: id)
+
+      if conflicts.exists?
+        conflict = conflicts.first
+        SecureLogger.error "[USER] Email sync conflict for user #{id} -> business #{conflict.business_id} existing user #{conflict.user_id}"
+        raise EmailConflictError.new(
+          "This email is already associated with another customer in one of your businesses.",
+          email: new_email,
+          business_id: conflict.business_id,
+          existing_user_id: conflict.user_id,
+          attempted_user_id: id
+        )
+      end
+
+      # Update all linked tenant customers safely
+      updated_count = linked.update_all(email: new_email)
+      SecureLogger.info "[USER] Updated #{updated_count} tenant customer records with new email"
+
+      clear_tenant_customer_cache
+    end
+  rescue => e
+    SecureLogger.error "[USER] Failed to sync email to tenant customers: #{e.message}"
+    # Re-raise to ensure the error is handled by the caller
+    raise e
+  end
+  
+  # Sync phone changes to linked tenant customers
+  def sync_phone_to_tenant_customers
+    return unless client?
+    
+    SecureLogger.info "[USER] Syncing phone number to tenant customers for user #{id}"                                                                         
+    
+    # Use transaction to ensure atomicity
+    ActiveRecord::Base.transaction do
+      # Update phone for all linked customers where phone is blank or different
+      linked_tenant_customers.each do |customer|
+        updates = {}
+        
+        # Update phone if customer doesn't have one or if different
+        if customer.phone.blank? || customer.phone != phone
+          updates[:phone] = phone
+
+          # Sync opt-in status from user when phone changes (TCPA compliance)
+          if respond_to?(:phone_opt_in?) && customer.phone_opt_in? != phone_opt_in?
+            updates[:phone_opt_in] = phone_opt_in?
+            updates[:phone_opt_in_at] = phone_opt_in? ?
+              (respond_to?(:phone_opt_in_at) ? phone_opt_in_at : Time.current) :
+              nil
+          end
+        end
+        
+        if updates.any?
+          customer.update!(updates)
+          SecureLogger.info "[USER] Updated tenant customer #{customer.id} with phone data"                                                                      
+        end
+      end
+    end
+  rescue => e
+    SecureLogger.error "[USER] Failed to sync phone to tenant customers: #{e.message}"
+    # Re-raise to ensure the error is handled by the caller
+    raise e
+  end
+
+  private
+
+  # Normalize phone number before validation
+  def normalize_phone_number
+    raw_phone =
+      begin
+        phone
+      rescue ActiveRecord::Encryption::Errors::Decryption,
+             ActiveRecord::Encryption::Errors::Encoding,
+             JSON::ParserError
+        return
+      end
+
+    normalized = PhoneNormalizer.normalize(raw_phone)
+    self.phone = normalized
+  end
+
+  def phone_needs_normalization?
+    if new_record?
+      phone.present?
+    else
+      will_save_change_to_phone?
+    end
+  rescue ActiveRecord::Encryption::Errors::Decryption,
+         ActiveRecord::Encryption::Errors::Encoding,
+         JSON::ParserError
+    false
+  end
 end

@@ -11,6 +11,6 @@ RSpec.describe 'Stripe Webhooks', type: :request do
   it 'enqueues StripeWebhookJob when receiving webhook' do
     data = { 'id' => 'pi_123', 'object' => 'payment_intent' }
     simulate_stripe_webhook('payment_intent.succeeded', data)
-    expect(StripeWebhookJob).to have_been_enqueued.with(anything, 'mocked_signature')
+    expect(StripeWebhookJob).to have_been_enqueued.with(anything, 'mocked_signature', anything)
   end
 end 

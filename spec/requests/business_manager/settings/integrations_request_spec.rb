@@ -3,7 +3,6 @@ require 'rails_helper'
 RSpec.describe "BusinessManager::Settings::Integrations", type: :request do
   let(:business) { create(:business) }
   let(:business_manager_user) { create(:user, :manager, business: business) }
-  let!(:integration) { create(:integration, business: business, kind: :webhook, config: { url: 'https://example.com/hook' }) }
 
   before do
     # IMPORTANT: Set the host to the business's subdomain for SubdomainConstraint to work
@@ -24,119 +23,131 @@ RSpec.describe "BusinessManager::Settings::Integrations", type: :request do
       expect(response).to be_successful
     end
 
-    it "displays integrations" do
+    it "includes Google Business integration UI" do
       get business_manager_settings_integrations_path
-      expect(response.body).to include(integration.kind.humanize.titleize)
-      expect(response.body).to include("https://example.com/hook")
+      expect(response.body).to include("Google Business Reviews")
+      expect(response.body).to include("More Integrations Coming Soon")
     end
   end
 
-  describe "GET /show" do
-    it "renders a successful response" do
-      get business_manager_settings_integration_path(integration)
-      expect(response).to be_successful
+  describe "POST /lookup-place-id" do
+    let(:valid_google_maps_url) { "https://www.google.com/maps/place/My+Business/@40.7128,-74.0060,17z" }
+
+    before do
+      # Clear rate limit cache before each test to prevent cross-contamination
+      Rails.cache.delete("place_id_extraction:user:#{business_manager_user.id}")
     end
 
-    it "displays the integration details" do
-      get business_manager_settings_integration_path(integration)
-      expect(response.body).to include(integration.kind.humanize.titleize)
-      expect(response.body).to include("https://example.com/hook")
+    context "with valid URL" do
+      it "accepts valid google.com URL" do
+        post lookup_place_id_business_manager_settings_integrations_path, params: { input: valid_google_maps_url }
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+        expect(json['success']).to be true
+        expect(json['job_id']).to be_present
+      end
+
+      it "accepts valid google.co.uk URL" do
+        url = "https://www.google.co.uk/maps/place/My+Business/@51.5074,-0.1278,17z"
+        post lookup_place_id_business_manager_settings_integrations_path, params: { input: url }
+        expect(response).to have_http_status(:success)
+      end
+    end
+
+    context "URL validation (security)" do
+      it "rejects http:// URLs (must be HTTPS)" do
+        url = "http://www.google.com/maps/place/My+Business"
+        post lookup_place_id_business_manager_settings_integrations_path, params: { input: url }
+        expect(response).to have_http_status(:unprocessable_content)
+        json = JSON.parse(response.body)
+        expect(json['error']).to include('Invalid Google Maps URL')
+      end
+
+      it "rejects URL injection attempts (subdomain attack)" do
+        url = "https://google.com.evil.com/maps/place/My+Business"
+        post lookup_place_id_business_manager_settings_integrations_path, params: { input: url }
+        expect(response).to have_http_status(:unprocessable_content)
+        json = JSON.parse(response.body)
+        expect(json['error']).to include('Invalid Google Maps URL')
+      end
+
+      it "rejects URL injection attempts (path injection)" do
+        url = "https://evil.com/google.com/maps/place/My+Business"
+        post lookup_place_id_business_manager_settings_integrations_path, params: { input: url }
+        expect(response).to have_http_status(:unprocessable_content)
+        json = JSON.parse(response.body)
+        expect(json['error']).to include('Invalid Google Maps URL')
+      end
+
+      it "rejects URLs without /maps/ in path" do
+        url = "https://www.google.com/search?q=My+Business"
+        post lookup_place_id_business_manager_settings_integrations_path, params: { input: url }
+        expect(response).to have_http_status(:unprocessable_content)
+        json = JSON.parse(response.body)
+        expect(json['error']).to include('Invalid Google Maps URL')
+      end
+
+      it "rejects empty input" do
+        post lookup_place_id_business_manager_settings_integrations_path, params: { input: "" }
+        expect(response).to have_http_status(:unprocessable_content)
+        json = JSON.parse(response.body)
+        expect(json['error']).to include('Please enter a Google Maps URL')
+      end
+
+      it "rejects malformed URLs" do
+        url = "not-a-valid-url"
+        post lookup_place_id_business_manager_settings_integrations_path, params: { input: url }
+        expect(response).to have_http_status(:unprocessable_content)
+        json = JSON.parse(response.body)
+        expect(json['error']).to include('Invalid Google Maps URL')
+      end
+
+      it "accepts valid URLs that contain unicode characters (smart quotes)" do
+        url = "https://www.google.com/maps/place/Bee\u2019s+Best+Bet+Detail+%26+Protection/@33.3923204,-111.9279131,11z/data=!4m14!1m7!3m6!1s0x872b090d325f7fdb:0x79b31f1dbc0a282b!2sBee\u2019s+Best+Bet+Detail+%26+Protection!8m2!3d33.3923204!4d-111.927913!16s%2Fg%2F11q8vxdbtc!3m5!1s0x872b090d325f7fdb:0x79b31f1dbc0a282b!8m2!3d33.3923204!4d-111.927913!16s%2Fg%2F11q8vxdbtc"
+        post lookup_place_id_business_manager_settings_integrations_path, params: { input: url }
+
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+        expect(json['success']).to be true
+        expect(json['job_id']).to be_present
+      end
+    end
+
+    context "rate limiting (security)" do
+      it "allows up to 5 requests per hour" do
+        5.times do
+          post lookup_place_id_business_manager_settings_integrations_path, params: { input: valid_google_maps_url }
+          expect(response).to have_http_status(:success)
+        end
+      end
+
+      it "blocks 6th request within same hour" do
+        # Make 5 successful requests
+        5.times do
+          post lookup_place_id_business_manager_settings_integrations_path, params: { input: valid_google_maps_url }
+        end
+
+        # 6th request should be rate limited
+        post lookup_place_id_business_manager_settings_integrations_path, params: { input: valid_google_maps_url }
+        expect(response).to have_http_status(:too_many_requests)
+        json = JSON.parse(response.body)
+        expect(json['error']).to include('Rate limit exceeded')
+        expect(json['error']).to include('5 Place IDs per hour')
+      end
+
+      it "resets rate limit after cache expiry" do
+        # Make 5 requests
+        5.times do
+          post lookup_place_id_business_manager_settings_integrations_path, params: { input: valid_google_maps_url }
+        end
+
+        # Simulate cache expiry
+        Rails.cache.delete("place_id_extraction:user:#{business_manager_user.id}")
+
+        # Should be able to make request again
+        post lookup_place_id_business_manager_settings_integrations_path, params: { input: valid_google_maps_url }
+        expect(response).to have_http_status(:success)
+      end
     end
   end
-
-  describe "GET /new" do
-    it "renders a successful response" do
-      get new_business_manager_settings_integration_path
-      expect(response).to be_successful
-    end
-  end
-
-  describe "POST /create" do
-    context "with valid parameters" do
-      let(:valid_attributes) do
-        { kind: :google_calendar, config: { client_id: 'test_client_id' }, business_id: business.id }
-      end
-
-      it "creates a new Integration" do
-        expect do
-          post business_manager_settings_integrations_path, params: { integration: valid_attributes }
-        end.to change(Integration, :count).by(1)
-      end
-
-      it "redirects to the integrations list" do
-        post business_manager_settings_integrations_path, params: { integration: valid_attributes }
-        expect(response).to redirect_to(business_manager_settings_integrations_path)
-        expect(flash[:notice]).to eq('Integration was successfully created.')
-      end
-    end
-
-    context "with invalid parameters" do
-      let(:invalid_attributes) do
-        { kind: nil, config: { url: 'test' } } # kind is required
-      end
-
-      it "does not create a new Integration" do
-        expect do
-          post business_manager_settings_integrations_path, params: { integration: invalid_attributes }
-        end.to change(Integration, :count).by(0)
-      end
-
-      it "renders an unprocessable_entity response" do # Or :new depending on controller
-        post business_manager_settings_integrations_path, params: { integration: invalid_attributes }
-        expect(response).to have_http_status(:unprocessable_entity)
-        expect(response.body).to include("prohibited this integration from being saved")
-      end
-    end
-  end
-
-  describe "GET /edit" do
-    it "renders a successful response" do
-      get edit_business_manager_settings_integration_path(integration)
-      expect(response).to be_successful
-    end
-  end
-
-  describe "PATCH /update" do
-    context "with valid parameters" do
-      let(:new_attributes) do
-        { config: { "url" => "https://newexample.com/hook" } }
-      end
-
-      it "updates the requested integration" do
-        patch business_manager_settings_integration_path(integration), params: { integration: new_attributes }
-        integration.reload
-        expect(integration.config["url"]).to eq('https://newexample.com/hook')
-      end
-
-      it "redirects to the integrations list" do
-        patch business_manager_settings_integration_path(integration), params: { integration: new_attributes }
-        expect(response).to redirect_to(business_manager_settings_integrations_path)
-        expect(flash[:notice]).to eq('Integration was successfully updated.')
-      end
-    end
-
-    context "with invalid parameters" do
-      let(:invalid_attributes) { { kind: nil } }
-
-      it "renders an unprocessable_entity response" do # Or :edit depending on controller
-        patch business_manager_settings_integration_path(integration), params: { integration: invalid_attributes }
-        expect(response).to have_http_status(:unprocessable_entity)
-        expect(response.body).to include("prohibited this integration from being saved")
-      end
-    end
-  end
-
-  describe "DELETE /destroy" do
-    it "destroys the requested integration" do
-      expect do
-        delete business_manager_settings_integration_path(integration)
-      end.to change(Integration, :count).by(-1)
-    end
-
-    it "redirects to the integrations list" do
-      delete business_manager_settings_integration_path(integration)
-      expect(response).to redirect_to(business_manager_settings_integrations_path)
-      expect(flash[:notice]).to eq('Integration was successfully deleted.')
-    end
-  end
-end 
+end

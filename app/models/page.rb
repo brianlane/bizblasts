@@ -27,6 +27,9 @@ class Page < ApplicationRecord
   scope :published, -> { where(status: :published) }
   scope :menu_items, -> { where(show_in_menu: true).order(:menu_order) }
   scope :customizable, -> { joins(:business).where(businesses: { tier: ['standard', 'premium'] }) }
+  scope :by_priority, -> { order(priority: :desc, updated_at: :desc) }
+  scope :popular, -> { where('view_count > 0').order(view_count: :desc) }
+  scope :recent, -> { order(updated_at: :desc) }
   
   before_validation :generate_slug, if: -> { slug.blank? && title.present? }
   
@@ -61,16 +64,54 @@ class Page < ApplicationRecord
     page_sections.where.not(section_type: ['text', 'header', 'contact_form']).exists?
   end
   
-  def essential_page?
-    ['home', 'about', 'contact'].include?(page_type)
+  
+  def increment_view_count!
+    increment!(:view_count)
+    touch(:last_viewed_at)
+  end
+  
+  def priority_level
+    case priority
+    when 0 then 'normal'
+    when 1..3 then 'medium'
+    when 4..6 then 'high'
+    else 'critical'
+    end
+  end
+  
+  def status_color
+    case status
+    when 'published' then 'green'
+    when 'draft' then 'yellow'
+    when 'archived' then 'gray'
+    else 'gray'
+    end
+  end
+  
+  def performance_rating
+    return 'unknown' if performance_score.nil?
+    case performance_score
+    when 0..30 then 'poor'
+    when 31..60 then 'fair'
+    when 61..80 then 'good'
+    when 81..100 then 'excellent'
+    else 'unknown'
+    end
   end
   
   private
   
   def customization_allowed_for_tier
     return if business.nil?
-    return if business.free_tier? && !has_custom_sections? # Allow basic pages for free tier
-    
+
+    if business.free_tier?
+      return if business.website_layout_enhanced?
+      return unless has_custom_sections?
+
+      errors.add(:base, "Advanced website customization requires Standard or Premium tier")
+      return
+    end
+
     unless business.standard_tier? || business.premium_tier?
       errors.add(:base, "Advanced website customization requires Standard or Premium tier")
     end

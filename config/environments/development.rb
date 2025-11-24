@@ -28,20 +28,24 @@ Rails.application.configure do
   end
 
   # Devise
-  config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
+  config.action_mailer.default_url_options = { host: "lvh.me", port: 3000 }
 
-  # Change to :null_store to avoid any caching.
-  config.cache_store = :memory_store
+  # Use solid_cache for development to support async jobs with solid_queue
+  # (solid_queue workers run in separate processes, so memory_store doesn't work)
+  config.cache_store = :solid_cache_store
 
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
+
+  # Enable variant tracking for database-backed variant management
+  config.active_storage.track_variants = true
 
   # ActionMailer configuration for development
   config.action_mailer.delivery_method = :resend
   config.action_mailer.perform_deliveries = true
   config.action_mailer.raise_delivery_errors = true
   config.action_mailer.perform_caching = false
-  config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
+  config.action_mailer.default_url_options = { host: "lvh.me", port: 3000 }
   
   # Default email options
   config.action_mailer.default_options = {

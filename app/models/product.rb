@@ -3,15 +3,16 @@ class Product < ApplicationRecord
   # Assuming TenantScoped concern handles belongs_to :business and default scoping
   include TenantScoped
 
-  has_many :product_variants, dependent: :destroy
+  has_many :product_variants, -> { order(:id) }, dependent: :destroy
   # If variants are mandatory, line_items might associate through variants
   # has_many :line_items, dependent: :destroy # Use this if products DON'T have variants
   has_many :line_items, through: :product_variants # Use this if products MUST have variants
 
   has_many_attached :images do |attachable|
-    attachable.variant :thumb, resize_to_limit: [300, 300]
-    attachable.variant :medium, resize_to_limit: [800, 800] 
-    attachable.variant :large, resize_to_limit: [1200, 1200]
+    # Quality handled by ProcessImageJob
+    attachable.variant :thumb, resize_to_fill: [400, 300]
+    attachable.variant :medium, resize_to_fill: [1200, 900] 
+    attachable.variant :large, resize_to_limit: [2000, 2000]
   end
 
   # Ensure `images.ordered` is available on the ActiveStorage proxy
@@ -36,8 +37,13 @@ class Product < ApplicationRecord
 
   enum :product_type, { standard: 0, service: 1, mixed: 2 }
 
+  include PriceDurationParser
+
   validates :name, presence: true, uniqueness: { scope: :business_id }
-  validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }
+  validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }                                                                              
+  
+  # Use shared parsing logic
+  price_parser :price
   validates :tips_enabled, inclusion: { in: [true, false] }
   validates :subscription_enabled, inclusion: { in: [true, false] }
   validates :subscription_discount_percentage, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }, allow_blank: true
@@ -46,14 +52,13 @@ class Product < ApplicationRecord
   validates :show_stock_to_customers, inclusion: { in: [true, false] }
   validates :hide_when_out_of_stock, inclusion: { in: [true, false] }
   validates :variant_label_text, length: { maximum: 100 }
-  # Validate attachments using built-in ActiveStorage validators - Updated for 15MB max
-  validates :images, content_type: { in: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], 
-                                     message: 'must be a valid image format (PNG, JPEG, GIF, WebP)' }, 
-                     size: { less_than: 15.megabytes, message: 'must be less than 15MB' }
+  # Validate attachments using built-in ActiveStorage validators - Updated for 15MB max with HEIC support
+  validates :images, **FileUploadSecurity.image_validation_options
   
   validate :image_size_validation
   validate :validate_pending_image_attributes
   validate :image_format_validation
+  validate :price_format_valid
 
   # TODO: Add method or validation for primary image designation if needed
   # TODO: Add method for image ordering if needed
@@ -178,8 +183,13 @@ class Product < ApplicationRecord
   end
   
   def subscription_discount_amount
-    return 0 unless subscription_enabled? || business&.subscription_discount_percentage.blank?
-    (price * (business.subscription_discount_percentage / 100.0)).round(2)
+    # Apply discount only when subscriptions are enabled and a discount percentage is configured.
+    return 0 unless subscription_enabled?
+
+    discount_pct = subscription_discount_percentage.presence || business&.subscription_discount_percentage
+    return 0 unless discount_pct.present?
+
+    (price * (discount_pct / 100.0)).round(2)
   end
   
   def subscription_savings_percentage
@@ -390,8 +400,8 @@ class Product < ApplicationRecord
   
   def image_format_validation
     images.each do |image|
-      unless image.blob.content_type.in?(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
-        errors.add(:images, "must be a valid image format (JPEG, PNG, GIF, WebP)")
+      unless FileUploadSecurity.valid_image_type?(image.blob.content_type)
+        errors.add(:images, FileUploadSecurity.image_validation_options[:content_type][:message])                                                                 
       end
     end
   end
@@ -422,4 +432,6 @@ class Product < ApplicationRecord
   def resequence_positions
     business.products.where('position > ?', position).update_all('position = position - 1')
   end
+
+  # Use shared validation from PriceDurationParser
 end 

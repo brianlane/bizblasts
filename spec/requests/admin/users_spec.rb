@@ -146,6 +146,12 @@ RSpec.describe "Admin Users", type: :request, admin: true do
       expect(body).to include("None") # Presence of None for business
     end
 
+    it "displays notifications enabled column" do
+      get "/admin/users"
+      expect(response).to be_successful
+      expect(response.body).to include("Notifications Enabled")
+    end
+
     # Filter tests
     context "with filters" do
       it "filters by email" do
@@ -328,6 +334,7 @@ RSpec.describe "Admin Users", type: :request, admin: true do
         expect(body).to match(/<a[^>]*>#{Regexp.escape(business1.name)}<\/a>/)
         expect(body).not_to include("Associated Businesses") 
         expect(body).to include("None") # Staff Member
+        expect(body).to include("Notification Preferences")
       end
     end
 

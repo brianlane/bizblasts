@@ -10,7 +10,7 @@
   <div class="bg-white shadow rounded-lg overflow-hidden mb-6">
     <div class="p-6">
       <div class="flex justify-between mb-4">
-        <h2 class="text-xl font-semibold"><%= @booking.service.name %></h2>
+        <h2 class="text-xl font-semibold"><%= service_with_variant(@booking) %></h2>
         <span class="px-3 py-1 rounded-full text-sm font-medium
           <%= @booking.status == 'confirmed' ? 'bg-green-100 text-green-800' : '' %>
           <%= @booking.status == 'pending' ? 'bg-yellow-100 text-yellow-800' : '' %>
@@ -88,7 +88,7 @@
                   <%= @booking.invoice.status.titleize %>
                 </span>
               </p>
-              <p><span class="font-medium">Service Cost:</span> <%= number_to_currency @booking.service.price %></p>
+              <p><span class="font-medium">Service Cost:</span> <%= number_to_currency service_price(@booking) %></p>
             </div>
             <div>
               <p><span class="font-medium">Total Items:</span> <%= number_to_currency @booking.invoice.original_amount %></p>
@@ -104,7 +104,7 @@
           </div>
           <div class="mt-3">
             <% if request.subdomain.present? && request.subdomain != 'www' %>
-              <%= link_to 'View Invoice Details', tenant_transaction_path(@booking.invoice, type: 'invoice'), 
+              <%= link_to 'View Invoice Details', transaction_path(@booking.invoice, type: 'invoice'), 
                   class: "bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm" %>
             <% else %>
               <%= link_to 'View Invoice Details', transaction_path(@booking.invoice, type: 'invoice'), 
@@ -125,7 +125,7 @@
 
         <% unless @booking.start_time < Time.current %>
           <div class="flex justify-end">
-            <%= button_to "Cancel Booking", cancel_client_booking_path(@booking), method: :patch, class: "bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded", data: { confirm: "Are you sure you want to cancel this booking?" } %>
+            <%= button_to "Cancel Booking", cancel_client_booking_path(@booking), method: :patch, class: "cursor-pointer bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded", data: { confirm: "Are you sure you want to cancel this booking?" } %>
           </div>
         <% end %>
       </div>

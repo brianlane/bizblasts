@@ -246,16 +246,28 @@
           </div>
 
           <!-- Subscription Statistics -->
-          <% 
+          <%
             # Calculate subscription metrics for this product
-            product_subscriptions = @product.business.customer_subscriptions.joins(:line_items)
-                                           .where(line_items: { product_id: @product.id })
+            variant_ids = @product.product_variants.ids
+
+            # Base scope without joins so subscriptions with no orders are counted
+            product_subscriptions = @product.business.customer_subscriptions.where(product_id: @product.id)
+
             active_subscriptions = product_subscriptions.active
             total_subscriptions = product_subscriptions.count
-            monthly_revenue = active_subscriptions.sum { |sub| sub.line_items.where(product_id: @product.id).sum { |li| li.quantity * li.price } }
-            avg_quantity = active_subscriptions.joins(:line_items)
-                                             .where(line_items: { product_id: @product.id })
-                                             .average('line_items.quantity') || 0
+
+            # Build order/line_item join only for monetary & quantity metrics
+            subscription_orders = active_subscriptions.joins(orders: :line_items)
+
+            if variant_ids.any?
+              subscription_orders = subscription_orders.where(line_items: { product_variant_id: variant_ids })
+            else
+              subscription_orders = subscription_orders.joins(line_items: { product_variant: :product })
+                                                       .where(products: { id: @product.id })
+            end
+
+            monthly_revenue = subscription_orders.sum('line_items.quantity * line_items.price')
+            avg_quantity     = subscription_orders.average('line_items.quantity') || 0
           %>
           
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

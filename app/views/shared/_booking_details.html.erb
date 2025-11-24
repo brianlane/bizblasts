@@ -38,7 +38,7 @@
 <div class="booking-details <%= condensed ? 'text-sm' : '' %>">
   <div class="<%= condensed ? 'flex justify-between mb-2' : 'flex justify-between mb-4' %>">
     <h2 class="<%= condensed ? 'text-lg font-semibold' : 'text-xl font-semibold' %>">
-      <%= booking.service_name %>
+      <%= service_with_variant(booking) %>
     </h2>
     <span class="px-3 py-1 rounded-full text-sm font-medium <%= status_color(booking.status) %>">
       <%= booking.status.capitalize %>
@@ -48,7 +48,16 @@
   <%# Display Service Image if available %>
   <% if booking.service.present? && booking.service.primary_image&.attached? %>
     <div class="mb-4">
-              <%= image_tag rails_public_blob_url(booking.service.primary_image.representation(resize_to_limit: [150, 150])), class: "rounded shadow-md" %>
+      <% img = booking.service.primary_image %>
+      <%= image_tag(
+            rails_public_blob_url(img.variant(:thumb)),
+            srcset: [
+              "#{rails_public_blob_url(img.variant(:thumb))} 400w",
+              "#{rails_public_blob_url(img.variant(:medium))} 1200w"
+            ].join(', '),
+            sizes: '(max-width: 768px) 100vw, 300px',
+            class: "rounded shadow-md object-cover"
+          ) %>
     </div>
   <% end %>
 
@@ -87,7 +96,7 @@
     <% unless condensed %>
       <div>
         <h3 class="text-sm font-medium text-gray-500 mb-1">Duration</h3>
-        <p class="text-gray-900"><%= booking.duration.to_i %> minutes</p>
+        <p class="text-gray-900"><%= service_duration(booking) %> minutes</p>
       </div>
     <% end %>
 
@@ -178,7 +187,7 @@
             </span>
           </p>
           <% if booking.service.present? %>
-            <p><span class="font-medium">Service Cost:</span> <%= number_to_currency booking.service.price %></p>
+            <p><span class="font-medium">Service Cost:</span> <%= number_to_currency service_price(booking) %></p>
           <% end %>
         </div>
         <div>
@@ -195,7 +204,7 @@
       </div>
       <div class="mt-3">
         <% if request.subdomain.present? && request.subdomain != 'www' %>
-          <%= link_to 'View Invoice Details', tenant_transaction_path(booking.invoice, type: 'invoice'), 
+          <%= link_to 'View Invoice Details', transaction_path(booking.invoice, type: 'invoice'), 
               class: "bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm" %>
         <% else %>
           <%= link_to 'View Invoice Details', transaction_path(booking.invoice, type: 'invoice'), 
@@ -229,14 +238,14 @@
       
       <div class="<%= condensed ? '' : 'flex justify-end' %>">
         <% if admin_mode %>
-          <%= button_to "Cancel Booking", admin_cancel_booking_path(booking), method: :patch, 
-                      class: "bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-1 px-3 rounded",
+          <%= button_to "Cancel Booking", admin_cancel_booking_path(booking), method: :patch,
+                      class: "cursor-pointer bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-1 px-3 rounded",
                       data: { confirm: "Are you sure you want to cancel this booking?" } %>
         <% else %>
           <%# Show this client-side cancel button only if the current user is a client. Business-manager users already have their own actions elsewhere. %>
           <% if current_user&.client? %>
-            <%= button_to "Cancel Booking", cancel_tenant_my_booking_path(booking), method: :patch, 
-                        class: "bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-1 px-3 rounded",
+            <%= button_to "Cancel Booking", cancel_tenant_my_booking_path(booking), method: :patch,
+                        class: "cursor-pointer bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-1 px-3 rounded",
                         data: { confirm: "Are you sure you want to cancel this booking?" } %>
           <% end %>
         <% end %>

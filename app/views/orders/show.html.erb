@@ -55,7 +55,7 @@
           <% end %>
           <% if @order.business.hostname.present? %>
             <p class="mb-2">
-              <%= link_to "Visit Business Website", "http://#{@order.business.hostname}.#{request.domain}:#{request.port}", 
+              <%= link_to "Visit Business Website", TenantHost.url_for_with_auth(@order.business, request, '/', user_signed_in: user_signed_in?, current_user: current_user), 
                   class: "text-blue-600 hover:underline", target: "_blank" %>
             </p>
           <% end %>
@@ -144,7 +144,7 @@
           <p class="text-sm text-gray-600">Payment deadline: <%= l deadline, format: :long %></p>
         <% end %>
       <% end %>
-      <%= link_to 'Pay Now', new_tenant_payment_path(invoice_id: @order.invoice.id), class: 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded' %>
+      <%= link_to 'Pay Now', new_payment_path(invoice_id: @order.invoice.id), class: 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded' %>
       <p class="text-sm text-gray-600 mt-2">You will be redirected to Stripe to complete your payment securely.</p>
     </div>
   <% end %>

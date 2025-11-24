@@ -97,7 +97,7 @@
       <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">🔗 Share Your Referral Link</h3>
         <div class="bg-gray-100 rounded-lg p-3 mb-4 break-all">
-          <span class="text-sm text-gray-500">https://<%= @business.hostname %>.bizblasts.com?ref=ABC123XYZ</span>
+          <span class="text-sm text-gray-500"><%= TenantHost.url_for_with_auth(@business, request, '?ref=ABC123XYZ', user_signed_in: user_signed_in?, current_user: current_user) %></span>
         </div>
         <div class="bg-gray-200 text-gray-600 px-6 py-2 rounded-lg cursor-not-allowed">
           📋 Copy Link (Client Only)

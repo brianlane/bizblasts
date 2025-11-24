@@ -16,6 +16,17 @@ class StaffMember < ApplicationRecord
   has_many :bookings, dependent: :restrict_with_error
   has_many :services_staff_members, dependent: :destroy
   has_many :services, through: :services_staff_members
+  has_many :calendar_connections, dependent: :destroy
+  belongs_to :default_calendar_connection, class_name: 'CalendarConnection', optional: true
+
+  # --------------------------------------------------------------------------
+  # Calendar connection integrity
+  # --------------------------------------------------------------------------
+  # Ensure the chosen default connection actually belongs to this staff member
+  validate  :default_calendar_connection_must_belong_to_staff_member
+  # Break the circular foreign-key dependency between staff_members.default_calendar_connection_id
+  # and calendar_connections.staff_member_id by clearing the reference before destroy.
+  before_destroy :clear_default_calendar_connection_id
   
   # Bidirectional deletion: when staff member is deleted, delete associated user
   before_destroy :delete_associated_user, if: -> { user.present? }
@@ -25,10 +36,8 @@ class StaffMember < ApplicationRecord
   validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
   validates :phone, presence: true, format: { with: /\A(?:\+?\d{1,3}[-.\s]?)?(?:\(?\d{1,3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\z/, message: "must be a valid phone number" }, allow_blank: true
   
-  # Photo validations
-  validates :photo, content_type: { in: %w[image/png image/jpeg image/gif image/webp], 
-                                   message: 'must be PNG, JPEG, GIF, or WebP' },
-                   size: { less_than: 15.megabytes, message: 'must be less than 15MB' }
+  # Photo validations - Updated for HEIC support
+  validates :photo, **FileUploadSecurity.image_validation_options
   
   validate :validate_availability_structure
   before_validation :process_availability
@@ -78,49 +87,34 @@ class StaffMember < ApplicationRecord
   def available_at?(datetime)
     return false unless active?
 
-    time_to_check = Tod::TimeOfDay(datetime)
-    date_str = datetime.to_date.iso8601
-    day_name = datetime.strftime('%A').downcase
-
+    time_to_check = Tod::TimeOfDay.parse(datetime.strftime('%H:%M'))
     availability_data = self.availability&.with_indifferent_access || {}
     exceptions = availability_data[:exceptions] || {}
     weekly_schedule = availability_data.except(:exceptions)
-    
-    # Debug
-    Rails.logger.debug("Checking availability at: #{datetime.strftime('%Y-%m-%d %H:%M:%S')}")
-    Rails.logger.debug("Time of day: #{time_to_check}, Date: #{date_str}, Day: #{day_name}")
 
-    # Add explicit debug when checking exceptions
-    if exceptions.key?(date_str)
-      Rails.logger.debug("Found exception for date: #{date_str}")
-      Rails.logger.debug("Exception intervals: #{exceptions[date_str].inspect}")
-    end
+    # Check today's intervals
+    current_date = datetime.to_date
+    current_day_name = current_date.strftime('%A').downcase
+    current_day_intervals = find_intervals_for(current_date.iso8601, current_day_name, exceptions, weekly_schedule)
 
-    intervals = find_intervals_for(date_str, day_name, exceptions, weekly_schedule)
+    current_day_intervals.each do |interval|
+      interval = interval.with_indifferent_access
+      start_tod = parse_time_of_day(interval['start'])
+      end_tod   = parse_time_of_day(interval['end'])
+      next unless start_tod && end_tod
 
-    if intervals.empty?
-      Rails.logger.debug("No intervals found for #{date_str}/#{day_name}, returning not available")
-      return false
-    end
-    
-    Rails.logger.debug("Found #{intervals.count} intervals for #{day_name}/#{date_str}: #{intervals.inspect}")
+      # Full-day availability (00:00 to 23:59)
+      if start_tod == Tod::TimeOfDay.new(0, 0) && end_tod == Tod::TimeOfDay.new(23, 59)
+        return true
+      end
 
-    available = intervals.any? do |interval|
-      start_time = parse_time_of_day(interval[:start] || interval['start'])
-      end_time = parse_time_of_day(interval[:end] || interval['end'])
-      
-      if start_time && end_time
-        result = time_to_check >= start_time && time_to_check < end_time
-        Rails.logger.debug("  - Comparing #{time_to_check} with interval #{interval[:start] || interval['start']} to #{interval[:end] || interval['end']}: #{result ? 'AVAILABLE' : 'NOT AVAILABLE'}")
-        result
-      else
-        Rails.logger.debug("  - Skipping invalid interval: #{interval.inspect}")
-        false # Skip invalid intervals
+      # Normal same-day interval (no overnight shifts supported)
+      if start_tod < end_tod
+        return true if time_to_check >= start_tod && time_to_check < end_tod
       end
     end
-    
-    Rails.logger.debug("Final availability result for #{datetime.strftime('%Y-%m-%d %H:%M:%S')}: #{available}")
-    available
+
+    false
   end
   
   def self.ransackable_attributes(auth_object = nil)
@@ -158,6 +152,102 @@ class StaffMember < ApplicationRecord
     end
   end
   
+  # Calendar integration methods
+  def has_calendar_integrations?
+    calendar_connections.active.any?
+  end
+  
+  def google_calendar_connected?
+    calendar_connections.google_connections.active.any?
+  end
+  
+  def microsoft_calendar_connected?
+    calendar_connections.microsoft_connections.active.any?
+  end
+  
+  def caldav_calendar_connected?
+    calendar_connections.caldav_connections.active.any?
+  end
+  
+  def active_calendar_connections
+    calendar_connections.active
+  end
+  
+  def calendar_sync_status
+    connections = active_calendar_connections
+    return 'No integrations' if connections.empty?
+    
+    # All connections have never completed a sync yet (just connected)
+    if connections.all? { |c| c.last_synced_at.nil? }
+      'Syncing'
+    # Every connection synced in the last hour
+    elsif connections.all? { |c| c.last_synced_at && c.last_synced_at > 1.hour.ago }
+      'All synced'
+    # One or more connections have not synced in 6+ hours
+    elsif connections.any? { |c| c.last_synced_at.nil? || c.last_synced_at < 6.hours.ago }
+      'Sync issues'
+    else
+      'Needs sync'
+    end
+  end
+  
+  def primary_calendar_connection
+    default_calendar_connection || active_calendar_connections.first
+  end
+  
+  # Booking sync statistics
+  def synced_bookings_count(since: 30.days.ago)
+    bookings.where(calendar_event_status: :synced)
+            .where(created_at: since..)
+            .count
+  end
+  
+  def pending_sync_bookings_count
+    bookings.where(calendar_event_status: [:not_synced, :sync_pending]).count
+  end
+  
+  def failed_sync_bookings_count
+    bookings.where(calendar_event_status: :sync_failed).count
+  end
+  
+  def total_bookings_requiring_sync_count(since: 30.days.ago)
+    return 0 unless has_calendar_integrations?
+    
+    bookings.where(created_at: since..)
+            .where.not(calendar_event_status: :not_synced)
+            .count
+  end
+  
+  def calendar_sync_success_rate(since: 30.days.ago)
+    total = total_bookings_requiring_sync_count(since: since)
+    return 0 if total.zero?
+    
+    synced = synced_bookings_count(since: since)
+    (synced.to_f / total * 100).round(1)
+  end
+  
+  private
+
+  # --------------------------------------------------------------------------
+  # Validation helpers
+  # --------------------------------------------------------------------------
+  def default_calendar_connection_must_belong_to_staff_member
+    return if default_calendar_connection.blank?
+
+    if default_calendar_connection.staff_member_id != id
+      errors.add(:default_calendar_connection_id, :invalid, message: 'must reference a calendar connection belonging to the same staff member')
+    end
+  end
+
+  # --------------------------------------------------------------------------
+  # Callback helpers
+  # --------------------------------------------------------------------------
+  def clear_default_calendar_connection_id
+    # Use update_column to avoid validation callbacks which could fail if the
+    # default connection is already being destroyed in the same transaction.
+    update_column(:default_calendar_connection_id, nil) if default_calendar_connection_id.present?
+  end
+
   private
 
   def set_default_name_from_user
@@ -280,9 +370,23 @@ class StaffMember < ApplicationRecord
       validate_time_string(day_key, interval['start'], "start time for interval ##{index + 1}")
       validate_time_string(day_key, interval['end'], "end time for interval ##{index + 1}")
       start_tod = Tod::TimeOfDay.parse(interval['start']) rescue nil
-      end_tod = Tod::TimeOfDay.parse(interval['end']) rescue nil
-      if start_tod && end_tod && start_tod >= end_tod
-         errors.add(:availability, :invalid_interval_order, message: "start time must be before end time for interval ##{index + 1} on '#{day_key}'")
+      end_tod   = Tod::TimeOfDay.parse(interval['end'])   rescue nil
+      if start_tod && end_tod
+        # Valid interval conditions:
+        # 1) Normal: start before end on same day
+        # 2) Full day: exactly 00:00 to 23:59 (24-hour availability)
+        is_normal    = start_tod < end_tod
+        is_full_day  = (start_tod == Tod::TimeOfDay.new(0, 0)) && (end_tod == Tod::TimeOfDay.new(23, 59))
+        
+        unless is_normal || is_full_day
+          if start_tod >= end_tod
+            errors.add(
+              :availability,
+              :invalid_interval_order,
+              message: "Shifts are not supported for interval ##{index + 1} on '#{day_key}'. Use 'Full 24 Hour Availability' or set separate intervals for each day"
+            )
+          end
+        end
       end
     end
   end
