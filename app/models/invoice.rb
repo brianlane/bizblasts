@@ -190,16 +190,12 @@ class Invoice < ApplicationRecord
         )
       end
 
-      # Skip calculate_totals callback for ALL estimate-based invoices
-      # since amounts are already set correctly from the estimate
-      invoice.instance_variable_set(:@skip_calculate_totals, true)
-      invoice.save!
-
       # Use staff member from booking if available
       staff_member = estimate.booking&.staff_member
 
+      # Build line items BEFORE saving invoice so they're included in validation
       estimate.estimate_items.each do |item|
-        invoice.line_items.create!(
+        invoice.line_items.build(
           service: item.service,
           staff_member: staff_member,
           quantity: item.qty,
@@ -207,6 +203,12 @@ class Invoice < ApplicationRecord
           total_amount: item.total
         )
       end
+
+      # Skip calculate_totals callback for ALL estimate-based invoices
+      # since amounts are already set correctly from the estimate
+      # Line items are already built, so this flag stays effective during save
+      invoice.instance_variable_set(:@skip_calculate_totals, true)
+      invoice.save!
     end
     invoice
   end
