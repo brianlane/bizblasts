@@ -38,9 +38,20 @@ class Estimate < ApplicationRecord
   private
   def calculate_totals
     return if estimate_items.blank?
-    
-    self.subtotal = estimate_items.sum { |item| item.qty.to_i * item.cost_rate.to_d }
-    self.taxes = estimate_items.sum { |item| item.tax_amount.to_d }
+
+    # Filter out items marked for destruction (similar to Order model line 172)
+    items = estimate_items.reject(&:marked_for_destruction?)
+
+    # Set totals to 0 if no valid items remain
+    if items.blank?
+      self.subtotal = 0
+      self.taxes = 0
+      self.total = 0
+      return
+    end
+
+    self.subtotal = items.sum { |item| item.qty.to_i * item.cost_rate.to_d }
+    self.taxes = items.sum { |item| item.tax_amount.to_d }
     self.total = (subtotal || 0) + (taxes || 0)
   end
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_21_120000) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_25_024120) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -531,7 +531,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_21_120000) do
     t.integer "status"
     t.decimal "subtotal", precision: 10, scale: 2
     t.decimal "taxes", precision: 10, scale: 2
-    t.bigint "tenant_customer_id", null: false
+    t.bigint "tenant_customer_id"
     t.string "token", null: false
     t.decimal "total", precision: 10, scale: 2
     t.datetime "updated_at", null: false

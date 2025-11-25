@@ -95,6 +95,57 @@ RSpec.describe EstimateToBookingService do
       expect { service_instance.call }.to raise_error(ActiveRecord::RecordInvalid)
       expect(estimate.reload.booking).to be_nil # Transaction rolled back
     end
+
+    context "when estimate has inline customer fields but no tenant_customer" do
+      let(:estimate_without_customer) do
+        create(:estimate,
+          business: business,
+          tenant_customer: nil,
+          first_name: "John",
+          last_name: "Doe",
+          email: "john@example.com",
+          phone: "+15551234567",
+          address: "123 Main St",
+          city: "Test City",
+          state: "CA",
+          zip: "12345",
+          status: :approved,
+          approved_at: Time.current,
+          proposed_start_time: 1.week.from_now,
+          subtotal: 150.0,
+          taxes: 15.0,
+          total: 165.0
+        )
+      end
+
+      subject(:service_without_customer) { described_class.new(estimate_without_customer) }
+
+      it "creates a tenant_customer from inline fields before creating booking" do
+        expect { service_without_customer.call }.to change(TenantCustomer, :count).by(1)
+
+        created_customer = TenantCustomer.last
+        expect(created_customer.first_name).to eq("John")
+        expect(created_customer.last_name).to eq("Doe")
+        expect(created_customer.email).to eq("john@example.com")
+        expect(created_customer.phone).to eq("+15551234567")
+        expect(created_customer.address).to eq("123 Main St, Test City, CA, 12345")
+        expect(created_customer.business).to eq(business)
+      end
+
+      it "successfully creates a booking with the new customer" do
+        booking = service_without_customer.call
+        expect(booking).to be_present
+        expect(booking.tenant_customer).to be_present
+        expect(booking.tenant_customer.email).to eq("john@example.com")
+      end
+
+      it "updates estimate with the created tenant_customer" do
+        service_without_customer.call
+        estimate_without_customer.reload
+        expect(estimate_without_customer.tenant_customer).to be_present
+        expect(estimate_without_customer.tenant_customer.email).to eq("john@example.com")
+      end
+    end
   end
 end
 

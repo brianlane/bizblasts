@@ -9,6 +9,10 @@ class EstimateToBookingService
     return @estimate.booking if @estimate.booking.present?
 
     ActiveRecord::Base.transaction do
+      # Ensure tenant_customer exists before creating booking
+      # If estimate has inline customer fields but no tenant_customer, create one
+      ensure_tenant_customer!
+
       # Create Booking based on the estimate
       booking = Booking.create!(
         business: estimate.business,
@@ -74,5 +78,25 @@ class EstimateToBookingService
   # Sum of all quantities in line items
   def total_quantity
     estimate.estimate_items.sum(&:qty)
+  end
+
+  # Ensures estimate has a tenant_customer, creating one from inline fields if needed
+  # This prevents nil tenant_customer errors when creating bookings/invoices
+  def ensure_tenant_customer!
+    return if estimate.tenant_customer.present?
+
+    # Create TenantCustomer from estimate's inline customer fields
+    # Note: TenantCustomer only stores first_name, last_name, email, phone, and address
+    # The estimate stores additional fields (city, state, zip) separately
+    customer = estimate.business.tenant_customers.create!(
+      first_name: estimate.first_name,
+      last_name: estimate.last_name,
+      email: estimate.email,
+      phone: estimate.phone,
+      address: [estimate.address, estimate.city, estimate.state, estimate.zip].compact.join(', ')
+    )
+
+    # Update estimate with the newly created customer
+    estimate.update!(tenant_customer: customer)
   end
 end
