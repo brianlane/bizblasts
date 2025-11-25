@@ -25,12 +25,17 @@ class Public::EstimatesController < ApplicationController
       return redirect_to public_estimate_path(token: @estimate.token), notice: 'This estimate has already been approved.'
     end
 
-    # Approve the estimate
-    @estimate.update!(status: :approved, approved_at: Time.current)
-    EstimateMailer.estimate_approved(@estimate).deliver_later
+    # Use a transaction to ensure estimate approval and booking creation are atomic
+    booking = ActiveRecord::Base.transaction do
+      # Approve the estimate
+      @estimate.update!(status: :approved, approved_at: Time.current)
 
-    # Use the service object to create booking and invoice
-    booking = EstimateToBookingService.new(@estimate).call
+      # Use the service object to create booking and invoice
+      EstimateToBookingService.new(@estimate).call
+    end
+
+    # Send approval email after successful transaction
+    EstimateMailer.estimate_approved(@estimate).deliver_later
 
     # Redirect based on deposit requirement
     if @estimate.required_deposit.to_f > 0

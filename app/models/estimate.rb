@@ -45,7 +45,7 @@ class Estimate < ApplicationRecord
       return
     end
 
-    self.subtotal = items.sum { |item| item.qty.to_i * item.cost_rate.to_d }
+    self.subtotal = items.sum { |item| item.total.to_d }
     self.taxes = items.sum { |item| item.tax_amount.to_d }
     self.total = (subtotal || 0) + (taxes || 0)
   end

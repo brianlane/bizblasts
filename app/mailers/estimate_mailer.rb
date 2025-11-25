@@ -28,8 +28,12 @@ class EstimateMailer < ApplicationMailer
     @message = message
     # Get emails from business managers (admin_users association doesn't exist on Business)
     manager_emails = estimate.business.users.where(role: :manager).pluck(:email)
-    return if manager_emails.empty?
 
-    mail(to: manager_emails, subject: "Change Request for Estimate ##{estimate.id}")
+    if manager_emails.empty?
+      # Return NullMail to avoid NoMethodError when deliver_later is called
+      mail(to: nil, subject: "Change Request for Estimate ##{estimate.id}")
+    else
+      mail(to: manager_emails, subject: "Change Request for Estimate ##{estimate.id}")
+    end
   end
 end 
