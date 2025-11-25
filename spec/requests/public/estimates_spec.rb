@@ -96,6 +96,29 @@ RSpec.describe "Public::Estimates", type: :request do
       end
     end
 
+    it "prevents duplicate bookings from concurrent approval requests" do
+      # Simulate concurrent requests by attempting to approve twice
+      # The pessimistic lock should prevent the second request from creating a duplicate
+
+      # First approval should succeed
+      patch approve_public_estimate_path(token: estimate.token)
+      estimate.reload
+      expect(estimate.status).to eq("approved")
+      first_booking_id = estimate.booking_id
+
+      # Second approval attempt should be rejected (already approved)
+      # Reset the @estimate instance variable by making a new request
+      estimate.reload
+      patch approve_public_estimate_path(token: estimate.token)
+
+      # Should not create a second booking
+      estimate.reload
+      expect(estimate.booking_id).to eq(first_booking_id)
+      expect(Booking.count).to eq(1)
+      expect(Invoice.count).to eq(1)
+      expect(flash[:notice]).to eq('This estimate has already been approved.')
+    end
+
     it "sends approval notification email" do
       expect {
         patch approve_public_estimate_path(token: estimate.token)

@@ -15,23 +15,40 @@ class Public::EstimatesController < ApplicationController
 
   # Customer approves estimate and initiates deposit payment if needed
   def approve
-    # Do not allow re-approving declined or cancelled estimates
-    if @estimate.declined? || @estimate.cancelled?
-      return redirect_to public_estimate_path(token: @estimate.token), alert: 'This estimate cannot be approved.'
-    end
-
-    # Do not allow approving if already approved
-    if @estimate.approved?
-      return redirect_to public_estimate_path(token: @estimate.token), notice: 'This estimate has already been approved.'
-    end
-
-    # Use a transaction to ensure estimate approval and booking creation are atomic
+    # Use a transaction with pessimistic locking to prevent race conditions
+    # Lock the estimate row to ensure only one request can process approval
     booking = ActiveRecord::Base.transaction do
-      # Approve the estimate
+      # Reload and lock the estimate to get the latest status and prevent concurrent modifications
+      @estimate.lock!
+
+      # Check status INSIDE the transaction with the locked record
+      # This prevents race conditions where two requests both pass the check
+      if @estimate.declined? || @estimate.cancelled?
+        # Rollback and return early
+        raise ActiveRecord::Rollback
+      end
+
+      if @estimate.approved?
+        # Already approved by another concurrent request
+        raise ActiveRecord::Rollback
+      end
+
+      # Approve the estimate (still within the lock)
       @estimate.update!(status: :approved, approved_at: Time.current)
 
       # Use the service object to create booking and invoice
       EstimateToBookingService.new(@estimate).call
+    end
+
+    # Check if transaction was rolled back (estimate was already processed)
+    if booking.nil?
+      if @estimate.reload.approved?
+        return redirect_to public_estimate_path(token: @estimate.token), notice: 'This estimate has already been approved.'
+      elsif @estimate.declined? || @estimate.cancelled?
+        return redirect_to public_estimate_path(token: @estimate.token), alert: 'This estimate cannot be approved.'
+      else
+        return redirect_to public_estimate_path(token: @estimate.token), alert: 'Could not approve estimate.'
+      end
     end
 
     # Send approval email after successful transaction
