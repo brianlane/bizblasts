@@ -76,23 +76,62 @@ class Public::EstimatesController < ApplicationController
   end
 
   def decline
-    if @estimate.approved? || @estimate.declined? || @estimate.cancelled?
-      return redirect_to public_estimate_path(token: @estimate.token), alert: 'This estimate cannot be declined.'
+    # Use a transaction with pessimistic locking to prevent race conditions
+    # This ensures only one request can decline the estimate
+    success = ActiveRecord::Base.transaction do
+      # Lock the estimate row to prevent concurrent modifications
+      @estimate.lock!
+
+      # Check status INSIDE the transaction with the locked record
+      # This prevents race conditions where two requests both pass the check
+      if @estimate.approved? || @estimate.declined? || @estimate.cancelled?
+        raise ActiveRecord::Rollback
+      end
+
+      # Decline the estimate (still within the lock)
+      @estimate.update!(status: :declined, declined_at: Time.current)
+
+      # Send notification email after update but within transaction
+      EstimateMailer.estimate_declined(@estimate).deliver_later
+
+      true # Indicate success
     end
 
-    @estimate.update!(status: :declined, declined_at: Time.current)
-    EstimateMailer.estimate_declined(@estimate).deliver_later
-    redirect_to public_estimate_path(token: @estimate.token), notice: 'You have declined this estimate.'
+    # Check if transaction was rolled back (estimate was already processed)
+    if success
+      redirect_to public_estimate_path(token: @estimate.token), notice: 'You have declined this estimate.'
+    else
+      redirect_to public_estimate_path(token: @estimate.token), alert: 'This estimate cannot be declined.'
+    end
   end
 
   def request_changes
-    if @estimate.approved? || @estimate.declined? || @estimate.cancelled?
-      return redirect_to public_estimate_path(token: @estimate.token), alert: 'This estimate cannot be modified.'
+    # Use a transaction with pessimistic locking to prevent race conditions
+    # This ensures only one request can send change notifications
+    message = params.fetch(:changes_request, "Customer has requested changes, please review.")
+
+    success = ActiveRecord::Base.transaction do
+      # Lock the estimate row to prevent concurrent modifications
+      @estimate.lock!
+
+      # Check status INSIDE the transaction with the locked record
+      # This prevents race conditions where two requests both pass the check
+      if @estimate.approved? || @estimate.declined? || @estimate.cancelled?
+        raise ActiveRecord::Rollback
+      end
+
+      # Send notification email within the transaction
+      EstimateMailer.request_changes_notification(@estimate, message).deliver_later
+
+      true # Indicate success
     end
 
-    message = params.fetch(:changes_request, "Customer has requested changes, please review.")
-    EstimateMailer.request_changes_notification(@estimate, message).deliver_later
-    redirect_to public_estimate_path(token: @estimate.token), notice: 'Your change request has been sent.'
+    # Check if transaction was rolled back (estimate was already processed)
+    if success
+      redirect_to public_estimate_path(token: @estimate.token), notice: 'Your change request has been sent.'
+    else
+      redirect_to public_estimate_path(token: @estimate.token), alert: 'This estimate cannot be modified.'
+    end
   end
 
   private

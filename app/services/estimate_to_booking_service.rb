@@ -34,6 +34,9 @@ class EstimateToBookingService
       # Create Invoice for the booking based on the remaining balance
       Invoice.create_from_estimate(estimate)
 
+      # Reload booking to ensure invoice association is loaded in memory
+      # Without this, booking.invoice returns nil even though the invoice was created
+      booking.reload
       booking
     end
   end
