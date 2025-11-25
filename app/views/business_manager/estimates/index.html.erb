@@ -18,7 +18,7 @@
       <% @estimates.each do |estimate| %>
         <tr>
           <td><%= estimate.id %></td>
-          <td><%= "#{estimate.first_name} #{estimate.last_name}" %></td>
+          <td><%= estimate.tenant_customer&.full_name || "#{estimate.first_name} #{estimate.last_name}" %></td>
           <td><%= estimate.status %></td>
           <td><%= number_to_currency(estimate.total) %></td>
           <td><%= l(estimate.created_at, format: :short) %></td>

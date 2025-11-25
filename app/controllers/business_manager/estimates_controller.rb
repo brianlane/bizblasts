@@ -33,6 +33,9 @@ class BusinessManager::EstimatesController < BusinessManager::BaseController
     if @estimate.save
       redirect_to business_manager_estimate_path(@estimate), notice: 'Estimate created.'
     else
+      # Rebuild associations if removed during validation to preserve form state
+      @estimate.estimate_items.build if @estimate.estimate_items.empty?
+      @estimate.build_tenant_customer unless @estimate.tenant_customer
       render :new, status: :unprocessable_entity
     end
   end
@@ -57,6 +60,9 @@ class BusinessManager::EstimatesController < BusinessManager::BaseController
     if @estimate.update(cp)
       redirect_to business_manager_estimate_path(@estimate), notice: 'Estimate updated.'
     else
+      # Rebuild associations if removed during validation to preserve form state
+      @estimate.estimate_items.build if @estimate.estimate_items.empty?
+      @estimate.build_tenant_customer unless @estimate.tenant_customer
       render :edit, status: :unprocessable_entity
     end
   end
