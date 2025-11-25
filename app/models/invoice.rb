@@ -90,10 +90,14 @@ class Invoice < ApplicationRecord
   end
 
   def calculate_totals
+    # Skip recalculation if this is an estimate-based deposit invoice
+    # (amounts are already set correctly in create_from_estimate)
+    return if @skip_calculate_totals
+
     # Only calculate totals if we have data sources (booking, order, or line items)
     # This allows validation to catch missing required fields
     return unless booking.present? || order.present? || line_items.any?
-    
+
     items_subtotal = 0
     if booking.present?
       items_subtotal = booking.total_charge
@@ -152,21 +156,48 @@ class Invoice < ApplicationRecord
   def self.create_from_estimate(estimate)
     invoice = nil
     transaction do
-      invoice = create!(
-        tenant_customer: estimate.tenant_customer,
-        business: estimate.business,
-        booking: estimate.booking,
-        amount: estimate.subtotal,
-        original_amount: estimate.subtotal,
-        discount_amount: 0.0,
-        tax_amount: estimate.taxes || 0.0,
-        total_amount: estimate.total,
-        due_date: 7.days.from_now,
-        status: :pending
-      )
+      # If estimate has a required deposit, invoice only the deposit amount
+      # Otherwise, invoice the full amount (upfront payment)
+      is_deposit_invoice = estimate.required_deposit.present? && estimate.required_deposit > 0
+
+      if is_deposit_invoice
+        # For deposit invoices, the deposit is a lump sum (includes tax portion)
+        invoice = new(
+          tenant_customer: estimate.tenant_customer,
+          business: estimate.business,
+          booking: estimate.booking,
+          amount: estimate.required_deposit,
+          original_amount: estimate.required_deposit,
+          discount_amount: 0.0,
+          tax_amount: 0.0,
+          total_amount: estimate.required_deposit,
+          due_date: 7.days.from_now,
+          status: :pending
+        )
+      else
+        # For full invoices, properly separate pre-tax amount and tax
+        invoice = new(
+          tenant_customer: estimate.tenant_customer,
+          business: estimate.business,
+          booking: estimate.booking,
+          amount: estimate.subtotal,
+          original_amount: estimate.subtotal,
+          discount_amount: 0.0,
+          tax_amount: estimate.taxes || 0.0,
+          total_amount: estimate.total,
+          due_date: 7.days.from_now,
+          status: :pending
+        )
+      end
+
+      # Skip calculate_totals callback for ALL estimate-based invoices
+      # since amounts are already set correctly from the estimate
+      invoice.instance_variable_set(:@skip_calculate_totals, true)
+      invoice.save!
+
       # Use staff member from booking if available
       staff_member = estimate.booking&.staff_member
-      
+
       estimate.estimate_items.each do |item|
         invoice.line_items.create!(
           service: item.service,

@@ -110,4 +110,133 @@ RSpec.describe Invoice, type: :model do
       end
     end
   end
+
+  describe '.create_from_estimate' do
+    let(:staff_member) { create(:staff_member, business: business) }
+    let(:service) { create(:service, business: business, duration: 60, price: 100.0) }
+    let(:booking) do
+      create(:booking,
+        business: business,
+        tenant_customer: tenant_customer,
+        service: service,
+        staff_member: staff_member,
+        start_time: 1.week.from_now,
+        status: :pending
+      )
+    end
+
+    context 'when estimate has no required deposit' do
+      let(:estimate) do
+        est = create(:estimate,
+          business: business,
+          tenant_customer: tenant_customer,
+          booking: booking,
+          status: :approved,
+          approved_at: Time.current,
+          subtotal: 150.0,
+          taxes: 15.0,
+          total: 165.0,
+          required_deposit: nil
+        )
+        if est.estimate_items.any?
+          est.estimate_items.first.update!(service: service, qty: 1, cost_rate: 150.0, tax_rate: 10.0)
+          est.save! # Trigger calculate_totals callback
+          est.reload # Reload to get updated totals from estimate_items
+        end
+        est
+      end
+
+      it 'creates invoice for the full amount' do
+        invoice = Invoice.create_from_estimate(estimate)
+
+        expect(invoice).to be_persisted
+        expect(invoice.total_amount).to eq(165.0)
+        expect(invoice.amount).to eq(150.0)
+        expect(invoice.original_amount).to eq(150.0)
+        expect(invoice.tax_amount).to eq(15.0)
+        expect(invoice.tenant_customer).to eq(tenant_customer)
+        expect(invoice.booking).to eq(booking)
+      end
+
+      it 'creates line items from estimate items' do
+        invoice = Invoice.create_from_estimate(estimate)
+
+        expect(invoice.line_items.count).to eq(estimate.estimate_items.count)
+        invoice.line_items.each_with_index do |line_item, index|
+          estimate_item = estimate.estimate_items[index]
+          expect(line_item.service).to eq(estimate_item.service)
+          expect(line_item.quantity).to eq(estimate_item.qty)
+          expect(line_item.price).to eq(estimate_item.cost_rate)
+        end
+      end
+    end
+
+    context 'when estimate has a required deposit' do
+      let(:estimate_with_deposit) do
+        est = create(:estimate,
+          business: business,
+          tenant_customer: tenant_customer,
+          booking: booking,
+          status: :approved,
+          approved_at: Time.current,
+          subtotal: 150.0,
+          taxes: 15.0,
+          total: 165.0,
+          required_deposit: 50.0
+        )
+        if est.estimate_items.any?
+          est.estimate_items.first.update!(service: service, qty: 1, cost_rate: 150.0, tax_rate: 10.0)
+          est.save! # Trigger calculate_totals callback
+          est.reload # Reload to get updated totals from estimate_items
+        end
+        est
+      end
+
+      it 'creates invoice for only the deposit amount' do
+        invoice = Invoice.create_from_estimate(estimate_with_deposit)
+
+        expect(invoice).to be_persisted
+        expect(invoice.total_amount).to eq(50.0)
+        expect(invoice.amount).to eq(50.0)
+        expect(invoice.original_amount).to eq(50.0)
+        expect(invoice.tenant_customer).to eq(tenant_customer)
+        expect(invoice.booking).to eq(booking)
+      end
+
+      it 'still creates all line items from estimate' do
+        invoice = Invoice.create_from_estimate(estimate_with_deposit)
+
+        expect(invoice.line_items.count).to eq(estimate_with_deposit.estimate_items.count)
+      end
+    end
+
+    context 'when estimate has zero deposit' do
+      let(:estimate_zero_deposit) do
+        est = create(:estimate,
+          business: business,
+          tenant_customer: tenant_customer,
+          booking: booking,
+          status: :approved,
+          approved_at: Time.current,
+          subtotal: 150.0,
+          taxes: 15.0,
+          total: 165.0,
+          required_deposit: 0.0
+        )
+        if est.estimate_items.any?
+          est.estimate_items.first.update!(service: service, qty: 1, cost_rate: 150.0, tax_rate: 10.0)
+          est.save! # Trigger calculate_totals callback
+          est.reload # Reload to get updated totals from estimate_items
+        end
+        est
+      end
+
+      it 'creates invoice for the full amount (treats 0 as no deposit)' do
+        invoice = Invoice.create_from_estimate(estimate_zero_deposit)
+
+        expect(invoice.total_amount).to eq(165.0)
+        expect(invoice.amount).to eq(150.0)
+      end
+    end
+  end
 end 
