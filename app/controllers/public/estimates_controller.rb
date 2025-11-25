@@ -7,7 +7,10 @@ class Public::EstimatesController < ApplicationController
 
   # Token-based show for public access
   def show
-    @estimate.viewed! if @estimate.sent? || @estimate.viewed?
+    # Mark as viewed if sent (first view) - Rails enum doesn't generate bang methods
+    if @estimate.sent?
+      @estimate.update(status: :viewed, viewed_at: Time.current)
+    end
   end
 
   # Customer approves estimate and initiates deposit payment if needed

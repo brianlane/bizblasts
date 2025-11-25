@@ -152,31 +152,11 @@ application.register('photo-upload', PhotoUploadController);
 application.register('gallery-manager', GalleryManagerController);
 application.register('gallery-lightbox', GalleryLightboxController);
 application.register('gallery-carousel', GalleryCarouselController);
-import PageEditorController from "./controllers/page_editor_controller"
-import ThemeEditorController from "./controllers/theme_editor_controller" 
-import TemplateBrowserController from "./controllers/template_browser_controller"
-import EditSectionController from "./controllers/edit_section_controller"
-import NavbarController from "./controllers/navbar_controller"
-import DropdownController from "./controllers/dropdown_controller"
-import CustomerDropdownController from "./controllers/customer_dropdown_controller"
-import ProductVariantsController from "./controllers/product_variants_controller"
-import ServiceFormController from "./controllers/service_form_controller"
-import SortableController from "./controllers/sortable_controller"
-import HelloController from "./controllers/hello_controller"
+
+// Additional controllers for estimates feature
 import DatePickerController from "./controllers/date_picker_controller"
 import DynamicLineItemsController from "./controllers/dynamic_line_items_controller"
 
-application.register("page-editor", PageEditorController)
-application.register("theme-editor", ThemeEditorController)
-application.register("template-browser", TemplateBrowserController)
-application.register("edit-section", EditSectionController)
-application.register("navbar", NavbarController)
-application.register("dropdown", DropdownController)
-application.register("customer-dropdown", CustomerDropdownController)
-application.register("product-variants", ProductVariantsController)
-application.register("service-form", ServiceFormController)
-application.register("sortable", SortableController)
-application.register("hello", HelloController)
 application.register("date-picker", DatePickerController)
 application.register("dynamic-line-items", DynamicLineItemsController)
 
@@ -193,9 +173,10 @@ function autoDiscoverControllers() {
     // Get list of manually registered controllers to avoid duplicates
     const manuallyRegistered = new Set([
       'page-editor', 'theme-editor', 'template-browser', 'edit-section',
-      'navbar', 'dropdown', 'customer-dropdown', 'product-variants', 'service-form', 'sortable', 'hello', 'date-picker', 'dynamic-line-items',
+      'navbar', 'dropdown', 'customer-dropdown', 'product-variants', 'service-form', 'sortable', 'hello',
       'service-variants', 'dropdown-updater', 'service-availability', 'google-business-search', 'qr-payment',
-      'place-id-lookup', 'enhanced-layout-selector', 'photo-upload', 'gallery-manager', 'gallery-lightbox', 'gallery-carousel'
+      'place-id-lookup', 'enhanced-layout-selector', 'photo-upload', 'gallery-manager', 'gallery-lightbox', 'gallery-carousel',
+      'date-picker', 'dynamic-line-items'
     ]);
     
     // Dynamically import and register each controller

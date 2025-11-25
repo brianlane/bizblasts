@@ -89,6 +89,7 @@
     <div id="customer-details" class="mb-6 hidden" data-customer-dropdown-target="newCustomerFields">
     <h4 class="text-md font-medium text-gray-900 mb-4">Customer Details</h4>
     
+    <!-- New customer fields - these create the tenant_customer -->
     <%= f.fields_for :tenant_customer do |cf| %>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
@@ -118,34 +119,7 @@
       </div>
     <% end %>
     
-    <!-- Keep direct fields for estimate-specific address details -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-      <div>
-        <%= f.label :first_name, 'First Name', class: 'block text-sm font-medium text-gray-700 mb-1' %>
-        <%= f.text_field :first_name, class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm' %>
-      </div>
-      <div>
-        <%= f.label :last_name, 'Last Name', class: 'block text-sm font-medium text-gray-700 mb-1' %>
-        <%= f.text_field :last_name, class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm' %>
-      </div>
-    </div>
-    
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-      <div>
-        <%= f.label :email, 'Email', class: 'block text-sm font-medium text-gray-700 mb-1' %>
-        <%= f.email_field :email, class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm' %>
-      </div>
-      <div>
-        <%= f.label :phone, 'Phone', class: 'block text-sm font-medium text-gray-700 mb-1' %>
-        <%= f.telephone_field :phone, class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm' %>
-      </div>
-    </div>
-    
-    <div class="mb-4">
-      <%= f.label :address, 'Address', class: 'block text-sm font-medium text-gray-700 mb-1' %>
-      <%= f.text_field :address, class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm' %>
-    </div>
-    
+    <!-- Additional estimate-specific location fields (city, state, zip) -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
       <div>
         <%= f.label :city, 'City', class: 'block text-sm font-medium text-gray-700 mb-1' %>
