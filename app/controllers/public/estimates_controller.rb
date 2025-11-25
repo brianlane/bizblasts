@@ -60,7 +60,9 @@ class Public::EstimatesController < ApplicationController
       if invoice
         redirect_to new_payment_path(invoice_id: invoice.id)
       else
-        redirect_to public_estimate_path(token: @estimate.token), notice: 'Estimate approved. No deposit was required.'
+        # This should never happen - deposit required but invoice not created
+        Rails.logger.error "Estimate #{@estimate.id} approved with required_deposit=#{@estimate.required_deposit} but invoice is missing for booking #{booking.id}"
+        redirect_to public_estimate_path(token: @estimate.token), alert: 'Estimate approved but there was an error creating the invoice. Please contact support.'
       end
     else
       redirect_to public_estimate_path(token: @estimate.token), notice: 'Estimate approved. No deposit was required.'
