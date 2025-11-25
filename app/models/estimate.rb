@@ -20,12 +20,7 @@ class Estimate < ApplicationRecord
   validates :total, numericality: { greater_than_or_equal_to: 0 }
 
   before_validation :calculate_totals
-  after_update :convert_to_booking, if: -> { saved_change_to_status? && approved? && deposit_paid? }
   before_create :generate_token
-
-  def deposit_paid?
-    deposit_paid_at.present? && approved_at.present? && deposit_paid_at >= approved_at
-  end
 
   def customer_email
     if tenant_customer.present? && tenant_customer.email.present?
@@ -53,10 +48,6 @@ class Estimate < ApplicationRecord
     self.subtotal = items.sum { |item| item.qty.to_i * item.cost_rate.to_d }
     self.taxes = items.sum { |item| item.tax_amount.to_d }
     self.total = (subtotal || 0) + (taxes || 0)
-  end
-
-  def convert_to_booking
-    EstimateToBookingService.new(self).call
   end
 
   def generate_token
