@@ -4,6 +4,8 @@ class CreateEstimates < ActiveRecord::Migration[8.0]
       t.references :business, null: false, foreign_key: true
       t.references :tenant_customer, null: true, foreign_key: true
       t.datetime :proposed_start_time
+      t.datetime :proposed_end_time
+      t.string :token, null: false
       t.string :first_name
       t.string :last_name
       t.string :email

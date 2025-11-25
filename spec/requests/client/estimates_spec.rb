@@ -20,13 +20,7 @@ RSpec.describe "Client::Estimates", type: :request do
   end
 
   before do
-    host! "#{business.subdomain}.lvh.me"
-    ActsAsTenant.current_tenant = business
     sign_in customer_user
-  end
-
-  after do
-    ActsAsTenant.current_tenant = nil
   end
 
   describe "GET /my-estimates (index)" do
@@ -37,15 +31,19 @@ RSpec.describe "Client::Estimates", type: :request do
 
     it "shows only the current user's estimates" do
       get client_estimates_path
-      expect(assigns(:estimates)).to include(my_estimate)
-      expect(assigns(:estimates)).not_to include(other_estimate)
+      expect(response.body).to include("Estimate ##{my_estimate.id}")
+      expect(response.body).not_to include("Estimate ##{other_estimate.id}")
     end
 
     it "orders estimates by created_at descending" do
       older_estimate = create(:estimate, business: business, tenant_customer: tenant_customer, created_at: 1.week.ago)
       get client_estimates_path
-      estimates = assigns(:estimates)
-      expect(estimates.first).to eq(my_estimate)
+      # Most recent estimate should appear first in the HTML
+      my_pos = response.body.index("Estimate ##{my_estimate.id}")
+      older_pos = response.body.index("Estimate ##{older_estimate.id}")
+      expect(my_pos).to be_present
+      expect(older_pos).to be_present
+      expect(my_pos).to be < older_pos
     end
   end
 
@@ -56,9 +54,9 @@ RSpec.describe "Client::Estimates", type: :request do
     end
 
     it "denies access to other customer's estimate" do
-      expect {
-        get client_estimate_path(other_estimate)
-      }.to raise_error(Pundit::NotAuthorizedError)
+      get client_estimate_path(other_estimate)
+      expect(response).to redirect_to(dashboard_path)
+      expect(flash[:alert]).to eq("You are not authorized to access this area.")
     end
   end
 

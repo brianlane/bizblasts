@@ -10,6 +10,7 @@ class UserSidebarItem < ApplicationRecord
     items = [
       { key: 'dashboard', label: 'Dashboard' },
       { key: 'bookings', label: 'Bookings' },
+      { key: 'estimates', label: 'Estimates', requires_estimate_page: true },
       { key: 'website', label: 'Website' },
       { key: 'website_builder', label: 'Website Builder', tier: %w[standard premium] },
       { key: 'transactions', label: 'Transactions' },
@@ -38,6 +39,11 @@ class UserSidebarItem < ApplicationRecord
     # Filter items that require products when business has no active products
     unless business&.products&.active&.exists?
       items.reject! { |i| i[:requires_products] }
+    end
+
+    # Filter estimates unless business has show_estimate_page enabled
+    unless business&.show_estimate_page?
+      items.reject! { |i| i[:requires_estimate_page] }
     end
 
     items

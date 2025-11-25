@@ -1,0 +1,76 @@
+<div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+  <dl class="divide-y divide-gray-200">
+    <div class="p-4 grid grid-cols-3 gap-4">
+      <dt class="font-medium text-gray-600">Estimate Date</dt>
+      <dd class="col-span-2"><%= estimate.created_at.strftime('%B %d, %Y') %></dd>
+    </div>
+    <% if estimate.proposed_start_time.present? %>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Proposed Start</dt>
+        <dd class="col-span-2"><%= estimate.proposed_start_time.strftime('%B %d, %Y %I:%M %p') %></dd>
+      </div>
+    <% end %>
+    <div class="p-4 grid grid-cols-3 gap-4">
+      <dt class="font-medium text-gray-600">Status</dt>
+      <dd class="col-span-2">
+        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+          <%= case estimate.status
+              when 'draft' then 'bg-gray-100 text-gray-800'
+              when 'sent' then 'bg-blue-100 text-blue-800'
+              when 'viewed' then 'bg-yellow-100 text-yellow-800'
+              when 'approved' then 'bg-green-100 text-green-800'
+              when 'declined' then 'bg-red-100 text-red-800'
+              when 'cancelled' then 'bg-gray-100 text-gray-800'
+              else 'bg-gray-100 text-gray-800'
+              end %>">
+          <%= estimate.status.humanize %>
+        </span>
+      </dd>
+    </div>
+    <div class="p-4 grid grid-cols-3 gap-4">
+      <dt class="font-medium text-gray-600">Subtotal</dt>
+      <dd class="col-span-2"><%= number_to_currency(estimate.subtotal) %></dd>
+    </div>
+    <div class="p-4 grid grid-cols-3 gap-4">
+      <dt class="font-medium text-gray-600">Taxes</dt>
+      <dd class="col-span-2"><%= number_to_currency(estimate.taxes) %></dd>
+    </div>
+    <div class="p-4 grid grid-cols-3 gap-4">
+      <dt class="font-medium text-gray-600">Total</dt>
+      <dd class="col-span-2 text-lg font-semibold"><%= number_to_currency(estimate.total) %></dd>
+    </div>
+    <% if estimate.required_deposit.to_f > 0 %>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Required Deposit</dt>
+        <dd class="col-span-2"><%= number_to_currency(estimate.required_deposit) %></dd>
+      </div>
+    <% end %>
+  </dl>
+</div>
+
+<h2 class="text-xl font-semibold mb-2">Line Items</h2>
+<div class="bg-white shadow sm:rounded-lg overflow-x-auto mb-6">
+  <table class="min-w-full divide-y divide-gray-200">
+    <thead class="bg-gray-50">
+      <tr>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-gray-200">
+      <% estimate.estimate_items.each do |item| %>
+        <tr>
+          <td class="px-6 py-4 whitespace-nowrap"><%= item.service&.name || '-' %></td>
+          <td class="px-6 py-4 whitespace-nowrap"><%= item.description %></td>
+          <td class="px-6 py-4 whitespace-nowrap"><%= item.qty %></td>
+          <td class="px-6 py-4 whitespace-nowrap"><%= number_to_currency(item.cost_rate) %></td>
+          <td class="px-6 py-4 whitespace-nowrap"><%= number_to_currency(item.total) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+

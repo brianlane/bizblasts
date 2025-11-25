@@ -28,14 +28,20 @@ class Estimate < ApplicationRecord
   end
 
   def customer_email
-    tenant_customer.present? ? tenant_customer.email : email
+    if tenant_customer.present? && tenant_customer.email.present?
+      tenant_customer.email
+    else
+      email
+    end
   end
 
   private
   def calculate_totals
+    return if estimate_items.blank?
+    
     self.subtotal = estimate_items.sum { |item| item.qty.to_i * item.cost_rate.to_d }
-    self.taxes = estimate_items.sum(&:tax_amount)
-    self.total = subtotal + taxes
+    self.taxes = estimate_items.sum { |item| item.tax_amount.to_d }
+    self.total = (subtotal || 0) + (taxes || 0)
   end
 
   def convert_to_booking
