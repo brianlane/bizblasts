@@ -7,7 +7,7 @@ class Estimate < ApplicationRecord
   belongs_to :booking, optional: true
 
   has_many :estimate_items, dependent: :destroy
-  accepts_nested_attributes_for :estimate_items, allow_destroy: true, reject_if: ->(attrs) { attrs['qty'].to_i <= 0 && attrs['description'].blank? }
+  accepts_nested_attributes_for :estimate_items, allow_destroy: true, reject_if: ->(attrs) { attrs['qty'].to_i <= 0 || attrs['service_id'].blank? }
   accepts_nested_attributes_for :tenant_customer, reject_if: ->(attrs) { attrs['first_name'].blank? && attrs['last_name'].blank? && attrs['email'].blank? }
 
   enum :status, { draft: 0, sent: 1, viewed: 2, approved: 3, declined: 4, cancelled: 5 }
