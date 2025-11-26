@@ -119,12 +119,14 @@ RSpec.configure do |config|
   config.include Rails::Controller::Testing::Integration, type: :request
 
   # == DatabaseCleaner Configuration for Parallel Tests ==
-  # PERFORMANCE: Use transaction strategy for non-browser tests (10-100x faster than truncation)
-  # System/feature tests use truncation since they run in separate threads
+  # Use truncation strategy for all tests to ensure proper isolation
+  # Transaction strategy causes issues with request specs (different DB connections)
   
   config.before(:suite) do
     # Ensure DB is clean before suite
     DatabaseCleaner.clean_with(:truncation, except: EXCLUDED_TABLES)
+    # Set the default strategy for the suite
+    DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES }
     # Rewind sequences AFTER cleaning so factories start from a clean baseline
     FactoryBot.rewind_sequences if FactoryBot.respond_to?(:rewind_sequences)
   end
@@ -134,15 +136,8 @@ RSpec.configure do |config|
     if example.metadata[:seed_test] || example.metadata[:no_db_clean]
       example.run
     else
-      # PERFORMANCE: Use transaction strategy for non-browser tests (much faster)
-      # System/feature tests need truncation because Capybara runs in a separate thread
-      strategy = if example.metadata[:type] == :system || example.metadata[:type] == :feature || example.metadata[:js]
-        [:truncation, { except: EXCLUDED_TABLES }]
-      else
-        :transaction
-      end
-      
-      DatabaseCleaner.strategy = strategy
+      # Use truncation for all tests to ensure proper isolation
+      DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES }
       DatabaseCleaner.cleaning do
         example.run
       end
