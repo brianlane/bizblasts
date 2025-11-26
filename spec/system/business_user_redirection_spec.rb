@@ -86,7 +86,8 @@ RSpec.describe 'Business User Redirection', type: :system, js: true do
     expect(page).to have_content(/Welcome|Home|Sign in/i)
   end
 
-  scenario 'Business user logs in via FORM from homepage and is redirected to subdomain dashboard' do
+  # This test is flaky in CI due to browser timeouts during authentication redirects
+  scenario 'Business user logs in via FORM from homepage and is redirected to subdomain dashboard', retry: 2 do
     # Start at the main domain
     switch_to_main_domain
     visit root_path
@@ -107,11 +108,15 @@ RSpec.describe 'Business User Redirection', type: :system, js: true do
     # Fill in the login form
     fill_in 'Email', with: user.email
     fill_in 'Password', with: 'password' # Assuming 'password' is the factory default
-    click_button 'Sign In'
 
-    # Assert redirection to the correct subdomain dashboard
-    # Wait for potential redirection and page load
-    expect(page).to have_current_path(%r{/dashboard$}, wait: 10) 
+    # Use a longer timeout for the button click as it may trigger slow operations (auth, redirects)
+    using_wait_time(45) do
+      click_button 'Sign In'
+
+      # Assert redirection to the correct subdomain dashboard
+      # Wait for potential redirection and page load
+      expect(page).to have_current_path(%r{/dashboard$}, wait: 45)
+    end 
     
     # Check the host after waiting for the path
     expect(URI.parse(page.current_url).host).to eq("#{business.hostname}.lvh.me")

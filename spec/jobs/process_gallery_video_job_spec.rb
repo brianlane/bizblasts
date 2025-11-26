@@ -150,6 +150,49 @@ RSpec.describe ProcessGalleryVideoJob, type: :job do
     end
   end
 
+  describe 'video conversion' do
+    context 'with MP4 video (no conversion needed)' do
+      before do
+        business.gallery_video.attach(
+          io: StringIO.new('fake video content'),
+          filename: 'test.mp4',
+          content_type: 'video/mp4'
+        )
+      end
+
+      it 'logs that video is already web-compatible' do
+        ProcessGalleryVideoJob.perform_now(business.id)
+
+        expect(logger).to have_received(:info).with(/already in web-compatible format/)
+      end
+    end
+
+    context 'with MOV video (conversion needed)' do
+      before do
+        business.gallery_video.attach(
+          io: StringIO.new('fake video content'),
+          filename: 'test.mov',
+          content_type: 'video/quicktime'
+        )
+      end
+
+      it 'logs that video needs conversion' do
+        allow(VideoConversionService).to receive(:convert!).and_return(false)
+
+        ProcessGalleryVideoJob.perform_now(business.id)
+
+        expect(logger).to have_received(:info).with(/needs conversion to MP4/)
+      end
+
+      it 'calls VideoConversionService.convert!' do
+        blob_id = business.gallery_video.blob.id
+        expect(VideoConversionService).to receive(:convert!).with(business, original_blob_id: blob_id).and_return(false)
+
+        ProcessGalleryVideoJob.perform_now(business.id)
+      end
+    end
+  end
+
   describe 'error handling' do
     before do
       business.gallery_video.attach(

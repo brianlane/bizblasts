@@ -7,18 +7,32 @@ class ProcessGalleryVideoJob < ApplicationJob
   # Maximum video file size in bytes (50 MB)
   MAX_FILE_SIZE = 50.megabytes
 
-  def perform(business_id)
+  # @param business_id [Integer] The business ID
+  # @param expected_blob_id [Integer, nil] Optional blob ID to verify video hasn't changed
+  def perform(business_id, expected_blob_id = nil)
     business = Business.find(business_id)
 
     return unless business.gallery_video.attached?
 
     blob = business.gallery_video.blob
 
+    # If expected_blob_id is provided, verify video hasn't changed (race condition check)
+    if expected_blob_id.present? && blob.id != expected_blob_id
+      Rails.logger.info "[GALLERY_VIDEO_PROCESSING] Video changed since job was enqueued (expected blob #{expected_blob_id}, found #{blob.id}). Skipping."
+      return
+    end
+
+    # Store the blob_id for conversion race condition check
+    @original_blob_id = blob.id
+
     # Validate video file
     validate_video!(blob)
 
     # Log video info for debugging
     log_video_info(business, blob)
+
+    # Convert to MP4 if needed for web compatibility
+    convert_to_mp4_if_needed(business)
 
     # Generate video thumbnail if needed
     # generate_thumbnail(business) if thumbnail_generation_supported?
@@ -59,6 +73,28 @@ class ProcessGalleryVideoJob < ApplicationJob
         - Size: #{(blob.byte_size / 1.megabyte.to_f).round(2)}MB
         - Key: #{blob.key}
     LOG
+  end
+
+  def convert_to_mp4_if_needed(business)
+    blob = business.gallery_video.blob
+
+    if VideoConversionService.needs_conversion?(blob)
+      Rails.logger.info "[GALLERY_VIDEO_PROCESSING] Video needs conversion to MP4 for web compatibility"
+
+      # Set status to pending so UI shows conversion is about to happen
+      business.update_columns(video_conversion_status: VideoConversionService::STATUS_PENDING)
+
+      # Pass original blob ID to prevent race condition if video is deleted during conversion
+      if VideoConversionService.convert!(business, original_blob_id: @original_blob_id)
+        Rails.logger.info "[GALLERY_VIDEO_PROCESSING] Video converted to MP4 successfully"
+      else
+        Rails.logger.warn "[GALLERY_VIDEO_PROCESSING] Video conversion skipped (ffmpeg not available, conversion failed, or video was deleted)"
+      end
+    else
+      Rails.logger.info "[GALLERY_VIDEO_PROCESSING] Video is already in web-compatible format"
+      # Clear any stale conversion status
+      business.update_columns(video_conversion_status: nil) if business.video_conversion_status.present?
+    end
   end
 
   def thumbnail_generation_supported?

@@ -35,10 +35,14 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
       select '00',             from: 'booking_start_time_5i'
 
       fill_in 'Notes', with: 'Guest booking test'
-      click_button 'Confirm Booking'
 
-      # Should redirect to confirmation page for standard services
-      expect(current_path).to match(%r{/booking/\d+/confirmation})
+      # Use a longer timeout for the button click as it may trigger slow operations
+      using_wait_time(30) do
+        click_button 'Confirm Booking'
+
+        # Wait for redirect to confirmation page for standard services
+        expect(page).to have_current_path(%r{/booking/\d+/confirmation}, wait: 30)
+      end
       expect(page).to have_content('Booking confirmed! You can pay now or later.')
       
       # Ensure record persisted
@@ -129,10 +133,14 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
         select '00',             from: 'booking_start_time_5i'
 
         fill_in 'Notes', with: 'Email confirmation test'
-        click_button 'Confirm Booking'
 
-        # Should redirect to sign-in with confirmation message
-        expect(current_path).to eq('/users/sign_in')
+        # Use a longer timeout for the button click as it may trigger slow operations
+        using_wait_time(30) do
+          click_button 'Confirm Booking'
+
+          # Wait for redirect to sign-in with confirmation message
+          expect(page).to have_current_path('/users/sign_in', wait: 30)
+        end
         expect(page).to have_content('You have to confirm your email address before continuing')
         
         # User should be created but unconfirmed

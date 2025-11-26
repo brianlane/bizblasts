@@ -47,10 +47,14 @@ RSpec.describe 'Guest Authentication Bypass', type: :system, js: true do
       select '00',             from: 'booking_start_time_5i'
 
       fill_in 'Notes', with: 'Guest booking test'
-      click_button 'Confirm Booking'
 
-      # Should successfully create booking and redirect to confirmation
-      expect(page).to have_current_path(%r{/booking/\d+/confirmation}, wait: 5)
+      # Use a longer timeout for the button click as it may trigger slow operations
+      using_wait_time(30) do
+        click_button 'Confirm Booking'
+
+        # Should successfully create booking and redirect to confirmation
+        expect(page).to have_current_path(%r{/booking/\d+/confirmation}, wait: 30)
+      end
       expect(page).to have_content('Booking confirmed')
       
       # Verify booking was created

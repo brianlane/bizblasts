@@ -3,7 +3,20 @@ import { Controller } from "@hotwired/stimulus"
 // Hero video controller for autoplay management
 export default class extends Controller {
   connect() {
-    this.ensureVideoPlays()
+    // Fix for Turbo Drive: force video to reload when restored from cache
+    if (this.element.readyState === 0) {
+      this.element.load()
+    }
+    
+    // Check if video is already ready to play
+    if (this.element.readyState >= 3) {
+      this.ensureVideoPlays()
+    } else {
+      // Wait for video to be ready
+      this.element.addEventListener('canplay', () => this.ensureVideoPlays(), { once: true })
+      this.element.addEventListener('loadeddata', () => this.ensureVideoPlays(), { once: true })
+    }
+    
     this.observeVisibility()
   }
 
@@ -11,34 +24,34 @@ export default class extends Controller {
     if (this.observer) {
       this.observer.disconnect()
     }
+    this.playAttempted = false
   }
 
   ensureVideoPlays() {
-    // Ensure video plays (browsers sometimes block autoplay)
+    if (this.playAttempted) return
+    this.playAttempted = true
+    
+    // Ensure video is muted (required for autoplay in most browsers)
+    this.element.muted = true
+    
     const playPromise = this.element.play()
-
     if (playPromise !== undefined) {
-      playPromise
-        .then(() => {
-          // Autoplay started successfully
-          console.log("Hero video autoplay started")
-        })
-        .catch((error) => {
-          // Autoplay was prevented, try muted
-          console.log("Autoplay prevented, ensuring muted:", error)
-          this.element.muted = true
-          this.element.play()
-        })
+      playPromise.catch(() => {
+        // Retry once with muted explicitly set
+        this.element.muted = true
+        this.element.play().catch(() => {})
+      })
     }
   }
 
   observeVisibility() {
-    // Pause video when not visible to save bandwidth
     if ('IntersectionObserver' in window) {
       this.observer = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            this.element.play()
+            if (this.element.paused) {
+              this.element.play().catch(() => {})
+            }
           } else {
             this.element.pause()
           }

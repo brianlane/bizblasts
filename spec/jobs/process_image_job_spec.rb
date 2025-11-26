@@ -11,12 +11,24 @@ RSpec.describe ProcessImageJob, type: :job do
     product.images.attach(image_file)
   end
 
+  describe 'queue configuration' do
+    it 'uses the image_processing queue' do
+      expect(described_class.new.queue_name).to eq('image_processing')
+    end
+  end
+
+  describe 'MAX_PROCESSABLE_SIZE' do
+    it 'is set to 10 megabytes' do
+      expect(described_class::MAX_PROCESSABLE_SIZE).to eq(10.megabytes)
+    end
+  end
+
   describe '#perform' do
     let(:attachment) { product.images.attachments.first }
 
-    it 'processes image variants for large images' do
-      # Mock blob size to be larger than 2MB to trigger processing
-      allow(attachment.blob).to receive(:byte_size).and_return(3.megabytes)
+    it 'processes image variants for images under size limit' do
+      # Mock blob size to be within limit
+      allow(attachment.blob).to receive(:byte_size).and_return(5.megabytes)
       allow(attachment.blob).to receive(:image?).and_return(true)
 
       expect {
@@ -26,8 +38,20 @@ RSpec.describe ProcessImageJob, type: :job do
       }.not_to raise_error
     end
 
-    it 'skips processing for small images' do
-      # Mock blob size to be smaller than 2MB
+    it 'skips processing for files exceeding size limit' do
+      # Mock blob size to exceed 10MB limit - stub on any instance since blob is loaded fresh
+      allow_any_instance_of(ActiveStorage::Blob).to receive(:byte_size).and_return(15.megabytes)
+      allow(Rails.logger).to receive(:warn).and_call_original
+
+      perform_enqueued_jobs do
+        ProcessImageJob.perform_later(attachment.id)
+      end
+
+      expect(Rails.logger).to have_received(:warn).with(/Skipping variant generation for large file/)
+    end
+
+    it 'processes small images normally' do
+      # Mock blob size to be small
       allow(attachment.blob).to receive(:byte_size).and_return(1.megabyte)
       allow(attachment.blob).to receive(:image?).and_return(true)
 

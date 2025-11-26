@@ -189,28 +189,32 @@ RSpec.describe 'Tips Flow', type: :system, js: true do
     end
 
     it 'handles tip payment cancellation' do
-      # Create a separate booking for cancellation test
-      cancellation_booking = create(:booking, 
-        business: business, 
-        service: experience_service, 
-        staff_member: staff_member,
-        tenant_customer: tenant_customer,
-        start_time: 6.hours.ago,  # Different time to avoid conflict
-        status: :confirmed
-      )
-      cancellation_token = cancellation_booking.generate_tip_token
-      
-      # Create a pending tip for cancellation test
-      pending_tip = create(:tip, business: business, booking: cancellation_booking, tenant_customer: tenant_customer, amount: 15.00, status: :pending)
-      
-      with_subdomain(business.subdomain) do
-        visit_and_wait cancel_tip_path(pending_tip, token: cancellation_token)
+      # Ensure we're in the correct tenant context for all operations
+      ActsAsTenant.with_tenant(business) do
+        # Create a separate booking for cancellation test
+        cancellation_booking = create(:booking, 
+          business: business, 
+          service: experience_service, 
+          staff_member: staff_member,
+          tenant_customer: tenant_customer,
+          start_time: 6.hours.ago,  # Different time to avoid conflict
+          status: :confirmed
+        )
+        cancellation_token = cancellation_booking.generate_tip_token
         
-        expect(page).to have_content('Tip payment was cancelled.')
-        expect(current_path).to eq(tenant_my_booking_path(cancellation_booking))
+        # Create a pending tip for cancellation test
+        pending_tip = create(:tip, business: business, booking: cancellation_booking, tenant_customer: tenant_customer, amount: 15.00, status: :pending)
+        tip_id = pending_tip.id
         
-        # Tip should be destroyed if it was pending
-        expect(Tip.exists?(pending_tip.id)).to be false
+        with_subdomain(business.subdomain) do
+          visit_and_wait cancel_tip_path(pending_tip, token: cancellation_token)
+          
+          expect(page).to have_content('Tip payment was cancelled.')
+          expect(current_path).to eq(tenant_my_booking_path(cancellation_booking))
+          
+          # Tip should be destroyed if it was pending
+          expect(Tip.exists?(tip_id)).to be false
+        end
       end
     end
   end

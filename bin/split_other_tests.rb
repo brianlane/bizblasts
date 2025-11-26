@@ -1,28 +1,35 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# Duration-based test splitting for system specs
-# System tests are browser-based and much slower (~12 seconds per test)
+# Duration-based test splitting for other specs (controllers, helpers, lib, views, security, channels)
+# Estimates ~2 seconds per test based on CI profiling
 require 'find'
 
-NUM_GROUPS = 7
-SECONDS_PER_TEST = 12  # Browser tests are slow
+NUM_GROUPS = 2
+SECONDS_PER_TEST = 2
+
+SPEC_DIRS = %w[spec/controllers spec/helpers spec/lib spec/views spec/security spec/channels]
 
 def count_tests(file)
   content = File.read(file, encoding: 'UTF-8', invalid: :replace, undef: :replace)
-  # System tests use both 'it' and 'scenario'
-  content.scan(/^\s*(it|scenario)\s/).count
+  content.scan(/^\s*it\s/).count
 end
 
-def find_system_tests
+def find_other_tests
   tests = []
-  Find.find('spec/system') do |path|
-    if path.end_with?('_spec.rb')
-      test_count = count_tests(path)
-      estimated_duration = test_count * SECONDS_PER_TEST
-      tests << { file: path, tests: test_count, duration: estimated_duration }
+  
+  SPEC_DIRS.each do |dir|
+    next unless Dir.exist?(dir)
+    
+    Find.find(dir) do |path|
+      if path.end_with?('_spec.rb')
+        test_count = count_tests(path)
+        estimated_duration = test_count * SECONDS_PER_TEST
+        tests << { file: path, tests: test_count, duration: estimated_duration }
+      end
     end
   end
+  
   tests
 end
 
@@ -51,10 +58,10 @@ def main
     exit 0
   end
 
-  tests = find_system_tests
+  tests = find_other_tests
   
   if tests.empty?
-    puts "No system tests found"
+    puts "No other specs found"
     exit 0
   end
   
@@ -75,9 +82,7 @@ def main
     puts
     groups.each_with_index do |group, index|
       file_count = group[:files].length
-      test_count = 0
-      group[:files].each { |f| test_count += count_tests(f) }
-      puts "Group #{index + 1}: #{file_count} files, #{test_count} tests, ~#{(group[:total_duration] / 60).round(1)}m estimated"
+      puts "Group #{index + 1}: #{file_count} files, ~#{(group[:total_duration] / 60).round(1)}m estimated"
       group[:files].each { |f| puts "  #{f}" }
       puts
     end
@@ -85,3 +90,4 @@ def main
 end
 
 main if __FILE__ == $0
+

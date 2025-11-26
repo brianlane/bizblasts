@@ -13,6 +13,15 @@ default: &default
       processes: 1
       polling_interval: 0.5
 
+    # Dedicated worker for image processing jobs - 1 thread to prevent memory spikes
+    # Image processing is memory-intensive: a 4000x3000 image decompresses to ~48MB
+    # Running multiple jobs concurrently can easily exceed memory limits
+    # Serial processing ensures stable memory usage
+    - queues: [ image_processing ]
+      threads: 1
+      processes: 1
+      polling_interval: 1
+
     # Default worker for all other jobs - higher concurrency for throughput
     - queues: [ default, low_priority ]
       threads: 3
