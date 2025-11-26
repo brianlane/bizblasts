@@ -54,18 +54,14 @@ class Public::EstimatesController < ApplicationController
     # Send approval email after successful transaction
     EstimateMailer.estimate_approved(@estimate).deliver_later
 
-    # Redirect based on deposit requirement
-    if @estimate.required_deposit.to_f > 0
-      invoice = booking.invoice
-      if invoice
-        redirect_to new_payment_path(invoice_id: invoice.id)
-      else
-        # This should never happen - deposit required but invoice not created
-        Rails.logger.error "Estimate #{@estimate.id} approved with required_deposit=#{@estimate.required_deposit} but invoice is missing for booking #{booking.id}"
-        redirect_to public_estimate_path(token: @estimate.token), alert: 'Estimate approved but there was an error creating the invoice. Please contact support.'
-      end
+    # Redirect to payment if an invoice was created (either deposit or full payment)
+    invoice = booking.invoice
+    if invoice
+      redirect_to new_payment_path(invoice_id: invoice.id)
     else
-      redirect_to public_estimate_path(token: @estimate.token), notice: 'Estimate approved. No deposit was required.'
+      # This should never happen with current logic but kept as fallback
+      Rails.logger.error "Estimate #{@estimate.id} approved but invoice is missing for booking #{booking.id}"
+      redirect_to public_estimate_path(token: @estimate.token), alert: 'Estimate approved but there was an error creating the invoice. Please contact support.'
     end
   rescue ActiveRecord::RecordInvalid => e
     Rails.logger.error "Error approving estimate: #{e.message}"

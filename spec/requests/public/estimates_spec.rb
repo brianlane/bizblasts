@@ -79,10 +79,12 @@ RSpec.describe "Public::Estimates", type: :request do
         est
       end
 
-      it "redirects to the estimate page with a notice" do
+      it "redirects to payment page for full invoice" do
         patch approve_public_estimate_path(token: estimate_no_deposit.token)
-        expect(flash[:notice]).to eq('Estimate approved. No deposit was required.')
-        expect(response).to redirect_to(public_estimate_path(token: estimate_no_deposit.token))
+        estimate_no_deposit.reload
+        invoice = estimate_no_deposit.booking.invoice
+        expect(invoice).to be_present
+        expect(response).to redirect_to(new_payment_path(invoice_id: invoice.id))
       end
     end
 
