@@ -22,6 +22,8 @@ jobs:
   # ============================================
   scan_ruby:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
@@ -33,6 +35,8 @@ jobs:
 
   scan_js:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
@@ -43,6 +47,8 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
@@ -57,6 +63,9 @@ jobs:
   # ============================================
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     outputs:
       cache-key: ${{ steps.cache-key.outputs.key }}
     steps:
@@ -101,10 +110,10 @@ jobs:
           AA_PATH=$(bundle info activeadmin --path)
           npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
           npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css --no-source-map --load-path=node_modules --load-path="$AA_PATH/app/assets/stylesheets"
-          
+
           # Build JS
           npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
-          
+
           # Build Tailwind
           chmod +x bin/build-tailwind-standalone.sh
           SKIP_SOLID_QUEUE_SETUP=true ./bin/build-tailwind-standalone.sh
@@ -124,6 +133,9 @@ jobs:
   test_models:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
@@ -165,6 +177,9 @@ jobs:
   test_requests:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
@@ -205,6 +220,9 @@ jobs:
   test_services:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
@@ -245,6 +263,9 @@ jobs:
   test_integration:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
@@ -285,6 +306,9 @@ jobs:
   test_other:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
@@ -325,6 +349,9 @@ jobs:
   test_system_1:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
       CI: true
@@ -380,6 +407,9 @@ jobs:
   test_system_2:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
       CI: true
@@ -435,6 +465,9 @@ jobs:
   test_system_3:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
       CI: true
@@ -492,6 +525,9 @@ jobs:
     needs: [test_models, test_requests, test_services]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
@@ -540,6 +576,8 @@ jobs:
     needs: [scan_ruby, scan_js, lint, test_models, test_requests, test_services, test_integration, test_other, test_system_1, test_system_2, test_system_3]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Deploy to Render
