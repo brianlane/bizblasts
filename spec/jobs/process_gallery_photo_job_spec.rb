@@ -7,6 +7,18 @@ RSpec.describe ProcessGalleryPhotoJob, type: :job do
   let(:gallery_photo) { create(:gallery_photo, business: business, photo_source: :gallery) }
   let(:logger) { Rails.logger }
 
+  describe 'queue configuration' do
+    it 'uses the image_processing queue' do
+      expect(described_class.new.queue_name).to eq('image_processing')
+    end
+  end
+
+  describe 'MAX_PROCESSABLE_SIZE' do
+    it 'is set to 10 megabytes' do
+      expect(described_class::MAX_PROCESSABLE_SIZE).to eq(10.megabytes)
+    end
+  end
+
   describe '#perform' do
     before do
       # Attach a test image
@@ -22,7 +34,22 @@ RSpec.describe ProcessGalleryPhotoJob, type: :job do
 
       ProcessGalleryPhotoJob.perform_now(gallery_photo.id)
 
-      expect(logger).to have_received(:info).with(/Generated variants/)
+      expect(logger).to have_received(:info).with(/Generated 3 variants for gallery photo/)
+    end
+
+    context 'when file exceeds MAX_PROCESSABLE_SIZE' do
+      before do
+        # Mock the blob size to exceed the limit by stubbing on any instance
+        allow_any_instance_of(ActiveStorage::Blob).to receive(:byte_size).and_return(15.megabytes)
+      end
+
+      it 'skips variant generation and logs a warning' do
+        allow(logger).to receive(:warn).and_call_original
+
+        ProcessGalleryPhotoJob.perform_now(gallery_photo.id)
+
+        expect(logger).to have_received(:warn).with(/Skipping variant generation for large file/)
+      end
     end
 
     context 'with HEIC image' do

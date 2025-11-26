@@ -163,6 +163,15 @@ module BusinessManager
       @gallery_photo = @business.gallery_photos.find(params[:id])
     end
 
+    # Maximum size for a single image (10MB)
+    MAX_FILE_SIZE = 10.megabytes
+
+    # Maximum total upload size per batch (25MB)
+    MAX_BATCH_SIZE = 25.megabytes
+
+    # Maximum files per batch upload
+    MAX_FILES_PER_BATCH = 10
+
     def create_from_upload
       files = params[:image].is_a?(Array) ? params[:image] : [params[:image]]
       files = files.reject(&:blank?)  # Filter out empty strings from file array
@@ -172,6 +181,48 @@ module BusinessManager
         respond_to do |format|
           format.html { redirect_to business_manager_gallery_index_path, alert: 'Please select at least one image file' }
           format.json { render json: { error: 'No image file provided' }, status: :unprocessable_content }
+        end
+        return
+      end
+
+      # Validate number of files in batch
+      if files.count > MAX_FILES_PER_BATCH
+        respond_to do |format|
+          format.html { redirect_to business_manager_gallery_index_path, alert: "Maximum #{MAX_FILES_PER_BATCH} files can be uploaded at once" }
+          format.json { render json: { error: "Maximum #{MAX_FILES_PER_BATCH} files per upload" }, status: :unprocessable_content }
+        end
+        return
+      end
+
+      # Calculate total batch size and validate individual files
+      total_size = 0
+      oversized_files = []
+
+      files.each do |file|
+        next unless file.respond_to?(:size)
+
+        file_size = file.size
+        total_size += file_size
+
+        if file_size > MAX_FILE_SIZE
+          oversized_files << "#{file.original_filename} (#{(file_size / 1.megabyte.to_f).round(1)}MB)"
+        end
+      end
+
+      # Reject if any individual file is too large
+      if oversized_files.any?
+        respond_to do |format|
+          format.html { redirect_to business_manager_gallery_index_path, alert: "Files too large (max 10MB each): #{oversized_files.join(', ')}" }
+          format.json { render json: { error: "Files exceed 10MB limit", files: oversized_files }, status: :unprocessable_content }
+        end
+        return
+      end
+
+      # Reject if total batch size is too large
+      if total_size > MAX_BATCH_SIZE
+        respond_to do |format|
+          format.html { redirect_to business_manager_gallery_index_path, alert: "Total upload size (#{(total_size / 1.megabyte.to_f).round(1)}MB) exceeds 25MB limit. Please upload in smaller batches." }
+          format.json { render json: { error: "Total batch size exceeds 25MB limit" }, status: :unprocessable_content }
         end
         return
       end

@@ -129,6 +129,7 @@ import PhotoUploadController from './controllers/photo_upload_controller';
 import GalleryManagerController from './controllers/gallery_manager_controller';
 import GalleryLightboxController from './controllers/gallery_lightbox_controller';
 import GalleryCarouselController from './controllers/gallery_carousel_controller';
+import HeroVideoController from './controllers/hero_video_controller';
 
 application.register('page-editor', PageEditorController);
 application.register('theme-editor', ThemeEditorController);
@@ -152,6 +153,7 @@ application.register('photo-upload', PhotoUploadController);
 application.register('gallery-manager', GalleryManagerController);
 application.register('gallery-lightbox', GalleryLightboxController);
 application.register('gallery-carousel', GalleryCarouselController);
+application.register('hero-video', HeroVideoController);
 
 // Additional controllers for estimates feature
 import DatePickerController from "./controllers/date_picker_controller"
@@ -176,7 +178,7 @@ function autoDiscoverControllers() {
       'navbar', 'dropdown', 'customer-dropdown', 'product-variants', 'service-form', 'sortable', 'hello',
       'service-variants', 'dropdown-updater', 'service-availability', 'google-business-search', 'qr-payment',
       'place-id-lookup', 'enhanced-layout-selector', 'photo-upload', 'gallery-manager', 'gallery-lightbox', 'gallery-carousel',
-      'date-picker', 'dynamic-line-items'
+      'hero-video', 'date-picker', 'dynamic-line-items'
     ]);
     
     // Dynamically import and register each controller

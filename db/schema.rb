@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_26_151142) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_26_163716) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -838,7 +838,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_26_151142) do
   end
 
   create_table "page_sections", force: :cascade do |t|
-    t.boolean "active"
+    t.boolean "active", default: true, null: false
     t.string "animation_type"
     t.json "background_settings", default: {}
     t.json "content"

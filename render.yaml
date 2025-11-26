@@ -21,6 +21,7 @@ services:
       - libcairo2
       - fonts-liberation
       - unzip
+      - ffmpeg
     buildCommand: "./bin/render-build.sh"
     startCommand: "bundle exec puma -C config/puma.rb"
     healthCheckPath: /healthcheck

@@ -79,10 +79,13 @@ class GalleryVideoService
     business.gallery_video.purge
 
     # Reset video settings to defaults
-    business.update!(
-      video_display_location: :hero,
+    # Use update_columns to skip callbacks (especially process_gallery_video)
+    # which would otherwise try to process a non-existent video
+    business.update_columns(
+      video_display_location: 'hero',
       video_title: nil,
-      video_autoplay_hero: true
+      video_autoplay_hero: true,
+      updated_at: Time.current
     )
 
     Rails.logger.info "Gallery video removed from business #{business.id}"

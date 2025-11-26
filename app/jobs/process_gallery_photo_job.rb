@@ -1,5 +1,10 @@
 class ProcessGalleryPhotoJob < ApplicationJob
-  queue_as :default
+  # Use dedicated image_processing queue with single thread to prevent memory spikes
+  # Image processing is memory-intensive: a 4000x3000 image = ~48MB uncompressed
+  queue_as :image_processing
+
+  # Maximum file size to process (10MB) - larger files risk OOM
+  MAX_PROCESSABLE_SIZE = 10.megabytes
 
   def perform(gallery_photo_id)
     gallery_photo = GalleryPhoto.find(gallery_photo_id)
@@ -9,12 +14,20 @@ class ProcessGalleryPhotoJob < ApplicationJob
 
     blob = attachment.blob
 
+    # Skip processing for very large files to prevent OOM
+    if blob.byte_size > MAX_PROCESSABLE_SIZE
+      Rails.logger.warn "[GALLERY_PHOTO_PROCESSING] Skipping variant generation for large file #{blob.filename} (#{blob.byte_size} bytes > #{MAX_PROCESSABLE_SIZE})"
+      return
+    end
+
     # Ensure blob is analyzed (required for blob.image? to work correctly)
     blob.analyze unless blob.analyzed?
 
     # Convert HEIC to JPEG if needed - MUST happen before variant generation
     if FileUploadSecurity.heic_format?(blob.content_type)
       convert_heic_to_jpeg(attachment)
+      # Force garbage collection after HEIC conversion to free memory
+      force_gc
       # Reload attachment after conversion and verify it succeeded
       attachment.reload
       begin
@@ -34,6 +47,9 @@ class ProcessGalleryPhotoJob < ApplicationJob
     Rails.logger.error "Gallery photo #{gallery_photo_id} not found: #{e.message}"
   rescue => e
     Rails.logger.error "Failed to process gallery photo #{gallery_photo_id}: #{e.message}"
+  ensure
+    # Always force GC at end of job to release image memory promptly
+    force_gc
   end
 
   private
@@ -90,17 +106,30 @@ class ProcessGalleryPhotoJob < ApplicationJob
   end
 
   def generate_variants(attachment)
-    # Generate gallery-specific variants
-    # Large variant for lightbox/fullscreen view
-    attachment.variant(resize_to_limit: [1920, 1920], quality: 90).processed
+    # Generate gallery-specific variants one at a time with GC between each
+    # This prevents memory accumulation from multiple concurrent variant generations
+    variants = [
+      # Large variant for lightbox/fullscreen view
+      { resize_to_limit: [1920, 1920], quality: 85 },
+      # Medium variant for gallery grid
+      { resize_to_limit: [800, 800], quality: 80 },
+      # Small variant for thumbnails
+      { resize_to_limit: [400, 400], quality: 75 }
+    ]
 
-    # Medium variant for gallery grid
-    attachment.variant(resize_to_limit: [800, 800], quality: 85).processed
+    variants.each_with_index do |variant_options, index|
+      begin
+        attachment.variant(variant_options).processed
+        Rails.logger.debug "[GALLERY_PHOTO_PROCESSING] Generated variant #{index + 1}/#{variants.size} for attachment #{attachment.id}"
+      rescue => e
+        Rails.logger.error "[GALLERY_PHOTO_PROCESSING] Failed to generate variant #{index + 1} for attachment #{attachment.id}: #{e.message}"
+      ensure
+        # Force GC between variants to release image memory
+        force_gc
+      end
+    end
 
-    # Small variant for thumbnails
-    attachment.variant(resize_to_limit: [400, 400], quality: 80).processed
-
-    Rails.logger.info "[GALLERY_PHOTO_PROCESSING] Generated variants for gallery photo attachment #{attachment.id}"
+    Rails.logger.info "[GALLERY_PHOTO_PROCESSING] Generated #{variants.size} variants for gallery photo attachment #{attachment.id}"
   end
 
   def heic_supported?
@@ -111,5 +140,11 @@ class ProcessGalleryPhotoJob < ApplicationJob
       Rails.logger.warn "[GALLERY_HEIC_CONVERSION] Could not check ImageMagick format support: #{e.message}"
       false
     end
+  end
+
+  # Force garbage collection to release image processing memory
+  # This is critical for memory-constrained environments
+  def force_gc
+    GC.start(full_mark: true, immediate_sweep: true)
   end
 end

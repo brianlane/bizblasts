@@ -106,6 +106,44 @@ RSpec.describe BusinessManager::GalleryController, type: :controller do
         expect(flash[:alert]).to match(/Maximum 100 photos/)
       end
     end
+
+    context 'batch upload limits' do
+      describe 'upload limit constants' do
+        it 'defines MAX_FILE_SIZE as 10 megabytes' do
+          expect(described_class::MAX_FILE_SIZE).to eq(10.megabytes)
+        end
+
+        it 'defines MAX_BATCH_SIZE as 25 megabytes' do
+          expect(described_class::MAX_BATCH_SIZE).to eq(25.megabytes)
+        end
+
+        it 'defines MAX_FILES_PER_BATCH as 10' do
+          expect(described_class::MAX_FILES_PER_BATCH).to eq(10)
+        end
+      end
+
+      context 'when too many files in batch' do
+        let(:many_files) do
+          # Create 11 files (over the limit of 10)
+          11.times.map do |i|
+            fixture_file_upload('test_image.jpg', 'image/jpeg')
+          end
+        end
+
+        it 'rejects the upload and shows error' do
+          post :create_photo, params: { image: many_files }
+
+          expect(response).to redirect_to(business_manager_gallery_index_path)
+          expect(flash[:alert]).to match(/Maximum 10 files/)
+        end
+
+        it 'does not create any photos' do
+          expect {
+            post :create_photo, params: { image: many_files }
+          }.not_to change { business.gallery_photos.count }
+        end
+      end
+    end
   end
 
   describe 'PATCH #update_photo' do

@@ -8,6 +8,28 @@
     </div>
 
     <% if video_info.present? %>
+      <%# Check if video is being converted (content type is convertible) %>
+      <% is_converting = %w[video/quicktime video/x-msvideo video/x-ms-wmv].include?(video_info[:content_type]) %>
+
+      <% if is_converting %>
+        <!-- Conversion In Progress Banner -->
+        <div class="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div class="flex items-center">
+            <svg class="animate-spin h-5 w-5 text-blue-600 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <div>
+              <p class="text-sm font-medium text-blue-900">Converting video to MP4...</p>
+              <p class="text-xs text-blue-700 mt-1">
+                Your <%= video_info[:content_type]&.include?('quicktime') ? 'MOV' : 'video' %> file is being converted to MP4 for better browser compatibility. 
+                <strong>Refresh the page</strong> in a moment to see the converted video.
+              </p>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
       <!-- Existing Video -->
       <div class="border border-gray-200 rounded-lg p-6">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
@@ -96,22 +118,7 @@
                   </dl>
                 </div>
 
-                <!-- Format Warning for non-MP4 videos -->
-                <% if video_info[:content_type]&.include?('quicktime') || video_info[:content_type]&.include?('x-msvideo') %>
-                  <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                    <div class="flex items-start">
-                      <svg class="w-4 h-4 text-amber-600 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                      </svg>
-                      <div class="flex-1">
-                        <p class="text-xs text-amber-800">
-                          ⚠️ <strong>Browser Compatibility Warning:</strong> This <%= video_info[:content_type]&.include?('quicktime') ? 'MOV' : 'AVI' %> video may not work in all browsers.
-                          For best compatibility, convert to MP4 format.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                <% end %>
+                <%# Format warning is now replaced by conversion banner at top %>
 
                 <!-- Actions -->
                 <div>
@@ -182,18 +189,18 @@
               }
             </script>
 
-            <!-- Format Compatibility Warning -->
-            <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <!-- Format Compatibility Info -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <div class="flex items-start">
-                <svg class="w-5 h-5 text-amber-600 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
                 <div class="flex-1">
-                  <h5 class="text-xs font-semibold text-amber-900 mb-1">Video Format Compatibility</h5>
-                  <p class="text-xs text-amber-800">
-                    <strong>MP4 format is strongly recommended</strong> for universal browser support.
-                    MOV files may not work in all browsers (Chrome, Firefox).
-                    If your video doesn't play, convert it to MP4 format.
+                  <h5 class="text-xs font-semibold text-blue-900 mb-1">Auto-Conversion for MOV Files</h5>
+                  <p class="text-xs text-blue-800">
+                    <strong>MP4 format is recommended</strong> for best compatibility.
+                    If you upload a <strong>MOV file</strong>, it will be automatically converted to MP4
+                    in the background. Refresh the page after a moment to see your converted video.
                   </p>
                 </div>
               </div>
@@ -241,12 +248,12 @@
     <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
       <h4 class="text-sm font-medium text-blue-900 mb-2">💡 Video Tips</h4>
       <ul class="text-sm text-blue-800 space-y-1">
-        <li>• <strong>Use MP4 format (H.264 codec)</strong> for universal browser compatibility</li>
+        <li>• <strong>MP4 format recommended</strong> - MOV files are auto-converted to MP4</li>
         <li>• Keep videos short (30-60 seconds) for best engagement</li>
         <li>• Use high-quality footage with good lighting</li>
-        <li>• Hero videos work best when muted</li>
+        <li>• Hero videos autoplay muted in the background</li>
         <li>• Consider mobile users - videos should load quickly</li>
-        <li>• Test your video on different browsers before going live</li>
+        <li>• After uploading MOV, refresh the page to see the converted video</li>
       </ul>
     </div>
   </div>
