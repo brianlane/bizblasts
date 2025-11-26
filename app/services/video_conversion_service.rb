@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'open3'
+
 # Service class for converting video files to web-optimized MP4 format
 # Uses ffmpeg for conversion when available
 class VideoConversionService
@@ -8,22 +10,12 @@ class VideoConversionService
   class VideoDeletedError < ConversionError; end
 
   # Video formats that need conversion to MP4
+  # HEVC/H.265 in .mov containers will be converted to H.264 for better browser support
   CONVERTIBLE_TYPES = %w[video/quicktime video/x-msvideo video/x-ms-wmv].freeze
 
   # Target format settings
   TARGET_CONTENT_TYPE = 'video/mp4'
   TARGET_EXTENSION = '.mp4'
-
-  # FFmpeg encoding settings for web optimization
-  FFMPEG_OPTIONS = [
-    '-c:v libx264',      # H.264 video codec (universal support)
-    '-preset medium',    # Balance between speed and quality
-    '-crf 23',           # Constant Rate Factor (18-28 is good, lower = better quality)
-    '-c:a aac',          # AAC audio codec
-    '-b:a 128k',         # Audio bitrate
-    '-movflags +faststart',  # Enable streaming (moov atom at start)
-    '-pix_fmt yuv420p'   # Pixel format for compatibility
-  ].join(' ').freeze
 
   class << self
     # Check if a video needs conversion
@@ -131,15 +123,27 @@ class VideoConversionService
     end
 
     def convert_video(input_path, output_path)
-      command = "ffmpeg -i #{Shellwords.escape(input_path)} #{FFMPEG_OPTIONS} -y #{Shellwords.escape(output_path)} 2>&1"
+      # Build command arguments array for safe execution (no shell injection)
+      args = [
+        'ffmpeg',
+        '-i', input_path,
+        '-c:v', 'libx264',
+        '-preset', 'medium',
+        '-crf', '23',
+        '-c:a', 'aac',
+        '-b:a', '128k',
+        '-movflags', '+faststart',
+        '-pix_fmt', 'yuv420p',
+        '-y', output_path
+      ]
 
-      Rails.logger.info "[VIDEO_CONVERSION] Running: #{command}"
+      Rails.logger.info "[VIDEO_CONVERSION] Running: ffmpeg -i [input] ... -y [output]"
 
-      output = `#{command}`
-      status = $?.exitstatus
+      # Use Open3 for safe command execution without shell interpolation
+      stdout_and_stderr, status = Open3.capture2e(*args)
 
-      unless status == 0
-        raise ConversionError, "ffmpeg exited with status #{status}: #{output.last(500)}"
+      unless status.success?
+        raise ConversionError, "ffmpeg exited with status #{status.exitstatus}: #{stdout_and_stderr.to_s.last(500)}"
       end
 
       Rails.logger.info "[VIDEO_CONVERSION] ffmpeg completed successfully"
