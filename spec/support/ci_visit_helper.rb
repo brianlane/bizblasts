@@ -30,7 +30,7 @@ module CIVisitHelper
   def visit(path)
     begin
       super(path)
-    rescue Ferrum::PendingConnectionsError, Ferrum::TimeoutError => e
+    rescue Ferrum::PendingConnectionsError, Ferrum::TimeoutError, Ferrum::ProcessTimeoutError => e
       # Log the error and verify if navigation actually succeeded
       log_prefix = ENV['CI'] == 'true' ? "[CI Visit Helper]" : "[Visit Helper]"
       warn "#{log_prefix} #{e.class.name} for #{path}, verifying navigation..."

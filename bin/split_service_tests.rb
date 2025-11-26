@@ -5,7 +5,7 @@
 # Estimates ~2.5 seconds per test based on CI profiling
 require 'find'
 
-NUM_GROUPS = 3
+NUM_GROUPS = 5
 SECONDS_PER_TEST = 2.5
 
 def count_tests(file)
