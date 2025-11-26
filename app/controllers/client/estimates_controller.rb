@@ -3,10 +3,17 @@ class Client::EstimatesController < ApplicationController
   layout 'client'
 
   def index
-    @estimates = policy_scope(Estimate).order(created_at: :desc)
+    # Client users can be associated with multiple businesses, so we bypass
+    # tenant scoping and let the policy scope filter estimates appropriately
+    @estimates = ActsAsTenant.without_tenant do
+      policy_scope(Estimate).order(created_at: :desc)
+    end
   end
 
   def show
-    @estimate = authorize(Estimate.find(params[:id]))
+    # Bypass tenant scoping for the find, then authorize access
+    @estimate = ActsAsTenant.without_tenant do
+      authorize(Estimate.find(params[:id]))
+    end
   end
 end 
