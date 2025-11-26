@@ -44,6 +44,7 @@ class EnhancedWebsiteLayoutService
                .where.not(section_type: allowed_types)
                .update_all(active: false)
 
+    # Note: Duplicate sections are prevented by unique index on (page_id, section_type)
     existing_sections = page.page_sections.where(section_type: allowed_types).index_by(&:section_type)
 
     definitions.each_with_index do |definition, index|

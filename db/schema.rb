@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_25_024120) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_26_055103) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -850,6 +850,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_25_024120) do
     t.integer "section_type", default: 0
     t.datetime "updated_at", null: false
     t.index ["animation_type"], name: "index_page_sections_on_animation_type"
+    t.index ["page_id", "section_type"], name: "index_page_sections_unique_per_page", unique: true
     t.index ["page_id"], name: "index_page_sections_on_page_id"
   end
 

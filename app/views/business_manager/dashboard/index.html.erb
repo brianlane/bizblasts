@@ -67,7 +67,7 @@
     <% if @current_business.show_estimate_page? %>
     <div id="estimates-widget" class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
       <h3 class="text-lg sm:text-xl font-semibold mb-4">Estimates Overview</h3>
-      <% pending_estimates = @current_business.estimates.where(status: [:draft, :sent, :viewed]).order(created_at: :desc).limit(5) %>
+      <% pending_estimates = @current_business.estimates.includes(:tenant_customer).where(status: [:draft, :sent, :viewed]).order(created_at: :desc).limit(5) %>
       <% estimates_counts = {
         draft: @current_business.estimates.draft.count,
         sent: @current_business.estimates.sent.count,

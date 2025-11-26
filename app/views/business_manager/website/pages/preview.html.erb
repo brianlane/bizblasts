@@ -33,7 +33,7 @@
     <% end %>
 
     <!-- Page Sections -->
-    <% @page.page_sections.ordered.each do |section| %>
+    <% @page.page_sections.active.ordered.each do |section| %>
       <div class="page-section <%= section.css_classes %>" data-section-id="<%= section.id %>" data-section-type="<%= section.section_type %>">
         <% begin %>
           <%= render "public/sections/#{section.section_type}", section: section, business: @business %>

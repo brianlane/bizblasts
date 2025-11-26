@@ -91,14 +91,14 @@ class Public::EstimatesController < ApplicationController
       # Decline the estimate (still within the lock)
       @estimate.update!(status: :declined, declined_at: Time.current)
 
-      # Send notification email after update but within transaction
-      EstimateMailer.estimate_declined(@estimate).deliver_later
-
       true # Indicate success
     end
 
     # Check if transaction was rolled back (estimate was already processed)
     if success
+      # Send notification email AFTER successful transaction
+      # This prevents sending emails if the transaction was rolled back
+      EstimateMailer.estimate_declined(@estimate).deliver_later
       redirect_to public_estimate_path(token: @estimate.token), notice: 'You have declined this estimate.'
     else
       redirect_to public_estimate_path(token: @estimate.token), alert: 'This estimate cannot be declined.'
@@ -120,14 +120,14 @@ class Public::EstimatesController < ApplicationController
         raise ActiveRecord::Rollback
       end
 
-      # Send notification email within the transaction
-      EstimateMailer.request_changes_notification(@estimate, message).deliver_later
-
       true # Indicate success
     end
 
     # Check if transaction was rolled back (estimate was already processed)
     if success
+      # Send notification email AFTER successful transaction
+      # This prevents sending emails if the transaction was rolled back
+      EstimateMailer.request_changes_notification(@estimate, message).deliver_later
       redirect_to public_estimate_path(token: @estimate.token), notice: 'Your change request has been sent.'
     else
       redirect_to public_estimate_path(token: @estimate.token), alert: 'This estimate cannot be modified.'

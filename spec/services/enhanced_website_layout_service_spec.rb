@@ -40,6 +40,30 @@ RSpec.describe EnhancedWebsiteLayoutService, type: :service do
 
         expect(home_page.page_sections.order(:position).pluck(:id)).to match_array(original_ids)
       end
+
+      it 'reuses existing section when applying layout multiple times' do
+        # Enable gallery for this test
+        business.update!(gallery_enabled: true, show_gallery_section: true)
+        create(:gallery_photo, business: business)
+
+        business.pages.destroy_all
+        described_class.apply!(business)
+        home_page = business.pages.find_by(slug: 'home')
+
+        original_gallery_section = home_page.page_sections.find_by(section_type: 'gallery')
+        expect(original_gallery_section).to be_present
+
+        # Re-apply the layout - should reuse existing section, not create duplicates
+        described_class.apply!(business)
+        home_page.reload
+
+        # Should still have exactly one gallery section
+        gallery_sections = home_page.page_sections.where(section_type: 'gallery')
+        expect(gallery_sections.count).to eq(1)
+
+        # Should be the same section (reused, not recreated)
+        expect(gallery_sections.first.id).to eq(original_gallery_section.id)
+      end
     end
 
     context 'without services' do
