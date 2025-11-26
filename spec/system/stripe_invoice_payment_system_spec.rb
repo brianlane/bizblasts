@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Invoice UI navigation after booking and Stripe payment', type: :system do
-  let!(:business) { create(:business, :with_default_tax_rate, host_type: 'subdomain', stripe_account_id: 'acct_test123') }
+  let!(:business) { create(:business, :with_default_tax_rate, :with_stripe_account, host_type: 'subdomain') }
   let!(:service) { create(:service, business: business, name: 'Test Service', price: 100.00, duration: 60) }
   let!(:staff_member) { create(:staff_member, business: business, name: 'Test Staff') }
   let!(:tenant_customer) { create(:tenant_customer, business: business, email: 'guest@example.com', first_name: 'Guest', last_name: 'Customer') }
@@ -11,12 +11,15 @@ RSpec.describe 'Invoice UI navigation after booking and Stripe payment', type: :
   before do
     ActsAsTenant.current_tenant = business
     driven_by(:cuprite)
-    
+
     # Create staff-service association
     create(:services_staff_member, service: service, staff_member: staff_member)
-    
+
+    # Mock Geocoder to prevent actual API calls
+    allow(Geocoder).to receive(:search).and_return([])
+
     # Mock Stripe service for payment processing - will be set up in individual tests
-    
+
     switch_to_subdomain(business.subdomain)
   end
 

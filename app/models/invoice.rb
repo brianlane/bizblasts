@@ -90,10 +90,14 @@ class Invoice < ApplicationRecord
   end
 
   def calculate_totals
+    # Skip recalculation if this is an estimate-based deposit invoice
+    # (amounts are already set correctly in create_from_estimate)
+    return if @skip_calculate_totals
+
     # Only calculate totals if we have data sources (booking, order, or line items)
     # This allows validation to catch missing required fields
     return unless booking.present? || order.present? || line_items.any?
-    
+
     items_subtotal = 0
     if booking.present?
       items_subtotal = booking.total_charge
@@ -148,6 +152,75 @@ class Invoice < ApplicationRecord
     saved_change_to_status? && status == 'paid'
   end
   
+  # Create an invoice from an approved estimate
+  def self.create_from_estimate(estimate)
+    invoice = nil
+    transaction do
+      # If estimate has a required deposit, invoice only the deposit amount
+      # Otherwise, invoice the full amount (upfront payment)
+      is_deposit_invoice = estimate.required_deposit.present? && estimate.required_deposit > 0
+
+      if is_deposit_invoice
+        # For deposit invoices, calculate proportional tax amount
+        # so that amount represents pre-tax portion correctly
+        deposit_tax = if estimate.total > 0 && estimate.taxes.present?
+          (estimate.required_deposit * estimate.taxes) / estimate.total
+        else
+          0.0
+        end
+        deposit_pretax = estimate.required_deposit - deposit_tax
+
+        invoice = new(
+          tenant_customer: estimate.tenant_customer,
+          business: estimate.business,
+          booking: estimate.booking,
+          amount: deposit_pretax,
+          original_amount: deposit_pretax,
+          discount_amount: 0.0,
+          tax_amount: deposit_tax,
+          total_amount: estimate.required_deposit,
+          due_date: 7.days.from_now,
+          status: :pending
+        )
+      else
+        # For full invoices, properly separate pre-tax amount and tax
+        invoice = new(
+          tenant_customer: estimate.tenant_customer,
+          business: estimate.business,
+          booking: estimate.booking,
+          amount: estimate.subtotal,
+          original_amount: estimate.subtotal,
+          discount_amount: 0.0,
+          tax_amount: estimate.taxes || 0.0,
+          total_amount: estimate.total,
+          due_date: 7.days.from_now,
+          status: :pending
+        )
+      end
+
+      # Use staff member from booking if available
+      staff_member = estimate.booking&.staff_member
+
+      # Build line items BEFORE saving invoice so they're included in validation
+      estimate.estimate_items.each do |item|
+        invoice.line_items.build(
+          service: item.service,
+          staff_member: staff_member,
+          quantity: item.qty,
+          price: item.cost_rate,
+          total_amount: item.total
+        )
+      end
+
+      # Skip calculate_totals callback for ALL estimate-based invoices
+      # since amounts are already set correctly from the estimate
+      # Line items are already built, so this flag stays effective during save
+      invoice.instance_variable_set(:@skip_calculate_totals, true)
+      invoice.save!
+    end
+    invoice
+  end
+
   private
   
   # Send review request email after invoice is paid

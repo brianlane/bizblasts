@@ -153,6 +153,13 @@ application.register('gallery-manager', GalleryManagerController);
 application.register('gallery-lightbox', GalleryLightboxController);
 application.register('gallery-carousel', GalleryCarouselController);
 
+// Additional controllers for estimates feature
+import DatePickerController from "./controllers/date_picker_controller"
+import DynamicLineItemsController from "./controllers/dynamic_line_items_controller"
+
+application.register("date-picker", DatePickerController)
+application.register("dynamic-line-items", DynamicLineItemsController)
+
 // Auto-discovery for additional controllers (compatible approach)
 // This will automatically discover and register any controllers not manually registered above
 function autoDiscoverControllers() {
@@ -168,7 +175,8 @@ function autoDiscoverControllers() {
       'page-editor', 'theme-editor', 'template-browser', 'edit-section',
       'navbar', 'dropdown', 'customer-dropdown', 'product-variants', 'service-form', 'sortable', 'hello',
       'service-variants', 'dropdown-updater', 'service-availability', 'google-business-search', 'qr-payment',
-      'place-id-lookup', 'enhanced-layout-selector', 'photo-upload', 'gallery-manager', 'gallery-lightbox', 'gallery-carousel'
+      'place-id-lookup', 'enhanced-layout-selector', 'photo-upload', 'gallery-manager', 'gallery-lightbox', 'gallery-carousel',
+      'date-picker', 'dynamic-line-items'
     ]);
     
     // Dynamically import and register each controller

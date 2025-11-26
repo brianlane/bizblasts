@@ -1,0 +1,95 @@
+<% content_for :title, "Estimate ##{@estimate.id}" %>
+
+<div class="container mx-auto px-4 py-6">
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-2xl font-bold">Estimate #<%= @estimate.id %></h1>
+    <div class="space-x-2">
+      <%= link_to 'Edit', edit_business_manager_estimate_path(@estimate), class: 'inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700' %>
+      <%= button_to 'Delete', business_manager_estimate_path(@estimate), method: :delete, data: { confirm: 'Are you sure you want to delete this estimate?' }, class: 'inline-flex items-center px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 cursor-pointer' %>
+      <%= button_to 'Send to Customer', send_to_customer_business_manager_estimate_path(@estimate), method: :patch, data: { confirm: 'Send this estimate to the customer?' }, class: 'inline-flex items-center px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 cursor-pointer' %>
+    </div>
+  </div>
+
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+    <dl class="divide-y divide-gray-200">
+      <% if @estimate.tenant_customer.present? %>
+        <div class="p-4 grid grid-cols-3 gap-4">
+          <dt class="font-medium text-gray-600">Customer</dt>
+          <dd class="col-span-2"><%= @estimate.tenant_customer.full_name %> (<%= @estimate.tenant_customer.email %>)</dd>
+        </div>
+      <% end %>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Proposed Start</dt>
+        <dd class="col-span-2"><%= @estimate.proposed_start_time.strftime('%B %d, %Y %I:%M %p') if @estimate.proposed_start_time %></dd>
+      </div>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Required Deposit</dt>
+        <dd class="col-span-2"><%= number_to_currency(@estimate.required_deposit) %></dd>
+      </div>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Subtotal</dt>
+        <dd class="col-span-2"><%= number_to_currency(@estimate.subtotal) %></dd>
+      </div>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Taxes</dt>
+        <dd class="col-span-2"><%= number_to_currency(@estimate.taxes) %></dd>
+      </div>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Total</dt>
+        <dd class="col-span-2"><%= number_to_currency(@estimate.total) %></dd>
+      </div>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Status</dt>
+        <dd class="col-span-2"><%= @estimate.status&.humanize || 'draft' %></dd>
+      </div>
+      <% if @estimate.sent_at %>
+        <div class="p-4 grid grid-cols-3 gap-4">
+          <dt class="font-medium text-gray-600">Sent At</dt>
+          <dd class="col-span-2"><%= @estimate.sent_at.strftime('%B %d, %Y %I:%M %p') %></dd>
+        </div>
+      <% end %>
+      <% if @estimate.viewed_at %>
+        <div class="p-4 grid grid-cols-3 gap-4">
+          <dt class="font-medium text-gray-600">Viewed At</dt>
+          <dd class="col-span-2"><%= @estimate.viewed_at.strftime('%B %d, %Y %I:%M %p') %></dd>
+        </div>
+      <% end %>
+      <% if @estimate.approved_at %>
+        <div class="p-4 grid grid-cols-3 gap-4">
+          <dt class="font-medium text-gray-600">Approved At</dt>
+          <dd class="col-span-2"><%= @estimate.approved_at.strftime('%B %d, %Y %I:%M %p') %></dd>
+        </div>
+      <% end %>
+    </dl>
+  </div>
+
+  <h2 class="text-xl font-semibold mb-2">Line Items</h2>
+  <div class="bg-white shadow sm:rounded-lg overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tax</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200">
+        <% @estimate.estimate_items.each do |item| %>
+          <tr>
+            <td class="px-6 py-4 whitespace-nowrap"><%= item.service&.name || '-' %></td>
+            <td class="px-6 py-4 whitespace-nowrap"><%= item.description %></td>
+            <td class="px-6 py-4 whitespace-nowrap"><%= item.qty %></td>
+            <td class="px-6 py-4 whitespace-nowrap"><%= number_to_currency(item.cost_rate) %></td>
+            <td class="px-6 py-4 whitespace-nowrap"><%= number_to_currency(item.tax_amount) %></td>
+            <td class="px-6 py-4 whitespace-nowrap"><%= number_to_currency(item.total) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <%= link_to 'Back to Estimates', business_manager_estimates_path, class: 'mt-4 text-blue-600 hover:text-blue-800' %>
+</div> 

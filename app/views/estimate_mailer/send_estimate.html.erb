@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <p>Hello <%= @estimate.tenant_customer&.full_name || @estimate.first_name %>,</p>
+    <p>Your estimate for <%= @estimate.business.name %> is ready for review.</p>
+    <p>You can view, approve, or decline it using the link below:</p>
+    <p><%= link_to 'View Estimate', @url %></p>
+    <p>Thank you!</p>
+  </body>
+</html> 

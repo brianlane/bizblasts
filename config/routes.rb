@@ -276,6 +276,12 @@ Rails.application.routes.draw do
 
       # Allow staff/manager to create bookings
       resources :client_bookings, only: [:new, :create], path: 'my-bookings'
+      # Estimates management
+      resources :estimates do
+        member do
+          patch :send_to_customer
+        end
+      end
 
       # Business transactions management (unified orders and invoices)
       resources :transactions, only: [:index, :show] do
@@ -706,6 +712,17 @@ Rails.application.routes.draw do
     end
   end
 
+  # Client portal: estimates (My Estimates page)
+  resources :estimates, only: [:index, :show], path: 'my-estimates', controller: 'client/estimates', as: :client_estimates
+
+  # Public token-based estimate access (no authentication required)
+  scope module: 'public' do
+    get 'estimates/:token', to: 'estimates#show', as: :public_estimate
+    patch 'estimates/:token/approve', to: 'estimates#approve', as: :approve_public_estimate
+    patch 'estimates/:token/decline', to: 'estimates#decline', as: :decline_public_estimate
+    post 'estimates/:token/request_changes', to: 'estimates#request_changes', as: :request_changes_public_estimate
+  end
+
   authenticated :user, ->(user) { user.admin? } do
     get 'dashboard', to: 'admin_dashboard#index'
   end
@@ -844,5 +861,11 @@ Rails.application.routes.draw do
     member do
       get :success
     end
+  end
+
+  scope module: 'client' do
+    get 'dashboard', to: 'dashboard#show', as: :client_dashboard
+    resources :bookings, only: [:index, :show]
+    # Note: Client estimates are routed via 'my-estimates' path above
   end
 end
