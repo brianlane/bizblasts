@@ -1,10 +1,9 @@
 #!/usr/bin/env ruby
 
-# Script to automatically split system tests into 3 balanced groups
-# Optimized for CI performance - reduced from 5 groups to 3 for better parallelization
+# Script to automatically split system tests into 5 balanced groups
 require 'find'
 
-NUM_GROUPS = 3
+NUM_GROUPS = 5
 
 def find_system_tests
   tests = []

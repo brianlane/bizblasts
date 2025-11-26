@@ -110,10 +110,10 @@ jobs:
           AA_PATH=$(bundle info activeadmin --path)
           npx sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules
           npx sass ./app/assets/stylesheets/active_admin.scss:./app/assets/builds/active_admin.css --no-source-map --load-path=node_modules --load-path="$AA_PATH/app/assets/stylesheets"
-
+          
           # Build JS
           npx esbuild app/javascript/application.js --bundle --outfile=app/assets/builds/application.js
-
+          
           # Build Tailwind
           chmod +x bin/build-tailwind-standalone.sh
           SKIP_SOLID_QUEUE_SETUP=true ./bin/build-tailwind-standalone.sh
@@ -127,9 +127,10 @@ jobs:
 
   # ============================================
   # STAGE 3: Test jobs (depend on build)
+  # Split tests for parallel execution (<10min target)
   # ============================================
   
-  # Model tests - fast, no browser
+  # Model tests
   test_models:
     needs: build
     runs-on: ubuntu-latest
@@ -154,27 +155,58 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ env.RUBY_VERSION }}
           bundler-cache: true
-
-      - name: Download built assets
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: built-assets
           path: app/assets/builds
+      - run: bundle exec rails db:create db:schema:load
+      - run: bundle exec rspec spec/models --format progress
 
-      - name: Setup database
+  # Request tests - split into 2 groups
+  test_requests_1:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+      ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
+      ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY }}
+      ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT }}
+      DISABLE_SIMPLECOV_BRANCH: true
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: built-assets
+          path: app/assets/builds
+      - run: bundle exec rails db:create db:schema:load
+      - name: Run request tests (group 1)
         run: |
-          bundle exec rails db:create db:schema:load
+          chmod +x bin/split_request_tests.rb
+          TESTS=$(./bin/split_request_tests.rb 1)
+          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests"
 
-      - name: Run model tests
-        run: bundle exec rspec spec/models --format progress
-
-  # Request tests - combined into single job
-  test_requests:
+  test_requests_2:
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -198,26 +230,23 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ env.RUBY_VERSION }}
           bundler-cache: true
-
-      - name: Download built assets
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: built-assets
           path: app/assets/builds
+      - run: bundle exec rails db:create db:schema:load
+      - name: Run request tests (group 2)
+        run: |
+          chmod +x bin/split_request_tests.rb
+          TESTS=$(./bin/split_request_tests.rb 2)
+          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests"
 
-      - name: Setup database
-        run: bundle exec rails db:create db:schema:load
-
-      - name: Run request tests
-        run: bundle exec rspec spec/requests --format progress
-
-  # Service/job/policy tests - combined
-  test_services:
+  # Service tests - split into 3 groups
+  test_services_1:
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -241,23 +270,98 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ env.RUBY_VERSION }}
           bundler-cache: true
-
-      - name: Download built assets
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: built-assets
           path: app/assets/builds
+      - run: bundle exec rails db:create db:schema:load
+      - name: Run service tests (group 1)
+        run: |
+          chmod +x bin/split_service_tests.rb
+          TESTS=$(./bin/split_service_tests.rb 1)
+          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests"
 
-      - name: Setup database
-        run: bundle exec rails db:create db:schema:load
+  test_services_2:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+      ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
+      ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY }}
+      ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT }}
+      DISABLE_SIMPLECOV_BRANCH: true
 
-      - name: Run service tests
-        run: bundle exec rspec spec/services spec/jobs spec/policies --format progress
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: built-assets
+          path: app/assets/builds
+      - run: bundle exec rails db:create db:schema:load
+      - name: Run service tests (group 2)
+        run: |
+          chmod +x bin/split_service_tests.rb
+          TESTS=$(./bin/split_service_tests.rb 2)
+          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests"
+
+  test_services_3:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+      ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
+      ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY }}
+      ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT }}
+      DISABLE_SIMPLECOV_BRANCH: true
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: built-assets
+          path: app/assets/builds
+      - run: bundle exec rails db:create db:schema:load
+      - name: Run service tests (group 3)
+        run: |
+          chmod +x bin/split_service_tests.rb
+          TESTS=$(./bin/split_service_tests.rb 3)
+          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests"
 
   # Integration/feature/mailer tests
   test_integration:
@@ -284,25 +388,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ env.RUBY_VERSION }}
           bundler-cache: true
-
-      - name: Download built assets
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: built-assets
           path: app/assets/builds
+      - run: bundle exec rails db:create db:schema:load
+      - run: bundle exec rspec spec/integration spec/features spec/mailers --format progress
 
-      - name: Setup database
-        run: bundle exec rails db:create db:schema:load
-
-      - name: Run integration tests
-        run: bundle exec rspec spec/integration spec/features spec/mailers --format progress
-
-  # Other tests (controllers, helpers, lib, views)
+  # Other tests (controllers, helpers, lib, views, security, channels)
   test_other:
     needs: build
     runs-on: ubuntu-latest
@@ -327,25 +424,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ env.RUBY_VERSION }}
           bundler-cache: true
-
-      - name: Download built assets
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: built-assets
           path: app/assets/builds
+      - run: bundle exec rails db:create db:schema:load
+      - run: bundle exec rspec spec/controllers spec/helpers spec/lib spec/views spec/security spec/channels --format progress
 
-      - name: Setup database
-        run: bundle exec rails db:create db:schema:load
-
-      - name: Run other tests
-        run: bundle exec rspec spec/controllers spec/helpers spec/lib spec/views spec/security spec/channels --format progress
-
-  # System tests - split into 3 parallel jobs (browser-based, slowest)
+  # System tests - split into 5 groups (browser tests are slowest)
   test_system_1:
     needs: build
     runs-on: ubuntu-latest
@@ -370,33 +460,22 @@ jobs:
         options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-      - name: Install Chrome
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
-          
+      - run: sudo apt-get update && sudo apt-get install -y google-chrome-stable
       - uses: actions/checkout@v4
-      
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ env.RUBY_VERSION }}
           bundler-cache: true
-
-      - name: Download built assets
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: built-assets
           path: app/assets/builds
-
-      - name: Setup database
-        run: bundle exec rails db:create db:schema:load
-
+      - run: bundle exec rails db:create db:schema:load
       - name: Run system tests (group 1)
         run: |
           chmod +x bin/split_system_tests.rb
           TESTS=$(./bin/split_system_tests.rb 1)
-          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests in group 1"
-
+          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -428,33 +507,22 @@ jobs:
         options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-      - name: Install Chrome
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
-          
+      - run: sudo apt-get update && sudo apt-get install -y google-chrome-stable
       - uses: actions/checkout@v4
-      
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ env.RUBY_VERSION }}
           bundler-cache: true
-
-      - name: Download built assets
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: built-assets
           path: app/assets/builds
-
-      - name: Setup database
-        run: bundle exec rails db:create db:schema:load
-
+      - run: bundle exec rails db:create db:schema:load
       - name: Run system tests (group 2)
         run: |
           chmod +x bin/split_system_tests.rb
           TESTS=$(./bin/split_system_tests.rb 2)
-          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests in group 2"
-
+          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -486,33 +554,22 @@ jobs:
         options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-      - name: Install Chrome
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
-          
+      - run: sudo apt-get update && sudo apt-get install -y google-chrome-stable
       - uses: actions/checkout@v4
-      
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ env.RUBY_VERSION }}
           bundler-cache: true
-
-      - name: Download built assets
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: built-assets
           path: app/assets/builds
-
-      - name: Setup database
-        run: bundle exec rails db:create db:schema:load
-
+      - run: bundle exec rails db:create db:schema:load
       - name: Run system tests (group 3)
         run: |
           chmod +x bin/split_system_tests.rb
           TESTS=$(./bin/split_system_tests.rb 3)
-          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests in group 3"
-
+          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -520,9 +577,103 @@ jobs:
           path: tmp/screenshots
           if-no-files-found: ignore
 
-  # Performance test - separate, only on main
+  test_system_4:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+      CI: true
+      ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
+      ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY }}
+      ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT }}
+      DISABLE_SIMPLECOV_BRANCH: true
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - run: sudo apt-get update && sudo apt-get install -y google-chrome-stable
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: built-assets
+          path: app/assets/builds
+      - run: bundle exec rails db:create db:schema:load
+      - name: Run system tests (group 4)
+        run: |
+          chmod +x bin/split_system_tests.rb
+          TESTS=$(./bin/split_system_tests.rb 4)
+          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: screenshots-system-4
+          path: tmp/screenshots
+          if-no-files-found: ignore
+
+  test_system_5:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+      CI: true
+      ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
+      ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY }}
+      ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT }}
+      DISABLE_SIMPLECOV_BRANCH: true
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - run: sudo apt-get update && sudo apt-get install -y google-chrome-stable
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: built-assets
+          path: app/assets/builds
+      - run: bundle exec rails db:create db:schema:load
+      - name: Run system tests (group 5)
+        run: |
+          chmod +x bin/split_system_tests.rb
+          TESTS=$(./bin/split_system_tests.rb 5)
+          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: screenshots-system-5
+          path: tmp/screenshots
+          if-no-files-found: ignore
+
+  # Performance test - only on main
   performance_test:
-    needs: [test_models, test_requests, test_services]
+    needs: [test_models, test_requests_1, test_requests_2, test_services_1, test_services_2, test_services_3]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -545,23 +696,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ env.RUBY_VERSION }}
           bundler-cache: true
-
-      - name: Download built assets
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: built-assets
           path: app/assets/builds
-
       - name: Setup database with seed data
         run: |
           bundle exec rails db:create db:schema:load db:seed
           bundle exec rake ci:create_performance_test_data
-
       - name: Run performance test
         run: |
           bundle exec rails server -p 3000 &
@@ -573,7 +719,7 @@ jobs:
   # STAGE 4: Deploy (only on main after all tests pass)
   # ============================================
   deploy:
-    needs: [scan_ruby, scan_js, lint, test_models, test_requests, test_services, test_integration, test_other, test_system_1, test_system_2, test_system_3]
+    needs: [scan_ruby, scan_js, lint, test_models, test_requests_1, test_requests_2, test_services_1, test_services_2, test_services_3, test_integration, test_other, test_system_1, test_system_2, test_system_3, test_system_4, test_system_5, performance_test]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
