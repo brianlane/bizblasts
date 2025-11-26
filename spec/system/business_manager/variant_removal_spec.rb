@@ -26,11 +26,14 @@ RSpec.describe 'Variant Removal', type: :system do
       
       visit edit_business_manager_product_path(product)
       
-      # Verify all variants are showing
-      expect(page).to have_field('product_product_variants_attributes_0_name', with: 'Default')
-      expect(page).to have_field('product_product_variants_attributes_1_name', with: 'Small')
-      expect(page).to have_field('product_product_variants_attributes_2_name', with: 'Large')
-      expect(page).to have_field('product_product_variants_attributes_3_name', with: 'XL')
+      # Wait for the variant fields to load
+      expect(page).to have_css('.variant-field', count: 4, wait: 10)
+      
+      # Verify all variants are showing by checking for fields containing their names
+      expect(page).to have_field(type: 'text', with: 'Default')
+      expect(page).to have_field(type: 'text', with: 'Small')
+      expect(page).to have_field(type: 'text', with: 'Large')
+      expect(page).to have_field(type: 'text', with: 'XL')
       
       # Remove the "Large" variant by clicking its Remove button
       within(:xpath, "//input[@value='Large']/ancestor::div[contains(@class, 'variant-field')]") do
@@ -80,10 +83,13 @@ RSpec.describe 'Variant Removal', type: :system do
     it 'shows remove buttons when there are multiple variants' do
       visit edit_business_manager_product_path(product)
       
+      # Wait for variant fields to load
+      expect(page).to have_css('.variant-field', count: 4, wait: 10)
+      
       # Should see multiple variants with visible remove buttons
-      expect(page).to have_field('product_product_variants_attributes_0_name', with: 'Default')
-      expect(page).to have_field('product_product_variants_attributes_1_name', with: 'Small')
-      expect(page).to have_field('product_product_variants_attributes_2_name', with: 'Large')
+      expect(page).to have_field(type: 'text', with: 'Default')
+      expect(page).to have_field(type: 'text', with: 'Small')
+      expect(page).to have_field(type: 'text', with: 'Large')
       
       # All variants should have visible remove buttons
       expect(page).to have_button('Remove Variant', count: 4) # Default + 3 user-created

@@ -68,36 +68,46 @@ module CIVisitHelper
 
       if urls_match
         # URL matches (host, path, and normalized port) - verify the page rendered
-        if page.has_css?('body', wait: 2)
-          warn "#{log_prefix} Navigation succeeded to #{current_url}, continuing despite pending connections"
-          # Give JS a moment to initialize
-          sleep 0.3
-        else
-          warn "#{log_prefix} URL correct but no body element found, re-raising error"
+        begin
+          if page.has_css?('body', wait: 2)
+            warn "#{log_prefix} Navigation succeeded to #{current_url}, continuing despite pending connections"
+            # Give JS a moment to initialize
+            sleep 0.3
+          else
+            warn "#{log_prefix} URL correct but no body element found, re-raising error"
+            raise e
+          end
+        rescue Ferrum::NodeNotFoundError, Ferrum::BrowserError => body_check_error
+          warn "#{log_prefix} Body check failed (#{body_check_error.class}), re-raising original error"
           raise e
         end
       else
         # URL doesn't match - check if this is a redirect (which is a successful navigation)
-        if current_url && page.has_css?('body', wait: 2)
-          warn "#{log_prefix} Navigation succeeded with redirect from #{expected_url} to #{current_url}"
-          # This is likely a successful POST that redirected - accept it
-          sleep 0.3
-        else
-          # Navigation failed - attempt a single forced navigation without waiting for network idle
-          warn "#{log_prefix} Navigation mismatch detected, attempting forced navigation to #{expected_url}"
-          begin
-            page.driver.browser.goto(expected_url)
-            if page.has_css?('body', wait: 5)
-              warn "#{log_prefix} Forced navigation succeeded for #{expected_url}"
-              sleep 0.3
-            else
-              warn "#{log_prefix} Forced navigation loaded URL but no body found, raising original error"
+        begin
+          if current_url && page.has_css?('body', wait: 2)
+            warn "#{log_prefix} Navigation succeeded with redirect from #{expected_url} to #{current_url}"
+            # This is likely a successful POST that redirected - accept it
+            sleep 0.3
+          else
+            # Navigation failed - attempt a single forced navigation without waiting for network idle
+            warn "#{log_prefix} Navigation mismatch detected, attempting forced navigation to #{expected_url}"
+            begin
+              page.driver.browser.goto(expected_url)
+              if page.has_css?('body', wait: 5)
+                warn "#{log_prefix} Forced navigation succeeded for #{expected_url}"
+                sleep 0.3
+              else
+                warn "#{log_prefix} Forced navigation loaded URL but no body found, raising original error"
+                raise e
+              end
+            rescue => forced_error
+              warn "#{log_prefix} Forced navigation failed: #{forced_error.class} - #{forced_error.message}"
               raise e
             end
-          rescue => forced_error
-            warn "#{log_prefix} Forced navigation failed: #{forced_error.class} - #{forced_error.message}"
-            raise e
           end
+        rescue Ferrum::NodeNotFoundError, Ferrum::BrowserError => body_check_error
+          warn "#{log_prefix} Body check failed (#{body_check_error.class}), re-raising original error"
+          raise e
         end
       end
     end
