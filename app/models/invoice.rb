@@ -161,15 +161,23 @@ class Invoice < ApplicationRecord
       is_deposit_invoice = estimate.required_deposit.present? && estimate.required_deposit > 0
 
       if is_deposit_invoice
-        # For deposit invoices, the deposit is a lump sum (includes tax portion)
+        # For deposit invoices, calculate proportional tax amount
+        # so that amount represents pre-tax portion correctly
+        deposit_tax = if estimate.total > 0 && estimate.taxes.present?
+          (estimate.required_deposit * estimate.taxes) / estimate.total
+        else
+          0.0
+        end
+        deposit_pretax = estimate.required_deposit - deposit_tax
+
         invoice = new(
           tenant_customer: estimate.tenant_customer,
           business: estimate.business,
           booking: estimate.booking,
-          amount: estimate.required_deposit,
-          original_amount: estimate.required_deposit,
+          amount: deposit_pretax,
+          original_amount: deposit_pretax,
           discount_amount: 0.0,
-          tax_amount: 0.0,
+          tax_amount: deposit_tax,
           total_amount: estimate.required_deposit,
           due_date: 7.days.from_now,
           status: :pending

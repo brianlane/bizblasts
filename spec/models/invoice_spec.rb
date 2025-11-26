@@ -195,10 +195,15 @@ RSpec.describe Invoice, type: :model do
       it 'creates invoice for only the deposit amount' do
         invoice = Invoice.create_from_estimate(estimate_with_deposit)
 
+        # Calculate expected proportional tax: (50 * 15) / 165 = 4.545454...
+        expected_tax = (50.0 * 15.0) / 165.0
+        expected_pretax = 50.0 - expected_tax
+
         expect(invoice).to be_persisted
         expect(invoice.total_amount).to eq(50.0)
-        expect(invoice.amount).to eq(50.0)
-        expect(invoice.original_amount).to eq(50.0)
+        expect(invoice.amount).to be_within(0.01).of(expected_pretax)
+        expect(invoice.original_amount).to be_within(0.01).of(expected_pretax)
+        expect(invoice.tax_amount).to be_within(0.01).of(expected_tax)
         expect(invoice.tenant_customer).to eq(tenant_customer)
         expect(invoice.booking).to eq(booking)
       end

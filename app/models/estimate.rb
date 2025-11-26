@@ -32,7 +32,13 @@ class Estimate < ApplicationRecord
 
   private
   def calculate_totals
-    return if estimate_items.blank?
+    # Set totals to 0 if no items exist
+    if estimate_items.blank?
+      self.subtotal = 0
+      self.taxes = 0
+      self.total = 0
+      return
+    end
 
     # Filter out items marked for destruction (similar to Order model line 172)
     items = estimate_items.reject(&:marked_for_destruction?)
