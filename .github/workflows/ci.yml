@@ -204,7 +204,9 @@ jobs:
         run: |
           chmod +x bin/split_request_tests.rb
           TESTS=$(./bin/split_request_tests.rb 1)
-          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests"
+          if [ -n "$TESTS" ]; then
+            bundle exec rspec $TESTS --format progress
+          fi
 
   test_requests_2:
     needs: build
@@ -243,7 +245,9 @@ jobs:
         run: |
           chmod +x bin/split_request_tests.rb
           TESTS=$(./bin/split_request_tests.rb 2)
-          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests"
+          if [ -n "$TESTS" ]; then
+            bundle exec rspec $TESTS --format progress
+          fi
 
   # Service tests - split into 3 groups
   test_services_1:
@@ -283,7 +287,9 @@ jobs:
         run: |
           chmod +x bin/split_service_tests.rb
           TESTS=$(./bin/split_service_tests.rb 1)
-          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests"
+          if [ -n "$TESTS" ]; then
+            bundle exec rspec $TESTS --format progress
+          fi
 
   test_services_2:
     needs: build
@@ -322,7 +328,9 @@ jobs:
         run: |
           chmod +x bin/split_service_tests.rb
           TESTS=$(./bin/split_service_tests.rb 2)
-          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests"
+          if [ -n "$TESTS" ]; then
+            bundle exec rspec $TESTS --format progress
+          fi
 
   test_services_3:
     needs: build
@@ -361,7 +369,9 @@ jobs:
         run: |
           chmod +x bin/split_service_tests.rb
           TESTS=$(./bin/split_service_tests.rb 3)
-          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests"
+          if [ -n "$TESTS" ]; then
+            bundle exec rspec $TESTS --format progress
+          fi
 
   # Integration/feature/mailer tests
   test_integration:
@@ -475,7 +485,9 @@ jobs:
         run: |
           chmod +x bin/split_system_tests.rb
           TESTS=$(./bin/split_system_tests.rb 1)
-          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests"
+          if [ -n "$TESTS" ]; then
+            bundle exec rspec $TESTS --format progress
+          fi
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -522,7 +534,9 @@ jobs:
         run: |
           chmod +x bin/split_system_tests.rb
           TESTS=$(./bin/split_system_tests.rb 2)
-          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests"
+          if [ -n "$TESTS" ]; then
+            bundle exec rspec $TESTS --format progress
+          fi
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -569,7 +583,9 @@ jobs:
         run: |
           chmod +x bin/split_system_tests.rb
           TESTS=$(./bin/split_system_tests.rb 3)
-          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests"
+          if [ -n "$TESTS" ]; then
+            bundle exec rspec $TESTS --format progress
+          fi
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -616,7 +632,9 @@ jobs:
         run: |
           chmod +x bin/split_system_tests.rb
           TESTS=$(./bin/split_system_tests.rb 4)
-          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests"
+          if [ -n "$TESTS" ]; then
+            bundle exec rspec $TESTS --format progress
+          fi
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -663,7 +681,9 @@ jobs:
         run: |
           chmod +x bin/split_system_tests.rb
           TESTS=$(./bin/split_system_tests.rb 5)
-          [ -n "$TESTS" ] && bundle exec rspec $TESTS --format progress || echo "No tests"
+          if [ -n "$TESTS" ]; then
+            bundle exec rspec $TESTS --format progress
+          fi
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
