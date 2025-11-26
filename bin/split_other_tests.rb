@@ -1,22 +1,24 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# Duration-based test splitting for service/job/policy specs
-# Estimates ~2.5 seconds per test based on CI profiling
+# Duration-based test splitting for other specs (controllers, helpers, lib, views, security, channels)
+# Estimates ~2 seconds per test based on CI profiling
 require 'find'
 
-NUM_GROUPS = 3
-SECONDS_PER_TEST = 2.5
+NUM_GROUPS = 2
+SECONDS_PER_TEST = 2
+
+SPEC_DIRS = %w[spec/controllers spec/helpers spec/lib spec/views spec/security spec/channels]
 
 def count_tests(file)
   content = File.read(file, encoding: 'UTF-8', invalid: :replace, undef: :replace)
   content.scan(/^\s*it\s/).count
 end
 
-def find_service_tests
+def find_other_tests
   tests = []
   
-  %w[spec/services spec/jobs spec/policies].each do |dir|
+  SPEC_DIRS.each do |dir|
     next unless Dir.exist?(dir)
     
     Find.find(dir) do |path|
@@ -56,10 +58,10 @@ def main
     exit 0
   end
 
-  tests = find_service_tests
+  tests = find_other_tests
   
   if tests.empty?
-    puts "No service/job/policy specs found"
+    puts "No other specs found"
     exit 0
   end
   
@@ -88,3 +90,4 @@ def main
 end
 
 main if __FILE__ == $0
+
