@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 # Performance profiling script for availability endpoint
-# Usage: ruby script/performance_test.rb -u URL [-n REQUESTS] [-c CONCURRENCY]
+# Usage: ruby script/performance_test.rb -u URL [-n REQUESTS] [-c CONCURRENCY] [-H HOST]
 
 require 'optparse'
 require 'net/http'
@@ -11,7 +11,8 @@ require 'benchmark'
 options = {
   requests: 100,
   concurrency: 10,
-  url: nil
+  url: nil,
+  host_header: nil
 }
 
 # Parse command-line arguments
@@ -30,6 +31,10 @@ OptionParser.new do |opts|
     options[:concurrency] = v
   end
 
+  opts.on('-H', '--host HOST', 'Host header to send with requests (for subdomain testing)') do |v|
+    options[:host_header] = v
+  end
+
   opts.on('-h', '--help', 'Displays Help') do
     puts opts
     exit
@@ -45,14 +50,29 @@ end
 uri = URI(options[:url])
 total_requests = options[:requests]
 concurrency = options[:concurrency]
+host_header = options[:host_header]
 requests_per_thread = (total_requests.to_f / concurrency).ceil
 
 puts "Starting performance test..."
 puts "Endpoint: #{uri}"
+puts "Host header: #{host_header || '(none)'}"
 puts "Total requests: #{total_requests}"
 puts "Concurrency: #{concurrency}"
 puts "Requests per thread: #{requests_per_thread}"
 puts '-' * 50
+
+# Helper to make request with optional Host header
+def make_request(uri, host_header)
+  http = Net::HTTP.new(uri.host, uri.port)
+  http.use_ssl = (uri.scheme == 'https')
+  http.open_timeout = 30
+  http.read_timeout = 30
+  
+  request = Net::HTTP::Get.new(uri.request_uri)
+  request['Host'] = host_header if host_header
+  
+  http.request(request)
+end
 
 # Array to collect response times
 responses = []
@@ -66,7 +86,7 @@ total_time = Benchmark.realtime do
     threads << Thread.new do
       requests_per_thread.times do
         start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        response = Net::HTTP.get_response(uri)
+        response = make_request(uri, host_header)
         elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
 
         # Record elapsed time and output progress dot
