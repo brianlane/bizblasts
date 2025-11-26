@@ -11,8 +11,9 @@ SimpleCov.start 'rails' do
   add_filter '/config/'
   add_filter '/vendor/'
 
-  # Enable branch coverage analysis
-  enable_coverage :branch
+  # Enable branch coverage analysis (disabled in CI for performance)
+  enable_coverage :branch unless ENV['DISABLE_SIMPLECOV_BRANCH'] || ENV['CI']
+  
   # Combine coverage reports from parallel tests
   merge_timeout 3600 # Set a generous timeout for merging (e.g., 1 hour)
   
@@ -118,60 +119,53 @@ RSpec.configure do |config|
   config.include Rails::Controller::Testing::Integration, type: :request
 
   # == DatabaseCleaner Configuration for Parallel Tests ==
+  # PERFORMANCE: Use transaction strategy for non-browser tests (10-100x faster than truncation)
+  # System/feature tests use truncation since they run in separate threads
+  
   config.before(:suite) do
     # Ensure DB is clean before suite
     DatabaseCleaner.clean_with(:truncation, except: EXCLUDED_TABLES)
-    # Set the default strategy for the suite
-    DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES }
-    # Rewind sequences AFTER cleaning and setting strategy so factories start from a clean baseline
+    # Rewind sequences AFTER cleaning so factories start from a clean baseline
     FactoryBot.rewind_sequences if FactoryBot.respond_to?(:rewind_sequences)
   end
 
   config.around(:each) do |example|
-    # Set strategy explicitly for system tests (Now defaulting to truncation anyway)
-    DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES } # Ensure truncation
-    # if example.metadata[:type] == :system
-    #   DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES }
-    # else
-    #   # Keep the default strategy for other types (or set explicitly if needed)
-    #   # DatabaseCleaner.strategy = :transaction # Example if using transaction for others
-    #   # Or just rely on the default set in before(:suite) if consistent
-    #   DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES } # Assuming truncation default
-    # end
-
-    # Skip cleaning if :seed_test metadata is present (seeds_spec handles its own)
-    if example.metadata[:seed_test]
+    # Skip cleaning if :seed_test or :no_db_clean metadata is present
+    if example.metadata[:seed_test] || example.metadata[:no_db_clean]
       example.run
-    # Original logic for skipping cleaning if needed
-    elsif example.metadata[:no_db_clean]
-      example.run # Run example without DatabaseCleaner wrapping
     else
-      # Use the original .cleaning block with truncation
+      # PERFORMANCE: Use transaction strategy for non-browser tests (much faster)
+      # System/feature tests need truncation because Capybara runs in a separate thread
+      strategy = if example.metadata[:type] == :system || example.metadata[:type] == :feature || example.metadata[:js]
+        [:truncation, { except: EXCLUDED_TABLES }]
+      else
+        :transaction
+      end
+      
+      DatabaseCleaner.strategy = strategy
       DatabaseCleaner.cleaning do
         example.run
       end
     end
+    
     # Reset tenant after each test (important)
     ActsAsTenant.current_tenant = nil
+    
     # Rewind sequences after each test
     FactoryBot.rewind_sequences if FactoryBot.respond_to?(:rewind_sequences)
-    # Reset Capybara session state
-    # Reset Capybara session state only if it's a system/feature test (Keep this specific reset)
+    
+    # Reset Capybara session state only for system/feature tests
     if example.metadata[:type] == :system || example.metadata[:type] == :feature
       Capybara.reset_sessions!
     end
 
     # CRITICAL: Clear ActiveRecord association caches to prevent test pollution
-    # This prevents cached associations from causing test isolation issues
     ActiveRecord::Base.clear_cache! if ActiveRecord::Base.respond_to?(:clear_cache!)
     
     # For Rails < 7.1, use the older method
     if defined?(ActiveRecord::Base.clear_active_connections!)
       ActiveRecord::Base.clear_active_connections!
     end
-
-    # Optional: Reset strategy back to default if necessary, though usually not needed
-    # DatabaseCleaner.strategy = :truncation, { except: EXCLUDED_TABLES } # Removed explicit reset
   end
   
   # == End DatabaseCleaner Configuration ==
@@ -212,19 +206,19 @@ RSpec.configure do |config|
   
   config.include Pundit::Authorization, type: :view
 
-  # RSpec Retry Configuration for flaky tests
+  # RSpec Retry Configuration for flaky tests - optimized for CI performance
   config.verbose_retry = true
   config.display_try_failure_messages = true
   
   # Only retry specific browser-related errors and only in CI
+  # Reduced retries for faster feedback - 1 retry (2 total attempts)
   config.around(:each, type: :system) do |ex|
     if ENV['CI'] == 'true'
       ex.run_with_retry(
-        retry: 2,  # Try 2 additional times (3 total)
+        retry: 1,  # 1 retry only (2 total) - reduced from 2 retries
         exceptions_to_retry: [
           Ferrum::ProcessTimeoutError,
           Ferrum::TimeoutError,
-          Capybara::ElementNotFound,
           Net::ReadTimeout
         ],
         retry_callback: -> { Capybara.reset! }

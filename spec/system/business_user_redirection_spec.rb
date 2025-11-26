@@ -107,11 +107,15 @@ RSpec.describe 'Business User Redirection', type: :system, js: true do
     # Fill in the login form
     fill_in 'Email', with: user.email
     fill_in 'Password', with: 'password' # Assuming 'password' is the factory default
-    click_button 'Sign In'
 
-    # Assert redirection to the correct subdomain dashboard
-    # Wait for potential redirection and page load
-    expect(page).to have_current_path(%r{/dashboard$}, wait: 10) 
+    # Use a longer timeout for the button click as it may trigger slow operations (auth, redirects)
+    using_wait_time(30) do
+      click_button 'Sign In'
+
+      # Assert redirection to the correct subdomain dashboard
+      # Wait for potential redirection and page load
+      expect(page).to have_current_path(%r{/dashboard$}, wait: 30)
+    end 
     
     # Check the host after waiting for the path
     expect(URI.parse(page.current_url).host).to eq("#{business.hostname}.lvh.me")

@@ -1,7 +1,10 @@
 #!/usr/bin/env ruby
 
-# Script to automatically split system tests into 5 balanced groups
+# Script to automatically split system tests into 3 balanced groups
+# Optimized for CI performance - reduced from 5 groups to 3 for better parallelization
 require 'find'
+
+NUM_GROUPS = 3
 
 def find_system_tests
   tests = []
@@ -13,7 +16,7 @@ def find_system_tests
   tests.sort
 end
 
-def split_tests_evenly(tests, num_groups = 5)
+def split_tests_evenly(tests, num_groups = NUM_GROUPS)
   # Sort by file size (larger files likely have more/slower tests)
   tests_with_size = tests.map do |test|
     size = File.exist?(test) ? File.size(test) : 0
@@ -39,7 +42,7 @@ end
 def main
   if ARGV[0] == '--help' || ARGV[0] == '-h'
     puts "Usage: #{$0} [group_number]"
-    puts "  group_number: 1-5 (returns tests for that group)"
+    puts "  group_number: 1-#{NUM_GROUPS} (returns tests for that group)"
     puts "  no args: shows all groups"
     exit 0
   end
@@ -51,14 +54,14 @@ def main
     exit 0
   end
   
-  groups = split_tests_evenly(tests, 5)
+  groups = split_tests_evenly(tests, NUM_GROUPS)
   
   if ARGV[0]
     group_num = ARGV[0].to_i
-    if group_num >= 1 && group_num <= 5
+    if group_num >= 1 && group_num <= NUM_GROUPS
       puts groups[group_num - 1].join(' ')
     else
-      puts "Invalid group number. Use 1-5"
+      puts "Invalid group number. Use 1-#{NUM_GROUPS}"
       exit 1
     end
   else
@@ -70,4 +73,4 @@ def main
   end
 end
 
-main if __FILE__ == $0 
+main if __FILE__ == $0

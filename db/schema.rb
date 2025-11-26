@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_26_163716) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_26_183301) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -304,6 +304,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_26_163716) do
     t.string "twitter_url"
     t.datetime "updated_at", null: false
     t.boolean "video_autoplay_hero", default: true, null: false
+    t.string "video_conversion_status"
     t.integer "video_display_location", default: 0, null: false
     t.string "video_title"
     t.string "website"

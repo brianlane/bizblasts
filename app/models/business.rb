@@ -1115,6 +1115,21 @@ class Business < ApplicationRecord
   def process_gallery_video
     return unless gallery_video.attached?
 
+    # Skip if conversion just completed - this prevents redundant job after VideoConversionService
+    # attaches the converted file. The status is set to 'completed' before attach.
+    if video_conversion_status == VideoConversionService::STATUS_COMPLETED
+      Rails.logger.info "[GALLERY_VIDEO] Skipping job enqueue - conversion just completed for business #{id}"
+      # Clear the status now that we've acknowledged it
+      update_columns(video_conversion_status: nil)
+      return
+    end
+
+    # Skip if conversion is currently in progress
+    if video_conversion_status == VideoConversionService::STATUS_CONVERTING
+      Rails.logger.info "[GALLERY_VIDEO] Skipping job enqueue - conversion in progress for business #{id}"
+      return
+    end
+
     begin
       # Enqueue background job for video processing (thumbnail generation, compression)
       ProcessGalleryVideoJob.perform_later(id)

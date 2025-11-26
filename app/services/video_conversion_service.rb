@@ -9,6 +9,13 @@ class VideoConversionService
   class FfmpegNotAvailableError < ConversionError; end
   class VideoDeletedError < ConversionError; end
 
+  # Conversion status values
+  STATUS_PENDING = 'pending'
+  STATUS_CONVERTING = 'converting'
+  STATUS_COMPLETED = 'completed'
+  STATUS_FAILED = 'failed'
+  STATUS_FAILED_NO_FFMPEG = 'failed_no_ffmpeg'
+
   # Video formats that need conversion to MP4
   # HEVC/H.265 in .mov containers will be converted to H.264 for better browser support
   CONVERTIBLE_TYPES = %w[video/quicktime video/x-msvideo video/x-ms-wmv].freeze
@@ -54,13 +61,20 @@ class VideoConversionService
 
       unless needs_conversion?(blob)
         Rails.logger.info "[VIDEO_CONVERSION] Video #{blob.filename} is already in a web-compatible format"
+        # Clear any stale conversion status
+        business.update_columns(video_conversion_status: nil) if business.video_conversion_status.present?
         return true
       end
 
       unless ffmpeg_available?
         Rails.logger.warn "[VIDEO_CONVERSION] ffmpeg not available, skipping conversion for #{blob.filename}"
+        # Mark as failed so UI shows appropriate message
+        business.update_columns(video_conversion_status: STATUS_FAILED_NO_FFMPEG)
         return false
       end
+
+      # Mark conversion as in progress
+      business.update_columns(video_conversion_status: STATUS_CONVERTING)
 
       perform_conversion(business, blob)
     end
@@ -94,6 +108,7 @@ class VideoConversionService
         business.reload
         unless business.gallery_video.attached?
           Rails.logger.info "[VIDEO_CONVERSION] Video was deleted during conversion. Skipping replacement."
+          business.update_columns(video_conversion_status: nil)
           return false
         end
 
@@ -104,6 +119,9 @@ class VideoConversionService
         end
 
         # Replace the original attachment with the converted file
+        # Mark as completed BEFORE attaching to prevent redundant job trigger
+        business.update_columns(video_conversion_status: STATUS_COMPLETED)
+
         replace_attachment(business, output_path, new_filename)
 
         Rails.logger.info "[VIDEO_CONVERSION] Successfully converted #{original_filename} to #{new_filename}"
@@ -113,6 +131,8 @@ class VideoConversionService
     rescue StandardError => e
       Rails.logger.error "[VIDEO_CONVERSION] Failed to convert video: #{e.message}"
       Rails.logger.error e.backtrace.join("\n")
+      # Mark as failed
+      business.update_columns(video_conversion_status: STATUS_FAILED) rescue nil
       false
     end
 

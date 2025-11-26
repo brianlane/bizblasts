@@ -85,6 +85,7 @@ class GalleryVideoService
       video_display_location: Business.video_display_locations[:hero],
       video_title: nil,
       video_autoplay_hero: true,
+      video_conversion_status: nil,  # Clear conversion status
       updated_at: Time.current
     )
 

@@ -81,6 +81,9 @@ class ProcessGalleryVideoJob < ApplicationJob
     if VideoConversionService.needs_conversion?(blob)
       Rails.logger.info "[GALLERY_VIDEO_PROCESSING] Video needs conversion to MP4 for web compatibility"
 
+      # Set status to pending so UI shows conversion is about to happen
+      business.update_columns(video_conversion_status: VideoConversionService::STATUS_PENDING)
+
       # Pass original blob ID to prevent race condition if video is deleted during conversion
       if VideoConversionService.convert!(business, original_blob_id: @original_blob_id)
         Rails.logger.info "[GALLERY_VIDEO_PROCESSING] Video converted to MP4 successfully"
@@ -89,6 +92,8 @@ class ProcessGalleryVideoJob < ApplicationJob
       end
     else
       Rails.logger.info "[GALLERY_VIDEO_PROCESSING] Video is already in web-compatible format"
+      # Clear any stale conversion status
+      business.update_columns(video_conversion_status: nil) if business.video_conversion_status.present?
     end
   end
 
