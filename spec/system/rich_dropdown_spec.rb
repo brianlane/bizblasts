@@ -30,10 +30,13 @@ RSpec.describe 'Rich Dropdown Functionality', type: :system, js: true do
 
     it 'opens dropdown when clicked' do
       find('[data-dropdown-target="button"]').click
-      
+
+      # Wait for the dropdown menu to open (hidden class should be removed)
+      expect(page).to have_css('[data-dropdown-target="menu"]:not(.hidden)', wait: 5)
+
       # Check that the menu is visible (not having .hidden class)
-      menu = find('[data-dropdown-target="menu"]', visible: false)
-      expect(!menu[:class].include?('hidden')).to be_truthy
+      menu = find('[data-dropdown-target="menu"]', visible: :all)
+      expect(menu[:class].include?('hidden')).to be_falsey
       expect(page).to have_css('.service-dropdown-button svg.rotate-180')
     end
 

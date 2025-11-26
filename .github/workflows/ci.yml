@@ -1363,29 +1363,29 @@ jobs:
 
       - name: Run other tests
         run: |
-          set -e  # Exit immediately if any command exits with a non-zero status
+          set -eo pipefail  # Exit immediately if any command fails, including in pipelines
 
           # Run controller tests
           echo "Running controller tests..."
-          bundle exec rspec spec/controllers --format documentation
+          bundle exec rspec spec/controllers --format documentation || { echo "Controller tests failed!"; exit 1; }
 
           # Run tests from other directories that exist and have spec files
           SPEC_DIRS=""
           for dir in spec/helpers spec/lib spec/views spec/security spec/channels; do
-            if [ -d "$dir" ] && find "$dir" -name "*_spec.rb" | grep -q .; then
+            if [ -d "$dir" ] && find "$dir" -name "*_spec.rb" 2>/dev/null | grep -q .; then
               SPEC_DIRS="$SPEC_DIRS $dir"
             fi
           done
 
           # Handle JavaScript specs separately since they're .js files
-          if [ -d "spec/javascript" ] && find "spec/javascript" -name "*_spec.js" | grep -q .; then
+          if [ -d "spec/javascript" ] && find "spec/javascript" -name "*_spec.js" 2>/dev/null | grep -q .; then
             echo "Found JavaScript specs, but RSpec doesn't run .js files directly"
             echo "JavaScript specs should be run with a JavaScript test runner"
           fi
 
           if [ -n "$SPEC_DIRS" ]; then
             echo "Running other tests from: $SPEC_DIRS"
-            bundle exec rspec $SPEC_DIRS --format documentation
+            bundle exec rspec $SPEC_DIRS --format documentation || { echo "Other tests failed!"; exit 1; }
           else
             echo "No RSpec files found in other directories - job completed successfully"
           fi

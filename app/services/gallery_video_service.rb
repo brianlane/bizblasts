@@ -82,7 +82,7 @@ class GalleryVideoService
     # Use update_columns to skip callbacks (especially process_gallery_video)
     # which would otherwise try to process a non-existent video
     business.update_columns(
-      video_display_location: 'hero',
+      video_display_location: Business.video_display_locations[:hero],
       video_title: nil,
       video_autoplay_hero: true,
       updated_at: Time.current

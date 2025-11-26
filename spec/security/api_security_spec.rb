@@ -7,11 +7,14 @@ RSpec.describe 'API Security', type: :request do
   let!(:business2) { create(:business, hostname: 'business2') }
   let!(:api_key) { ENV['API_KEY'] || 'demo_api_key_for_testing' }
 
+  # Default headers for JSON API requests
+  let(:json_headers) { { 'Accept' => 'application/json', 'Content-Type' => 'application/json' } }
+
   describe 'GET /api/v1/businesses' do
     context 'without API key' do
       it 'returns unauthorized' do
         # Use index endpoint which requires authentication
-        get '/api/v1/businesses'
+        get '/api/v1/businesses', headers: json_headers
         expect(response).to have_http_status(:unauthorized)
         expect(json_response['error']).to eq('API authentication required')
       end
@@ -20,7 +23,7 @@ RSpec.describe 'API Security', type: :request do
     context 'with valid API key' do
       it 'returns limited business data' do
         # Use index endpoint which requires authentication
-        get '/api/v1/businesses', headers: { 'X-API-Key' => api_key }
+        get '/api/v1/businesses', headers: json_headers.merge('X-API-Key' => api_key)
         expect(response).to have_http_status(:ok)
 
         businesses = json_response['businesses']
@@ -39,7 +42,7 @@ RSpec.describe 'API Security', type: :request do
 
     context 'with invalid API key' do
       it 'returns unauthorized' do
-        get '/api/v1/businesses', headers: { 'X-API-Key' => 'invalid_key' }
+        get '/api/v1/businesses', headers: json_headers.merge('X-API-Key' => 'invalid_key')
         expect(response).to have_http_status(:unauthorized)
       end
     end
@@ -48,14 +51,14 @@ RSpec.describe 'API Security', type: :request do
   describe 'GET /api/v1/businesses/:id' do
     context 'without API key' do
       it 'returns unauthorized' do
-        get "/api/v1/businesses/#{business1.id}"
+        get "/api/v1/businesses/#{business1.id}", headers: json_headers
         expect(response).to have_http_status(:unauthorized)
       end
     end
 
     context 'with valid API key' do
       it 'returns sanitized business details' do
-        get "/api/v1/businesses/#{business1.id}", headers: { 'X-API-Key' => api_key }
+        get "/api/v1/businesses/#{business1.id}", headers: json_headers.merge('X-API-Key' => api_key)
         expect(response).to have_http_status(:ok)
 
         business = json_response['business']
@@ -87,7 +90,7 @@ RSpec.describe 'API Security', type: :request do
 
       # Make requests until we hit the limit or reach a reasonable number
       25.times do
-        get '/api/v1/businesses/ai_summary'  # Public endpoint that still counts toward rate limit
+        get '/api/v1/businesses/ai_summary', headers: json_headers  # Public endpoint that still counts toward rate limit
         responses << response.status
         break if response.status == 429 # Stop when rate limited
       end
@@ -104,13 +107,13 @@ RSpec.describe 'API Security', type: :request do
 
   describe 'Public endpoints' do
     it 'allows access to categories without API key' do
-      get '/api/v1/businesses/categories'
+      get '/api/v1/businesses/categories', headers: json_headers
       expect(response).to have_http_status(:ok)
       expect(json_response).to have_key('service_categories')
     end
 
     it 'allows access to ai_summary without API key' do
-      get '/api/v1/businesses/ai_summary'
+      get '/api/v1/businesses/ai_summary', headers: json_headers
       expect(response).to have_http_status(:ok)
       expect(json_response).to have_key('platform')
     end

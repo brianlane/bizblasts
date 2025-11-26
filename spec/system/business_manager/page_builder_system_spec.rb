@@ -47,9 +47,15 @@ RSpec.describe 'Page Builder System', type: :system, js: true do
 
     it 'provides section management actions' do
       section = create(:page_section, page: home_page, section_type: 'text', position: 0)
-      
+
+      # Reload the page to ensure association is loaded
+      home_page.reload
+
       visit business_manager_website_page_sections_path(home_page)
-      
+
+      # Wait for the section to appear with explicit expectation
+      expect(page).to have_css('.section-item', wait: 10)
+
       within('.section-item') do
         expect(page).to have_button('Edit')
         expect(page).to have_button('Delete')
