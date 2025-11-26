@@ -621,6 +621,8 @@ jobs:
       - run: bundle exec rspec spec/integration spec/features spec/mailers --format progress
 
   # Other tests (controllers, helpers, lib, views, security, channels) - split into 2 groups
+  # Other tests (controllers, helpers, lib, views, security, channels)
+  # Security specs have JS tests that need Chrome
   test_other_1:
     needs: build
     runs-on: ubuntu-latest
@@ -629,6 +631,7 @@ jobs:
       actions: read
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+      CI: true
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
       ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY }}
       ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT }}
@@ -644,6 +647,7 @@ jobs:
         options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
+      - run: sudo apt-get update && sudo apt-get install -y google-chrome-stable
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
         with:
@@ -670,6 +674,7 @@ jobs:
       actions: read
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/bizblasts_test
+      CI: true
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}
       ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY }}
       ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT: ${{ secrets.ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT }}
@@ -685,6 +690,7 @@ jobs:
         options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
+      - run: sudo apt-get update && sudo apt-get install -y google-chrome-stable
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
         with:
