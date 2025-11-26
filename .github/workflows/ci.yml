@@ -1092,12 +1092,13 @@ jobs:
           
           # Wait for server to be ready (up to 60 seconds)
           echo "Waiting for server to start..."
-          for i in {1..60}; do
-            if curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/ | grep -q "200\|302\|301"; then
+          for i in $(seq 1 60); do
+            # Check if we can connect to the server (any response means it's running)
+            if curl -s --connect-timeout 2 --max-time 5 http://127.0.0.1:3000/ > /dev/null 2>&1; then
               echo "Server is ready after ${i} seconds"
               break
             fi
-            if [ $i -eq 60 ]; then
+            if [ "$i" -eq 60 ]; then
               echo "Server failed to start within 60 seconds"
               kill $SERVER_PID 2>/dev/null || true
               exit 1
