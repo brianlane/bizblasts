@@ -94,7 +94,7 @@ jobs:
       - name: Install dependencies and build assets
         if: steps.cache-assets.outputs.cache-hit != 'true'
         run: |
-          npm ci
+          npm install
           mkdir -p app/assets/builds
           
           # Build CSS
