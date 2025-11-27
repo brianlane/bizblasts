@@ -41,11 +41,11 @@ RSpec.describe "Estimate flow", type: :system do
     expect(page).to have_content("Estimate created")
     expect(page).to have_content("John Doe")
     expect(page).to have_content("$50.00") # Subtotal
-    expect(page).to have_content("draft") # Initial status
+    expect(page).to have_content("Draft") # Initial status
 
     # Send the estimate
     click_on "Send to Customer"
     expect(page).to have_content("Estimate sent to customer")
-    expect(page).to have_content("sent") # Status updated
+    expect(page).to have_content("Sent") # Status updated
   end
 end 

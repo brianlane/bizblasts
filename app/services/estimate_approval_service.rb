@@ -29,53 +29,60 @@ class EstimateApprovalService
       return failure_result("Signature is required to approve this estimate")
     end
 
-    # Step 3: Process optional items selection (mark non-selected as declined)
-    process_optional_items_selection
+    # Wrap all database operations in a transaction to ensure atomicity
+    # If any step fails, all changes are rolled back and estimate stays in original state
+    result = nil
+    ActiveRecord::Base.transaction do
+      # Step 3: Process optional items selection (mark non-selected as declined)
+      process_optional_items_selection
 
-    # Step 4: Save signature and move to pending_payment status
-    @estimate.update!(
-      signature_data: @signature_data,
-      signature_name: @signature_name,
-      signed_at: Time.current,
-      status: :pending_payment
-    )
+      # Step 4: Save signature and move to pending_payment status
+      @estimate.update!(
+        signature_data: @signature_data,
+        signature_name: @signature_name,
+        signed_at: Time.current,
+        status: :pending_payment
+      )
 
-    # Step 5: Recalculate totals with final optional items selection
-    @estimate.recalculate_totals!
+      # Step 5: Recalculate totals with final optional items selection
+      @estimate.recalculate_totals!
 
-    # Step 6: Generate PDF with signature
-    EstimatePdfGenerator.new(@estimate).generate
+      # Step 6: Generate PDF with signature
+      EstimatePdfGenerator.new(@estimate).generate
 
-    # Step 7: Create booking and invoice from estimate
-    booking = EstimateToBookingService.new(@estimate).call
-    unless booking.present?
-      return failure_result("Failed to create booking from estimate")
+      # Step 7: Create booking and invoice from estimate
+      booking = EstimateToBookingService.new(@estimate).call
+      unless booking.present?
+        raise StandardError, "Failed to create booking from estimate"
+      end
+
+      # Step 8: Get or create invoice for payment
+      invoice = booking.reload.invoice
+      unless invoice.present?
+        raise StandardError, "Failed to create invoice for payment"
+      end
+
+      # Step 9: Create Stripe checkout session for deposit payment
+      checkout_result = create_checkout_session(invoice)
+      unless checkout_result[:success]
+        raise StandardError, checkout_result[:error] || "Failed to create payment session"
+      end
+
+      # Step 10: Update estimate with checkout session tracking
+      @estimate.update!(
+        checkout_session_id: checkout_result[:session_id],
+        payment_intent_id: checkout_result[:payment_intent_id]
+      )
+
+      # Set result for return after transaction commits
+      result = success_result(
+        redirect_url: checkout_result[:url],
+        invoice: invoice,
+        booking: booking
+      )
     end
 
-    # Step 8: Get or create invoice for payment
-    invoice = booking.reload.invoice
-    unless invoice.present?
-      return failure_result("Failed to create invoice for payment")
-    end
-
-    # Step 9: Create Stripe checkout session for deposit payment
-    checkout_result = create_checkout_session(invoice)
-    unless checkout_result[:success]
-      return failure_result(checkout_result[:error] || "Failed to create payment session")
-    end
-
-    # Step 10: Update estimate with checkout session tracking
-    @estimate.update!(
-      checkout_session_id: checkout_result[:session_id],
-      payment_intent_id: checkout_result[:payment_intent_id]
-    )
-
-    # Return success with redirect URL
-    success_result(
-      redirect_url: checkout_result[:url],
-      invoice: invoice,
-      booking: booking
-    )
+    result
   rescue => e
     Rails.logger.error "[EstimateApprovalService] Error: #{e.message}"
     Rails.logger.error e.backtrace.join("\n")

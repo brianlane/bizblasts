@@ -186,5 +186,71 @@ export default class extends Controller {
   hasName() {
     return this.hasSignatureNameTarget && this.signatureNameTarget.value.trim().length > 0
   }
+
+  // Handle optional item checkbox toggle - recalculate totals dynamically
+  toggleOptionalItem(event) {
+    const checkbox = event.target
+    const row = checkbox.closest('[data-estimate-signature-target="optionalItem"]')
+
+    if (!row) return
+
+    // Get item amounts from data attributes
+    const itemSubtotal = parseFloat(row.dataset.subtotal || 0)
+    const itemTaxes = parseFloat(row.dataset.taxes || 0)
+
+    // Get base amounts (required items only)
+    const totalDisplay = document.getElementById('estimate-total-display')
+    if (!totalDisplay) return
+
+    const baseSubtotal = parseFloat(totalDisplay.dataset.baseSubtotal || 0)
+    const baseTaxes = parseFloat(totalDisplay.dataset.baseTaxes || 0)
+
+    // Calculate totals for all selected optional items
+    let optionalSubtotal = 0
+    let optionalTaxes = 0
+
+    document.querySelectorAll('[data-estimate-signature-target="optionalItemCheckbox"]:checked').forEach(cb => {
+      const cbRow = cb.closest('[data-estimate-signature-target="optionalItem"]')
+      if (cbRow) {
+        optionalSubtotal += parseFloat(cbRow.dataset.subtotal || 0)
+        optionalTaxes += parseFloat(cbRow.dataset.taxes || 0)
+      }
+    })
+
+    // Calculate final totals
+    const finalSubtotal = baseSubtotal + optionalSubtotal
+    const finalTaxes = baseTaxes + optionalTaxes
+    const finalTotal = finalSubtotal + finalTaxes
+
+    // Update display
+    const subtotalEl = document.getElementById('subtotal-amount')
+    const taxesEl = document.getElementById('taxes-amount')
+    const totalEl = document.getElementById('total-amount')
+
+    if (subtotalEl) {
+      subtotalEl.textContent = this.formatCurrency(finalSubtotal)
+    }
+    if (taxesEl) {
+      taxesEl.textContent = this.formatCurrency(finalTaxes)
+    }
+    if (totalEl) {
+      totalEl.textContent = this.formatCurrency(finalTotal)
+    }
+
+    // Toggle row styling
+    if (checkbox.checked) {
+      row.classList.remove('bg-gray-50', 'line-through', 'text-gray-400')
+    } else {
+      row.classList.add('bg-gray-50', 'line-through', 'text-gray-400')
+    }
+  }
+
+  // Format number as currency (USD)
+  formatCurrency(amount) {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount)
+  }
 }
 
