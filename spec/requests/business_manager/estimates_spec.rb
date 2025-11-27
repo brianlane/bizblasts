@@ -135,7 +135,7 @@ RSpec.describe "/business_manager/estimates", type: :request do
       
       estimate.reload
       expect(response).to redirect_to(business_manager_estimate_path(estimate))
-      expect(flash[:notice]).to eq('Estimate sent to customer.')
+      expect(flash[:notice]).to eq('Estimate sent to customer successfully.')
     end
   end
 end 

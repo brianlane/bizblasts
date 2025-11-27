@@ -115,14 +115,17 @@ class VideoConversionService
         current_blob_id = business.gallery_video.blob.id
         if current_blob_id != original_blob_id
           Rails.logger.info "[VIDEO_CONVERSION] Video was replaced during conversion (original: #{original_blob_id}, current: #{current_blob_id}). Skipping."
+          # Clear conversion status before returning to prevent stuck state
+          business.update_columns(video_conversion_status: nil)
           return false
         end
 
         # Replace the original attachment with the converted file
-        # Mark as completed BEFORE attaching to prevent redundant job trigger
-        business.update_columns(video_conversion_status: STATUS_COMPLETED)
-
         replace_attachment(business, output_path, new_filename)
+
+        # Mark as completed AFTER attaching to prevent race condition
+        # The process_gallery_video callback fires during attach() and checks this status
+        business.update_columns(video_conversion_status: STATUS_COMPLETED)
 
         Rails.logger.info "[VIDEO_CONVERSION] Successfully converted #{original_filename} to #{new_filename}"
       end

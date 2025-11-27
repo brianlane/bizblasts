@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_26_183301) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_27_145541) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -498,15 +498,39 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_26_183301) do
   create_table "estimate_items", force: :cascade do |t|
     t.decimal "cost_rate", precision: 10, scale: 2
     t.datetime "created_at", null: false
+    t.boolean "customer_declined", default: false, null: false
+    t.boolean "customer_selected", default: true, null: false
     t.string "description"
     t.bigint "estimate_id", null: false
+    t.decimal "hourly_rate", precision: 10, scale: 2
+    t.decimal "hours", precision: 10, scale: 2
+    t.integer "item_type", default: 0, null: false
+    t.boolean "optional", default: false, null: false
+    t.integer "position", default: 0, null: false
+    t.bigint "product_id"
+    t.bigint "product_variant_id"
     t.integer "qty"
     t.bigint "service_id"
     t.decimal "tax_rate", precision: 10, scale: 2
     t.decimal "total", precision: 10, scale: 2
     t.datetime "updated_at", null: false
+    t.index ["estimate_id", "optional"], name: "index_estimate_items_on_estimate_id_and_optional"
+    t.index ["estimate_id", "position"], name: "index_estimate_items_on_estimate_id_and_position"
     t.index ["estimate_id"], name: "index_estimate_items_on_estimate_id"
+    t.index ["item_type"], name: "index_estimate_items_on_item_type"
+    t.index ["product_id"], name: "index_estimate_items_on_product_id"
+    t.index ["product_variant_id"], name: "index_estimate_items_on_product_variant_id"
     t.index ["service_id"], name: "index_estimate_items_on_service_id"
+  end
+
+  create_table "estimate_versions", force: :cascade do |t|
+    t.text "change_notes"
+    t.datetime "created_at", null: false
+    t.bigint "estimate_id", null: false
+    t.jsonb "snapshot", null: false
+    t.integer "version_number", null: false
+    t.index ["estimate_id", "version_number"], name: "index_estimate_versions_on_estimate_id_and_version_number", unique: true
+    t.index ["estimate_id"], name: "index_estimate_versions_on_estimate_id"
   end
 
   create_table "estimates", force: :cascade do |t|
@@ -514,20 +538,31 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_26_183301) do
     t.datetime "approved_at"
     t.bigint "booking_id"
     t.bigint "business_id", null: false
+    t.string "checkout_session_id"
     t.string "city"
     t.datetime "created_at", null: false
+    t.integer "current_version", default: 1, null: false
     t.text "customer_notes"
     t.datetime "declined_at"
     t.datetime "deposit_paid_at"
     t.string "email"
+    t.string "estimate_number"
     t.string "first_name"
+    t.boolean "has_optional_items", default: false, null: false
     t.text "internal_notes"
     t.string "last_name"
+    t.decimal "optional_items_subtotal", precision: 10, scale: 2, default: "0.0"
+    t.decimal "optional_items_taxes", precision: 10, scale: 2, default: "0.0"
+    t.string "payment_intent_id"
+    t.datetime "pdf_generated_at"
     t.string "phone"
     t.datetime "proposed_end_time"
     t.datetime "proposed_start_time"
     t.decimal "required_deposit", precision: 10, scale: 2
     t.datetime "sent_at"
+    t.text "signature_data"
+    t.string "signature_name"
+    t.datetime "signed_at"
     t.string "state"
     t.integer "status"
     t.decimal "subtotal", precision: 10, scale: 2
@@ -535,11 +570,17 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_26_183301) do
     t.bigint "tenant_customer_id"
     t.string "token", null: false
     t.decimal "total", precision: 10, scale: 2
+    t.integer "total_versions", default: 1, null: false
     t.datetime "updated_at", null: false
     t.datetime "viewed_at"
     t.string "zip"
     t.index ["booking_id"], name: "index_estimates_on_booking_id"
+    t.index ["business_id", "estimate_number"], name: "index_estimates_on_business_id_and_estimate_number", unique: true
     t.index ["business_id"], name: "index_estimates_on_business_id"
+    t.index ["checkout_session_id"], name: "index_estimates_on_checkout_session_id"
+    t.index ["has_optional_items"], name: "index_estimates_on_has_optional_items"
+    t.index ["payment_intent_id"], name: "index_estimates_on_payment_intent_id"
+    t.index ["status"], name: "index_estimates_on_status"
     t.index ["tenant_customer_id"], name: "index_estimates_on_tenant_customer_id"
   end
 
@@ -1227,6 +1268,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_26_183301) do
     t.jsonb "availability_settings"
     t.bigint "business_id", null: false
     t.datetime "created_at", null: false
+    t.bigint "created_from_estimate_id"
     t.text "description"
     t.integer "duration", null: false
     t.boolean "enforce_service_availability", default: true, null: false
@@ -1250,6 +1292,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_26_183301) do
     t.index ["allow_discounts"], name: "index_services_on_allow_discounts"
     t.index ["business_id", "position"], name: "index_services_on_business_id_and_position"
     t.index ["business_id"], name: "index_services_on_business_id"
+    t.index ["created_from_estimate_id"], name: "index_services_on_created_from_estimate_id"
     t.index ["event_starts_at"], name: "index_services_on_event_starts_at_for_events", where: "(service_type = 2)"
     t.index ["name", "business_id"], name: "index_services_on_name_and_business_id", unique: true
     t.index ["tips_enabled"], name: "index_services_on_tips_enabled"
@@ -1785,7 +1828,10 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_26_183301) do
   add_foreign_key "discount_codes", "tenant_customers"
   add_foreign_key "discount_codes", "tenant_customers", column: "used_by_customer_id", on_delete: :nullify
   add_foreign_key "estimate_items", "estimates"
+  add_foreign_key "estimate_items", "product_variants"
+  add_foreign_key "estimate_items", "products"
   add_foreign_key "estimate_items", "services"
+  add_foreign_key "estimate_versions", "estimates"
   add_foreign_key "estimates", "bookings"
   add_foreign_key "estimates", "businesses"
   add_foreign_key "estimates", "tenant_customers"
@@ -1865,6 +1911,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_26_183301) do
   add_foreign_key "referrals", "users", column: "referrer_id"
   add_foreign_key "service_variants", "services"
   add_foreign_key "services", "businesses", on_delete: :cascade
+  add_foreign_key "services", "estimates", column: "created_from_estimate_id"
   add_foreign_key "services_staff_members", "services", on_delete: :cascade
   add_foreign_key "services_staff_members", "staff_members", on_delete: :cascade
   add_foreign_key "setup_reminder_dismissals", "users"

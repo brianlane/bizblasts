@@ -145,3 +145,5 @@ gem 'oauth2', '~> 2.0'
 gem 'icalendar', '~> 2.12'
 gem 'httparty', '~> 0.23'
 # gem 'calendav', '~> 0.3' # Temporarily disabled due to architecture compatibility issues
+gem 'prawn', '~> 2.4'
+gem 'prawn-table', '~> 0.2'

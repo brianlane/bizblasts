@@ -45,31 +45,58 @@ RSpec.describe "Public::Estimates", type: :request do
   end
 
   describe "PATCH /estimates/:token/approve" do
+    let(:signature_params) do
+      {
+        signature_data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        signature_name: 'Test Customer'
+      }
+    end
+
+    let(:mock_booking) { create(:booking, business: business, tenant_customer: customer, service: service, staff_member: staff_member, start_time: estimate.proposed_start_time, end_time: estimate.proposed_end_time) }
+    let(:mock_invoice) { create(:invoice, business: business, tenant_customer: customer, booking: mock_booking, amount: estimate.required_deposit, tax_amount: 0, total_amount: estimate.required_deposit) }
+    let(:mock_checkout_session) do
+      double('Stripe::Checkout::Session',
+             id: 'cs_test_123',
+             payment_intent: 'pi_test_123',
+             url: 'https://checkout.stripe.com/pay/cs_test_123')
+    end
+
+    before do
+      # Mock external services
+      allow(EstimatePdfGenerator).to receive(:new).and_return(double(generate: true))
+      allow(EstimateToBookingService).to receive(:new).and_return(double(call: mock_booking))
+      allow(mock_booking).to receive(:reload).and_return(mock_booking)
+      allow(mock_booking).to receive(:invoice).and_return(mock_invoice)
+      allow(StripeService).to receive(:create_estimate_deposit_checkout_session).and_return(
+        { session: mock_checkout_session }
+      )
+    end
+
     it "approves the estimate and creates a booking" do
-      patch approve_public_estimate_path(token: estimate.token)
-      
+      patch approve_public_estimate_path(token: estimate.token), params: signature_params
+
       if response.status == 302 && flash[:alert].present?
         fail "Approval failed with error: #{flash[:alert]}"
       end
-      
+
       estimate.reload
-      expect(estimate.status).to eq("approved")
-      expect(estimate.approved_at).to be_present
-      expect(estimate.booking).to be_present
-      expect(Booking.count).to eq(1)
+      expect(estimate.status).to eq("pending_payment")
+      expect(estimate.signed_at).to be_present
+      expect(estimate.signature_data).to be_present
+      expect(estimate.signature_name).to eq('Test Customer')
     end
 
-    it "creates an invoice for the booking" do
-      expect {
-        patch approve_public_estimate_path(token: estimate.token)
-      }.to change(Invoice, :count).by(1)
+    it "calls EstimateToBookingService to create booking" do
+      expect(EstimateToBookingService).to receive(:new).and_return(double(call: mock_booking))
+      patch approve_public_estimate_path(token: estimate.token), params: signature_params
+      expect(response).to redirect_to(mock_checkout_session.url)
     end
 
-    it "redirects to payment when deposit is required" do
-      patch approve_public_estimate_path(token: estimate.token)
+    it "redirects to Stripe checkout when deposit is required" do
+      patch approve_public_estimate_path(token: estimate.token), params: signature_params
       estimate.reload
-      invoice = estimate.booking.invoice
-      expect(response).to redirect_to(new_payment_path(invoice_id: invoice.id))
+      expect(estimate.status).to eq("pending_payment")
+      expect(response).to redirect_to(mock_checkout_session.url)
     end
 
     context "when no deposit is required" do
@@ -79,12 +106,11 @@ RSpec.describe "Public::Estimates", type: :request do
         est
       end
 
-      it "redirects to payment page for full invoice" do
-        patch approve_public_estimate_path(token: estimate_no_deposit.token)
+      it "redirects to Stripe checkout for full invoice" do
+        patch approve_public_estimate_path(token: estimate_no_deposit.token), params: signature_params
         estimate_no_deposit.reload
-        invoice = estimate_no_deposit.booking.invoice
-        expect(invoice).to be_present
-        expect(response).to redirect_to(new_payment_path(invoice_id: invoice.id))
+        expect(estimate_no_deposit.status).to eq("pending_payment")
+        expect(response).to redirect_to(mock_checkout_session.url)
       end
     end
 
@@ -92,39 +118,34 @@ RSpec.describe "Public::Estimates", type: :request do
       before { estimate.update!(status: :declined, declined_at: Time.current) }
 
       it "does not allow re-approval" do
-        patch approve_public_estimate_path(token: estimate.token)
-        expect(flash[:alert]).to eq('This estimate cannot be approved.')
+        patch approve_public_estimate_path(token: estimate.token), params: signature_params
+        expect(flash[:alert]).to eq('This estimate cannot be approved at this time.')
         expect(response).to redirect_to(public_estimate_path(token: estimate.token))
       end
     end
 
-    it "prevents duplicate bookings from concurrent approval requests" do
+    it "prevents duplicate approvals from concurrent requests" do
       # Simulate concurrent requests by attempting to approve twice
-      # The pessimistic lock should prevent the second request from creating a duplicate
 
       # First approval should succeed
-      patch approve_public_estimate_path(token: estimate.token)
+      patch approve_public_estimate_path(token: estimate.token), params: signature_params
       estimate.reload
-      expect(estimate.status).to eq("approved")
-      first_booking_id = estimate.booking_id
+      expect(estimate.status).to eq("pending_payment")
 
-      # Second approval attempt should be rejected (already approved)
-      # Reset the @estimate instance variable by making a new request
-      estimate.reload
-      patch approve_public_estimate_path(token: estimate.token)
+      # Second approval attempt should be rejected (no longer in sent/viewed status)
+      patch approve_public_estimate_path(token: estimate.token), params: signature_params
 
-      # Should not create a second booking
-      estimate.reload
-      expect(estimate.booking_id).to eq(first_booking_id)
-      expect(Booking.count).to eq(1)
-      expect(Invoice.count).to eq(1)
-      expect(flash[:notice]).to eq('This estimate has already been approved.')
+      # Should redirect back with error
+      expect(flash[:alert]).to eq('This estimate cannot be approved at this time.')
+      expect(response).to redirect_to(public_estimate_path(token: estimate.token))
     end
 
-    it "sends approval notification email" do
-      expect {
-        patch approve_public_estimate_path(token: estimate.token)
-      }.to have_enqueued_job(ActionMailer::MailDeliveryJob).with('EstimateMailer', 'estimate_approved', 'deliver_now', hash_including(args: [estimate]))
+    it "calls StripeService to create checkout session" do
+      expect(StripeService).to receive(:create_estimate_deposit_checkout_session).and_return(
+        { session: mock_checkout_session }
+      )
+      patch approve_public_estimate_path(token: estimate.token), params: signature_params
+      expect(response).to redirect_to(mock_checkout_session.url)
     end
   end
 

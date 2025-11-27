@@ -1,4 +1,4 @@
-<%= form_with model: [:business_manager, @estimate], local: true, data: { controller: "dynamic-line-items" } do |f| %>
+<%= form_with model: [:business_manager, @estimate], local: true, data: { controller: "estimate-line-items", estimate_line_items_estimate_id_value: @estimate.id } do |f| %>
   <% if @estimate.errors.any? %>
     <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4" role="alert">
       <div class="flex">
@@ -168,8 +168,8 @@
   <div class="mb-6">
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold text-gray-900">Estimate Line Items</h3>
-      <button type="button" 
-              data-action="dynamic-line-items#add" 
+      <button type="button"
+              data-action="estimate-line-items#addItem"
               class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -179,222 +179,237 @@
     </div>
 
     <!-- Line Items Table -->
-    <div class="overflow-visible border border-gray-200 rounded-lg">
+    <div class="overflow-x-auto border border-gray-200 rounded-lg">
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tax %</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item / Fields</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tax %</th>
+            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Optional</th>
+            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
           </tr>
         </thead>
-        <tbody class="bg-white divide-y divide-gray-200" data-dynamic-line-items-target="items">
+        <tbody class="bg-white divide-y divide-gray-200" data-estimate-line-items-target="items">
           <%= f.fields_for :estimate_items do |item| %>
-            <tr data-dynamic-line-items-target="item">
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="rich-dropdown relative" data-controller="dropdown" data-dropdown-selected-value-value="<%= item.object.service_id %>">
-                  <button type="button" 
-                          class="rich-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
-                          data-dropdown-target="button"
-                          data-action="click->dropdown#toggle">
-                    <span class="rich-dropdown-text text-gray-900">
-                      <% if item.object.service_id.present? %>
-                        <% service = current_business.services.find { |s| s.id == item.object.service_id } %>
-                        <%= service ? "#{service.name} (#{service.duration}m)" : 'Select service' %>
-                      <% else %>
-                        Select service
-                      <% end %>
-                    </span>
-                    <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                      <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                      </svg>
-                    </span>
-                  </button>
-                  
-                  <div class="rich-dropdown-menu absolute z-[100] mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
-                       data-dropdown-target="menu">
-                    <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
-                         data-dropdown-target="option"
-                         data-item-id=""
-                         data-item-text="Select service"
-                         data-action="click->dropdown#select">
-                      <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                          <div class="font-medium text-gray-500">Select service</div>
-                        </div>
-                      </div>
-                      <% if item.object.service_id.blank? %>
-                        <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
-                          <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                          </svg>
-                        </span>
-                      <% end %>
-                    </div>
-                    
-                    <% current_business.services.each do |service| %>
-                      <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
-                           data-dropdown-target="option"
-                           data-item-id="<%= service.id %>"
-                           data-item-text="<%= service.name %> (<%= service.duration %>m)"
-                           data-action="click->dropdown#select">
-                        <div class="flex items-center justify-between">
-                          <div class="flex-1">
-                            <div class="font-medium text-gray-900"><%= service.name %></div>
-                            <div class="text-sm text-gray-500"><%= service.duration %> minutes</div>
-                          </div>
-                          <div class="ml-3 text-right">
-                            <div class="text-sm font-medium text-blue-600"><%= number_to_currency(service.price) %></div>
-                          </div>
-                        </div>
-                        <% if item.object.service_id == service.id %>
-                          <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
-                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                            </svg>
-                          </span>
-                        <% end %>
-                      </div>
-                    <% end %>
-                  </div>
-                  
-                  <%= item.hidden_field :service_id, data: { dropdown_target: "hidden" } %>
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <%= item.text_field :description, 
-                      class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm',
-                      placeholder: 'Description' %>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <%= item.number_field :qty, min: 1, 
-                      class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm',
-                      placeholder: '1' %>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <%= item.number_field :cost_rate, step: 0.01, min: 0, 
-                      class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm',
-                      placeholder: '0.00' %>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <%= item.number_field :tax_rate, step: 0.01, min: 0, 
-                      class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm',
-                      placeholder: '0.00' %>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <button type="button" 
-                        data-action="dynamic-line-items#remove" 
-                        class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                  Remove
-                </button>
-                <%= item.hidden_field :_destroy %>
-              </td>
-            </tr>
+            <%= render partial: 'estimate_item_fields', locals: { item: item, services: @services, products: @products } %>
           <% end %>
         </tbody>
       </table>
     </div>
 
     <!-- Template for new line items -->
-    <template data-dynamic-line-items-target="template">
-      <tr data-dynamic-line-items-target="item">
-        <td class="px-6 py-4 whitespace-nowrap">
-          <div class="rich-dropdown relative" data-controller="dropdown">
-            <button type="button" 
-                    class="rich-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
-                    data-dropdown-target="button"
-                    data-action="click->dropdown#toggle">
-              <span class="rich-dropdown-text text-gray-900">Select service</span>
-              <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                </svg>
-              </span>
-            </button>
-            
-            <div class="rich-dropdown-menu absolute z-[100] mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
-                 data-dropdown-target="menu">
-              <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
-                   data-dropdown-target="option"
-                   data-item-id=""
-                   data-item-text="Select service"
-                   data-action="click->dropdown#select">
-                <div class="flex items-center justify-between">
-                  <div class="flex-1">
-                    <div class="font-medium text-gray-500">Select service</div>
-                  </div>
-                </div>
-                <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
-                  <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                  </svg>
-                </span>
-              </div>
-              
-              <% current_business.services.each do |service| %>
-                <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
-                     data-dropdown-target="option"
-                     data-item-id="<%= service.id %>"
-                     data-item-text="<%= service.name %> (<%= service.duration %>m)"
-                     data-action="click->dropdown#select">
-                  <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                      <div class="font-medium text-gray-900"><%= service.name %></div>
-                      <div class="text-sm text-gray-500"><%= service.duration %> minutes</div>
-                    </div>
-                    <div class="ml-3 text-right">
-                      <div class="text-sm font-medium text-blue-600"><%= number_to_currency(service.price) %></div>
-                    </div>
-                  </div>
-                </div>
+    <template data-estimate-line-items-target="template">
+      <tr data-estimate-line-items-target="item">
+        <!-- Item Type -->
+        <td class="px-4 py-3">
+          <select name="estimate[estimate_items_attributes][NEW_RECORD][item_type]"
+                  class="block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  data-action="change->estimate-line-items#changeItemType">
+            <option value="service">Service</option>
+            <option value="product">Product</option>
+            <option value="labor">Labor</option>
+            <option value="part">Part</option>
+            <option value="misc">Misc</option>
+          </select>
+        </td>
+
+        <!-- Service/Product Selection / Labor Fields -->
+        <td class="px-4 py-3">
+          <!-- Service Select -->
+          <div data-field-type="service">
+            <select name="estimate[estimate_items_attributes][NEW_RECORD][service_id]"
+                    class="block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    data-action="change->estimate-line-items#selectService">
+              <option value="">-- Select Service --</option>
+              <% @services.each do |service| %>
+                <option value="<%= service.id %>" data-price="<%= service.price %>" data-description="<%= service.name %>">
+                  <%= service.name %>
+                </option>
               <% end %>
+            </select>
+          </div>
+
+          <!-- Product Select -->
+          <div data-field-type="product" class="hidden">
+            <select name="estimate[estimate_items_attributes][NEW_RECORD][product_id]"
+                    class="block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    data-action="change->estimate-line-items#selectProduct">
+              <option value="">-- Select Product --</option>
+              <% @products.each do |product| %>
+                <option value="<%= product.id %>" data-price="<%= product.price %>" data-description="<%= product.name %>">
+                  <%= product.name %>
+                </option>
+              <% end %>
+            </select>
+          </div>
+
+          <!-- Labor Fields -->
+          <div data-field-type="labor" class="hidden">
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs text-gray-500">Hours</label>
+                <input type="number" name="estimate[estimate_items_attributes][NEW_RECORD][hours]"
+                       step="0.5" min="0"
+                       class="block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
+                       placeholder="Hours"
+                       data-action="input->estimate-line-items#calculateLaborTotal" />
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500">Rate/Hr</label>
+                <input type="number" name="estimate[estimate_items_attributes][NEW_RECORD][hourly_rate]"
+                       step="0.01" min="0"
+                       class="block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
+                       placeholder="$/hr"
+                       data-action="input->estimate-line-items#calculateLaborTotal" />
+              </div>
             </div>
-            
-            <input type="hidden" name="estimate[estimate_items_attributes][NEW_RECORD][service_id]" data-dropdown-target="hidden" />
           </div>
         </td>
-        <td class="px-6 py-4 whitespace-nowrap">
-          <input type="text" 
-                 name="estimate[estimate_items_attributes][NEW_RECORD][description]" 
-                 class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                 placeholder="Description" />
+
+        <!-- Description -->
+        <td class="px-4 py-3">
+          <input type="text" name="estimate[estimate_items_attributes][NEW_RECORD][description]"
+                 class="block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                 placeholder="Description"
+                 data-action="input->estimate-line-items#inputChanged" />
         </td>
-        <td class="px-6 py-4 whitespace-nowrap">
-          <input type="number" 
-                 name="estimate[estimate_items_attributes][NEW_RECORD][qty]" 
-                 min="1" 
-                 class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                 placeholder="1" />
+
+        <!-- Qty (hidden for labor) -->
+        <td class="px-4 py-3">
+          <div data-field-type="standard">
+            <input type="number" name="estimate[estimate_items_attributes][NEW_RECORD][qty]"
+                   min="1" value="1"
+                   class="block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                   placeholder="1"
+                   data-action="input->estimate-line-items#inputChanged" />
+          </div>
         </td>
-        <td class="px-6 py-4 whitespace-nowrap">
-          <input type="number" 
-                 name="estimate[estimate_items_attributes][NEW_RECORD][cost_rate]" 
-                 step="0.01" 
-                 min="0" 
-                 class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                 placeholder="0.00" />
+
+        <!-- Rate (hidden for labor) -->
+        <td class="px-4 py-3">
+          <div data-field-type="standard">
+            <input type="number" name="estimate[estimate_items_attributes][NEW_RECORD][cost_rate]"
+                   step="0.01" min="0"
+                   class="block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                   placeholder="0.00"
+                   data-action="input->estimate-line-items#inputChanged" />
+          </div>
         </td>
-        <td class="px-6 py-4 whitespace-nowrap">
-          <input type="number" 
-                 name="estimate[estimate_items_attributes][NEW_RECORD][tax_rate]" 
-                 step="0.01" 
-                 min="0" 
-                 class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                 placeholder="0.00" />
+
+        <!-- Tax Rate -->
+        <td class="px-4 py-3">
+          <input type="number" name="estimate[estimate_items_attributes][NEW_RECORD][tax_rate]"
+                 step="0.01" min="0" value="0"
+                 class="block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                 placeholder="0"
+                 data-action="input->estimate-line-items#inputChanged" />
         </td>
-        <td class="px-6 py-4 whitespace-nowrap">
-          <button type="button" 
-                  data-action="dynamic-line-items#remove" 
-                  class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-            Remove
+
+        <!-- Optional -->
+        <td class="px-4 py-3 text-center">
+          <label class="inline-flex items-center">
+            <input type="checkbox" name="estimate[estimate_items_attributes][NEW_RECORD][optional]"
+                   class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                   data-action="change->estimate-line-items#inputChanged" />
+          </label>
+        </td>
+
+        <!-- Line Total -->
+        <td class="px-4 py-3 text-right">
+          <span data-estimate-line-items-target="itemTotal" class="font-medium text-gray-900">$0.00</span>
+        </td>
+
+        <!-- Actions -->
+        <td class="px-4 py-3 text-center">
+          <button type="button"
+                  data-action="estimate-line-items#removeItem"
+                  class="text-red-600 hover:text-red-800">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
           </button>
+          <input type="hidden" name="estimate[estimate_items_attributes][NEW_RECORD][position]" value="" />
+        </td>
+      </tr>
+
+      <!-- Save as New Service Section (for labor items) -->
+      <tr data-field-type="save-as-new" class="bg-blue-50 hidden">
+        <td colspan="9" class="px-4 py-3">
+          <div class="flex items-start space-x-4">
+            <label class="inline-flex items-center mt-1">
+              <input type="checkbox"
+                     data-estimate-line-items-target="saveAsNewCheckbox"
+                     data-action="change->estimate-line-items#toggleSaveAsNew"
+                     class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+              <span class="ml-2 text-sm text-gray-700">Save as new service</span>
+            </label>
+            <div data-field-type="save-as-new-details" class="hidden flex-1">
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs text-gray-600">Service Name</label>
+                  <input type="text" data-estimate-line-items-target="newServiceName"
+                         class="block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
+                         placeholder="Enter service name">
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-600">Category (optional)</label>
+                  <input type="text" data-estimate-line-items-target="newServiceCategory"
+                         class="block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
+                         placeholder="Service category">
+                </div>
+              </div>
+              <div class="mt-2">
+                <button type="button"
+                        data-action="estimate-line-items#createServiceFromLabor"
+                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                  </svg>
+                  Create Service
+                </button>
+              </div>
+            </div>
+          </div>
         </td>
       </tr>
     </template>
+  </div>
+
+  <!-- Totals Summary -->
+  <div class="mt-6 bg-gray-50 rounded-lg p-6 border border-gray-200">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Estimate Totals</h3>
+
+    <div class="space-y-3">
+      <div class="flex justify-between text-sm">
+        <span class="text-gray-600">Subtotal:</span>
+        <span data-estimate-line-items-target="subtotal" class="font-medium text-gray-900">$0.00</span>
+      </div>
+
+      <div class="flex justify-between text-sm">
+        <span class="text-gray-600">Taxes:</span>
+        <span data-estimate-line-items-target="taxes" class="font-medium text-gray-900">$0.00</span>
+      </div>
+
+      <div class="flex justify-between text-sm text-gray-500 border-t pt-3">
+        <span>Optional Items Subtotal:</span>
+        <span data-estimate-line-items-target="optionalSubtotal">$0.00</span>
+      </div>
+
+      <div class="flex justify-between text-sm text-gray-500">
+        <span>Optional Items Taxes:</span>
+        <span data-estimate-line-items-target="optionalTaxes">$0.00</span>
+      </div>
+
+      <div class="flex justify-between text-lg font-bold border-t-2 border-gray-300 pt-3">
+        <span class="text-gray-900">Total:</span>
+        <span data-estimate-line-items-target="total" class="text-blue-600">$0.00</span>
+      </div>
+    </div>
   </div>
 
   <!-- Form Actions -->

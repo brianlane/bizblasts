@@ -280,6 +280,10 @@ Rails.application.routes.draw do
       resources :estimates do
         member do
           patch :send_to_customer
+          get :download_pdf
+          post :duplicate
+          get :versions
+          patch 'restore_version/:version_id', action: :restore_version, as: :restore_version
         end
       end
 
@@ -721,6 +725,7 @@ Rails.application.routes.draw do
     patch 'estimates/:token/approve', to: 'estimates#approve', as: :approve_public_estimate
     patch 'estimates/:token/decline', to: 'estimates#decline', as: :decline_public_estimate
     post 'estimates/:token/request_changes', to: 'estimates#request_changes', as: :request_changes_public_estimate
+    get 'estimates/:token/pdf', to: 'estimates#download_pdf', as: :download_public_estimate_pdf
   end
 
   authenticated :user, ->(user) { user.admin? } do

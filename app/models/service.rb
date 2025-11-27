@@ -5,6 +5,7 @@ class Service < ApplicationRecord
   
   acts_as_tenant(:business)
   belongs_to :business
+  belongs_to :created_from_estimate, class_name: 'Estimate', optional: true
   has_many :staff_assignments, dependent: :destroy
   has_many :assigned_staff, through: :staff_assignments, source: :user
   has_many :services_staff_members, dependent: :destroy

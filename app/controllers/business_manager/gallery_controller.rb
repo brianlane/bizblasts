@@ -197,9 +197,14 @@ module BusinessManager
       # Calculate total batch size and validate individual files
       total_size = 0
       oversized_files = []
+      invalid_files = []
 
       files.each do |file|
-        next unless file.respond_to?(:size)
+        # Reject files that don't respond to .size rather than silently skipping
+        unless file.respond_to?(:size)
+          invalid_files << file.original_filename
+          next
+        end
 
         file_size = file.size
         total_size += file_size
@@ -207,6 +212,15 @@ module BusinessManager
         if file_size > MAX_FILE_SIZE
           oversized_files << "#{file.original_filename} (#{(file_size / 1.megabyte.to_f).round(1)}MB)"
         end
+      end
+
+      # Reject if any files are invalid (don't have size information)
+      if invalid_files.any?
+        respond_to do |format|
+          format.html { redirect_to business_manager_gallery_index_path, alert: "Invalid files (missing size information): #{invalid_files.join(', ')}" }
+          format.json { render json: { error: "Invalid files", files: invalid_files }, status: :unprocessable_content }
+        end
+        return
       end
 
       # Reject if any individual file is too large

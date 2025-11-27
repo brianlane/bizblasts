@@ -35,10 +35,16 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       if availability_data_present?
         process_availability_data(@service)
       end
-      
-      redirect_to business_manager_services_path, notice: 'Service was successfully created.'
+
+      respond_to do |format|
+        format.html { redirect_to business_manager_services_path, notice: 'Service was successfully created.' }
+        format.json { render json: { service: @service.as_json(only: [:id, :name, :description, :price, :duration]) }, status: :created }
+      end
     else
-      render :new, status: :unprocessable_content
+      respond_to do |format|
+        format.html { render :new, status: :unprocessable_content }
+        format.json { render json: { error: @service.errors.full_messages.join(', ') }, status: :unprocessable_entity }
+      end
     end
   end
 
@@ -254,6 +260,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       :allow_discounts,
       :position, # Allow position updates
       :enforce_service_availability, # Allow enforcement setting
+      :created_from_estimate_id, # Allow tracking which estimate created this service
       staff_member_ids: [], # Allow staff assignment via new association
       add_on_product_ids: [], # Allow add-on product assignment
       images: [], # Allow new image uploads

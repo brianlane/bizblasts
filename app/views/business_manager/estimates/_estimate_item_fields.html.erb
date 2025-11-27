@@ -1,0 +1,169 @@
+<%# Estimate item fields partial - used for both existing and new items %>
+<%# Variables: item (form builder), services, products, is_template (boolean) %>
+
+<tr data-estimate-line-items-target="item" class="<%= item.object.customer_declined? ? 'bg-gray-50 opacity-60' : '' %>">
+  <!-- Item Type -->
+  <td class="px-4 py-3">
+    <%= item.select :item_type, 
+      options_for_select([
+        ['Service', 'service'],
+        ['Product', 'product'],
+        ['Labor', 'labor'],
+        ['Part', 'part'],
+        ['Misc', 'misc']
+      ], item.object.item_type || 'service'),
+      {},
+      class: 'block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm',
+      data: { action: 'change->estimate-line-items#changeItemType' } %>
+  </td>
+
+  <!-- Service/Product Selection -->
+  <td class="px-4 py-3">
+    <!-- Service Select (shown for service type) -->
+    <div data-field-type="service" class="<%= item.object.item_type != 'service' ? 'hidden' : '' %>">
+      <%= item.select :service_id,
+        [['-- Select Service --', '']] + (@services || []).map { |s| [s.name, s.id, { 'data-price' => s.price, 'data-description' => s.description }] },
+        { selected: item.object.service_id },
+        { class: 'block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm',
+          data: { action: 'change->estimate-line-items#selectService' } } %>
+    </div>
+
+    <!-- Product Select (shown for product type) -->
+    <div data-field-type="product" class="<%= item.object.item_type != 'product' ? 'hidden' : '' %>">
+      <%= item.select :product_id,
+        [['-- Select Product --', '']] + (@products || []).map { |p| [p.name, p.id, { 'data-price' => p.price, 'data-description' => p.description }] },
+        { selected: item.object.product_id },
+        { class: 'block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm',
+          data: { action: 'change->estimate-line-items#selectProduct' } } %>
+    </div>
+
+    <!-- Labor Fields (shown for labor type) -->
+    <div data-field-type="labor" class="<%= item.object.item_type != 'labor' ? 'hidden' : '' %>">
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block text-xs text-gray-500">Hours</label>
+          <%= item.number_field :hours, step: 0.5, min: 0,
+            class: 'block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm',
+            placeholder: 'Hours',
+            data: { action: 'input->estimate-line-items#calculateLaborTotal' } %>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500">Rate/Hr</label>
+          <%= item.number_field :hourly_rate, step: 0.01, min: 0,
+            class: 'block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm',
+            placeholder: '$/hr',
+            data: { action: 'input->estimate-line-items#calculateLaborTotal' } %>
+        </div>
+      </div>
+    </div>
+  </td>
+
+  <!-- Description -->
+  <td class="px-4 py-3">
+    <%= item.text_field :description,
+      class: 'block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm',
+      placeholder: 'Description',
+      data: { action: 'input->estimate-line-items#inputChanged' } %>
+  </td>
+
+  <!-- Qty (hidden for labor) -->
+  <td class="px-4 py-3">
+    <div data-field-type="standard" class="<%= item.object.item_type == 'labor' ? 'hidden' : '' %>">
+      <%= item.number_field :qty, min: 1, value: item.object.qty || 1,
+        class: 'block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm',
+        placeholder: '1',
+        data: { action: 'input->estimate-line-items#inputChanged' } %>
+    </div>
+  </td>
+
+  <!-- Rate (shown for non-labor) -->
+  <td class="px-4 py-3">
+    <div data-field-type="standard" class="<%= item.object.item_type == 'labor' ? 'hidden' : '' %>">
+      <%= item.number_field :cost_rate, step: 0.01, min: 0,
+        class: 'block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm',
+        placeholder: '0.00',
+        data: { action: 'input->estimate-line-items#inputChanged' } %>
+    </div>
+  </td>
+
+  <!-- Tax Rate -->
+  <td class="px-4 py-3">
+    <%= item.number_field :tax_rate, step: 0.01, min: 0, value: item.object.tax_rate || 0,
+      class: 'block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm',
+      placeholder: '0',
+      data: { action: 'input->estimate-line-items#inputChanged' } %>
+  </td>
+
+  <!-- Optional -->
+  <td class="px-4 py-3 text-center">
+    <label class="inline-flex items-center">
+      <%= item.check_box :optional,
+        class: 'h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500',
+        data: { action: 'change->estimate-line-items#inputChanged' } %>
+    </label>
+  </td>
+
+  <!-- Line Total -->
+  <td class="px-4 py-3 text-right">
+    <span data-estimate-line-items-target="itemTotal" class="font-medium text-gray-900">
+      <%= number_to_currency(item.object.total_with_tax || 0) %>
+    </span>
+  </td>
+
+  <!-- Actions -->
+  <td class="px-4 py-3 text-center">
+    <button type="button"
+      data-action="estimate-line-items#removeItem"
+      class="text-red-600 hover:text-red-800">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+      </svg>
+    </button>
+    <%= item.hidden_field :_destroy %>
+    <%= item.hidden_field :position %>
+  </td>
+</tr>
+
+<!-- Save as New Service Section (for labor items) -->
+<% if item.object.item_type == 'labor' %>
+<tr data-field-type="save-as-new" class="bg-blue-50">
+  <td colspan="9" class="px-4 py-3">
+    <div class="flex items-start space-x-4">
+      <label class="inline-flex items-center mt-1">
+        <input type="checkbox"
+          data-estimate-line-items-target="saveAsNewCheckbox"
+          data-action="change->estimate-line-items#toggleSaveAsNew"
+          class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+        <span class="ml-2 text-sm text-gray-700">Save as new service</span>
+      </label>
+      <div data-field-type="save-as-new-details" class="hidden flex-1">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-gray-600">Service Name</label>
+            <input type="text" data-estimate-line-items-target="newServiceName"
+              class="block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
+              placeholder="Enter service name">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-600">Category (optional)</label>
+            <input type="text" data-estimate-line-items-target="newServiceCategory"
+              class="block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
+              placeholder="Service category">
+          </div>
+        </div>
+        <div class="mt-2">
+          <button type="button"
+            data-action="estimate-line-items#createServiceFromLabor"
+            class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Create Service
+          </button>
+        </div>
+      </div>
+    </div>
+  </td>
+</tr>
+<% end %>
+

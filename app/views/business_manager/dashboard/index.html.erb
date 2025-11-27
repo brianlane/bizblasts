@@ -67,35 +67,86 @@
     <% if @current_business.show_estimate_page? %>
     <div id="estimates-widget" class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
       <h3 class="text-lg sm:text-xl font-semibold mb-4">Estimates Overview</h3>
-      <% pending_estimates = @current_business.estimates.includes(:tenant_customer).where(status: [:draft, :sent, :viewed]).order(created_at: :desc).limit(5) %>
+
+      <%# Calculate estimates stats %>
+      <% all_estimates = @current_business.estimates %>
       <% estimates_counts = {
-        draft: @current_business.estimates.draft.count,
-        sent: @current_business.estimates.sent.count,
-        viewed: @current_business.estimates.viewed.count,
-        approved: @current_business.estimates.approved.count
+        draft: all_estimates.draft.count,
+        sent: all_estimates.sent.count,
+        viewed: all_estimates.viewed.count,
+        pending_payment: all_estimates.pending_payment.count,
+        approved: all_estimates.approved.count
       } %>
-      <div class="grid grid-cols-2 gap-3 mb-4">
+      <% total_sent = estimates_counts[:sent] + estimates_counts[:viewed] + estimates_counts[:pending_payment] + estimates_counts[:approved] %>
+      <% conversion_rate = total_sent > 0 ? ((estimates_counts[:approved].to_f / total_sent) * 100).round(1) : 0 %>
+      <% total_value = all_estimates.sum(:total) %>
+      <% average_value = all_estimates.any? ? (total_value / all_estimates.count) : 0 %>
+      <% stale_payments = all_estimates.pending_payment.where('updated_at < ?', 24.hours.ago) %>
+
+      <%# Alert for stale pending payments %>
+      <% if stale_payments.any? %>
+        <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <div class="flex items-start">
+            <svg class="w-5 h-5 text-red-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <div>
+              <p class="text-sm font-medium text-red-800"><%= pluralize(stale_payments.count, 'estimate') %> pending payment > 24hrs</p>
+              <p class="text-xs text-red-600 mt-1">Follow up with customers to complete payment</p>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <%# Quick stats %>
+      <div class="grid grid-cols-3 gap-3 mb-4">
+        <div class="text-center p-2 bg-blue-50 rounded-lg">
+          <div class="text-lg font-bold text-blue-600"><%= conversion_rate %>%</div>
+          <div class="text-xs text-blue-500">Conversion</div>
+        </div>
+        <div class="text-center p-2 bg-green-50 rounded-lg">
+          <div class="text-lg font-bold text-green-600"><%= number_to_currency(total_value, precision: 0) %></div>
+          <div class="text-xs text-green-500">Total Value</div>
+        </div>
+        <div class="text-center p-2 bg-purple-50 rounded-lg">
+          <div class="text-lg font-bold text-purple-600"><%= number_to_currency(average_value, precision: 0) %></div>
+          <div class="text-xs text-purple-500">Avg Value</div>
+        </div>
+      </div>
+
+      <%# Status counts %>
+      <div class="grid grid-cols-3 gap-2 mb-4">
         <div class="text-center p-2 bg-gray-50 rounded-lg">
-          <div class="text-2xl font-bold text-gray-600"><%= estimates_counts[:draft] %></div>
+          <div class="text-xl font-bold text-gray-600"><%= estimates_counts[:draft] %></div>
           <div class="text-xs text-gray-500">Draft</div>
         </div>
         <div class="text-center p-2 bg-blue-50 rounded-lg">
-          <div class="text-2xl font-bold text-blue-600"><%= estimates_counts[:sent] %></div>
+          <div class="text-xl font-bold text-blue-600"><%= estimates_counts[:sent] %></div>
           <div class="text-xs text-blue-500">Sent</div>
         </div>
         <div class="text-center p-2 bg-yellow-50 rounded-lg">
-          <div class="text-2xl font-bold text-yellow-600"><%= estimates_counts[:viewed] %></div>
+          <div class="text-xl font-bold text-yellow-600"><%= estimates_counts[:viewed] %></div>
           <div class="text-xs text-yellow-500">Viewed</div>
         </div>
-        <div class="text-center p-2 bg-green-50 rounded-lg">
-          <div class="text-2xl font-bold text-green-600"><%= estimates_counts[:approved] %></div>
-          <div class="text-xs text-green-500">Approved</div>
+        <div class="text-center p-2 bg-orange-50 rounded-lg">
+          <div class="text-xl font-bold text-orange-600"><%= estimates_counts[:pending_payment] %></div>
+          <div class="text-xs text-orange-500">Pending Pay</div>
+        </div>
+        <div class="text-center p-2 bg-green-50 rounded-lg col-span-2">
+          <div class="text-xl font-bold text-green-600"><%= estimates_counts[:approved] %></div>
+          <div class="text-xs text-green-500">Approved & Paid</div>
         </div>
       </div>
-      <% if pending_estimates.present? %>
-        <h4 class="text-sm font-medium text-gray-700 mb-2">Recent Pending</h4>
+
+      <%# Recent estimates %>
+      <% recent_estimates = all_estimates.includes(:tenant_customer)
+        .where(status: [:sent, :viewed, :pending_payment])
+        .order(updated_at: :desc)
+        .limit(5) %>
+      <% if recent_estimates.present? %>
+        <h4 class="text-sm font-medium text-gray-700 mb-2">Recent Active</h4>
         <div class="space-y-2">
-          <% pending_estimates.each do |estimate| %>
+          <% recent_estimates.each do |estimate| %>
             <div class="py-2 border-b border-gray-100 last:border-b-0">
               <div class="flex items-center justify-between">
                 <div class="font-medium text-sm"><%= estimate.tenant_customer&.full_name || "#{estimate.first_name} #{estimate.last_name}" %></div>
@@ -103,23 +154,27 @@
                   when 'draft' then 'bg-gray-100 text-gray-600'
                   when 'sent' then 'bg-blue-100 text-blue-600'
                   when 'viewed' then 'bg-yellow-100 text-yellow-600'
+                  when 'pending_payment' then 'bg-orange-100 text-orange-600'
+                  when 'approved' then 'bg-green-100 text-green-600'
                   else 'bg-gray-100 text-gray-600'
-                end %>"><%= estimate.status.humanize %></span>
+                end %>"><%= estimate.status.humanize.gsub('_', ' ') %></span>
               </div>
               <div class="text-xs text-gray-500 mt-1">
-                <%= number_to_currency(estimate.total) %> · <%= time_ago_in_words(estimate.created_at) %> ago
+                <%= number_to_currency(estimate.total) %> · <%= time_ago_in_words(estimate.updated_at) %> ago
               </div>
             </div>
           <% end %>
         </div>
       <% else %>
-        <p class="text-gray-600 text-sm">No pending estimates.</p>
+        <p class="text-gray-600 text-sm">No active estimates.</p>
       <% end %>
+
+      <%# Quick actions %>
       <div class="flex gap-2 mt-4">
-        <%= link_to "View All", business_manager_estimates_path, 
+        <%= link_to "View All", business_manager_estimates_path,
               class: "inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors" %>
         <span class="text-gray-300">|</span>
-        <%= link_to "New Estimate", new_business_manager_estimate_path, 
+        <%= link_to "New Estimate", new_business_manager_estimate_path,
               class: "inline-flex items-center text-green-600 hover:text-green-800 text-sm font-medium transition-colors" %>
       </div>
     </div>

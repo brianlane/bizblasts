@@ -158,9 +158,13 @@ application.register('hero-video', HeroVideoController);
 // Additional controllers for estimates feature
 import DatePickerController from "./controllers/date_picker_controller"
 import DynamicLineItemsController from "./controllers/dynamic_line_items_controller"
+import EstimateLineItemsController from "./controllers/estimate_line_items_controller"
+import SignaturePadController from "./controllers/signature_pad_controller"
 
 application.register("date-picker", DatePickerController)
 application.register("dynamic-line-items", DynamicLineItemsController)
+application.register("estimate-line-items", EstimateLineItemsController)
+application.register("signature-pad", SignaturePadController)
 
 // Auto-discovery for additional controllers (compatible approach)
 // This will automatically discover and register any controllers not manually registered above
@@ -178,7 +182,7 @@ function autoDiscoverControllers() {
       'navbar', 'dropdown', 'customer-dropdown', 'product-variants', 'service-form', 'sortable', 'hello',
       'service-variants', 'dropdown-updater', 'service-availability', 'google-business-search', 'qr-payment',
       'place-id-lookup', 'enhanced-layout-selector', 'photo-upload', 'gallery-manager', 'gallery-lightbox', 'gallery-carousel',
-      'hero-video', 'date-picker', 'dynamic-line-items'
+      'hero-video', 'date-picker', 'dynamic-line-items', 'estimate-line-items', 'signature-pad'
     ]);
     
     // Dynamically import and register each controller
