@@ -1,9 +1,9 @@
 import { Controller } from "@hotwired/stimulus"
 
 // Enhanced line items controller for estimates with:
-// - Multiple item types (service, product, labor, part, misc)
+// - Multiple item types (service, product, labor, part)
 // - Optional items support
-// - "Save as New Service" functionality for labor items
+// - "Save for Future Use" functionality (labor→service, part→product)
 // - Dynamic total calculations
 export default class extends Controller {
   static targets = [
@@ -54,13 +54,19 @@ export default class extends Controller {
     const productSelect = item.querySelector('[data-field-type="product"]')
     const laborFields = item.querySelector('[data-field-type="labor"]')
     const standardFields = item.querySelector('[data-field-type="standard"]')
-    const saveAsNewSection = item.querySelector('[data-field-type="save-as-new"]')
+    const saveForFutureSection = item.querySelector('[data-field-type="save-for-future"]')
 
     // Hide all type-specific fields first
     if (serviceSelect) serviceSelect.classList.add('hidden')
     if (productSelect) productSelect.classList.add('hidden')
     if (laborFields) laborFields.classList.add('hidden')
-    if (saveAsNewSection) saveAsNewSection.classList.add('hidden')
+    if (saveForFutureSection) saveForFutureSection.classList.add('hidden')
+
+    // Hide both save-type sections within save-for-future
+    const saveServiceSection = item.querySelector('[data-save-type="service"]')
+    const saveProductSection = item.querySelector('[data-save-type="product"]')
+    if (saveServiceSection) saveServiceSection.classList.add('hidden')
+    if (saveProductSection) saveProductSection.classList.add('hidden')
 
     // Show relevant fields based on type
     switch (itemType) {
@@ -74,12 +80,16 @@ export default class extends Controller {
         break
       case 'labor':
         if (laborFields) laborFields.classList.remove('hidden')
-        if (saveAsNewSection) saveAsNewSection.classList.remove('hidden')
         if (standardFields) standardFields.classList.add('hidden')
+        // Show save-for-future section with service save option
+        if (saveForFutureSection) saveForFutureSection.classList.remove('hidden')
+        if (saveServiceSection) saveServiceSection.classList.remove('hidden')
         break
       case 'part':
-      case 'misc':
         if (standardFields) standardFields.classList.remove('hidden')
+        // Show save-for-future section with product save option
+        if (saveForFutureSection) saveForFutureSection.classList.remove('hidden')
+        if (saveProductSection) saveProductSection.classList.remove('hidden')
         break
     }
 
@@ -260,185 +270,30 @@ export default class extends Controller {
     }
   }
 
-  // "Save as New Service" functionality for labor items
-  toggleSaveAsNew(event) {
+  // "Save for Future Use" functionality - toggle fields visibility
+  toggleSaveForFuture(event) {
     const checkbox = event.target
-    const item = checkbox.closest('[data-estimate-line-items-target="item"]')
-    const saveAsNewFields = item.querySelector('[data-field-type="save-as-new-details"]')
+    const container = checkbox.closest('[data-field-type="save-for-future"]')
+    const fieldsToToggle = container?.querySelector('[data-field-type="save-service-fields"]') ||
+                           container?.querySelector('[data-field-type="save-product-fields"]')
 
-    if (saveAsNewFields) {
-      if (checkbox.checked) {
-        saveAsNewFields.classList.remove('hidden')
-        // Populate service name from description if empty
+    if (!fieldsToToggle) return
+
+    if (checkbox.checked) {
+      fieldsToToggle.classList.remove('hidden')
+      // Auto-populate name from description if available
+      const item = checkbox.closest('tr[data-estimate-line-items-target="item"]') ||
+                   checkbox.closest('template')?.content?.querySelector('tr[data-estimate-line-items-target="item"]')
+      if (item) {
         const descriptionField = item.querySelector('[name*="[description]"]')
-        const serviceNameField = saveAsNewFields.querySelector('[data-estimate-line-items-target="newServiceName"]')
-        if (serviceNameField && !serviceNameField.value && descriptionField) {
-          serviceNameField.value = descriptionField.value
+        const nameField = fieldsToToggle.querySelector('[name*="[service_name]"], [name*="[product_name]"]')
+        if (descriptionField && nameField && !nameField.value) {
+          nameField.value = descriptionField.value
         }
-      } else {
-        saveAsNewFields.classList.add('hidden')
       }
+    } else {
+      fieldsToToggle.classList.add('hidden')
     }
-  }
-
-  // Create a new service from labor item data via AJAX
-  async createServiceFromLabor(event) {
-    event.preventDefault()
-
-    const button = event.currentTarget
-    const item = button.closest('[data-estimate-line-items-target="item"]')
-
-    // Get labor item data
-    const descriptionField = item.querySelector('[name*="[description]"]')
-    const hoursField = item.querySelector('[name*="[hours]"]')
-    const hourlyRateField = item.querySelector('[name*="[hourly_rate]"]')
-    const serviceNameField = item.querySelector('[data-estimate-line-items-target="newServiceName"]')
-    const categoryField = item.querySelector('[data-estimate-line-items-target="newServiceCategory"]')
-
-    // Validate required fields
-    const serviceName = serviceNameField?.value?.trim()
-    const hours = parseFloat(hoursField?.value) || 0
-    const hourlyRate = parseFloat(hourlyRateField?.value) || 0
-    const description = descriptionField?.value?.trim()
-
-    if (!serviceName) {
-      alert('Please enter a service name')
-      serviceNameField?.focus()
-      return
-    }
-
-    if (hours <= 0 || hourlyRate <= 0) {
-      alert('Please enter valid hours and hourly rate')
-      return
-    }
-
-    // Calculate service price and duration from labor
-    const price = hours * hourlyRate
-    const duration = Math.ceil(hours * 60) // Convert hours to minutes, round up
-
-    // Prepare service data
-    const serviceData = {
-      service: {
-        name: serviceName,
-        description: description || `${serviceName} - created from estimate`,
-        price: price.toFixed(2),
-        duration: duration,
-        active: true,
-        tips_enabled: false,
-        allow_discounts: true,
-        created_from_estimate_id: this.estimateIdValue || null
-      }
-    }
-
-    // Add category if provided (as description suffix)
-    if (categoryField?.value?.trim()) {
-      serviceData.service.description = `${categoryField.value.trim()}: ${serviceData.service.description}`
-    }
-
-    // Disable button during request
-    button.disabled = true
-    button.textContent = 'Creating...'
-
-    try {
-      // Get CSRF token
-      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
-
-      // Make AJAX request to create service
-      const response = await fetch('/manage/services', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-CSRF-Token': csrfToken
-        },
-        body: JSON.stringify(serviceData)
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-
-        // Update the estimate item to use the new service
-        this.convertLaborToService(item, data.service)
-
-        // Show success message
-        this.showNotification('Service created successfully!', 'success')
-      } else {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to create service')
-      }
-    } catch (error) {
-      console.error('Error creating service:', error)
-      alert(`Failed to create service: ${error.message}`)
-
-      // Re-enable button
-      button.disabled = false
-      button.textContent = 'Create Service'
-    }
-  }
-
-  // Convert a labor item to a service item after service creation
-  convertLaborToService(item, service) {
-    // Update item type to service
-    const itemTypeField = item.querySelector('[name*="[item_type]"]')
-    if (itemTypeField) {
-      itemTypeField.value = 'service'
-    }
-
-    // Set the service_id
-    const serviceIdField = item.querySelector('[name*="[service_id]"]')
-    if (serviceIdField) {
-      // Create new option for the service select
-      const serviceSelect = item.querySelector('[data-field-type="service"] select')
-      if (serviceSelect) {
-        const option = document.createElement('option')
-        option.value = service.id
-        option.text = service.name
-        option.setAttribute('data-price', service.price)
-        option.setAttribute('data-description', service.description)
-        option.selected = true
-        serviceSelect.appendChild(option)
-      }
-    }
-
-    // Hide labor fields, show service select
-    const laborFields = item.querySelector('[data-field-type="labor"]')
-    const serviceFields = item.querySelector('[data-field-type="service"]')
-    const standardFields = item.querySelector('[data-field-type="standard"]')
-    const saveAsNewSection = item.querySelector('[data-field-type="save-as-new"]')
-
-    if (laborFields) laborFields.classList.add('hidden')
-    if (serviceFields) serviceFields.classList.remove('hidden')
-    if (standardFields) standardFields.classList.remove('hidden')
-    if (saveAsNewSection) saveAsNewSection.classList.add('hidden')
-
-    // Update qty and cost_rate from the service
-    const qtyField = item.querySelector('[name*="[qty]"]')
-    const costRateField = item.querySelector('[name*="[cost_rate]"]')
-
-    if (qtyField) qtyField.value = 1
-    if (costRateField) costRateField.value = service.price
-
-    // Recalculate totals
-    this.calculateItemTotal(item)
-  }
-
-  // Show notification message
-  showNotification(message, type = 'info') {
-    // Create notification element
-    const notification = document.createElement('div')
-    notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
-      type === 'success' ? 'bg-green-500 text-white' :
-      type === 'error' ? 'bg-red-500 text-white' :
-      'bg-blue-500 text-white'
-    }`
-    notification.textContent = message
-
-    document.body.appendChild(notification)
-
-    // Auto-remove after 3 seconds
-    setTimeout(() => {
-      notification.remove()
-    }, 3000)
   }
 }
 

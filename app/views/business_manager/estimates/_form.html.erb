@@ -214,7 +214,6 @@
             <option value="product">Product</option>
             <option value="labor">Labor</option>
             <option value="part">Part</option>
-            <option value="misc">Misc</option>
           </select>
         </td>
 
@@ -337,41 +336,74 @@
         </td>
       </tr>
 
-      <!-- Save as New Service Section (for labor items) -->
-      <tr data-field-type="save-as-new" class="bg-blue-50 hidden">
+      <!-- Save for Future Use Section Template (for labor and part items) -->
+      <tr data-field-type="save-for-future" class="bg-blue-50 hidden">
         <td colspan="9" class="px-4 py-3">
-          <div class="flex items-start space-x-4">
-            <label class="inline-flex items-center mt-1">
-              <input type="checkbox"
-                     data-estimate-line-items-target="saveAsNewCheckbox"
-                     data-action="change->estimate-line-items#toggleSaveAsNew"
-                     class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-              <span class="ml-2 text-sm text-gray-700">Save as new service</span>
-            </label>
-            <div data-field-type="save-as-new-details" class="hidden flex-1">
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-xs text-gray-600">Service Name</label>
-                  <input type="text" data-estimate-line-items-target="newServiceName"
-                         class="block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
-                         placeholder="Enter service name">
+          <!-- Save as Service (for labor items) -->
+          <div data-save-type="service" class="hidden">
+            <div class="flex items-start space-x-4">
+              <label class="inline-flex items-center mt-1">
+                <input type="checkbox" name="estimate[estimate_items_attributes][NEW_RECORD][save_as_service]"
+                       class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                       data-action="change->estimate-line-items#toggleSaveForFuture">
+                <span class="ml-2 text-sm font-medium text-gray-700">Save as Service</span>
+              </label>
+              <div data-field-type="save-service-fields" class="hidden flex-1">
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600">Service Type *</label>
+                    <select name="estimate[estimate_items_attributes][NEW_RECORD][service_type]"
+                            class="block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+                      <option value="">-- Select Type --</option>
+                      <option value="standard">Standard</option>
+                      <option value="experience">Experience</option>
+                      <option value="event">Event</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600">Service Name *</label>
+                    <input type="text" name="estimate[estimate_items_attributes][NEW_RECORD][service_name]"
+                           class="block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
+                           placeholder="Enter service name">
+                  </div>
                 </div>
-                <div>
-                  <label class="block text-xs text-gray-600">Category (optional)</label>
-                  <input type="text" data-estimate-line-items-target="newServiceCategory"
-                         class="block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
-                         placeholder="Service category">
-                </div>
+                <p class="mt-1 text-xs text-gray-500">
+                  Service will be created when estimate is saved. Duration and price auto-calculated from hours and rate.
+                </p>
               </div>
-              <div class="mt-2">
-                <button type="button"
-                        data-action="estimate-line-items#createServiceFromLabor"
-                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                  </svg>
-                  Create Service
-                </button>
+            </div>
+          </div>
+          <!-- Save as Product (for part items) -->
+          <div data-save-type="product" class="hidden">
+            <div class="flex items-start space-x-4">
+              <label class="inline-flex items-center mt-1">
+                <input type="checkbox" name="estimate[estimate_items_attributes][NEW_RECORD][save_as_product]"
+                       class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                       data-action="change->estimate-line-items#toggleSaveForFuture">
+                <span class="ml-2 text-sm font-medium text-gray-700">Save as Product</span>
+              </label>
+              <div data-field-type="save-product-fields" class="hidden flex-1">
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600">Product Type *</label>
+                    <select name="estimate[estimate_items_attributes][NEW_RECORD][product_type]"
+                            class="block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+                      <option value="">-- Select Type --</option>
+                      <option value="standard">Standard</option>
+                      <option value="service">Service Product</option>
+                      <option value="mixed">Mixed</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600">Product Name *</label>
+                    <input type="text" name="estimate[estimate_items_attributes][NEW_RECORD][product_name]"
+                           class="block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
+                           placeholder="Enter product name">
+                  </div>
+                </div>
+                <p class="mt-1 text-xs text-gray-500">
+                  Product will be created when estimate is saved. Price auto-set from cost rate.
+                </p>
               </div>
             </div>
           </div>

@@ -13,8 +13,13 @@ class Estimate < ApplicationRecord
 
   accepts_nested_attributes_for :estimate_items, allow_destroy: true,
     reject_if: ->(attrs) {
-      attrs['qty'].to_i <= 0 ||
-      (attrs['service_id'].blank? && attrs['product_id'].blank? && attrs['description'].blank?)
+      # For labor items, check hours instead of qty
+      if attrs['item_type'] == 'labor' || attrs['item_type'] == :labor
+        attrs['hours'].to_f <= 0 || attrs['description'].blank?
+      else
+        attrs['qty'].to_i <= 0 ||
+        (attrs['service_id'].blank? && attrs['product_id'].blank? && attrs['description'].blank?)
+      end
     }
   accepts_nested_attributes_for :tenant_customer,
     reject_if: ->(attrs) { attrs['first_name'].blank? && attrs['last_name'].blank? && attrs['email'].blank? }

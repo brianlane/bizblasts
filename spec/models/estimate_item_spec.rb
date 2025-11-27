@@ -10,8 +10,7 @@ RSpec.describe EstimateItem, type: :model do
         'service' => 0,
         'product' => 1,
         'labor' => 2,
-        'part' => 3,
-        'misc' => 4
+        'part' => 3
       })
     end
   end
@@ -59,7 +58,7 @@ RSpec.describe EstimateItem, type: :model do
   end
 
   describe '#calculate_total' do
-    context 'for standard items (service, product, part, misc)' do
+    context 'for standard items (service, product, part)' do
       it 'calculates total as qty × cost_rate' do
         item = build(:estimate_item, estimate: estimate, item_type: :service, qty: 3, cost_rate: 25)
         item.valid?
@@ -100,12 +99,6 @@ RSpec.describe EstimateItem, type: :model do
       item = create(:estimate_item, estimate: estimate, item_type: :part,
                     description: 'Replacement part')
       expect(item.display_name).to eq('Part: Replacement part')
-    end
-
-    it 'returns description for misc items' do
-      item = create(:estimate_item, estimate: estimate, item_type: :misc,
-                    description: 'Miscellaneous fee')
-      expect(item.display_name).to eq('Miscellaneous fee')
     end
   end
 

@@ -6,7 +6,7 @@ class EstimateItem < ApplicationRecord
 
   has_one_attached :image # For displaying product/service images in PDF
 
-  enum :item_type, { service: 0, product: 1, labor: 2, part: 3, misc: 4 }
+  enum :item_type, { service: 0, product: 1, labor: 2, part: 3 }
 
   # Validations - context aware
   validates :qty, numericality: { only_integer: true, greater_than: 0 }
@@ -18,6 +18,9 @@ class EstimateItem < ApplicationRecord
   # This allows custom descriptions without selecting an existing service/product
   validates :hours, :hourly_rate, presence: true, numericality: { greater_than: 0 }, if: :labor?
   validates :description, presence: true
+
+  # Prevent duplicate items within the same estimate
+  validate :no_duplicate_items
 
   before_validation :set_defaults, :sync_from_associations, :calculate_total
   after_initialize :set_item_type_from_associations
@@ -51,8 +54,6 @@ class EstimateItem < ApplicationRecord
       "Labor: #{description}"
     when :part
       "Part: #{description}"
-    when :misc
-      description
     else
       description
     end
@@ -135,6 +136,33 @@ class EstimateItem < ApplicationRecord
       self.item_type = :service
     elsif product_id.present?
       self.item_type = :product
+    end
+  end
+
+  def no_duplicate_items
+    return unless estimate.present?
+
+    # Find duplicate items in the same estimate (excluding self if persisted)
+    duplicates = estimate.estimate_items.where.not(id: id)
+
+    case item_type&.to_sym
+    when :service
+      # Check for duplicate service_id if present
+      if service_id.present?
+        if duplicates.where(item_type: :service, service_id: service_id).exists?
+          errors.add(:base, "This service has already been added to the estimate")
+        end
+      end
+    when :product
+      # Check for duplicate product_id (and variant if present)
+      if product_id.present?
+        scope = duplicates.where(item_type: :product, product_id: product_id)
+        scope = scope.where(product_variant_id: product_variant_id) if product_variant_id.present?
+        if scope.exists?
+          errors.add(:base, "This product has already been added to the estimate")
+        end
+      end
+    # Labor and part items can have duplicates since they're custom
     end
   end
 end

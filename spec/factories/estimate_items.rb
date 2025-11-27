@@ -52,11 +52,5 @@ FactoryBot.define do
       service { nil }
       description { "Replacement part" }
     end
-
-    trait :misc_item do
-      item_type { :misc }
-      service { nil }
-      description { "Miscellaneous item" }
-    end
   end
 end

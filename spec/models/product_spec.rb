@@ -51,6 +51,9 @@ RSpec.describe Product, type: :model do
         expect(product.errors[:price]).to be_empty
       end
     end
+
+    it { should validate_presence_of(:product_type) }
+
     it { should validate_length_of(:variant_label_text).is_at_most(100) }
 
     # Active Storage validations (ensure test helper is configured)

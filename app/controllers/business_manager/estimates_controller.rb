@@ -39,16 +39,24 @@ class BusinessManager::EstimatesController < BusinessManager::BaseController
     end
 
     @estimate = current_business.estimates.build(cp)
+    save_data = extract_save_for_future_data(params)
 
-    if @estimate.save
-      redirect_to business_manager_estimate_path(@estimate), notice: 'Estimate created successfully.'
-    else
-      load_services_and_products
-      # Rebuild associations if removed during validation to preserve form state
-      @estimate.estimate_items.build if @estimate.estimate_items.empty?
-      @estimate.build_tenant_customer unless @estimate.tenant_customer
-      render :new, status: :unprocessable_entity
+    ActiveRecord::Base.transaction do
+      if @estimate.save
+        process_save_for_future(save_data) if save_data.any?
+        redirect_to business_manager_estimate_path(@estimate), notice: 'Estimate created successfully.'
+      else
+        load_services_and_products
+        # Rebuild associations if removed during validation to preserve form state
+        @estimate.estimate_items.build if @estimate.estimate_items.empty?
+        @estimate.build_tenant_customer unless @estimate.tenant_customer
+        render :new, status: :unprocessable_entity
+      end
     end
+  rescue ActiveRecord::RecordInvalid => e
+    load_services_and_products
+    @estimate.errors.add(:base, "Failed to save items for future use: #{e.message}")
+    render :new, status: :unprocessable_entity
   end
 
   def edit
@@ -136,6 +144,10 @@ class BusinessManager::EstimatesController < BusinessManager::BaseController
         new_item.save
       end
 
+      # Recalculate totals after adding all items
+      new_estimate.calculate_totals
+      new_estimate.save
+
       redirect_to edit_business_manager_estimate_path(new_estimate),
         notice: 'Estimate duplicated. Make any necessary changes and save.'
     else
@@ -219,8 +231,109 @@ class BusinessManager::EstimatesController < BusinessManager::BaseController
       estimate_items_attributes: [
         :id, :item_type, :service_id, :product_id, :product_variant_id,
         :description, :qty, :cost_rate, :tax_rate, :hours, :hourly_rate,
-        :optional, :position, :_destroy
+        :optional, :position, :_destroy,
+        :save_as_service, :service_type, :service_name,
+        :save_as_product, :product_type, :product_name
       ]
+    )
+  end
+
+  # Extract save-for-future data from params for labor→service and part→product
+  def extract_save_for_future_data(params)
+    return [] unless params[:estimate] && params[:estimate][:estimate_items_attributes]
+
+    save_data = []
+    params[:estimate][:estimate_items_attributes].each do |index, item_attrs|
+      # Labor → Service
+      if item_attrs[:save_as_service] == '1' && item_attrs[:item_type] == 'labor'
+        save_data << {
+          index: index,
+          type: :service,
+          service_type: item_attrs[:service_type],
+          name: item_attrs[:service_name],
+          item_attrs: item_attrs
+        }
+      end
+
+      # Part → Product
+      if item_attrs[:save_as_product] == '1' && item_attrs[:item_type] == 'part'
+        save_data << {
+          index: index,
+          type: :product,
+          product_type: item_attrs[:product_type],
+          name: item_attrs[:product_name],
+          item_attrs: item_attrs
+        }
+      end
+    end
+
+    save_data
+  end
+
+  # Process all save-for-future requests after estimate is created
+  def process_save_for_future(save_data)
+    save_data.each do |data|
+      item = find_estimate_item_by_index(data[:index])
+      next unless item
+
+      if data[:type] == :service
+        create_service_from_labor(item, data)
+      elsif data[:type] == :product
+        create_product_from_part(item, data)
+      end
+    end
+  end
+
+  # Find estimate item by form index
+  def find_estimate_item_by_index(index)
+    # Items are created in order, so we can match by position
+    @estimate.estimate_items.order(:position)[index.to_i]
+  end
+
+  # Create service from labor item and convert item type
+  def create_service_from_labor(item, data)
+    # Calculate duration and price from hours and hourly_rate
+    hours = item.hours.to_f
+    hourly_rate = item.hourly_rate.to_f
+    duration = (hours * 60).ceil # minutes, rounded up
+    price = hours * hourly_rate
+
+    service = current_business.services.create!(
+      name: data[:name],
+      service_type: data[:service_type],
+      duration: duration,
+      price: price,
+      description: item.description,
+      created_from_estimate_id: @estimate.id
+    )
+
+    # Convert EstimateItem to service type
+    item.update!(
+      item_type: :service,
+      service_id: service.id,
+      qty: 1,
+      cost_rate: price
+    )
+  end
+
+  # Create product from part item and convert item type
+  def create_product_from_part(item, data)
+    # Use cost_rate as the product price
+    price = item.cost_rate.to_f
+
+    product = current_business.products.create!(
+      name: data[:name],
+      product_type: data[:product_type],
+      price: price,
+      description: item.description,
+      stock_quantity: 0
+    )
+
+    # Convert EstimateItem to product type
+    item.update!(
+      item_type: :product,
+      product_id: product.id,
+      cost_rate: price
     )
   end
 end

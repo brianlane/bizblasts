@@ -85,59 +85,6 @@
       </table>
     </div>
     
-    <!-- Optional Items Section -->
-    <% if @estimate.has_optional_items? %>
-      <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
-        <h3 class="text-sm font-semibold text-gray-700 uppercase mb-2">Optional Items</h3>
-        <p class="text-sm text-gray-500 mb-4">Select the optional items you would like to include:</p>
-      </div>
-      
-      <div id="optional-items-container" data-controller="signature-pad">
-        <table class="min-w-full divide-y divide-gray-200">
-          <tbody class="bg-white divide-y divide-gray-200">
-            <% @estimate.optional_items_for_customer.each do |item| %>
-              <tr data-estimate-signature-target="optionalItem"
-                  data-subtotal="<%= item.total %>"
-                  data-taxes="<%= item.tax_amount %>"
-                  class="<%= item.customer_declined? ? 'bg-gray-50 line-through text-gray-400' : '' %>">
-                <td class="px-6 py-4 w-12">
-                  <% if @estimate.can_approve? %>
-                    <input type="checkbox"
-                      name="selected_optional_items[]"
-                      value="<%= item.id %>"
-                      <%= item.customer_selected? ? 'checked' : '' %>
-                      data-estimate-signature-target="optionalItemCheckbox"
-                      data-action="change->signature-pad#toggleOptionalItem"
-                      class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                  <% else %>
-                    <% if item.customer_selected? && !item.customer_declined? %>
-                      <span class="text-green-600">✓</span>
-                    <% else %>
-                      <span class="text-gray-400">✗</span>
-                    <% end %>
-                  <% end %>
-                </td>
-                <td class="px-6 py-4">
-                  <div class="font-medium <%= item.customer_declined? ? 'text-gray-400' : 'text-gray-900' %>">
-                    <%= item.display_name %>
-                    <% if item.customer_declined? %>
-                      <span class="ml-2 text-xs text-red-500">(Declined)</span>
-                    <% end %>
-                  </div>
-                  <% if item.description.present? %>
-                    <div class="text-sm text-gray-500"><%= item.description.truncate(60) %></div>
-                  <% end %>
-                </td>
-                <td class="px-6 py-4 text-gray-900"><%= item.qty %></td>
-                <td class="px-6 py-4 text-right text-gray-900"><%= number_to_currency(item.cost_rate) %></td>
-                <td class="px-6 py-4 text-right font-medium text-gray-900"><%= number_to_currency(item.total) %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% end %>
-    
     <!-- Totals -->
     <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
       <div id="estimate-total-display"
@@ -177,25 +124,69 @@
   <% if @estimate.can_approve? %>
     <!-- Signature and Approval Form -->
     <div class="bg-white shadow rounded-lg p-6" data-controller="signature-pad" data-signature-pad-required-value="true">
-      <h2 class="text-lg font-semibold text-gray-900 mb-4">Approve & Pay</h2>
-      
-      <div class="mb-6">
-        <p class="text-gray-600 mb-4">
-          By signing below, you agree to the terms of this estimate and authorize
-          <strong><%= @estimate.business.name %></strong> to proceed with the work described above.
-        </p>
-        
-        <% if @estimate.required_deposit.present? && @estimate.required_deposit > 0 %>
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-            <p class="text-blue-800">
-              <strong>Deposit Required:</strong> A deposit of <%= number_to_currency(@estimate.required_deposit) %>
-              will be collected to confirm this estimate. The remaining balance will be due upon completion.
-            </p>
+      <%= form_with url: approve_public_estimate_path(token: @estimate.token), method: :patch, local: true, id: "approval-form" do |f| %>
+        <!-- Optional Items Section - moved inside form -->
+        <% if @estimate.has_optional_items? %>
+          <div class="mb-6 pb-6 border-b border-gray-200">
+            <h3 class="text-sm font-semibold text-gray-700 uppercase mb-2">Optional Items</h3>
+            <p class="text-sm text-gray-500 mb-4">Select the optional items you would like to include:</p>
+
+            <div id="optional-items-container">
+              <table class="min-w-full divide-y divide-gray-200">
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <% @estimate.optional_items_for_customer.each do |item| %>
+                    <tr data-signature-pad-target="optionalItem"
+                        data-subtotal="<%= item.total %>"
+                        data-taxes="<%= item.tax_amount %>"
+                        class="<%= item.customer_declined? ? 'bg-gray-50 line-through text-gray-400' : '' %>">
+                      <td class="px-6 py-4 w-12">
+                        <input type="checkbox"
+                          name="selected_optional_items[]"
+                          value="<%= item.id %>"
+                          <%= item.customer_selected? ? 'checked' : '' %>
+                          data-signature-pad-target="optionalItemCheckbox"
+                          data-action="change->signature-pad#toggleOptionalItem"
+                          class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                      </td>
+                      <td class="px-6 py-4">
+                        <div class="font-medium <%= item.customer_declined? ? 'text-gray-400' : 'text-gray-900' %>">
+                          <%= item.display_name %>
+                          <% if item.customer_declined? %>
+                            <span class="ml-2 text-xs text-red-500">(Declined)</span>
+                          <% end %>
+                        </div>
+                        <% if item.description.present? %>
+                          <div class="text-sm text-gray-500"><%= item.description.truncate(60) %></div>
+                        <% end %>
+                      </td>
+                      <td class="px-6 py-4 text-gray-900"><%= item.qty %></td>
+                      <td class="px-6 py-4 text-right text-gray-900"><%= number_to_currency(item.cost_rate) %></td>
+                      <td class="px-6 py-4 text-right font-medium text-gray-900"><%= number_to_currency(item.total) %></td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
           </div>
         <% end %>
-      </div>
 
-      <%= form_with url: approve_public_estimate_path(token: @estimate.token), method: :patch, local: true, id: "approval-form" do |f| %>
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Approve & Pay</h2>
+
+        <div class="mb-6">
+          <p class="text-gray-600 mb-4">
+            By signing below, you agree to the terms of this estimate and authorize
+            <strong><%= @estimate.business.name %></strong> to proceed with the work described above.
+          </p>
+
+          <% if @estimate.required_deposit.present? && @estimate.required_deposit > 0 %>
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <p class="text-blue-800">
+                <strong>Deposit Required:</strong> A deposit of <%= number_to_currency(@estimate.required_deposit) %>
+                will be collected to confirm this estimate. The remaining balance will be due upon completion.
+              </p>
+            </div>
+          <% end %>
+        </div>
         <!-- Signature Name -->
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 mb-2">Your Full Name</label>

@@ -4,13 +4,12 @@
 <tr data-estimate-line-items-target="item" class="<%= item.object.customer_declined? ? 'bg-gray-50 opacity-60' : '' %>">
   <!-- Item Type -->
   <td class="px-4 py-3">
-    <%= item.select :item_type, 
+    <%= item.select :item_type,
       options_for_select([
         ['Service', 'service'],
         ['Product', 'product'],
         ['Labor', 'labor'],
-        ['Part', 'part'],
-        ['Misc', 'misc']
+        ['Part', 'part']
       ], item.object.item_type || 'service'),
       {},
       class: 'block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm',
@@ -124,45 +123,79 @@
   </td>
 </tr>
 
-<!-- Save as New Service Section (for labor items) -->
-<% if item.object.item_type == 'labor' %>
-<tr data-field-type="save-as-new" class="bg-blue-50">
+<!-- Save for Future Use Section (for labor and part items) -->
+<% if item.object.item_type == 'labor' || item.object.item_type == 'part' %>
+<tr data-field-type="save-for-future" class="bg-blue-50">
   <td colspan="9" class="px-4 py-3">
-    <div class="flex items-start space-x-4">
-      <label class="inline-flex items-center mt-1">
-        <input type="checkbox"
-          data-estimate-line-items-target="saveAsNewCheckbox"
-          data-action="change->estimate-line-items#toggleSaveAsNew"
-          class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-        <span class="ml-2 text-sm text-gray-700">Save as new service</span>
-      </label>
-      <div data-field-type="save-as-new-details" class="hidden flex-1">
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs text-gray-600">Service Name</label>
-            <input type="text" data-estimate-line-items-target="newServiceName"
-              class="block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
-              placeholder="Enter service name">
+    <% if item.object.item_type == 'labor' %>
+      <!-- Save as Service -->
+      <div class="flex items-start space-x-4">
+        <label class="inline-flex items-center mt-1">
+          <%= item.check_box :save_as_service,
+            class: 'h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500',
+            data: { action: 'change->estimate-line-items#toggleSaveForFuture' } %>
+          <span class="ml-2 text-sm font-medium text-gray-700">Save as Service</span>
+        </label>
+        <div data-field-type="save-service-fields" class="hidden flex-1">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-600">Service Type *</label>
+              <%= item.select :service_type,
+                options_for_select([
+                  ['Standard', 'standard'],
+                  ['Experience', 'experience'],
+                  ['Event', 'event']
+                ], item.object.service_type),
+                { include_blank: '-- Select Type --' },
+                { class: 'block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm' } %>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600">Service Name *</label>
+              <%= item.text_field :service_name,
+                class: 'block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm',
+                placeholder: 'Enter service name' %>
+            </div>
           </div>
-          <div>
-            <label class="block text-xs text-gray-600">Category (optional)</label>
-            <input type="text" data-estimate-line-items-target="newServiceCategory"
-              class="block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
-              placeholder="Service category">
-          </div>
-        </div>
-        <div class="mt-2">
-          <button type="button"
-            data-action="estimate-line-items#createServiceFromLabor"
-            class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            Create Service
-          </button>
+          <p class="mt-1 text-xs text-gray-500">
+            Service will be created when estimate is saved. Duration and price auto-calculated from hours and rate.
+          </p>
         </div>
       </div>
-    </div>
+    <% elsif item.object.item_type == 'part' %>
+      <!-- Save as Product -->
+      <div class="flex items-start space-x-4">
+        <label class="inline-flex items-center mt-1">
+          <%= item.check_box :save_as_product,
+            class: 'h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500',
+            data: { action: 'change->estimate-line-items#toggleSaveForFuture' } %>
+          <span class="ml-2 text-sm font-medium text-gray-700">Save as Product</span>
+        </label>
+        <div data-field-type="save-product-fields" class="hidden flex-1">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-600">Product Type *</label>
+              <%= item.select :product_type,
+                options_for_select([
+                  ['Standard', 'standard'],
+                  ['Service Product', 'service'],
+                  ['Mixed', 'mixed']
+                ], item.object.product_type),
+                { include_blank: '-- Select Type --' },
+                { class: 'block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm' } %>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600">Product Name *</label>
+              <%= item.text_field :product_name,
+                class: 'block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm',
+                placeholder: 'Enter product name' %>
+            </div>
+          </div>
+          <p class="mt-1 text-xs text-gray-500">
+            Product will be created when estimate is saved. Price auto-set from cost rate.
+          </p>
+        </div>
+      </div>
+    <% end %>
   </td>
 </tr>
 <% end %>

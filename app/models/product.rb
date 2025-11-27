@@ -40,6 +40,7 @@ class Product < ApplicationRecord
   include PriceDurationParser
 
   validates :name, presence: true, uniqueness: { scope: :business_id }
+  validates :product_type, presence: true
   validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }                                                                              
   
   # Use shared parsing logic
