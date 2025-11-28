@@ -136,12 +136,23 @@ RSpec.describe EstimateItem, type: :model do
     end
 
     it 'sets position based on existing items' do
+      create(:estimate_item, estimate: estimate, position: 0)
       create(:estimate_item, estimate: estimate, position: 1)
-      create(:estimate_item, estimate: estimate, position: 2)
 
-      item = build(:estimate_item, estimate: estimate, position: nil)
-      item.valid?
-      expect(item.position).to eq(3)
+      # Position is now assigned at the Estimate level during validation, not at the item level
+      # This prevents race conditions when multiple items are created via nested attributes
+      item = estimate.estimate_items.build(
+        item_type: 'service',
+        description: 'New Item',
+        cost_rate: 10.0,
+        qty: 1,
+        position: nil
+      )
+
+      # Trigger the parent estimate's validation which assigns positions
+      estimate.validate
+
+      expect(item.position).to eq(2) # Will be assigned sequential position by parent (0, 1, 2)
     end
 
     it 'sets customer_selected to true by default' do

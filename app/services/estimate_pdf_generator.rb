@@ -180,10 +180,19 @@ class EstimatePdfGenerator
     table_data = [headers]
 
     items.each do |item|
+      # For labor items, show hours and hourly_rate instead of qty and cost_rate
+      if item.item_type == 'labor'
+        qty_display = "#{item.hours} hrs"
+        rate_display = format_currency(item.hourly_rate) + "/hr"
+      else
+        qty_display = item.qty.to_s
+        rate_display = format_currency(item.cost_rate)
+      end
+
       row = [
         item.display_name.to_s.truncate(50),
-        item.qty.to_s,
-        format_currency(item.cost_rate),
+        qty_display,
+        rate_display,
         format_currency(item.total)
       ]
 
