@@ -83,20 +83,21 @@ module SystemHelpers
   # Usage: select_from_rich_dropdown("Option Text", "dropdown_id")
   def select_from_rich_dropdown(option_text, dropdown_id)
     if Capybara.current_driver == :rack_test || !page.driver.respond_to?(:browser)
-      # Non-JS driver (rack_test) - set the hidden field directly
-      # Find the hidden field for this dropdown
-      hidden_field = find("##{dropdown_id}_hidden", visible: false)
-      
+      # Non-JS driver (rack_test) - set the native select directly
+      # Find the native select for this dropdown
+      dropdown = find("##{dropdown_id}", visible: :all)
+      native_select = dropdown.find('select.rich-dropdown-native-select', visible: :all)
+
       # Find all option elements with data-item-id attributes
       options = all("##{dropdown_id} [data-item-id]", visible: :all)
-      
+
       # Find the matching option by text
       matching_option = options.find do |opt|
         opt['data-item-text']&.include?(option_text) || opt.text(:all).include?(option_text)
       end
-      
+
       if matching_option
-        hidden_field.set(matching_option['data-item-id'])
+        native_select.set(matching_option['data-item-id'])
       else
         raise "Could not find option '#{option_text}' in dropdown '#{dropdown_id}'"
       end
@@ -116,11 +117,12 @@ module SystemHelpers
       if matching_option
         option_id = matching_option['data-item-id']
         matching_option.click
-        
-        # Wait for the hidden field to be populated with the selected value
-        hidden_field = find("##{dropdown_id}_hidden", visible: false)
-        expect(hidden_field.value).to eq(option_id), "Expected hidden field to have value '#{option_id}' but got '#{hidden_field.value}'"
-        
+
+        # Wait for the native select to be populated with the selected value
+        # The rich dropdown uses a native select element, not a hidden field
+        native_select = dropdown.find('select.rich-dropdown-native-select', visible: :all)
+        expect(native_select.value).to eq(option_id), "Expected select to have value '#{option_id}' but got '#{native_select.value}'"
+
         # Brief additional pause to ensure any event handlers complete
         sleep 0.2
       else

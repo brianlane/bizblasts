@@ -44,7 +44,7 @@ class Estimate < ApplicationRecord
   validates :valid_for_days, numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: 365 }
   validates :estimate_number, uniqueness: { scope: :business_id }, allow_nil: true
 
-  before_validation :set_valid_for_days_default, :calculate_totals
+  before_validation :set_valid_for_days_default, :calculate_totals, :assign_item_positions
   before_create :generate_token, :generate_estimate_number
   after_update :create_version_if_needed, if: :should_version?
 
@@ -261,5 +261,22 @@ class Estimate < ApplicationRecord
 
   def set_valid_for_days_default
     self.valid_for_days = 30 if valid_for_days.blank?
+  end
+
+  # Assign sequential positions to items that don't have proper positions
+  # This ensures items created via nested attributes get correct positions
+  def assign_item_positions
+    return if estimate_items.empty?
+
+    # Find maximum existing position from persisted items
+    max_position = estimate_items.select(&:persisted?).map(&:position).compact.max || -1
+
+    # Assign positions to items that have default position (0) or no position
+    estimate_items.each do |item|
+      next if item.persisted? && item.position > 0 # Skip items with valid positions
+
+      max_position += 1
+      item.position = max_position
+    end
   end
 end

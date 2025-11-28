@@ -101,7 +101,8 @@ class EstimateItem < ApplicationRecord
 
   def set_defaults
     self.tax_rate ||= 0.0
-    self.position ||= estimate&.estimate_items&.maximum(:position).to_i + 1
+    # Position is now assigned by the parent Estimate model to avoid conflicts
+    # when multiple items are created via nested attributes
     self.customer_selected = true if customer_selected.nil?
     self.customer_declined = false if customer_declined.nil?
   end

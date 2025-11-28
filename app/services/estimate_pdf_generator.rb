@@ -97,7 +97,7 @@ class EstimatePdfGenerator
   def add_estimate_info(pdf)
     data = [
       ["Date:", @estimate.created_at.strftime('%B %d, %Y')],
-      ["Valid Until:", (@estimate.created_at + 30.days).strftime('%B %d, %Y')]
+      ["Valid Until:", (@estimate.created_at + @estimate.valid_for_days.days).strftime('%B %d, %Y')]
     ]
 
     if @estimate.proposed_start_time.present?
