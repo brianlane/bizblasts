@@ -116,6 +116,10 @@
         <dd class="col-span-2"><%= @estimate.proposed_start_time&.strftime('%B %d, %Y %I:%M %p') || 'Not specified' %></dd>
       </div>
       <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Valid For</dt>
+        <dd class="col-span-2"><%= pluralize(@estimate.valid_for_days || 30, 'day') %></dd>
+      </div>
+      <div class="p-4 grid grid-cols-3 gap-4">
         <dt class="font-medium text-gray-600">Required Deposit</dt>
         <dd class="col-span-2"><%= number_to_currency(@estimate.required_deposit) %></dd>
       </div>

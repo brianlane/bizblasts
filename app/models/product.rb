@@ -107,6 +107,8 @@ class Product < ApplicationRecord
   validates :stock_quantity, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, unless: -> { has_variants? || business&.stock_management_disabled? }
   validates :position, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
 
+  after_initialize :set_default_product_type, if: :new_record?
+
   def has_variants?
     product_variants.exists?  
   end
@@ -130,6 +132,10 @@ class Product < ApplicationRecord
   def set_primary_image(image)
     images.update_all(primary: false)
     image.update(primary: true)
+  end
+
+  def set_default_product_type
+    self.product_type ||= :standard
   end
 
   def reorder_images(order)

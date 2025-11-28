@@ -24,6 +24,9 @@
   css_class ||= ''
   dropdown_id ||= "dropdown_#{SecureRandom.hex(4)}"
   hidden_field_data ||= {}
+native_select_id = hidden_field_data[:id] || field_name.gsub(/\]\[|[\[\]]/, '_').gsub(/__+/, '_').sub(/^_/, '').sub(/_$/, '')
+select_data_attributes = hidden_field_data.except(:id)
+native_select_classes = Rails.env.test? ? "rich-dropdown-native-select block w-full border border-gray-300 rounded-md py-2 px-3 mb-2 text-sm text-gray-700" : "sr-only rich-dropdown-native-select"
   
   # Find selected item
   selected_item = collection.find { |item| item.send(value_method).to_s == selected_value.to_s } if selected_value.present?
@@ -135,8 +138,21 @@
     <% end %>
   </div>
   
-  <!-- Hidden field for form submission - maintains exact same field name -->
-  <%= hidden_field_tag field_name, selected_value, { id: "#{dropdown_id}_hidden", required: required }.merge(hidden_field_data) %>
+  <!-- Accessible native select for non-JS environments (kept visually hidden) -->
+  <%= select_tag field_name,
+        options_for_select(
+          collection.map do |item|
+            item_id = value_method ? (item.respond_to?(value_method) ? item.send(value_method) : item[value_method]) : (item.respond_to?(:last) ? item.last : item)
+            item_text = text_method ? (item.respond_to?(text_method) ? item.send(text_method) : item[text_method]) : (item.respond_to?(:first) ? item.first : item.to_s)
+            [item_text, item_id]
+          end,
+          selected_value
+        ),
+        include_blank: prompt_text,
+        id: native_select_id,
+        class: native_select_classes,
+        required: required,
+        data: select_data_attributes %>
 </div>
 
 <script>
@@ -158,11 +174,21 @@
     const dropdownOptions = dropdownContainer.querySelectorAll('[data-dropdown-target="option"]');
     const dropdownText = dropdownContainer.querySelector('.rich-dropdown-text');
     const dropdownArrow = dropdownButton?.querySelector('svg');
-    const hiddenField = document.getElementById('<%= dropdown_id %>_hidden');
+    const nativeSelect = document.getElementById('<%= native_select_id %>');
+    const promptText = "<%= j prompt_text %>";
     
-    if (!dropdownButton || !dropdownMenu || !hiddenField) return;
+    if (!dropdownButton || !dropdownMenu || !nativeSelect) return;
+    
+    dropdownContainer.dataset.initialized = 'true';
     
     let dropdownButtonTouched = false;
+    
+    const updateTextFromSelect = () => {
+      const selectedOption = nativeSelect.selectedOptions[0];
+      dropdownText.textContent = selectedOption ? selectedOption.textContent : promptText;
+    };
+    
+    updateTextFromSelect();
     
     // Toggle dropdown function
     function toggleDropdown(e) {
@@ -250,35 +276,21 @@
       const itemId = element.dataset.itemId;
       const itemText = element.dataset.itemText;
       
-      // Update hidden field (maintains exact same data submission)
-      hiddenField.value = itemId;
-      
-      // Update display text
-      <% if defined?(price_method) && price_method || defined?(duration_method) && duration_method %>
-        // Rebuild display text with additional info
-        let displayParts = [itemText];
-        <% if defined?(price_method) && price_method %>
-          const priceElement = element.querySelector('.text-blue-600');
-          if (priceElement) displayParts.push(priceElement.textContent);
-        <% end %>
-        <% if defined?(duration_method) && duration_method %>
-          const durationElement = element.querySelector('.text-xs.text-gray-500');
-          if (durationElement) displayParts.push(durationElement.textContent);
-        <% end %>
-        dropdownText.textContent = displayParts.join(' - ');
-      <% else %>
-        dropdownText.textContent = itemText;
-      <% end %>
+      if (nativeSelect.value !== itemId) {
+        nativeSelect.value = itemId;
+        nativeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      } else {
+        updateTextFromSelect();
+      }
       
       // Update selected state visuals
       dropdownOptions.forEach(opt => {
-        const checkIcon = opt.querySelector('svg');
-        if (checkIcon) checkIcon.parentElement.remove();
+        const existingCheck = opt.querySelector('.rich-dropdown-check');
+        if (existingCheck) existingCheck.remove();
       });
       
-      // Add check icon to selected option
       const checkIcon = document.createElement('span');
-      checkIcon.className = 'absolute inset-y-0 right-2 flex items-center text-blue-600';
+      checkIcon.className = 'rich-dropdown-check absolute inset-y-0 right-2 flex items-center text-blue-600';
       checkIcon.innerHTML = `
         <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
@@ -286,13 +298,9 @@
       `;
       element.appendChild(checkIcon);
       
-      // Close dropdown
+      dropdownText.textContent = itemText || promptText;
       closeDropdown();
       
-      // Trigger change event for form validation
-      hiddenField.dispatchEvent(new Event('change', { bubbles: true }));
-
-      // Notify listeners that this dropdown value changed
       dropdownContainer.dispatchEvent(
         new CustomEvent('rich-dropdown:change', {
           bubbles: true,
@@ -311,6 +319,8 @@
         selectOption(this, e);
       });
     });
+    
+    nativeSelect.addEventListener('change', updateTextFromSelect);
     
     // Create a unique identifier for this dropdown's handlers
     const dropdownId = '<%= dropdown_id %>';
@@ -360,7 +370,6 @@
     });
     
     // Mark as initialized
-    dropdownContainer.dataset.initialized = 'true';
   }
 
   // Initialize on multiple events to ensure dropdown works after form re-renders

@@ -1,4 +1,6 @@
 class EstimateItem < ApplicationRecord
+  attr_accessor :save_as_service, :service_type, :service_name,
+                :save_as_product, :product_type, :product_name
   belongs_to :estimate
   belongs_to :service, optional: true
   belongs_to :product, optional: true
@@ -36,7 +38,8 @@ class EstimateItem < ApplicationRecord
   # Only calculates if item is selected and not declined
   def tax_amount
     return 0 if customer_declined? || (optional? && !customer_selected?)
-    (cost_rate.to_d * qty.to_i) * (tax_rate.to_d / 100.0)
+    base_amount = labor? ? (hours.to_d * hourly_rate.to_d) : (qty.to_i * cost_rate.to_d)
+    (base_amount) * (tax_rate.to_d / 100.0)
   end
 
   def total_with_tax

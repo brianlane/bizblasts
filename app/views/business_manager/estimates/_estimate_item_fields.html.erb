@@ -1,43 +1,168 @@
 <%# Estimate item fields partial - used for both existing and new items %>
 <%# Variables: item (form builder), services, products, is_template (boolean) %>
 
+<% item_type = item.object.item_type.present? ? item.object.item_type : 'service' %>
+<% item_type_options = [
+  { label: 'Service', value: 'service' },
+  { label: 'Product', value: 'product' },
+  { label: 'Labor', value: 'labor' },
+  { label: 'Part', value: 'part' }
+] %>
+<% selected_item_type_label = item_type_options.find { |opt| opt[:value] == item_type }&.dig(:label) || 'Service' %>
+<% selected_service = (@services || []).find { |s| s.id == item.object.service_id } %>
+<% selected_product = (@products || []).find { |p| p.id == item.object.product_id } %>
+<% boolean_type = ActiveModel::Type::Boolean.new %>
+<% save_as_service_checked = boolean_type.cast(item.object.try(:save_as_service)) %>
+<% save_as_product_checked = boolean_type.cast(item.object.try(:save_as_product)) %>
+<% service_type_options = [
+  { label: '-- Select Type --', value: '' },
+  { label: 'Standard', value: 'standard' },
+  { label: 'Experience', value: 'experience' },
+  { label: 'Event', value: 'event' }
+] %>
+<% product_type_options = [
+  { label: '-- Select Type --', value: '' },
+  { label: 'Standard', value: 'standard' },
+  { label: 'Service Product', value: 'service' },
+  { label: 'Mixed', value: 'mixed' }
+] %>
+<% service_type_value = item.object.try(:service_type).presence || '' %>
+<% service_type_label = service_type_options.find { |opt| opt[:value] == service_type_value }&.dig(:label) || '-- Select Type --' %>
+<% product_type_value = item.object.try(:product_type).presence || '' %>
+<% product_type_label = product_type_options.find { |opt| opt[:value] == product_type_value }&.dig(:label) || '-- Select Type --' %>
+
 <tr data-estimate-line-items-target="item" class="<%= item.object.customer_declined? ? 'bg-gray-50 opacity-60' : '' %>">
   <!-- Item Type -->
   <td class="px-4 py-3">
-    <%= item.select :item_type,
-      options_for_select([
-        ['Service', 'service'],
-        ['Product', 'product'],
-        ['Labor', 'labor'],
-        ['Part', 'part']
-      ], item.object.item_type || 'service'),
-      {},
-      class: 'block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm',
-      data: { action: 'change->estimate-line-items#changeItemType' } %>
+    <div class="relative"
+         data-controller="dropdown"
+         data-field-type="item-type"
+         data-dropdown-selected-value-value="<%= item_type %>">
+      <button type="button"
+              class="w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              data-dropdown-target="button"
+              data-action="click->dropdown#toggle">
+        <span class="rich-dropdown-text block truncate text-gray-900"><%= selected_item_type_label %></span>
+        <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+          <svg class="h-4 w-4 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </span>
+      </button>
+      <div class="absolute z-20 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-sm ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+           data-dropdown-target="menu">
+        <% item_type_options.each do |opt| %>
+          <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+               data-item-id="<%= opt[:value] %>"
+               data-item-text="<%= opt[:label] %>"
+               data-dropdown-target="option"
+               data-action="click->dropdown#select">
+            <%= opt[:label] %>
+          </div>
+        <% end %>
+      </div>
+      <%= item.hidden_field :item_type,
+            value: item_type,
+            data: { dropdown_target: 'hidden' } %>
+    </div>
   </td>
 
   <!-- Service/Product Selection -->
   <td class="px-4 py-3">
     <!-- Service Select (shown for service type) -->
-    <div data-field-type="service" class="<%= item.object.item_type != 'service' ? 'hidden' : '' %>">
-      <%= item.select :service_id,
-        [['-- Select Service --', '']] + (@services || []).map { |s| [s.name, s.id, { 'data-price' => s.price, 'data-description' => s.description }] },
-        { selected: item.object.service_id },
-        { class: 'block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm',
-          data: { action: 'change->estimate-line-items#selectService' } } %>
+    <div data-field-type="service" class="<%= item_type != 'service' ? 'hidden' : '' %>">
+      <div class="relative"
+           data-controller="dropdown"
+           data-field-type="service"
+           data-dropdown-selected-value-value="<%= item.object.service_id.to_s %>">
+        <button type="button"
+                class="w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                data-dropdown-target="button"
+                data-action="click->dropdown#toggle">
+          <span class="rich-dropdown-text block truncate text-gray-900"><%= selected_service&.name || '-- Select Service --' %></span>
+          <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+            <svg class="h-4 w-4 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </span>
+        </button>
+        <div class="absolute z-20 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-sm ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+             data-dropdown-target="menu">
+          <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+               data-item-id=""
+               data-item-text="-- Select Service --"
+               data-dropdown-target="option"
+               data-action="click->dropdown#select">
+            -- Select Service --
+          </div>
+          <% (@services || []).each do |service| %>
+            <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+                 data-item-id="<%= service.id %>"
+                 data-item-text="<%= service.name %>"
+                 data-price="<%= service.price %>"
+                 data-description="<%= service.description.presence || service.name %>"
+                 data-dropdown-target="option"
+                 data-action="click->dropdown#select">
+              <div class="flex items-center justify-between">
+                <span><%= service.name %></span>
+                <span class="text-xs font-medium text-blue-600"><%= number_to_currency(service.price) %></span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+        <%= item.hidden_field :service_id,
+              data: { dropdown_target: 'hidden' } %>
+      </div>
     </div>
 
     <!-- Product Select (shown for product type) -->
-    <div data-field-type="product" class="<%= item.object.item_type != 'product' ? 'hidden' : '' %>">
-      <%= item.select :product_id,
-        [['-- Select Product --', '']] + (@products || []).map { |p| [p.name, p.id, { 'data-price' => p.price, 'data-description' => p.description }] },
-        { selected: item.object.product_id },
-        { class: 'block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm',
-          data: { action: 'change->estimate-line-items#selectProduct' } } %>
+    <div data-field-type="product" class="<%= item_type != 'product' ? 'hidden' : '' %>">
+      <div class="relative"
+           data-controller="dropdown"
+           data-field-type="product"
+           data-dropdown-selected-value-value="<%= item.object.product_id.to_s %>">
+        <button type="button"
+                class="w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                data-dropdown-target="button"
+                data-action="click->dropdown#toggle">
+          <span class="rich-dropdown-text block truncate text-gray-900"><%= selected_product&.name || '-- Select Product --' %></span>
+          <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+            <svg class="h-4 w-4 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </span>
+        </button>
+        <div class="absolute z-20 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-sm ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+             data-dropdown-target="menu">
+          <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+               data-item-id=""
+               data-item-text="-- Select Product --"
+               data-dropdown-target="option"
+               data-action="click->dropdown#select">
+            -- Select Product --
+          </div>
+          <% (@products || []).each do |product| %>
+            <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+                 data-item-id="<%= product.id %>"
+                 data-item-text="<%= product.name %>"
+                 data-price="<%= product.price %>"
+                 data-description="<%= product.description.presence || product.name %>"
+                 data-dropdown-target="option"
+                 data-action="click->dropdown#select">
+              <div class="flex items-center justify-between">
+                <span><%= product.name %></span>
+                <span class="text-xs font-medium text-blue-600"><%= number_to_currency(product.price) %></span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+        <%= item.hidden_field :product_id,
+              data: { dropdown_target: 'hidden' } %>
+      </div>
     </div>
 
     <!-- Labor Fields (shown for labor type) -->
-    <div data-field-type="labor" class="<%= item.object.item_type != 'labor' ? 'hidden' : '' %>">
+    <div data-field-type="labor" class="<%= item_type != 'labor' ? 'hidden' : '' %>">
       <div class="grid grid-cols-2 gap-2">
         <div>
           <label class="block text-xs text-gray-500">Hours</label>
@@ -124,79 +249,124 @@
 </tr>
 
 <!-- Save for Future Use Section (for labor and part items) -->
-<% if item.object.item_type == 'labor' || item.object.item_type == 'part' %>
-<tr data-field-type="save-for-future" class="bg-blue-50">
+<!-- Always render but hide with CSS initially - JavaScript will show/hide dynamically -->
+<tr data-field-type="save-for-future" class="border-t border-gray-100 <%= (item_type != 'labor' && item_type != 'part') ? 'hidden' : '' %>">
   <td colspan="9" class="px-4 py-3">
-    <% if item.object.item_type == 'labor' %>
-      <!-- Save as Service -->
-      <div class="flex items-start space-x-4">
-        <label class="inline-flex items-center mt-1">
-          <%= item.check_box :save_as_service,
-            class: 'h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500',
-            data: { action: 'change->estimate-line-items#toggleSaveForFuture' } %>
-          <span class="ml-2 text-sm font-medium text-gray-700">Save as Service</span>
-        </label>
-        <div data-field-type="save-service-fields" class="hidden flex-1">
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-medium text-gray-600">Service Type *</label>
-              <%= item.select :service_type,
-                options_for_select([
-                  ['Standard', 'standard'],
-                  ['Experience', 'experience'],
-                  ['Event', 'event']
-                ], item.object.service_type),
-                { include_blank: '-- Select Type --' },
-                { class: 'block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm' } %>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-600">Service Name *</label>
-              <%= item.text_field :service_name,
-                class: 'block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm',
-                placeholder: 'Enter service name' %>
-            </div>
-          </div>
-          <p class="mt-1 text-xs text-gray-500">
-            Service will be created when estimate is saved. Duration and price auto-calculated from hours and rate.
-          </p>
-        </div>
-      </div>
-    <% elsif item.object.item_type == 'part' %>
-      <!-- Save as Product -->
-      <div class="flex items-start space-x-4">
-        <label class="inline-flex items-center mt-1">
-          <%= item.check_box :save_as_product,
-            class: 'h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500',
-            data: { action: 'change->estimate-line-items#toggleSaveForFuture' } %>
-          <span class="ml-2 text-sm font-medium text-gray-700">Save as Product</span>
-        </label>
-        <div data-field-type="save-product-fields" class="hidden flex-1">
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-medium text-gray-600">Product Type *</label>
-              <%= item.select :product_type,
-                options_for_select([
-                  ['Standard', 'standard'],
-                  ['Service Product', 'service'],
-                  ['Mixed', 'mixed']
-                ], item.object.product_type),
-                { include_blank: '-- Select Type --' },
-                { class: 'block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm' } %>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-600">Product Name *</label>
-              <%= item.text_field :product_name,
-                class: 'block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm',
-                placeholder: 'Enter product name' %>
+    <!-- Save as Service (for labor items) -->
+    <div data-save-type="service" class="flex items-start space-x-4 <%= item_type != 'labor' ? 'hidden' : '' %>">
+      <label class="inline-flex items-center mt-1">
+        <%= check_box_tag "#{item.object_name}[save_as_service]", '1', save_as_service_checked,
+          class: 'h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500',
+          data: { action: 'change->estimate-line-items#toggleSaveForFuture' } %>
+        <span class="ml-2 text-sm font-medium text-gray-700">Save as Service</span>
+      </label>
+      <div data-field-type="save-service-fields" class="<%= save_as_service_checked ? 'flex-1' : 'hidden flex-1' %>">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-600">Service Type *</label>
+            <% service_type_field_name = "#{item.object_name}[service_type]" %>
+            <div class="relative"
+                 data-controller="dropdown"
+                 data-dropdown-selected-value-value="<%= service_type_value %>">
+              <button type="button"
+                      class="w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      data-dropdown-target="button"
+                      data-action="click->dropdown#toggle">
+                <span class="rich-dropdown-text block truncate text-gray-900"><%= service_type_label %></span>
+                <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <svg class="h-4 w-4 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </span>
+              </button>
+              <div class="absolute z-30 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-sm ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+                   data-dropdown-target="menu">
+                <% service_type_options.each do |opt| %>
+                  <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+                       data-item-id="<%= opt[:value] %>"
+                       data-item-text="<%= opt[:label] %>"
+                       data-dropdown-target="option"
+                       data-action="click->dropdown#select">
+                    <%= opt[:label] %>
+                  </div>
+                <% end %>
+              </div>
+              <input type="hidden"
+                     name="<%= service_type_field_name %>"
+                     value="<%= service_type_value %>"
+                     data-dropdown-target="hidden">
             </div>
           </div>
-          <p class="mt-1 text-xs text-gray-500">
-            Product will be created when estimate is saved. Price auto-set from cost rate.
-          </p>
+          <div>
+            <label class="block text-xs font-medium text-gray-600">Service Name *</label>
+            <%= text_field_tag "#{item.object_name}[service_name]", item.object.try(:service_name),
+              class: 'block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm',
+              placeholder: 'Enter service name' %>
+          </div>
         </div>
+        <p class="mt-1 text-xs text-gray-500">
+          Service will be created when estimate is saved. Duration and price auto-calculated from hours and rate.
+        </p>
       </div>
-    <% end %>
+    </div>
+
+    <!-- Save as Product (for part items) -->
+    <div data-save-type="product" class="flex items-start space-x-4 <%= item_type != 'part' ? 'hidden' : '' %>">
+      <label class="inline-flex items-center mt-1">
+        <%= check_box_tag "#{item.object_name}[save_as_product]", '1', save_as_product_checked,
+          class: 'h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500',
+          data: { action: 'change->estimate-line-items#toggleSaveForFuture' } %>
+        <span class="ml-2 text-sm font-medium text-gray-700">Save as Product</span>
+      </label>
+      <div data-field-type="save-product-fields" class="<%= save_as_product_checked ? 'flex-1' : 'hidden flex-1' %>">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-600">Product Type *</label>
+            <% product_type_field_name = "#{item.object_name}[product_type]" %>
+            <div class="relative"
+                 data-controller="dropdown"
+                 data-dropdown-selected-value-value="<%= product_type_value %>">
+              <button type="button"
+                      class="w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      data-dropdown-target="button"
+                      data-action="click->dropdown#toggle">
+                <span class="rich-dropdown-text block truncate text-gray-900"><%= product_type_label %></span>
+                <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <svg class="h-4 w-4 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </span>
+              </button>
+              <div class="absolute z-30 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-sm ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
+                   data-dropdown-target="menu">
+                <% product_type_options.each do |opt| %>
+                  <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+                       data-item-id="<%= opt[:value] %>"
+                       data-item-text="<%= opt[:label] %>"
+                       data-dropdown-target="option"
+                       data-action="click->dropdown#select">
+                    <%= opt[:label] %>
+                  </div>
+                <% end %>
+              </div>
+              <input type="hidden"
+                     name="<%= product_type_field_name %>"
+                     value="<%= product_type_value %>"
+                     data-dropdown-target="hidden">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600">Product Name *</label>
+            <%= text_field_tag "#{item.object_name}[product_name]", item.object.try(:product_name),
+              class: 'block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm',
+              placeholder: 'Enter product name' %>
+          </div>
+        </div>
+        <p class="mt-1 text-xs text-gray-500">
+          Product will be created when estimate is saved. Price auto-set from cost rate.
+        </p>
+      </div>
+    </div>
   </td>
 </tr>
-<% end %>
 

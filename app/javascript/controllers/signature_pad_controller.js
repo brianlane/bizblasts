@@ -21,6 +21,7 @@ export default class extends Controller {
 
   connect() {
     console.log("SignaturePad controller connected")
+    this.boundResizeHandler = this.resizeCanvas.bind(this)
     this.initializeSignaturePad()
     this.validateSignature()
   }
@@ -29,7 +30,9 @@ export default class extends Controller {
     if (this.signaturePad) {
       this.signaturePad.off()
     }
-    window.removeEventListener('resize', this.resizeCanvas.bind(this))
+    if (this.boundResizeHandler) {
+      window.removeEventListener('resize', this.boundResizeHandler)
+    }
   }
 
   initializeSignaturePad() {
@@ -55,7 +58,7 @@ export default class extends Controller {
     })
 
     // Handle window resize
-    window.addEventListener('resize', this.resizeCanvas.bind(this))
+    window.addEventListener('resize', this.boundResizeHandler)
   }
 
   resizeCanvas() {

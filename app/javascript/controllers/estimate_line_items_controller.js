@@ -19,8 +19,13 @@ export default class extends Controller {
   }
 
   connect() {
-    console.log("EstimateLineItems controller connected")
+    this.boundDropdownHandler = this.handleDropdownSelected.bind(this)
+    this.element.addEventListener('dropdown:selected', this.boundDropdownHandler)
     this.updateTotals()
+  }
+
+  disconnect() {
+    this.element.removeEventListener('dropdown:selected', this.boundDropdownHandler)
   }
 
   addItem(event) {
@@ -34,85 +39,123 @@ export default class extends Controller {
     event.preventDefault()
     const item = event.currentTarget.closest('[data-estimate-line-items-target="item"]')
 
+    const siblingRow = item?.nextElementSibling
+    const hasSaveRow = siblingRow?.getAttribute('data-field-type') === 'save-for-future'
+
     const destroyField = item.querySelector("input[name*='_destroy']")
     if (destroyField) {
       destroyField.value = '1'
       item.style.display = 'none'
+      if (hasSaveRow) siblingRow.style.display = 'none'
     } else {
       item.remove()
+      if (hasSaveRow) siblingRow.remove()
     }
 
     this.updateTotals()
+  }
+
+  handleDropdownSelected(event) {
+    const dropdownElement = event.target.closest('[data-controller="dropdown"]')
+    if (!dropdownElement) return
+
+    const fieldType = dropdownElement.dataset.fieldType
+    const { value, element } = event.detail
+
+    switch (fieldType) {
+      case 'item-type':
+        this.handleItemTypeChange(dropdownElement, value || 'service')
+        break
+      case 'service':
+        this.handleServiceSelect(dropdownElement, value, element)
+        break
+      case 'product':
+        this.handleProductSelect(dropdownElement, value, element)
+        break
+    }
   }
 
   changeItemType(event) {
     const item = event.target.closest('[data-estimate-line-items-target="item"]')
-    const itemType = event.target.value
+    this.applyItemTypeChange(item, event.target.value)
+    this.updateTotals()
+  }
 
-    // Show/hide relevant fields based on type
+  handleItemTypeChange(dropdownElement, value) {
+    const item = dropdownElement.closest('[data-estimate-line-items-target="item"]')
+    this.applyItemTypeChange(item, value || 'service')
+    this.updateTotals()
+  }
+
+  applyItemTypeChange(item, itemType) {
+    if (!item) return
+
     const serviceSelect = item.querySelector('[data-field-type="service"]')
     const productSelect = item.querySelector('[data-field-type="product"]')
     const laborFields = item.querySelector('[data-field-type="labor"]')
-    const standardFields = item.querySelector('[data-field-type="standard"]')
-    const saveForFutureSection = item.querySelector('[data-field-type="save-for-future"]')
+    const standardFields = item.querySelectorAll('[data-field-type="standard"]')
+    const saveForFutureSection = item.nextElementSibling
+    const hasSaveRow = saveForFutureSection?.getAttribute('data-field-type') === 'save-for-future'
+    const saveServiceSection = hasSaveRow ? saveForFutureSection.querySelector('[data-save-type="service"]') : null
+    const saveProductSection = hasSaveRow ? saveForFutureSection.querySelector('[data-save-type="product"]') : null
 
-    // Hide all type-specific fields first
     if (serviceSelect) serviceSelect.classList.add('hidden')
     if (productSelect) productSelect.classList.add('hidden')
     if (laborFields) laborFields.classList.add('hidden')
-    if (saveForFutureSection) saveForFutureSection.classList.add('hidden')
-
-    // Hide both save-type sections within save-for-future
-    const saveServiceSection = item.querySelector('[data-save-type="service"]')
-    const saveProductSection = item.querySelector('[data-save-type="product"]')
+    if (hasSaveRow) saveForFutureSection.classList.add('hidden')
     if (saveServiceSection) saveServiceSection.classList.add('hidden')
     if (saveProductSection) saveProductSection.classList.add('hidden')
 
-    // Show relevant fields based on type
     switch (itemType) {
       case 'service':
         if (serviceSelect) serviceSelect.classList.remove('hidden')
-        if (standardFields) standardFields.classList.remove('hidden')
+        standardFields.forEach(el => el.classList.remove('hidden'))
         break
       case 'product':
         if (productSelect) productSelect.classList.remove('hidden')
-        if (standardFields) standardFields.classList.remove('hidden')
+        standardFields.forEach(el => el.classList.remove('hidden'))
         break
       case 'labor':
         if (laborFields) laborFields.classList.remove('hidden')
-        if (standardFields) standardFields.classList.add('hidden')
-        // Show save-for-future section with service save option
-        if (saveForFutureSection) saveForFutureSection.classList.remove('hidden')
-        if (saveServiceSection) saveServiceSection.classList.remove('hidden')
+        standardFields.forEach(el => el.classList.add('hidden'))
+        if (hasSaveRow) {
+          saveForFutureSection.classList.remove('hidden')
+          if (saveServiceSection) saveServiceSection.classList.remove('hidden')
+        }
         break
       case 'part':
-        if (standardFields) standardFields.classList.remove('hidden')
-        // Show save-for-future section with product save option
-        if (saveForFutureSection) saveForFutureSection.classList.remove('hidden')
-        if (saveProductSection) saveProductSection.classList.remove('hidden')
+        standardFields.forEach(el => el.classList.remove('hidden'))
+        if (hasSaveRow) {
+          saveForFutureSection.classList.remove('hidden')
+          if (saveProductSection) saveProductSection.classList.remove('hidden')
+        }
         break
     }
-
-    this.updateTotals()
   }
 
   selectService(event) {
     const item = event.target.closest('[data-estimate-line-items-target="item"]')
-    const serviceId = event.target.value
     const selectedOption = event.target.options[event.target.selectedIndex]
-
-    if (!serviceId || !selectedOption) return
-
-    // Get service data from data attributes
+    if (!selectedOption) return
     const price = selectedOption.dataset.price
     const description = selectedOption.dataset.description
+    this.applyServiceSelection(item, price, description)
+  }
 
-    // Populate fields
+  handleServiceSelect(dropdownElement, value, optionElement) {
+    const item = dropdownElement.closest('[data-estimate-line-items-target="item"]')
+    const price = optionElement?.dataset.price
+    const description = optionElement?.dataset.description
+    this.applyServiceSelection(item, price, description)
+  }
+
+  applyServiceSelection(item, price, description) {
+    if (!item) return
     const descriptionField = item.querySelector('[name*="[description]"]')
     const costRateField = item.querySelector('[name*="[cost_rate]"]')
     const qtyField = item.querySelector('[name*="[qty]"]')
 
-    if (descriptionField && description) descriptionField.value = description
+    if (descriptionField && description && !descriptionField.value) descriptionField.value = description
     if (costRateField && price) costRateField.value = price
     if (qtyField && !qtyField.value) qtyField.value = 1
 
@@ -121,21 +164,27 @@ export default class extends Controller {
 
   selectProduct(event) {
     const item = event.target.closest('[data-estimate-line-items-target="item"]')
-    const productId = event.target.value
     const selectedOption = event.target.options[event.target.selectedIndex]
-
-    if (!productId || !selectedOption) return
-
-    // Get product data from data attributes
+    if (!selectedOption) return
     const price = selectedOption.dataset.price
     const description = selectedOption.dataset.description
+    this.applyProductSelection(item, price, description)
+  }
 
-    // Populate fields
+  handleProductSelect(dropdownElement, value, optionElement) {
+    const item = dropdownElement.closest('[data-estimate-line-items-target="item"]')
+    const price = optionElement?.dataset.price
+    const description = optionElement?.dataset.description
+    this.applyProductSelection(item, price, description)
+  }
+
+  applyProductSelection(item, price, description) {
+    if (!item) return
     const descriptionField = item.querySelector('[name*="[description]"]')
     const costRateField = item.querySelector('[name*="[cost_rate]"]')
     const qtyField = item.querySelector('[name*="[qty]"]')
 
-    if (descriptionField && description) descriptionField.value = description
+    if (descriptionField && description && !descriptionField.value) descriptionField.value = description
     if (costRateField && price) costRateField.value = price
     if (qtyField && !qtyField.value) qtyField.value = 1
 
@@ -273,17 +322,16 @@ export default class extends Controller {
   // "Save for Future Use" functionality - toggle fields visibility
   toggleSaveForFuture(event) {
     const checkbox = event.target
-    const container = checkbox.closest('[data-field-type="save-for-future"]')
-    const fieldsToToggle = container?.querySelector('[data-field-type="save-service-fields"]') ||
-                           container?.querySelector('[data-field-type="save-product-fields"]')
+    const saveForFutureRow = checkbox.closest('[data-field-type="save-for-future"]')
+    const saveTypeContainer = checkbox.closest('[data-save-type]')
+    const fieldsToToggle = saveTypeContainer?.querySelector('[data-field-type="save-service-fields"]') ||
+                           saveTypeContainer?.querySelector('[data-field-type="save-product-fields"]')
 
     if (!fieldsToToggle) return
 
     if (checkbox.checked) {
       fieldsToToggle.classList.remove('hidden')
-      // Auto-populate name from description if available
-      const item = checkbox.closest('tr[data-estimate-line-items-target="item"]') ||
-                   checkbox.closest('template')?.content?.querySelector('tr[data-estimate-line-items-target="item"]')
+      const item = saveForFutureRow?.previousElementSibling
       if (item) {
         const descriptionField = item.querySelector('[name*="[description]"]')
         const nameField = fieldsToToggle.querySelector('[name*="[service_name]"], [name*="[product_name]"]')

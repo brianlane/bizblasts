@@ -41,9 +41,10 @@ class Estimate < ApplicationRecord
   validates :phone, format: { with: /\A(\+1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\z/ }, if: -> { tenant_customer_id.blank? }
   validates :zip, format: { with: /\A\d{5}(-\d{4})?\z/ }, if: -> { tenant_customer_id.blank? }
   validates :total, numericality: { greater_than_or_equal_to: 0 }
+  validates :valid_for_days, numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: 365 }
   validates :estimate_number, uniqueness: { scope: :business_id }, allow_nil: true
 
-  before_validation :calculate_totals
+  before_validation :set_valid_for_days_default, :calculate_totals
   before_create :generate_token, :generate_estimate_number
   after_update :create_version_if_needed, if: :should_version?
 
@@ -256,5 +257,9 @@ class Estimate < ApplicationRecord
     Rails.logger.error("Failed to create estimate version: #{e.message}")
     Rails.logger.error(e.backtrace.join("\n"))
     # Don't raise - versioning failure shouldn't block estimate updates
+  end
+
+  def set_valid_for_days_default
+    self.valid_for_days = 30 if valid_for_days.blank?
   end
 end

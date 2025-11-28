@@ -141,12 +141,25 @@
   <div class="mb-6">
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Proposed Schedule</h3>
 
-    <div class="mb-4">
-      <%= f.label :proposed_start_time, 'Proposed Start Time', class: 'block text-sm font-medium text-gray-700 mb-1' %>
-      <%= f.text_field :proposed_start_time,
-            type: 'datetime-local',
-            value: (@estimate.proposed_start_time ? @estimate.proposed_start_time.strftime('%Y-%m-%dT%H:%M') : nil),
-            class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm' %>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <%= f.label :proposed_start_time, 'Proposed Start Time', class: 'block text-sm font-medium text-gray-700 mb-1' %>
+        <%= f.text_field :proposed_start_time,
+              type: 'datetime-local',
+              value: (@estimate.proposed_start_time ? @estimate.proposed_start_time.strftime('%Y-%m-%dT%H:%M') : nil),
+              class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm' %>
+      </div>
+
+      <div>
+        <%= f.label :valid_for_days, class: 'block text-sm font-medium text-gray-700 mb-1 flex items-center justify-between' do %>
+          <span>Valid For (days)</span>
+          <span class="text-xs text-gray-400">Default 30</span>
+        <% end %>
+        <%= f.number_field :valid_for_days,
+              min: 1, max: 365, step: 1,
+              value: (@estimate.valid_for_days || 30),
+              class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm' %>
+      </div>
     </div>
   </div>
 
@@ -179,7 +192,7 @@
     </div>
 
     <!-- Line Items Table -->
-    <div class="overflow-x-auto border border-gray-200 rounded-lg">
+    <div class="relative border border-gray-200 rounded-lg">
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>
@@ -204,211 +217,9 @@
 
     <!-- Template for new line items -->
     <template data-estimate-line-items-target="template">
-      <tr data-estimate-line-items-target="item">
-        <!-- Item Type -->
-        <td class="px-4 py-3">
-          <select name="estimate[estimate_items_attributes][NEW_RECORD][item_type]"
-                  class="block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  data-action="change->estimate-line-items#changeItemType">
-            <option value="service">Service</option>
-            <option value="product">Product</option>
-            <option value="labor">Labor</option>
-            <option value="part">Part</option>
-          </select>
-        </td>
-
-        <!-- Service/Product Selection / Labor Fields -->
-        <td class="px-4 py-3">
-          <!-- Service Select -->
-          <div data-field-type="service">
-            <select name="estimate[estimate_items_attributes][NEW_RECORD][service_id]"
-                    class="block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    data-action="change->estimate-line-items#selectService">
-              <option value="">-- Select Service --</option>
-              <% @services.each do |service| %>
-                <option value="<%= service.id %>" data-price="<%= service.price %>" data-description="<%= service.name %>">
-                  <%= service.name %>
-                </option>
-              <% end %>
-            </select>
-          </div>
-
-          <!-- Product Select -->
-          <div data-field-type="product" class="hidden">
-            <select name="estimate[estimate_items_attributes][NEW_RECORD][product_id]"
-                    class="block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    data-action="change->estimate-line-items#selectProduct">
-              <option value="">-- Select Product --</option>
-              <% @products.each do |product| %>
-                <option value="<%= product.id %>" data-price="<%= product.price %>" data-description="<%= product.name %>">
-                  <%= product.name %>
-                </option>
-              <% end %>
-            </select>
-          </div>
-
-          <!-- Labor Fields -->
-          <div data-field-type="labor" class="hidden">
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <label class="block text-xs text-gray-500">Hours</label>
-                <input type="number" name="estimate[estimate_items_attributes][NEW_RECORD][hours]"
-                       step="0.5" min="0"
-                       class="block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
-                       placeholder="Hours"
-                       data-action="input->estimate-line-items#calculateLaborTotal" />
-              </div>
-              <div>
-                <label class="block text-xs text-gray-500">Rate/Hr</label>
-                <input type="number" name="estimate[estimate_items_attributes][NEW_RECORD][hourly_rate]"
-                       step="0.01" min="0"
-                       class="block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
-                       placeholder="$/hr"
-                       data-action="input->estimate-line-items#calculateLaborTotal" />
-              </div>
-            </div>
-          </div>
-        </td>
-
-        <!-- Description -->
-        <td class="px-4 py-3">
-          <input type="text" name="estimate[estimate_items_attributes][NEW_RECORD][description]"
-                 class="block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                 placeholder="Description"
-                 data-action="input->estimate-line-items#inputChanged" />
-        </td>
-
-        <!-- Qty (hidden for labor) -->
-        <td class="px-4 py-3">
-          <div data-field-type="standard">
-            <input type="number" name="estimate[estimate_items_attributes][NEW_RECORD][qty]"
-                   min="1" value="1"
-                   class="block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                   placeholder="1"
-                   data-action="input->estimate-line-items#inputChanged" />
-          </div>
-        </td>
-
-        <!-- Rate (hidden for labor) -->
-        <td class="px-4 py-3">
-          <div data-field-type="standard">
-            <input type="number" name="estimate[estimate_items_attributes][NEW_RECORD][cost_rate]"
-                   step="0.01" min="0"
-                   class="block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                   placeholder="0.00"
-                   data-action="input->estimate-line-items#inputChanged" />
-          </div>
-        </td>
-
-        <!-- Tax Rate -->
-        <td class="px-4 py-3">
-          <input type="number" name="estimate[estimate_items_attributes][NEW_RECORD][tax_rate]"
-                 step="0.01" min="0" value="0"
-                 class="block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                 placeholder="0"
-                 data-action="input->estimate-line-items#inputChanged" />
-        </td>
-
-        <!-- Optional -->
-        <td class="px-4 py-3 text-center">
-          <label class="inline-flex items-center">
-            <input type="checkbox" name="estimate[estimate_items_attributes][NEW_RECORD][optional]"
-                   class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                   data-action="change->estimate-line-items#inputChanged" />
-          </label>
-        </td>
-
-        <!-- Line Total -->
-        <td class="px-4 py-3 text-right">
-          <span data-estimate-line-items-target="itemTotal" class="font-medium text-gray-900">$0.00</span>
-        </td>
-
-        <!-- Actions -->
-        <td class="px-4 py-3 text-center">
-          <button type="button"
-                  data-action="estimate-line-items#removeItem"
-                  class="text-red-600 hover:text-red-800">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-            </svg>
-          </button>
-          <input type="hidden" name="estimate[estimate_items_attributes][NEW_RECORD][position]" value="" />
-        </td>
-      </tr>
-
-      <!-- Save for Future Use Section Template (for labor and part items) -->
-      <tr data-field-type="save-for-future" class="bg-blue-50 hidden">
-        <td colspan="9" class="px-4 py-3">
-          <!-- Save as Service (for labor items) -->
-          <div data-save-type="service" class="hidden">
-            <div class="flex items-start space-x-4">
-              <label class="inline-flex items-center mt-1">
-                <input type="checkbox" name="estimate[estimate_items_attributes][NEW_RECORD][save_as_service]"
-                       class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                       data-action="change->estimate-line-items#toggleSaveForFuture">
-                <span class="ml-2 text-sm font-medium text-gray-700">Save as Service</span>
-              </label>
-              <div data-field-type="save-service-fields" class="hidden flex-1">
-                <div class="grid grid-cols-2 gap-4">
-                  <div>
-                    <label class="block text-xs font-medium text-gray-600">Service Type *</label>
-                    <select name="estimate[estimate_items_attributes][NEW_RECORD][service_type]"
-                            class="block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
-                      <option value="">-- Select Type --</option>
-                      <option value="standard">Standard</option>
-                      <option value="experience">Experience</option>
-                      <option value="event">Event</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="block text-xs font-medium text-gray-600">Service Name *</label>
-                    <input type="text" name="estimate[estimate_items_attributes][NEW_RECORD][service_name]"
-                           class="block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
-                           placeholder="Enter service name">
-                  </div>
-                </div>
-                <p class="mt-1 text-xs text-gray-500">
-                  Service will be created when estimate is saved. Duration and price auto-calculated from hours and rate.
-                </p>
-              </div>
-            </div>
-          </div>
-          <!-- Save as Product (for part items) -->
-          <div data-save-type="product" class="hidden">
-            <div class="flex items-start space-x-4">
-              <label class="inline-flex items-center mt-1">
-                <input type="checkbox" name="estimate[estimate_items_attributes][NEW_RECORD][save_as_product]"
-                       class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                       data-action="change->estimate-line-items#toggleSaveForFuture">
-                <span class="ml-2 text-sm font-medium text-gray-700">Save as Product</span>
-              </label>
-              <div data-field-type="save-product-fields" class="hidden flex-1">
-                <div class="grid grid-cols-2 gap-4">
-                  <div>
-                    <label class="block text-xs font-medium text-gray-600">Product Type *</label>
-                    <select name="estimate[estimate_items_attributes][NEW_RECORD][product_type]"
-                            class="block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
-                      <option value="">-- Select Type --</option>
-                      <option value="standard">Standard</option>
-                      <option value="service">Service Product</option>
-                      <option value="mixed">Mixed</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="block text-xs font-medium text-gray-600">Product Name *</label>
-                    <input type="text" name="estimate[estimate_items_attributes][NEW_RECORD][product_name]"
-                           class="block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
-                           placeholder="Enter product name">
-                  </div>
-                </div>
-                <p class="mt-1 text-xs text-gray-500">
-                  Product will be created when estimate is saved. Price auto-set from cost rate.
-                </p>
-              </div>
-            </div>
-          </div>
-        </td>
-      </tr>
+      <%= f.fields_for :estimate_items, EstimateItem.new, child_index: 'NEW_RECORD' do |item_fields| %>
+        <%= render partial: 'estimate_item_fields', locals: { item: item_fields, services: @services, products: @products, is_template: true } %>
+      <% end %>
     </template>
   </div>
 

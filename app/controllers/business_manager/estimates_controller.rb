@@ -27,6 +27,9 @@ class BusinessManager::EstimatesController < BusinessManager::BaseController
   end
 
   def create
+    # Extract save-for-future data BEFORE building estimate
+    save_data = extract_save_for_future_data(params)
+
     # Handle customer selection logic similar to orders controller
     cp = estimate_params.to_h.with_indifferent_access
 
@@ -39,7 +42,6 @@ class BusinessManager::EstimatesController < BusinessManager::BaseController
     end
 
     @estimate = current_business.estimates.build(cp)
-    save_data = extract_save_for_future_data(params)
 
     ActiveRecord::Base.transaction do
       if @estimate.save
@@ -145,8 +147,7 @@ class BusinessManager::EstimatesController < BusinessManager::BaseController
       end
 
       # Recalculate totals after adding all items
-      new_estimate.calculate_totals
-      new_estimate.save
+      new_estimate.recalculate_totals!
 
       redirect_to edit_business_manager_estimate_path(new_estimate),
         notice: 'Estimate duplicated. Make any necessary changes and save.'
@@ -226,7 +227,7 @@ class BusinessManager::EstimatesController < BusinessManager::BaseController
     params.require(:estimate).permit(
       :tenant_customer_id, :proposed_start_time, :proposed_end_time,
       :first_name, :last_name, :email, :phone, :address, :city, :state, :zip,
-      :customer_notes, :internal_notes, :required_deposit,
+      :customer_notes, :internal_notes, :required_deposit, :valid_for_days,
       tenant_customer_attributes: [:id, :first_name, :last_name, :email, :phone, :address],
       estimate_items_attributes: [
         :id, :item_type, :service_id, :product_id, :product_variant_id,
@@ -243,26 +244,28 @@ class BusinessManager::EstimatesController < BusinessManager::BaseController
     return [] unless params[:estimate] && params[:estimate][:estimate_items_attributes]
 
     save_data = []
-    params[:estimate][:estimate_items_attributes].each do |index, item_attrs|
+    params[:estimate][:estimate_items_attributes].values.each_with_index do |item_attrs, row_order|
       # Labor → Service
       if item_attrs[:save_as_service] == '1' && item_attrs[:item_type] == 'labor'
         save_data << {
-          index: index,
+          row_order: row_order,
           type: :service,
           service_type: item_attrs[:service_type],
           name: item_attrs[:service_name],
-          item_attrs: item_attrs
+          description: item_attrs[:description],
+          item_type: 'labor'
         }
       end
 
       # Part → Product
       if item_attrs[:save_as_product] == '1' && item_attrs[:item_type] == 'part'
         save_data << {
-          index: index,
+          row_order: row_order,
           type: :product,
           product_type: item_attrs[:product_type],
           name: item_attrs[:product_name],
-          item_attrs: item_attrs
+          description: item_attrs[:description],
+          item_type: 'part'
         }
       end
     end
@@ -273,7 +276,7 @@ class BusinessManager::EstimatesController < BusinessManager::BaseController
   # Process all save-for-future requests after estimate is created
   def process_save_for_future(save_data)
     save_data.each do |data|
-      item = find_estimate_item_by_index(data[:index])
+      item = find_estimate_item_by_data(data)
       next unless item
 
       if data[:type] == :service
@@ -284,10 +287,17 @@ class BusinessManager::EstimatesController < BusinessManager::BaseController
     end
   end
 
-  # Find estimate item by form index
-  def find_estimate_item_by_index(index)
-    # Items are created in order, so we can match by position
-    @estimate.estimate_items.order(:position)[index.to_i]
+  # Find estimate item by description and type (more reliable than position)
+  def find_estimate_item_by_data(data)
+    ordered_items = @estimate.estimate_items.order(:position)
+    item = ordered_items[data[:row_order].to_i] if data[:row_order]
+    return item if item
+
+    # Fallback to matching by description/item type if ordering fails
+    ordered_items.find_by(
+      description: data[:description],
+      item_type: data[:item_type]
+    )
   end
 
   # Create service from labor item and convert item type
