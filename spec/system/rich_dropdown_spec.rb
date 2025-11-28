@@ -145,10 +145,10 @@ RSpec.describe 'Rich Dropdown Functionality', type: :system, js: true do
         # Select staff member
         find('#public_booking_staff_dropdown [data-dropdown-target="button"]').click
         find('#public_booking_staff_dropdown [data-dropdown-target="option"]', text: staff_members.first.name).click
-        
-        # Check hidden field is updated
-        hidden_field = find('#public_booking_staff_dropdown_hidden', visible: false)
-        expect(hidden_field.value).to eq(staff_members.first.id.to_s)
+
+        # Check native select field is updated (rich dropdown uses a select element, not hidden input)
+        native_select = find('select.rich-dropdown-native-select[name="booking[staff_member_id]"]', visible: :all)
+        expect(native_select.value).to eq(staff_members.first.id.to_s)
       end
     end
 
@@ -224,9 +224,9 @@ RSpec.describe 'Rich Dropdown Functionality', type: :system, js: true do
     end
 
     it 'maintains same field names as collection_select' do
-      # Check that form field names are preserved
+      # Check that form field names are preserved (rich dropdown uses select elements)
       expect(page).to have_css('input[name="booking[service_id]"]', visible: false)
-      expect(page).to have_css('input[name="booking[staff_member_id]"]', visible: false)
+      expect(page).to have_css('select[name="booking[staff_member_id]"]', visible: :all)
     end
 
     it 'triggers change events for form validation' do

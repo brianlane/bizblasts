@@ -1,4 +1,75 @@
-<p>Hello <%= @estimate.tenant_customer&.full_name || @estimate.first_name %>,</p>
-<p>This email confirms that you have approved Estimate ##<%= @estimate.id %>.</p>
-<p>If a deposit was required, you should have received a separate invoice to complete payment. Otherwise, we will be in touch shortly to confirm your booking.</p>
-<p>Thank you!</p> 
+<!DOCTYPE html>
+<html>
+  <body>
+    <h2>Estimate Approved!</h2>
+    
+    <p>Great news! A customer has approved an estimate and paid the deposit.</p>
+    
+    <h3>Estimate Details</h3>
+    <p>
+      <strong>Estimate Number:</strong> <%= @estimate.estimate_number || "##{@estimate.id}" %><br>
+      <strong>Customer:</strong> <%= @estimate.customer_full_name %><br>
+      <strong>Email:</strong> <%= @estimate.customer_email %><br>
+      <% if @estimate.customer_phone.present? %>
+        <strong>Phone:</strong> <%= @estimate.customer_phone %><br>
+      <% end %>
+      <strong>Total:</strong> <%= number_to_currency(@estimate.total) %><br>
+      <% if @estimate.required_deposit.present? && @estimate.required_deposit > 0 %>
+        <strong>Deposit Paid:</strong> <%= number_to_currency(@estimate.required_deposit) %><br>
+        <strong>Remaining Balance:</strong> <%= number_to_currency(@estimate.remaining_balance) %><br>
+      <% end %>
+      <strong>Approved At:</strong> <%= @estimate.approved_at&.strftime('%B %d, %Y at %I:%M %p') %>
+    </p>
+    
+    <% if @estimate.proposed_start_time.present? %>
+      <p><strong>Proposed Start Date:</strong> <%= @estimate.proposed_start_time.strftime('%B %d, %Y') %></p>
+    <% end %>
+    
+    <h3>Customer Address</h3>
+    <p><%= @estimate.full_address %></p>
+    
+    <% if @estimate.customer_notes.present? %>
+      <h3>Customer Notes</h3>
+      <p><%= @estimate.customer_notes %></p>
+    <% end %>
+    
+    <h3>Line Items</h3>
+    <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th>Qty</th>
+          <th>Rate</th>
+          <th>Total</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @estimate.estimate_items.by_position.each do |item| %>
+          <tr style="<%= item.customer_declined? ? 'color: #999; text-decoration: line-through;' : '' %>">
+            <td><%= item.display_name %></td>
+            <td><%= item.qty %></td>
+            <td><%= number_to_currency(item.cost_rate) %></td>
+            <td><%= number_to_currency(item.total) %></td>
+            <td>
+              <% if item.optional? %>
+                <% if item.customer_declined? %>
+                  <span style="color: #999;">Declined</span>
+                <% else %>
+                  <span style="color: #28A745;">Selected</span>
+                <% end %>
+              <% else %>
+                Required
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+    
+    <h3>Next Steps</h3>
+    <p>A booking has been created for this customer. Please contact them to confirm the start date and begin work.</p>
+    
+    <p>You can view the full estimate details in your business manager dashboard.</p>
+  </body>
+</html>

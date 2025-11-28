@@ -1,13 +1,101 @@
-<% content_for :title, "Estimate ##{@estimate.id}" %>
+<% content_for :title, "Estimate #{@estimate.estimate_number || "##{@estimate.id}"}" %>
 
 <div class="container mx-auto px-4 py-6">
   <div class="flex items-center justify-between mb-4">
-    <h1 class="text-2xl font-bold">Estimate #<%= @estimate.id %></h1>
-    <div class="space-x-2">
-      <%= link_to 'Edit', edit_business_manager_estimate_path(@estimate), class: 'inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700' %>
-      <%= button_to 'Delete', business_manager_estimate_path(@estimate), method: :delete, data: { confirm: 'Are you sure you want to delete this estimate?' }, class: 'inline-flex items-center px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 cursor-pointer' %>
-      <%= button_to 'Send to Customer', send_to_customer_business_manager_estimate_path(@estimate), method: :patch, data: { confirm: 'Send this estimate to the customer?' }, class: 'inline-flex items-center px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 cursor-pointer' %>
+    <div>
+      <h1 class="text-2xl font-bold">Estimate <%= @estimate.estimate_number || "##{@estimate.id}" %></h1>
+      <p class="text-sm text-gray-500">
+        Version <%= @estimate.current_version %> of <%= @estimate.total_versions %>
+        <% if @estimate.total_versions > 1 %>
+          •
+          <%= link_to "View history", versions_business_manager_estimate_path(@estimate), class: "text-blue-600 hover:text-blue-800" %>
+        <% end %>
+      </p>
     </div>
+    <div class="flex flex-wrap gap-2">
+      <%= link_to edit_business_manager_estimate_path(@estimate),
+        class: 'inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700' do %>
+        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        </svg>
+        Edit
+      <% end %>
+
+      <%= button_to duplicate_business_manager_estimate_path(@estimate),
+        method: :post,
+        data: { turbo_confirm: 'Create a copy of this estimate?' },
+        class: 'inline-flex items-center px-3 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 cursor-pointer' do %>
+        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+        </svg>
+        Duplicate
+      <% end %>
+
+      <%= link_to download_pdf_business_manager_estimate_path(@estimate),
+        class: 'inline-flex items-center px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700' do %>
+        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        PDF
+      <% end %>
+
+      <% if @estimate.total_versions > 1 %>
+        <%= link_to versions_business_manager_estimate_path(@estimate),
+          class: 'inline-flex items-center px-3 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700' do %>
+          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          History (<%= @estimate.total_versions %>)
+        <% end %>
+      <% end %>
+
+      <% unless @estimate.sent? || @estimate.viewed? || @estimate.approved? || @estimate.declined? %>
+        <%= button_to send_to_customer_business_manager_estimate_path(@estimate),
+          method: :patch,
+          data: { turbo_confirm: 'Send this estimate to the customer?' },
+          class: 'inline-flex items-center px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 cursor-pointer' do %>
+          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+          </svg>
+          Send to Customer
+        <% end %>
+      <% end %>
+
+      <%= button_to business_manager_estimate_path(@estimate),
+        method: :delete,
+        data: { turbo_confirm: 'Are you sure you want to delete this estimate?' },
+        class: 'inline-flex items-center px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 cursor-pointer' do %>
+        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+        </svg>
+        Delete
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Status Badge -->
+  <div class="mb-6">
+    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+      <%= case @estimate.status
+          when 'draft' then 'bg-gray-100 text-gray-800'
+          when 'sent' then 'bg-blue-100 text-blue-800'
+          when 'viewed' then 'bg-yellow-100 text-yellow-800'
+          when 'pending_payment' then 'bg-orange-100 text-orange-800'
+          when 'approved' then 'bg-green-100 text-green-800'
+          when 'declined' then 'bg-red-100 text-red-800'
+          when 'cancelled' then 'bg-gray-100 text-gray-800'
+          else 'bg-gray-100 text-gray-800'
+          end %>">
+      <%= @estimate.status&.humanize || 'Draft' %>
+    </span>
+    <% if @estimate.signed? %>
+      <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        Signed by <%= @estimate.signature_name %>
+      </span>
+    <% end %>
   </div>
 
   <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
@@ -17,10 +105,19 @@
           <dt class="font-medium text-gray-600">Customer</dt>
           <dd class="col-span-2"><%= @estimate.tenant_customer.full_name %> (<%= @estimate.tenant_customer.email %>)</dd>
         </div>
+      <% else %>
+        <div class="p-4 grid grid-cols-3 gap-4">
+          <dt class="font-medium text-gray-600">Customer</dt>
+          <dd class="col-span-2"><%= @estimate.customer_full_name %> (<%= @estimate.customer_email %>)</dd>
+        </div>
       <% end %>
       <div class="p-4 grid grid-cols-3 gap-4">
         <dt class="font-medium text-gray-600">Proposed Start</dt>
-        <dd class="col-span-2"><%= @estimate.proposed_start_time.strftime('%B %d, %Y %I:%M %p') if @estimate.proposed_start_time %></dd>
+        <dd class="col-span-2"><%= @estimate.proposed_start_time&.strftime('%B %d, %Y %I:%M %p') || 'Not specified' %></dd>
+      </div>
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <dt class="font-medium text-gray-600">Valid For</dt>
+        <dd class="col-span-2"><%= pluralize(@estimate.valid_for_days || 30, 'day') %></dd>
       </div>
       <div class="p-4 grid grid-cols-3 gap-4">
         <dt class="font-medium text-gray-600">Required Deposit</dt>
@@ -36,12 +133,20 @@
       </div>
       <div class="p-4 grid grid-cols-3 gap-4">
         <dt class="font-medium text-gray-600">Total</dt>
-        <dd class="col-span-2"><%= number_to_currency(@estimate.total) %></dd>
+        <dd class="col-span-2 font-bold text-lg"><%= number_to_currency(@estimate.total) %></dd>
       </div>
-      <div class="p-4 grid grid-cols-3 gap-4">
-        <dt class="font-medium text-gray-600">Status</dt>
-        <dd class="col-span-2"><%= @estimate.status&.humanize || 'draft' %></dd>
-      </div>
+
+      <% if @estimate.has_optional_items? %>
+        <div class="p-4 grid grid-cols-3 gap-4 bg-yellow-50">
+          <dt class="font-medium text-gray-600">Optional Items</dt>
+          <dd class="col-span-2">
+            <span class="text-sm text-gray-500">
+              Additional <%= number_to_currency(@estimate.optional_items_subtotal) %> + <%= number_to_currency(@estimate.optional_items_taxes) %> taxes
+            </span>
+          </dd>
+        </div>
+      <% end %>
+
       <% if @estimate.sent_at %>
         <div class="p-4 grid grid-cols-3 gap-4">
           <dt class="font-medium text-gray-600">Sent At</dt>
@@ -55,41 +160,121 @@
         </div>
       <% end %>
       <% if @estimate.approved_at %>
-        <div class="p-4 grid grid-cols-3 gap-4">
+        <div class="p-4 grid grid-cols-3 gap-4 bg-green-50">
           <dt class="font-medium text-gray-600">Approved At</dt>
           <dd class="col-span-2"><%= @estimate.approved_at.strftime('%B %d, %Y %I:%M %p') %></dd>
+        </div>
+      <% end %>
+      <% if @estimate.declined_at %>
+        <div class="p-4 grid grid-cols-3 gap-4 bg-red-50">
+          <dt class="font-medium text-gray-600">Declined At</dt>
+          <dd class="col-span-2"><%= @estimate.declined_at.strftime('%B %d, %Y %I:%M %p') %></dd>
+        </div>
+      <% end %>
+      <% if @estimate.deposit_paid_at %>
+        <div class="p-4 grid grid-cols-3 gap-4 bg-green-50">
+          <dt class="font-medium text-gray-600">Deposit Paid At</dt>
+          <dd class="col-span-2"><%= @estimate.deposit_paid_at.strftime('%B %d, %Y %I:%M %p') %></dd>
         </div>
       <% end %>
     </dl>
   </div>
 
   <h2 class="text-xl font-semibold mb-2">Line Items</h2>
-  <div class="bg-white shadow sm:rounded-lg overflow-x-auto">
+  <div class="bg-white shadow sm:rounded-lg overflow-x-auto mb-6">
     <table class="min-w-full divide-y divide-gray-200">
       <thead class="bg-gray-50">
         <tr>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tax</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
         </tr>
       </thead>
       <tbody class="bg-white divide-y divide-gray-200">
-        <% @estimate.estimate_items.each do |item| %>
-          <tr>
-            <td class="px-6 py-4 whitespace-nowrap"><%= item.service&.name || '-' %></td>
-            <td class="px-6 py-4 whitespace-nowrap"><%= item.description %></td>
-            <td class="px-6 py-4 whitespace-nowrap"><%= item.qty %></td>
-            <td class="px-6 py-4 whitespace-nowrap"><%= number_to_currency(item.cost_rate) %></td>
+        <% @estimate.estimate_items.order(:position).each do |item| %>
+          <tr class="<%= item.customer_declined? ? 'bg-gray-50 text-gray-400' : '' %>">
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                <%= case item.item_type
+                    when 'service' then 'bg-blue-100 text-blue-800'
+                    when 'product' then 'bg-purple-100 text-purple-800'
+                    when 'labor' then 'bg-orange-100 text-orange-800'
+                    when 'part' then 'bg-gray-100 text-gray-800'
+                    when 'misc' then 'bg-yellow-100 text-yellow-800'
+                    else 'bg-gray-100 text-gray-800'
+                    end %>">
+                <%= item.item_type.humanize %>
+              </span>
+            </td>
+            <td class="px-6 py-4">
+              <div class="<%= item.customer_declined? ? 'line-through' : '' %>">
+                <%= item.display_name %>
+              </div>
+              <% if item.description.present? && item.description != item.display_name %>
+                <div class="text-sm text-gray-500"><%= item.description.truncate(50) %></div>
+              <% end %>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <% if item.labor? %>
+                <%= item.hours %> hrs
+              <% else %>
+                <%= item.qty %>
+              <% end %>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <% if item.labor? %>
+                <%= number_to_currency(item.hourly_rate) %>/hr
+              <% else %>
+                <%= number_to_currency(item.cost_rate) %>
+              <% end %>
+            </td>
             <td class="px-6 py-4 whitespace-nowrap"><%= number_to_currency(item.tax_amount) %></td>
-            <td class="px-6 py-4 whitespace-nowrap"><%= number_to_currency(item.total) %></td>
+            <td class="px-6 py-4 whitespace-nowrap font-medium"><%= number_to_currency(item.total) %></td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <% if item.optional? %>
+                <% if item.customer_declined? %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                    Declined
+                  </span>
+                <% elsif item.customer_selected? %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                    Selected
+                  </span>
+                <% else %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                    Optional
+                  </span>
+                <% end %>
+              <% else %>
+                <span class="text-gray-400 text-xs">Required</span>
+              <% end %>
+            </td>
           </tr>
         <% end %>
       </tbody>
     </table>
   </div>
 
-  <%= link_to 'Back to Estimates', business_manager_estimates_path, class: 'mt-4 text-blue-600 hover:text-blue-800' %>
-</div> 
+  <% if @estimate.customer_notes.present? || @estimate.internal_notes.present? %>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <% if @estimate.customer_notes.present? %>
+        <div class="bg-white shadow sm:rounded-lg p-4">
+          <h3 class="text-sm font-medium text-gray-700 mb-2">Customer Notes</h3>
+          <p class="text-gray-600"><%= simple_format(@estimate.customer_notes) %></p>
+        </div>
+      <% end %>
+      <% if @estimate.internal_notes.present? %>
+        <div class="bg-yellow-50 shadow sm:rounded-lg p-4">
+          <h3 class="text-sm font-medium text-gray-700 mb-2">Internal Notes (Not visible to customer)</h3>
+          <p class="text-gray-600"><%= simple_format(@estimate.internal_notes) %></p>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%= link_to 'Back to Estimates', business_manager_estimates_path, class: 'mt-4 inline-flex items-center text-blue-600 hover:text-blue-800' %>
+</div>

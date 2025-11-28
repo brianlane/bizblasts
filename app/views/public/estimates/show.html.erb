@@ -1,85 +1,367 @@
-<% content_for :title, "Your Estimate" %>
+<% content_for :title, "Estimate #{@estimate.estimate_number || "##{@estimate.id}"}" %>
 
-<div class="container mx-auto px-4 py-6 max-w-2xl">
-  <h1 class="text-2xl font-bold mb-4">Estimate #<%= @estimate.id %></h1>
-
-  <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
-    <dl class="divide-y divide-gray-200">
-      <div class="p-4 grid grid-cols-3 gap-4">
-        <dt class="font-medium text-gray-600">Estimate Date</dt>
-        <dd class="col-span-2"><%= @estimate.created_at.strftime('%B %d, %Y') %></dd>
-      </div>
-      <div class="p-4 grid grid-cols-3 gap-4">
-        <dt class="font-medium text-gray-600">Proposed Start</dt>
-        <dd class="col-span-2"><%= @estimate.proposed_start_time.strftime('%B %d, %Y %I:%M %p') if @estimate.proposed_start_time %></dd>
-      </div>
-      <div class="p-4 grid grid-cols-3 gap-4">
-        <dt class="font-medium text-gray-600">Subtotal</dt>
-        <dd class="col-span-2"><%= number_to_currency(@estimate.subtotal) %></dd>
-      </div>
-      <div class="p-4 grid grid-cols-3 gap-4">
-        <dt class="font-medium text-gray-600">Taxes</dt>
-        <dd class="col-span-2"><%= number_to_currency(@estimate.taxes) %></dd>
-      </div>
-      <div class="p-4 grid grid-cols-3 gap-4">
-        <dt class="font-medium text-gray-600">Total</dt>
-        <dd class="col-span-2"><%= number_to_currency(@estimate.total) %></dd>
-      </div>
-    </dl>
-  </div>
-
-  <h2 class="text-xl font-semibold mb-2">Line Items</h2>
-  <div class="bg-white shadow sm:rounded-lg overflow-x-auto mb-6">
-    <table class="min-w-full divide-y divide-gray-200">
-      <thead class="bg-gray-50">
-        <tr>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-        </tr>
-      </thead>
-      <tbody class="bg-white divide-y divide-gray-200">
-        <% @estimate.estimate_items.each do |item| %>
-          <tr>
-            <td class="px-6 py-4 whitespace-nowrap"><%= item.service&.name || '-' %></td>
-            <td class="px-6 py-4 whitespace-nowrap"><%= item.description %></td>
-            <td class="px-6 py-4 whitespace-nowrap"><%= item.qty %></td>
-            <td class="px-6 py-4 whitespace-nowrap"><%= number_to_currency(item.cost_rate) %></td>
-            <td class="px-6 py-4 whitespace-nowrap"><%= number_to_currency(item.total) %></td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
-  </div>
-
-  <% if @estimate.draft? || @estimate.sent? || @estimate.viewed? %>
-    <div class="flex space-x-4">
-      <%= button_to 'Approve Estimate', approve_public_estimate_path(token: @estimate.token), method: :patch, data: { turbo_confirm: 'Approve this estimate?' }, class: 'bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded cursor-pointer' %>
-      <%= button_to 'Decline Estimate', decline_public_estimate_path(token: @estimate.token), method: :patch, data: { turbo_confirm: 'Decline this estimate?' }, class: 'bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded cursor-pointer' %>
-    </div>
-    <div class="mt-4">
-      <%= form_with url: request_changes_public_estimate_path(token: @estimate.token), method: :post, local: true, class: "space-y-2" do |f| %>
-        <%= f.label :changes_request, 'Request Changes', class: 'block text-sm font-medium text-gray-700' %>
-        <%= f.text_area :changes_request, rows: 3, placeholder: 'Describe what changes you would like...', class: 'mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm' %>
-        <%= f.submit 'Send Change Request', class: 'bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded cursor-pointer' %>
-      <% end %>
-    </div>
-  <% elsif @estimate.approved? %>
-    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-      <strong>Approved!</strong> This estimate was approved on <%= @estimate.approved_at&.strftime('%B %d, %Y at %I:%M %p') %>.
-      <% if @estimate.booking.present? %>
-        Your booking has been created.
-      <% end %>
-    </div>
-  <% elsif @estimate.declined? %>
-    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-      <strong>Declined</strong> This estimate was declined on <%= @estimate.declined_at&.strftime('%B %d, %Y at %I:%M %p') %>.
-    </div>
-  <% elsif @estimate.cancelled? %>
-    <div class="bg-gray-100 border border-gray-400 text-gray-700 px-4 py-3 rounded">
-      <strong>Cancelled</strong> This estimate has been cancelled.
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+  <!-- Flash Messages -->
+  <% if flash[:success] %>
+    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6" role="alert">
+      <%= flash[:success] %>
     </div>
   <% end %>
-</div> 
+  <% if flash[:alert] %>
+    <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-6" role="alert">
+      <%= flash[:alert] %>
+    </div>
+  <% end %>
+
+  <!-- Header -->
+  <div class="bg-white shadow rounded-lg p-6 mb-6">
+    <div class="flex justify-between items-start">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900"><%= @estimate.business.name %></h1>
+        <p class="text-gray-500">Estimate <%= @estimate.estimate_number || "##{@estimate.id}" %></p>
+      </div>
+      <div class="text-right">
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+          <%= case @estimate.status
+              when 'draft' then 'bg-gray-100 text-gray-800'
+              when 'sent', 'viewed' then 'bg-blue-100 text-blue-800'
+              when 'pending_payment' then 'bg-yellow-100 text-yellow-800'
+              when 'approved' then 'bg-green-100 text-green-800'
+              when 'declined' then 'bg-red-100 text-red-800'
+              when 'cancelled' then 'bg-gray-100 text-gray-800'
+              else 'bg-gray-100 text-gray-800'
+              end %>">
+          <%= @estimate.status.titleize %>
+        </span>
+      </div>
+    </div>
+    
+    <div class="mt-4 grid grid-cols-2 gap-4 text-sm">
+      <div>
+        <span class="text-gray-500">Date:</span>
+        <span class="ml-2"><%= @estimate.created_at.strftime('%B %d, %Y') %></span>
+      </div>
+      <% if @estimate.proposed_start_time %>
+        <div>
+          <span class="text-gray-500">Proposed Start:</span>
+          <span class="ml-2"><%= @estimate.proposed_start_time.strftime('%B %d, %Y') %></span>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Line Items -->
+  <div class="bg-white shadow rounded-lg overflow-hidden mb-6">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-lg font-semibold text-gray-900">Line Items</h2>
+    </div>
+    
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Item</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Qty</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Rate</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <!-- Required Items -->
+          <% @estimate.required_items.each do |item| %>
+            <tr>
+              <td class="px-6 py-4">
+                <div class="font-medium text-gray-900"><%= item.display_name %></div>
+                <% if item.description.present? && item.description != item.display_name %>
+                  <div class="text-sm text-gray-500"><%= item.description.truncate(60) %></div>
+                <% end %>
+              </td>
+              <td class="px-6 py-4 text-gray-900"><%= item.qty %></td>
+              <td class="px-6 py-4 text-right text-gray-900"><%= number_to_currency(item.cost_rate) %></td>
+              <td class="px-6 py-4 text-right font-medium text-gray-900"><%= number_to_currency(item.total) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Totals -->
+    <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
+      <div id="estimate-total-display"
+           data-base-subtotal="<%= @estimate.required_items.sum(&:total) %>"
+           data-base-taxes="<%= @estimate.required_items.sum(&:tax_amount) %>">
+        <div class="flex justify-between py-2">
+          <span class="text-gray-600">Subtotal</span>
+          <span id="subtotal-amount" class="font-medium"><%= number_to_currency(@estimate.subtotal) %></span>
+        </div>
+        <div class="flex justify-between py-2">
+          <span class="text-gray-600">Taxes</span>
+          <span id="taxes-amount" class="font-medium"><%= number_to_currency(@estimate.taxes) %></span>
+        </div>
+        <div class="flex justify-between py-2 text-lg border-t border-gray-200 mt-2 pt-4">
+          <span class="font-bold text-gray-900">Total</span>
+          <span id="total-amount" class="font-bold text-primary"><%= number_to_currency(@estimate.total) %></span>
+        </div>
+        <% if @estimate.required_deposit.present? && @estimate.required_deposit > 0 %>
+          <div class="flex justify-between py-2 text-sm mt-2">
+            <span class="text-gray-600">Deposit Required</span>
+            <span class="font-medium text-primary"><%= number_to_currency(@estimate.required_deposit) %></span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customer Notes -->
+  <% if @estimate.customer_notes.present? %>
+    <div class="bg-white shadow rounded-lg p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-2">Notes</h2>
+      <p class="text-gray-700"><%= simple_format(@estimate.customer_notes) %></p>
+    </div>
+  <% end %>
+
+  <!-- Status-specific Actions -->
+  <% if @estimate.can_approve? %>
+    <!-- Signature and Approval Form -->
+    <div class="bg-white shadow rounded-lg p-6" data-controller="signature-pad" data-signature-pad-required-value="true">
+      <%= form_with url: approve_public_estimate_path(token: @estimate.token), method: :patch, local: true, id: "approval-form" do |f| %>
+        <!-- Optional Items Section - moved inside form -->
+        <% if @estimate.has_optional_items? %>
+          <div class="mb-6 pb-6 border-b border-gray-200">
+            <h3 class="text-sm font-semibold text-gray-700 uppercase mb-2">Optional Items</h3>
+            <p class="text-sm text-gray-500 mb-4">Select the optional items you would like to include:</p>
+
+            <div id="optional-items-container">
+              <table class="min-w-full divide-y divide-gray-200">
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <% @estimate.optional_items_for_customer.each do |item| %>
+                    <tr data-signature-pad-target="optionalItem"
+                        data-subtotal="<%= item.total %>"
+                        data-taxes="<%= item.tax_amount %>"
+                        class="<%= item.customer_declined? ? 'bg-gray-50 line-through text-gray-400' : '' %>">
+                      <td class="px-6 py-4 w-12">
+                        <input type="checkbox"
+                          name="selected_optional_items[]"
+                          value="<%= item.id %>"
+                          <%= item.customer_selected? ? 'checked' : '' %>
+                          data-signature-pad-target="optionalItemCheckbox"
+                          data-action="change->signature-pad#toggleOptionalItem"
+                          class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                      </td>
+                      <td class="px-6 py-4">
+                        <div class="font-medium <%= item.customer_declined? ? 'text-gray-400' : 'text-gray-900' %>">
+                          <%= item.display_name %>
+                          <% if item.customer_declined? %>
+                            <span class="ml-2 text-xs text-red-500">(Declined)</span>
+                          <% end %>
+                        </div>
+                        <% if item.description.present? %>
+                          <div class="text-sm text-gray-500"><%= item.description.truncate(60) %></div>
+                        <% end %>
+                      </td>
+                      <td class="px-6 py-4 text-gray-900"><%= item.qty %></td>
+                      <td class="px-6 py-4 text-right text-gray-900"><%= number_to_currency(item.cost_rate) %></td>
+                      <td class="px-6 py-4 text-right font-medium text-gray-900"><%= number_to_currency(item.total) %></td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        <% end %>
+
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Approve & Pay</h2>
+
+        <div class="mb-6">
+          <p class="text-gray-600 mb-4">
+            By signing below, you agree to the terms of this estimate and authorize
+            <strong><%= @estimate.business.name %></strong> to proceed with the work described above.
+          </p>
+
+          <% if @estimate.required_deposit.present? && @estimate.required_deposit > 0 %>
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <p class="text-blue-800">
+                <strong>Deposit Required:</strong> A deposit of <%= number_to_currency(@estimate.required_deposit) %>
+                will be collected to confirm this estimate. The remaining balance will be due upon completion.
+              </p>
+            </div>
+          <% end %>
+        </div>
+        <!-- Signature Name -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Your Full Name</label>
+          <input type="text"
+            name="signature_name"
+            data-signature-pad-target="signatureName"
+            data-action="input->signature-pad#nameChanged"
+            class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Enter your full name"
+            required>
+        </div>
+
+        <!-- Signature Pad -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Your Signature</label>
+          <div class="border border-gray-300 rounded-md bg-white" style="height: 150px;">
+            <canvas data-signature-pad-target="canvas" class="w-full h-full rounded-md"></canvas>
+          </div>
+          <input type="hidden" name="signature_data" data-signature-pad-target="signatureData">
+          <div class="mt-2 flex justify-between items-center">
+            <button type="button"
+              data-action="signature-pad#clearSignature"
+              data-signature-pad-target="clearButton"
+              class="text-sm text-gray-500 hover:text-gray-700">
+              Clear Signature
+            </button>
+            <span data-signature-pad-target="validationMessage" class="text-sm text-red-600 hidden"></span>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex space-x-4">
+          <button type="submit"
+            data-signature-pad-target="submitButton"
+            data-action="signature-pad#prepareSubmission"
+            disabled
+            class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
+            <% if @estimate.required_deposit.present? && @estimate.required_deposit > 0 %>
+              Approve & Pay Deposit (<%= number_to_currency(@estimate.required_deposit) %>)
+            <% else %>
+              Approve & Pay (<%= number_to_currency(@estimate.total) %>)
+            <% end %>
+          </button>
+        </div>
+      <% end %>
+      
+      <!-- Decline and Request Changes -->
+      <div class="mt-6 pt-6 border-t border-gray-200">
+        <div class="flex space-x-4">
+          <%= button_to 'Decline Estimate',
+            decline_public_estimate_path(token: @estimate.token),
+            method: :patch,
+            data: { turbo_confirm: 'Are you sure you want to decline this estimate?' },
+            class: 'text-red-600 hover:text-red-800 font-medium' %>
+        </div>
+        
+        <div class="mt-4">
+          <details class="group">
+            <summary class="cursor-pointer text-gray-600 hover:text-gray-800 font-medium list-none flex items-center">
+              <svg class="w-4 h-4 mr-2 transform group-open:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+              Request Changes
+            </summary>
+            <div class="mt-4">
+              <%= form_with url: request_changes_public_estimate_path(token: @estimate.token), method: :post, local: true do |f| %>
+                <%= f.text_area :changes_request,
+                  rows: 3,
+                  placeholder: 'Describe what changes you would like...',
+                  class: 'block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm' %>
+                <%= f.submit 'Send Change Request',
+                  class: 'mt-2 bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-2 px-4 rounded cursor-pointer' %>
+              <% end %>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+
+  <% elsif @estimate.pending_payment? %>
+    <!-- Pending Payment Status -->
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
+      <div class="flex items-center mb-4">
+        <svg class="w-8 h-8 text-yellow-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div>
+          <h3 class="text-lg font-bold text-yellow-800">Payment Pending</h3>
+          <p class="text-yellow-700">Your signature was captured. Please complete payment to approve this estimate.</p>
+        </div>
+      </div>
+      
+      <div class="flex space-x-4">
+        <%= button_to 'Decline Estimate',
+          decline_public_estimate_path(token: @estimate.token),
+          method: :patch,
+          data: { turbo_confirm: 'Are you sure you want to decline this estimate?' },
+          class: 'text-red-600 hover:text-red-800 font-medium' %>
+      </div>
+    </div>
+
+  <% elsif @estimate.approved? %>
+    <!-- Approved Status -->
+    <div class="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+      <div class="flex items-center mb-4">
+        <svg class="w-8 h-8 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div>
+          <h3 class="text-lg font-bold text-green-800">Estimate Approved!</h3>
+          <p class="text-green-700">
+            Approved on <%= @estimate.approved_at&.strftime('%B %d, %Y at %I:%M %p') %>
+            <% if @estimate.signed? %>
+              by <%= @estimate.signature_name %>
+            <% end %>
+          </p>
+        </div>
+      </div>
+      
+      <% if @estimate.booking.present? %>
+        <p class="text-green-700">Your booking has been created. We'll be in touch soon!</p>
+      <% end %>
+      
+      <% if @estimate.pdf.attached? %>
+        <div class="mt-4">
+          <%= link_to download_public_estimate_pdf_path(token: @estimate.token),
+            class: 'inline-flex items-center text-green-700 hover:text-green-900 font-medium' do %>
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            Download Signed Estimate PDF
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+  <% elsif @estimate.declined? %>
+    <!-- Declined Status -->
+    <div class="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+      <div class="flex items-center">
+        <svg class="w-8 h-8 text-red-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div>
+          <h3 class="text-lg font-bold text-red-800">Estimate Declined</h3>
+          <p class="text-red-700">
+            This estimate was declined on <%= @estimate.declined_at&.strftime('%B %d, %Y at %I:%M %p') %>.
+          </p>
+        </div>
+      </div>
+    </div>
+
+  <% elsif @estimate.cancelled? %>
+    <!-- Cancelled Status -->
+    <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
+      <div class="flex items-center">
+        <svg class="w-8 h-8 text-gray-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+        </svg>
+        <div>
+          <h3 class="text-lg font-bold text-gray-800">Estimate Cancelled</h3>
+          <p class="text-gray-700">This estimate has been cancelled.</p>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Contact Info -->
+  <div class="text-center mt-8 text-gray-500 text-sm">
+    <p>Questions? Contact <%= @estimate.business.name %></p>
+    <% if @estimate.business.email.present? %>
+      <p><%= mail_to @estimate.business.email, @estimate.business.email %></p>
+    <% end %>
+    <% if @estimate.business.phone.present? %>
+      <p><%= @estimate.business.phone %></p>
+    <% end %>
+  </div>
+</div>

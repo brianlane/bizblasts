@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <p>Hello <%= @estimate.customer_full_name %>,</p>
+    
+    <p>Thank you! Your deposit payment has been received and your estimate has been <strong>approved</strong>.</p>
+    
+    <h3>Payment Details</h3>
+    <p>
+      <strong>Estimate Number:</strong> <%= @estimate.estimate_number || "##{@estimate.id}" %><br>
+      <strong>Deposit Paid:</strong> <%= number_to_currency(@estimate.required_deposit || @estimate.total) %><br>
+      <% if @estimate.required_deposit.present? && @estimate.required_deposit > 0 && @estimate.required_deposit < @estimate.total %>
+        <strong>Remaining Balance:</strong> <%= number_to_currency(@estimate.remaining_balance) %><br>
+      <% end %>
+      <strong>Date:</strong> <%= @estimate.deposit_paid_at&.strftime('%B %d, %Y') %>
+    </p>
+    
+    <h3>What's Next?</h3>
+    <p>
+      <strong><%= @business.name %></strong> will contact you soon to schedule the work.
+      <% if @estimate.proposed_start_time.present? %>
+        The proposed start date is <strong><%= @estimate.proposed_start_time.strftime('%B %d, %Y') %></strong>.
+      <% end %>
+    </p>
+    
+    <% if @booking.present? %>
+      <p>A booking has been created for your records. You can view it in your account.</p>
+    <% end %>
+    
+    <p>A copy of your signed estimate is attached to this email for your records.</p>
+    
+    <p>If you have any questions, please contact us:</p>
+    <ul>
+      <li>Email: <%= @business.email %></li>
+      <% if @business.phone.present? %>
+        <li>Phone: <%= @business.phone %></li>
+      <% end %>
+    </ul>
+    
+    <p>Thank you for choosing <strong><%= @business.name %></strong>!</p>
+  </body>
+</html>
+

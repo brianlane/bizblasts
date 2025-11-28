@@ -30,7 +30,7 @@ RSpec.describe 'Website Builder Comprehensive', type: :system do
       
       if page.has_field?('page[title]')
         fill_in 'page[title]', with: 'About Us'
-        select 'about', from: 'page[page_type]' if page.has_select?('page[page_type]')
+        select_from_rich_dropdown('About Us', 'page_type_dropdown') if page.has_css?('#page_type_dropdown')
         click_button 'Create Page'
         expect(page).to have_content('successfully')
       else

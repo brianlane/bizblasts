@@ -234,6 +234,81 @@ class StripeService
     { session: session, payment: nil }
   end
 
+  # Create a Stripe Checkout session for estimate deposit payment
+  # This is called when a customer approves an estimate and needs to pay the deposit
+  def self.create_estimate_deposit_checkout_session(estimate:, invoice:, payment_amount:, success_url:, cancel_url:)
+    configure_stripe_api_key
+    business = estimate.business
+    tenant_customer = estimate.tenant_customer || invoice.tenant_customer
+
+    # Stripe requires a minimum charge amount of $0.50 USD
+    if payment_amount < 0.50
+      raise ArgumentError, "Payment amount must be at least $0.50 USD. Current amount: $#{payment_amount}"
+    end
+
+    amount_cents = (payment_amount * 100).to_i
+    platform_fee_cents = calculate_platform_fee_cents(amount_cents, business)
+
+    # Build description for the payment
+    description = "Estimate #{estimate.estimate_number || 'Draft'}"
+    description += " - Deposit" if estimate.required_deposit.present? && estimate.required_deposit > 0
+
+    # Prepare session parameters
+    session_params = {
+      payment_method_types: ['card'],
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: description,
+            description: "Payment for #{business.name}"
+          },
+          unit_amount: amount_cents
+        },
+        quantity: 1
+      }],
+      mode: 'payment',
+      success_url: success_url,
+      cancel_url: cancel_url,
+      customer_creation: 'always',
+      customer_email: estimate.customer_email,
+      payment_intent_data: {
+        application_fee_amount: platform_fee_cents,
+        metadata: {
+          business_id: business.id,
+          estimate_id: estimate.id,
+          invoice_id: invoice.id,
+          tenant_customer_id: tenant_customer&.id,
+          payment_type: 'estimate_deposit'
+        }
+      },
+      metadata: {
+        business_id: business.id,
+        estimate_id: estimate.id,
+        invoice_id: invoice.id,
+        tenant_customer_id: tenant_customer&.id,
+        payment_type: 'estimate_deposit'
+      }
+    }
+
+    # Use existing Stripe customer if available
+    if tenant_customer.present?
+      stripe_customer = ensure_stripe_customer_for_tenant(tenant_customer, business)
+      if stripe_customer
+        session_params[:customer] = stripe_customer.id
+        session_params.delete(:customer_creation)
+        session_params.delete(:customer_email)
+      end
+    end
+
+    # Create the checkout session (direct charge on connected account)
+    session = Stripe::Checkout::Session.create(session_params, {
+      stripe_account: business.stripe_account_id
+    })
+
+    { session: session }
+  end
+
   # Create a Stripe Checkout session for tip payment
   def self.create_tip_checkout_session(tip:, success_url:, cancel_url:)
     configure_stripe_api_key
@@ -783,6 +858,12 @@ class StripeService
       return
     end
 
+    # Check if this is an estimate deposit payment
+    if session.dig('metadata', 'payment_type') == 'estimate_deposit'
+      handle_estimate_payment_completion(session)
+      return
+    end
+
     # Check if this is a payment (not subscription) by looking for invoice_id in metadata
     invoice_id = session.dig('metadata', 'invoice_id')
     return unless invoice_id
@@ -1158,6 +1239,100 @@ class StripeService
   rescue => e
     Rails.logger.error "[CUSTOMER_SUB] Error processing fulfillment for subscription #{customer_subscription.id}: #{e.message}"
     # Don't re-raise - we don't want to fail the webhook for fulfillment issues
+  end
+
+  # Handle estimate deposit payment completion - this is when approve = paid
+  # Payment success means the estimate is now officially approved
+  def self.handle_estimate_payment_completion(session)
+    Rails.logger.info "[ESTIMATE] Processing estimate payment completion for session #{session['id']}"
+
+    business_id = session.dig('metadata', 'business_id')
+    estimate_id = session.dig('metadata', 'estimate_id')
+    invoice_id = session.dig('metadata', 'invoice_id')
+    tenant_customer_id = session.dig('metadata', 'tenant_customer_id')
+
+    unless business_id && estimate_id
+      Rails.logger.error "[ESTIMATE] Missing required metadata in session #{session['id']}"
+      return
+    end
+
+    business = Business.find_by(id: business_id)
+    unless business
+      Rails.logger.error "[ESTIMATE] Could not find business #{business_id} for session #{session['id']}"
+      return
+    end
+
+    ActsAsTenant.with_tenant(business) do
+      estimate = business.estimates.find_by(id: estimate_id)
+      invoice = Invoice.find_by(id: invoice_id) if invoice_id
+      tenant_customer = TenantCustomer.find_by(id: tenant_customer_id) if tenant_customer_id
+
+      unless estimate
+        Rails.logger.error "[ESTIMATE] Could not find estimate #{estimate_id} for session #{session['id']}"
+        return
+      end
+
+      # Save the Stripe customer ID if we don't have it yet
+      if session['customer'].present? && tenant_customer.present? && tenant_customer.stripe_customer_id.blank?
+        tenant_customer.update!(stripe_customer_id: session['customer'])
+        Rails.logger.info "[ESTIMATE] Saved Stripe customer ID #{session['customer']} for tenant customer #{tenant_customer.id}"
+      end
+
+      # Calculate fee amounts
+      payment_amount = session['amount_total'] / 100.0
+      amount_cents = session['amount_total']
+      stripe_fee_amount = calculate_stripe_fee_cents(amount_cents) / 100.0
+      platform_fee_amount = calculate_platform_fee_cents(amount_cents, business) / 100.0
+      business_amount = (payment_amount - stripe_fee_amount - platform_fee_amount).round(2)
+
+      # Create payment record
+      payment = Payment.create!(
+        business: business,
+        invoice: invoice,
+        tenant_customer: tenant_customer,
+        amount: payment_amount,
+        stripe_fee_amount: stripe_fee_amount,
+        platform_fee_amount: platform_fee_amount,
+        business_amount: business_amount,
+        stripe_payment_intent_id: session['payment_intent'],
+        stripe_customer_id: session['customer'],
+        payment_method: :credit_card,
+        status: :completed,
+        paid_at: Time.current
+      )
+
+      # NOW mark estimate as approved (payment succeeded)
+      estimate.update!(
+        status: :approved,
+        approved_at: Time.current,
+        deposit_paid_at: Time.current,
+        payment_intent_id: session['payment_intent']
+      )
+
+      # Mark invoice as paid
+      invoice&.update!(status: :paid)
+
+      Rails.logger.info "[ESTIMATE] Successfully approved estimate #{estimate.id} (#{estimate.estimate_number}) after payment #{payment.id}"
+
+      # Send confirmation emails
+      begin
+        EstimateMailer.deposit_paid_confirmation(estimate).deliver_later(queue: 'mailers')
+        Rails.logger.info "[ESTIMATE] Sent deposit paid confirmation for estimate #{estimate.id}"
+      rescue => e
+        Rails.logger.error "[ESTIMATE] Failed to send deposit confirmation email: #{e.message}"
+      end
+
+      # Notify business of approved estimate
+      begin
+        EstimateMailer.estimate_approved(estimate).deliver_later(queue: 'mailers')
+        Rails.logger.info "[ESTIMATE] Sent estimate approved notification to business for estimate #{estimate.id}"
+      rescue => e
+        Rails.logger.error "[ESTIMATE] Failed to send business notification email: #{e.message}"
+      end
+    end
+  rescue => e
+    Rails.logger.error "[ESTIMATE] Error processing estimate payment for session #{session['id']}: #{e.message}"
+    Rails.logger.error e.backtrace.join("\n")
   end
 
   # Handle tip payment completion

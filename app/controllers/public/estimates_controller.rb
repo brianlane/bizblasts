@@ -1,132 +1,106 @@
 # frozen_string_literal: true
 
 class Public::EstimatesController < ApplicationController
-  skip_before_action :authenticate_user!, only: [:show, :approve, :decline, :request_changes]
-  before_action :find_estimate_by_token, only: [:show, :approve, :decline, :request_changes]
-  before_action :set_tenant_from_estimate, only: [:show, :approve, :decline, :request_changes]
+  skip_before_action :authenticate_user!, only: [:show, :approve, :decline, :request_changes, :download_pdf]
+  before_action :find_estimate_by_token
+  before_action :set_tenant_from_estimate
 
   # Token-based show for public access
   def show
-    # Mark as viewed if sent (first view) - Rails enum doesn't generate bang methods
+    # Mark as viewed if sent (first view)
     if @estimate.sent?
       @estimate.update(status: :viewed, viewed_at: Time.current)
     end
+
+    # Handle payment callbacks
+    if params[:payment_success] == 'true'
+      flash.now[:success] = "Payment successful! Your estimate has been approved and we'll begin work soon."
+    elsif params[:payment_cancelled] == 'true'
+      flash.now[:alert] = "Payment was cancelled. Your estimate is still pending approval."
+      # Reset status back to viewed if payment was cancelled
+      @estimate.update(status: :viewed) if @estimate.pending_payment?
+    end
   end
 
-  # Customer approves estimate and initiates deposit payment if needed
+  # Customer approves estimate with signature and optional items selection
+  # This initiates the payment flow - approve = pay deposit
   def approve
-    # Use a transaction with pessimistic locking to prevent race conditions
-    # Lock the estimate row to ensure only one request can process approval
-    booking = ActiveRecord::Base.transaction do
-      # Reload and lock the estimate to get the latest status and prevent concurrent modifications
-      @estimate.lock!
-
-      # Check status INSIDE the transaction with the locked record
-      # This prevents race conditions where two requests both pass the check
-      if @estimate.declined? || @estimate.cancelled?
-        # Rollback and return early
-        raise ActiveRecord::Rollback
-      end
-
-      if @estimate.approved?
-        # Already approved by another concurrent request
-        raise ActiveRecord::Rollback
-      end
-
-      # Approve the estimate (still within the lock)
-      @estimate.update!(status: :approved, approved_at: Time.current)
-
-      # Use the service object to create booking and invoice
-      EstimateToBookingService.new(@estimate).call
+    # Validate the estimate can be approved
+    unless @estimate.can_approve?
+      return redirect_to public_estimate_path(token: @estimate.token),
+        alert: 'This estimate cannot be approved at this time.'
     end
 
-    # Check if transaction was rolled back (estimate was already processed)
-    if booking.nil?
-      if @estimate.reload.approved?
-        return redirect_to public_estimate_path(token: @estimate.token), notice: 'This estimate has already been approved.'
-      elsif @estimate.declined? || @estimate.cancelled?
-        return redirect_to public_estimate_path(token: @estimate.token), alert: 'This estimate cannot be approved.'
-      else
-        return redirect_to public_estimate_path(token: @estimate.token), alert: 'Could not approve estimate.'
-      end
-    end
+    # Use the approval service to handle signature, optional items, and payment
+    result = EstimateApprovalService.new(
+      @estimate,
+      signature_data: params[:signature_data],
+      signature_name: params[:signature_name],
+      selected_optional_items: params[:selected_optional_items] || []
+    ).call
 
-    # Send approval email after successful transaction
-    EstimateMailer.estimate_approved(@estimate).deliver_later
-
-    # Redirect to payment if an invoice was created (either deposit or full payment)
-    invoice = booking.invoice
-    if invoice
-      redirect_to new_payment_path(invoice_id: invoice.id)
+    if result[:success]
+      # Redirect to Stripe checkout for deposit payment
+      redirect_to result[:redirect_url], allow_other_host: true
     else
-      # This should never happen with current logic but kept as fallback
-      Rails.logger.error "Estimate #{@estimate.id} approved but invoice is missing for booking #{booking.id}"
-      redirect_to public_estimate_path(token: @estimate.token), alert: 'Estimate approved but there was an error creating the invoice. Please contact support.'
+      flash[:alert] = result[:error]
+      redirect_to public_estimate_path(token: @estimate.token)
     end
-  rescue ActiveRecord::RecordInvalid => e
-    Rails.logger.error "Error approving estimate: #{e.message}"
-    redirect_to public_estimate_path(token: @estimate.token), alert: "Could not approve estimate: #{e.message}"
-  rescue StandardError => e
-    Rails.logger.error "Unexpected error during estimate approval: #{e.message}"
-    redirect_to public_estimate_path(token: @estimate.token), alert: "An unexpected error occurred: #{e.message}"
   end
 
   def decline
     # Use a transaction with pessimistic locking to prevent race conditions
-    # This ensures only one request can decline the estimate
     success = ActiveRecord::Base.transaction do
-      # Lock the estimate row to prevent concurrent modifications
       @estimate.lock!
 
-      # Check status INSIDE the transaction with the locked record
-      # This prevents race conditions where two requests both pass the check
-      if @estimate.approved? || @estimate.declined? || @estimate.cancelled?
+      # Can decline from sent, viewed, or pending_payment states
+      unless @estimate.can_decline?
         raise ActiveRecord::Rollback
       end
 
-      # Decline the estimate (still within the lock)
       @estimate.update!(status: :declined, declined_at: Time.current)
-
-      true # Indicate success
+      true
     end
 
-    # Check if transaction was rolled back (estimate was already processed)
     if success
-      # Send notification email AFTER successful transaction
-      # This prevents sending emails if the transaction was rolled back
       EstimateMailer.estimate_declined(@estimate).deliver_later
-      redirect_to public_estimate_path(token: @estimate.token), notice: 'You have declined this estimate.'
+      redirect_to public_estimate_path(token: @estimate.token),
+        notice: 'You have declined this estimate.'
     else
-      redirect_to public_estimate_path(token: @estimate.token), alert: 'This estimate cannot be declined.'
+      redirect_to public_estimate_path(token: @estimate.token),
+        alert: 'This estimate cannot be declined.'
     end
   end
 
   def request_changes
-    # Use a transaction with pessimistic locking to prevent race conditions
-    # This ensures only one request can send change notifications
     message = params.fetch(:changes_request, "Customer has requested changes, please review.")
 
     success = ActiveRecord::Base.transaction do
-      # Lock the estimate row to prevent concurrent modifications
       @estimate.lock!
 
-      # Check status INSIDE the transaction with the locked record
-      # This prevents race conditions where two requests both pass the check
       if @estimate.approved? || @estimate.declined? || @estimate.cancelled?
         raise ActiveRecord::Rollback
       end
 
-      true # Indicate success
+      true
     end
 
-    # Check if transaction was rolled back (estimate was already processed)
     if success
-      # Send notification email AFTER successful transaction
-      # This prevents sending emails if the transaction was rolled back
       EstimateMailer.request_changes_notification(@estimate, message).deliver_later
-      redirect_to public_estimate_path(token: @estimate.token), notice: 'Your change request has been sent.'
+      redirect_to public_estimate_path(token: @estimate.token),
+        notice: 'Your change request has been sent.'
     else
-      redirect_to public_estimate_path(token: @estimate.token), alert: 'This estimate cannot be modified.'
+      redirect_to public_estimate_path(token: @estimate.token),
+        alert: 'This estimate cannot be modified.'
+    end
+  end
+
+  def download_pdf
+    if @estimate.pdf.attached?
+      redirect_to rails_blob_path(@estimate.pdf, disposition: "attachment")
+    else
+      redirect_to public_estimate_path(token: @estimate.token),
+        alert: 'PDF not yet generated for this estimate.'
     end
   end
 
@@ -139,4 +113,4 @@ class Public::EstimatesController < ApplicationController
   def set_tenant_from_estimate
     ActsAsTenant.current_tenant = @estimate.business if @estimate
   end
-end 
+end

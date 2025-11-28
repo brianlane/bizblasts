@@ -35,8 +35,9 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
     let!(:service) { create(:service, business: business, name: 'Haircut', price: 50.00, duration: 30) }
     let!(:staff_member) { create(:staff_member, business: business, name: 'John Stylist') }
     let!(:user) { create(:user, :client, password: 'password123') }
-    let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, first_name: user.first_name, last_name: user.last_name) }
-    
+    let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, first_name: user.first_name, last_name: user.last_name, user: user) }
+    let!(:client_business) { create(:client_business, user: user, business: business) }
+
     before do
       create(:services_staff_member, service: service, staff_member: staff_member)
     end
@@ -48,7 +49,10 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         fill_in 'Email', with: user.email
         fill_in 'Password', with: 'password123'
         click_button 'Sign In'
-        
+
+        # Verify sign-in was successful
+        expect(page).to have_content('Dashboard').or have_content('Welcome').or have_current_path(client_dashboard_path)
+
         # Book service
         visit new_tenant_booking_path(service_id: service.id, staff_member_id: staff_member.id)
         
@@ -149,7 +153,8 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
     let!(:variant) { create(:product_variant, product: product, name: 'Large', stock_quantity: 10) }
     let!(:shipping_method) { create(:shipping_method, business: business, name: 'Standard', cost: 5.00) }
     let!(:user) { create(:user, :client, password: 'password123') }
-    let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, first_name: user.first_name, last_name: user.last_name) }
+    let!(:tenant_customer) { create(:tenant_customer, business: business, email: user.email, first_name: user.first_name, last_name: user.last_name, user: user) }
+    let!(:client_business) { create(:client_business, user: user, business: business) }
 
     before do
       # Mock Stripe checkout session creation for product orders
@@ -175,7 +180,10 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         fill_in 'Email', with: user.email
         fill_in 'Password', with: 'password123'
         click_button 'Sign In'
-        
+
+        # Verify sign-in was successful
+        expect(page).to have_content('Dashboard').or have_content('Welcome').or have_current_path(client_dashboard_path)
+
         # Add product to cart
         visit products_path
         click_link 'Shampoo'
