@@ -34,10 +34,12 @@ module Public
     
     # GET /rental_bookings/:id/deposit_success
     def deposit_success
-      # Mark deposit as paid (webhook will also handle this, but update UI immediately)
-      if @rental_booking.status_pending_deposit?
-        @rental_booking.mark_deposit_paid!(payment_intent_id: params[:payment_intent])
-      end
+      # Note: Do NOT change booking status here. Status changes should only happen
+      # via verified Stripe webhooks to prevent unauthorized marking of bookings as paid.
+      # This action only shows the success UI - the webhook will update the actual status.
+      #
+      # The booking may still show as pending_deposit until the webhook processes,
+      # which typically happens within seconds.
       
       # Show confirmation page
     end

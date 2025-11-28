@@ -101,9 +101,11 @@ class RentalMailer < ApplicationMailer
     @customer = rental_booking.tenant_customer
     @rental = rental_booking.product
     
-    # Find manager email
+    # Find manager emails
     manager_emails = @business.users.where(role: :manager).pluck(:email)
-    return if manager_emails.empty?
+    
+    # Return a no-op mail object if no managers to avoid NoMethodError on .deliver_later
+    return mail(to: nil, subject: "Skip - No Recipients") if manager_emails.empty?
     
     mail(
       to: manager_emails,

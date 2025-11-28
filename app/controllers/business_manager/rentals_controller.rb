@@ -62,7 +62,22 @@ module BusinessManager
     
     # PATCH/PUT /manage/rentals/:id
     def update
-      if @rental.update(rental_params_without_images) && handle_image_updates
+      success = false
+      
+      # Wrap in transaction to ensure atomicity - if image handling fails,
+      # the rental update is rolled back
+      Product.transaction do
+        if @rental.update(rental_params_without_images)
+          if handle_image_updates
+            success = true
+          else
+            # Image handling failed - rollback the rental update
+            raise ActiveRecord::Rollback
+          end
+        end
+      end
+      
+      if success
         redirect_to business_manager_rental_path(@rental), notice: 'Rental item was successfully updated.'
       else
         @locations = current_business.locations
