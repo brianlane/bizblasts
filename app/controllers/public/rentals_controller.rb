@@ -65,9 +65,18 @@ module Public
       
       # Pre-calculate pricing if dates provided
       if params[:start_time].present? && params[:end_time].present?
-        start_time = Time.zone.parse(params[:start_time])
-        end_time = Time.zone.parse(params[:end_time])
-        @pricing = @rental.calculate_rental_price(start_time, end_time, rate_type: params[:rate_type])
+        begin
+          start_time = Time.zone.parse(params[:start_time])
+          end_time = Time.zone.parse(params[:end_time])
+          
+          # Only calculate price if both times are valid
+          if start_time.present? && end_time.present?
+            @pricing = @rental.calculate_rental_price(start_time, end_time, rate_type: params[:rate_type])
+          end
+        rescue ArgumentError
+          # Invalid time format - skip pricing calculation
+          @pricing = nil
+        end
       end
     end
     
@@ -90,7 +99,7 @@ module Public
         else
           # No deposit required - auto-approve
           @booking.update!(status: 'deposit_paid', deposit_status: 'collected')
-          redirect_to tenant_rental_booking_path(@booking), 
+          redirect_to rental_booking_path(@booking), 
                       notice: 'Your rental has been booked successfully!'
         end
       else
@@ -139,7 +148,7 @@ module Public
     
     def rental_booking_payment_path(booking)
       # This will redirect to the Stripe checkout for security deposit
-      tenant_rental_booking_pay_deposit_path(booking)
+      pay_deposit_rental_booking_path(booking)
     end
   end
 end

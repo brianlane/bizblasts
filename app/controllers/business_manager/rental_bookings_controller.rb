@@ -2,7 +2,7 @@
 
 module BusinessManager
   class RentalBookingsController < BaseController
-    before_action :set_rental_booking, only: [:show, :edit, :update, :approve, :check_out, :process_return, :complete, :cancel]
+    before_action :set_rental_booking, only: [:show, :edit, :update, :check_out, :process_return, :complete, :cancel]
     before_action :set_rentals, only: [:new, :create, :edit, :update]
     
     # GET /manage/rental_bookings

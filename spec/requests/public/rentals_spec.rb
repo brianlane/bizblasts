@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Public::Rentals', type: :request do
-  let!(:business) { create(:business, subdomain: 'publicrentaltest', host_type: 'subdomain', show_rentals_section: true) }
+  let!(:business) { create(:business, host_type: 'subdomain', show_rentals_section: true) }
   let!(:rental) do
     create(:product, 
       business: business, 
@@ -18,7 +18,12 @@ RSpec.describe 'Public::Rentals', type: :request do
   end
   
   before do
-    host! "#{business.subdomain}.lvh.me"
+    host! "#{business.hostname}.lvh.me"
+    ActsAsTenant.current_tenant = business
+  end
+  
+  after do
+    ActsAsTenant.current_tenant = nil
   end
   
   describe 'GET /rentals' do
@@ -57,10 +62,9 @@ RSpec.describe 'Public::Rentals', type: :request do
     end
     
     it 'returns 404 for non-rental products' do
-      standard = create(:product, business: business, product_type: :standard)
-      expect {
-        get rental_path(standard)
-      }.to raise_error(ActiveRecord::RecordNotFound)
+      standard = create(:product, business: business, product_type: :standard, price: 25)
+      get rental_path(standard)
+      expect(response).to have_http_status(:not_found)
     end
   end
   
@@ -119,7 +123,8 @@ RSpec.describe 'Public::Rentals', type: :request do
     
     it 'redirects to payment if deposit required' do
       post create_booking_rental_path(rental), params: customer_params
-      expect(response).to redirect_to(tenant_rental_booking_pay_deposit_path(RentalBooking.last))
+      booking = RentalBooking.last
+      expect(response).to redirect_to(pay_deposit_rental_booking_path(booking))
     end
     
     context 'when logged in as client' do
@@ -136,9 +141,10 @@ RSpec.describe 'Public::Rentals', type: :request do
           }
         }
         
-        expect(RentalBooking.last.tenant_customer.email).to eq('client@example.com')
+        booking = RentalBooking.last
+        expect(booking).to be_present
+        expect(booking.tenant_customer.email).to eq('client@example.com')
       end
     end
   end
 end
-

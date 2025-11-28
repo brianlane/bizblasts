@@ -383,33 +383,6 @@ class Product < ApplicationRecord
     prices.join(' • ')
   end
   
-  private
-  
-  def duration_in_words(minutes)
-    if minutes < 60
-      "#{minutes} min#{'s' if minutes != 1}"
-    elsif minutes < 1440
-      hours = (minutes / 60.0).round(1)
-      hours == hours.to_i ? "#{hours.to_i} hour#{'s' if hours.to_i != 1}" : "#{hours} hours"
-    else
-      days = (minutes / 1440.0).round(1)
-      days == days.to_i ? "#{days.to_i} day#{'s' if days.to_i != 1}" : "#{days} days"
-    end
-  end
-  
-  def min_rental_not_greater_than_max
-    return unless min_rental_duration_mins.present? && max_rental_duration_mins.present?
-    if min_rental_duration_mins > max_rental_duration_mins
-      errors.add(:min_rental_duration_mins, 'cannot be greater than maximum rental duration')
-    end
-  end
-  
-  def rental_must_have_daily_rate
-    if price.blank? || price <= 0
-      errors.add(:price, 'is required for rentals (this is the daily rate)')
-    end
-  end
-
   # Variant label display logic
   def should_show_variant_selector?
     # Show selector when there are 2 or more total variants
@@ -513,6 +486,31 @@ class Product < ApplicationRecord
   end
 
   private
+
+  def duration_in_words(minutes)
+    if minutes < 60
+      "#{minutes} min#{'s' if minutes != 1}"
+    elsif minutes < 1440
+      hours = (minutes / 60.0).round(1)
+      hours == hours.to_i ? "#{hours.to_i} hour#{'s' if hours.to_i != 1}" : "#{hours} hours"
+    else
+      days = (minutes / 1440.0).round(1)
+      days == days.to_i ? "#{days.to_i} day#{'s' if days.to_i != 1}" : "#{days} days"
+    end
+  end
+  
+  def min_rental_not_greater_than_max
+    return unless min_rental_duration_mins.present? && max_rental_duration_mins.present?
+    if min_rental_duration_mins > max_rental_duration_mins
+      errors.add(:min_rental_duration_mins, 'cannot be greater than maximum rental duration')
+    end
+  end
+  
+  def rental_must_have_daily_rate
+    if price.blank? || price <= 0
+      errors.add(:price, 'is required for rentals (this is the daily rate)')
+    end
+  end
 
   def validate_pending_image_attributes
     return unless @pending_image_attributes

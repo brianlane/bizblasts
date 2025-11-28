@@ -35,8 +35,8 @@ class RentalBookingService
     
     RentalBooking.transaction do
       if booking.save
-        # Create invoice for deposit
-        create_deposit_invoice(booking)
+        # Note: Security deposit is handled via Stripe checkout session
+        # No invoice needed - deposit is collected before rental checkout
         success_response(booking)
       else
         @errors = booking.errors.full_messages
@@ -171,30 +171,6 @@ class RentalBookingService
   def update_params
     allowed = [:start_time, :end_time, :quantity, :customer_notes, :notes, :location_id]
     params.slice(*allowed)
-  end
-  
-  def create_deposit_invoice(booking)
-    return unless booking.security_deposit_amount.to_d > 0
-    
-    # Create invoice for security deposit (similar to Estimate deposit flow)
-    invoice = Invoice.new(
-      business: business,
-      tenant_customer: tenant_customer,
-      invoiceable: booking,
-      amount: booking.security_deposit_amount,
-      original_amount: booking.security_deposit_amount,
-      total_amount: booking.security_deposit_amount,
-      due_date: booking.start_time,
-      status: :pending,
-      notes: "Security deposit for rental: #{booking.rental_name}"
-    )
-    
-    # Skip calculate_totals callback since we're setting amounts directly
-    invoice.instance_variable_set(:@skip_calculate_totals, true)
-    
-    unless invoice.save
-      Rails.logger.error("[RentalBookingService] Failed to create deposit invoice: #{invoice.errors.full_messages}")
-    end
   end
   
   def parse_time(value)
