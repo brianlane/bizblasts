@@ -160,6 +160,7 @@ class Business < ApplicationRecord
   has_many :page_sections, through: :pages
   has_many :loyalty_programs
   has_many :products, dependent: :destroy
+  has_many :rental_bookings, dependent: :destroy
   has_many :orders  # Orphaned, not deleted
   has_many :shipping_methods, dependent: :destroy
   has_many :tax_rates, dependent: :destroy
@@ -534,12 +535,12 @@ class Business < ApplicationRecord
   
   # Define which attributes are allowed to be searched with Ransack
   def self.ransackable_attributes(auth_object = nil)
-    %w[id name hostname host_type tier industry time_zone active created_at updated_at status cname_monitoring_active domain_coverage_applied domain_cost_covered domain_renewal_date stripe_customer_id stripe_status payment_reminders_enabled stock_management_enabled]
+    %w[id name hostname host_type tier industry time_zone active created_at updated_at status cname_monitoring_active domain_coverage_applied domain_cost_covered domain_renewal_date stripe_customer_id stripe_status payment_reminders_enabled stock_management_enabled show_rentals_section rental_late_fee_enabled rental_late_fee_percentage rental_buffer_mins rental_require_deposit_upfront rental_reminder_hours_before]
   end
   
   # Define which associations are allowed to be searched with Ransack
   def self.ransackable_associations(auth_object = nil)
-    %w[staff_members services bookings tenant_customers users clients client_businesses subscription integrations]
+    %w[staff_members services bookings tenant_customers users clients client_businesses subscription integrations rental_bookings products]
   end
   
   # Custom ransacker for Stripe status filtering
@@ -731,6 +732,36 @@ class Business < ApplicationRecord
 
   def has_visible_services?
     services.active.any?
+  end
+  
+  # ============================================
+  # RENTAL HELPER METHODS
+  # ============================================
+  
+  def has_visible_rentals?
+    products.rentals.active.any?
+  end
+  
+  def rentals
+    products.rentals
+  end
+  
+  def active_rentals
+    products.rentals.active
+  end
+  
+  def show_rentals_section?
+    show_rentals_section && has_visible_rentals?
+  end
+  
+  def rental_settings
+    {
+      late_fee_enabled: rental_late_fee_enabled?,
+      late_fee_percentage: rental_late_fee_percentage || 15.0,
+      buffer_mins: rental_buffer_mins || 30,
+      require_deposit_upfront: rental_require_deposit_upfront?,
+      reminder_hours_before: rental_reminder_hours_before || 24
+    }
   end
   
   # ---------------- Time zone helpers ----------------

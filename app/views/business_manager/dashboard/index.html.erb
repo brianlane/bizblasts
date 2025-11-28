@@ -180,6 +180,91 @@
     </div>
     <% end %>
 
+    <!-- Rental Dashboard Widget -->
+    <% if @current_business.show_rentals_section %>
+    <div id="rentals-widget" class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+      <h3 class="text-lg sm:text-xl font-semibold mb-4">Rental Bookings</h3>
+      
+      <% rental_bookings = @current_business.rental_bookings %>
+      <% pending_count = rental_bookings.status_pending_deposit.count %>
+      <% active_count = rental_bookings.active.count %>
+      <% overdue_count = rental_bookings.overdue_rentals.count %>
+      <% today_pickups = rental_bookings.today_pickups %>
+      <% today_returns = rental_bookings.today_returns %>
+      
+      <%# Alert for overdue rentals %>
+      <% if overdue_count > 0 %>
+        <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <div class="flex items-start">
+            <svg class="w-5 h-5 text-red-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <div>
+              <p class="text-sm font-medium text-red-800"><%= pluralize(overdue_count, 'rental') %> overdue!</p>
+              <p class="text-xs text-red-600 mt-1">Follow up with customers immediately</p>
+            </div>
+          </div>
+        </div>
+      <% end %>
+      
+      <%# Quick stats %>
+      <div class="grid grid-cols-4 gap-2 mb-4">
+        <div class="text-center p-2 bg-yellow-50 rounded-lg">
+          <div class="text-lg font-bold text-yellow-600"><%= pending_count %></div>
+          <div class="text-xs text-yellow-500">Pending</div>
+        </div>
+        <div class="text-center p-2 bg-blue-50 rounded-lg">
+          <div class="text-lg font-bold text-blue-600"><%= active_count %></div>
+          <div class="text-xs text-blue-500">Active</div>
+        </div>
+        <div class="text-center p-2 bg-green-50 rounded-lg">
+          <div class="text-lg font-bold text-green-600"><%= today_pickups.count %></div>
+          <div class="text-xs text-green-500">Pickups</div>
+        </div>
+        <div class="text-center p-2 bg-orange-50 rounded-lg">
+          <div class="text-lg font-bold text-orange-600"><%= today_returns.count %></div>
+          <div class="text-xs text-orange-500">Returns</div>
+        </div>
+      </div>
+      
+      <%# Today's activity %>
+      <% if today_pickups.any? || today_returns.any? %>
+        <div class="border-t pt-3 mb-3">
+          <h4 class="text-sm font-medium text-gray-700 mb-2">Today's Activity</h4>
+          <div class="space-y-2 max-h-32 overflow-y-auto">
+            <% today_pickups.each do |booking| %>
+              <div class="flex items-center justify-between text-sm p-2 bg-green-50 rounded">
+                <div>
+                  <span class="text-green-600">📤</span>
+                  <span class="font-medium"><%= booking.rental_name.truncate(20) %></span>
+                </div>
+                <span class="text-xs text-gray-500">Pickup @ <%= booking.local_start_time&.strftime('%I:%M %p') %></span>
+              </div>
+            <% end %>
+            <% today_returns.each do |booking| %>
+              <div class="flex items-center justify-between text-sm p-2 bg-orange-50 rounded">
+                <div>
+                  <span class="text-orange-600">📥</span>
+                  <span class="font-medium"><%= booking.rental_name.truncate(20) %></span>
+                </div>
+                <span class="text-xs text-gray-500">Return @ <%= booking.local_end_time&.strftime('%I:%M %p') %></span>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+      
+      <%# Quick actions %>
+      <div class="flex gap-2 mt-4">
+        <%= link_to "All Bookings", business_manager_rental_bookings_path,
+              class: "inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors" %>
+        <span class="text-gray-300">|</span>
+        <%= link_to "Manage Rentals", business_manager_rentals_path,
+              class: "inline-flex items-center text-green-600 hover:text-green-800 text-sm font-medium transition-colors" %>
+      </div>
+    </div>
+    <% end %>
+
     <!-- Website Visitor Statistics (Placeholder) -->
     <div id="website-stats-widget" class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow lg:col-span-1 xl:col-span-1">
       <h3 class="text-lg sm:text-xl font-semibold mb-4">Website Visitor Statistics</h3>

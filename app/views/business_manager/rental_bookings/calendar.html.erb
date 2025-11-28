@@ -1,0 +1,45 @@
+<%# app/views/business_manager/rental_bookings/calendar.html.erb %>
+<div class="container mx-auto px-4 py-4 sm:py-8">
+  <div class="bg-white shadow rounded-lg">
+    <div class="px-4 py-5 sm:px-6 border-b">
+      <div class="flex items-center justify-between">
+        <h1 class="text-xl sm:text-2xl font-bold">Rental Calendar</h1>
+        <div class="flex gap-2">
+          <%= link_to '← Previous', calendar_business_manager_rental_bookings_path(start_date: @start_date.prev_month.beginning_of_month), class: "px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded" %>
+          <%= link_to 'Today', calendar_business_manager_rental_bookings_path, class: "px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 rounded" %>
+          <%= link_to 'Next →', calendar_business_manager_rental_bookings_path(start_date: @start_date.next_month.beginning_of_month), class: "px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded" %>
+        </div>
+      </div>
+      <p class="text-gray-600 mt-1"><%= @start_date.strftime('%B %Y') %></p>
+    </div>
+    
+    <div class="p-4">
+      <!-- Calendar Grid -->
+      <div class="grid grid-cols-7 gap-px bg-gray-200 rounded-lg overflow-hidden">
+        <!-- Day headers -->
+        <% %w[Sun Mon Tue Wed Thu Fri Sat].each do |day| %>
+          <div class="bg-gray-50 p-2 text-center text-sm font-medium text-gray-700"><%= day %></div>
+        <% end %>
+        
+        <!-- Calendar days -->
+        <% (@start_date.beginning_of_month.beginning_of_week..@start_date.end_of_month.end_of_week).each do |date| %>
+          <% day_bookings = @bookings.select { |b| b.start_time.to_date <= date && b.end_time.to_date >= date } %>
+          <div class="bg-white min-h-[100px] p-1 <%= date.month != @start_date.month ? 'opacity-40' : '' %>">
+            <div class="text-xs font-medium text-gray-500 mb-1"><%= date.day %></div>
+            <div class="space-y-1">
+              <% day_bookings.first(3).each do |booking| %>
+                <%= link_to business_manager_rental_booking_path(booking), class: "block text-xs p-1 rounded truncate #{booking.status == 'overdue' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}" do %>
+                  <%= booking.rental_name.truncate(15) %>
+                <% end %>
+              <% end %>
+              <% if day_bookings.count > 3 %>
+                <div class="text-xs text-gray-500">+<%= day_bookings.count - 3 %> more</div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+

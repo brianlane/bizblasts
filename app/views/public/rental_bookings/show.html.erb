@@ -1,0 +1,143 @@
+<%# app/views/public/rental_bookings/show.html.erb %>
+<div class="min-h-screen bg-gray-50">
+  <div class="container mx-auto px-4 py-8 max-w-3xl">
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="text-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">Rental Booking</h1>
+        <p class="text-sm text-gray-500 mt-1">Booking #<%= @rental_booking.booking_number %></p>
+      </div>
+
+      <!-- Status Badge -->
+      <div class="text-center mb-6">
+        <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium 
+          <%= case @rental_booking.status
+              when 'pending_deposit' then 'bg-yellow-100 text-yellow-800'
+              when 'deposit_paid' then 'bg-blue-100 text-blue-800'
+              when 'checked_out' then 'bg-purple-100 text-purple-800'
+              when 'overdue' then 'bg-red-100 text-red-800'
+              when 'returned' then 'bg-orange-100 text-orange-800'
+              when 'completed' then 'bg-green-100 text-green-800'
+              when 'cancelled' then 'bg-gray-100 text-gray-800'
+              else 'bg-gray-100 text-gray-800'
+              end %>">
+          <%= @rental_booking.status.titleize.gsub('_', ' ') %>
+        </span>
+      </div>
+
+      <!-- Rental Item -->
+      <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-lg mb-6">
+        <% if @rental_booking.product.images.attached? %>
+          <%= image_tag @rental_booking.product.images.first.variant(:thumb), class: "w-20 h-20 object-cover rounded" %>
+        <% end %>
+        <div>
+          <h3 class="font-semibold text-gray-900"><%= @rental_booking.rental_name %></h3>
+          <p class="text-sm text-gray-500">Quantity: <%= @rental_booking.quantity %></p>
+        </div>
+      </div>
+
+      <!-- Rental Period -->
+      <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="p-4 border rounded-lg">
+          <div class="text-sm text-gray-500">Pickup</div>
+          <div class="font-medium"><%= @rental_booking.local_start_time&.strftime('%b %d, %Y') %></div>
+          <div class="text-sm text-gray-600"><%= @rental_booking.local_start_time&.strftime('%I:%M %p') %></div>
+        </div>
+        <div class="p-4 border rounded-lg">
+          <div class="text-sm text-gray-500">Return</div>
+          <div class="font-medium"><%= @rental_booking.local_end_time&.strftime('%b %d, %Y') %></div>
+          <div class="text-sm text-gray-600"><%= @rental_booking.local_end_time&.strftime('%I:%M %p') %></div>
+        </div>
+      </div>
+
+      <!-- Pricing Summary -->
+      <div class="border rounded-lg p-4 mb-6">
+        <h3 class="font-medium text-gray-900 mb-3">Payment Summary</h3>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between">
+            <span class="text-gray-600">Rental (<%= @rental_booking.rate_type %> × <%= @rental_booking.rate_quantity %>)</span>
+            <span><%= number_to_currency(@rental_booking.subtotal) %></span>
+          </div>
+          <% if @rental_booking.discount_amount.to_d > 0 %>
+            <div class="flex justify-between text-green-600">
+              <span>Discount</span>
+              <span>-<%= number_to_currency(@rental_booking.discount_amount) %></span>
+            </div>
+          <% end %>
+          <% if @rental_booking.tax_amount.to_d > 0 %>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Tax</span>
+              <span><%= number_to_currency(@rental_booking.tax_amount) %></span>
+            </div>
+          <% end %>
+          <div class="flex justify-between font-semibold pt-2 border-t">
+            <span>Total</span>
+            <span><%= number_to_currency(@rental_booking.total_amount) %></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Security Deposit -->
+      <% if @rental_booking.security_deposit_amount.to_d > 0 %>
+        <div class="border rounded-lg p-4 mb-6 <%= @rental_booking.status_pending_deposit? ? 'border-orange-300 bg-orange-50' : 'border-green-300 bg-green-50' %>">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="font-medium <%= @rental_booking.status_pending_deposit? ? 'text-orange-900' : 'text-green-900' %>">Security Deposit</h3>
+              <p class="text-sm <%= @rental_booking.status_pending_deposit? ? 'text-orange-700' : 'text-green-700' %>">
+                <%= @rental_booking.status_pending_deposit? ? 'Required before pickup' : 'Paid - Refundable upon return' %>
+              </p>
+            </div>
+            <div class="text-xl font-bold <%= @rental_booking.status_pending_deposit? ? 'text-orange-600' : 'text-green-600' %>">
+              <%= number_to_currency(@rental_booking.security_deposit_amount) %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <!-- Action Buttons -->
+      <% if @rental_booking.status_pending_deposit? %>
+        <div class="text-center">
+          <%= link_to pay_deposit_rental_booking_path(@rental_booking), 
+                class: "inline-block w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors" do %>
+            Pay Security Deposit (<%= number_to_currency(@rental_booking.security_deposit_amount) %>)
+          <% end %>
+          <p class="mt-2 text-sm text-gray-500">
+            Your rental will be confirmed after payment
+          </p>
+        </div>
+      <% elsif @rental_booking.status_deposit_paid? %>
+        <div class="text-center p-4 bg-green-50 rounded-lg">
+          <svg class="w-12 h-12 text-green-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <h3 class="font-semibold text-green-900">Booking Confirmed!</h3>
+          <p class="text-sm text-green-700 mt-1">Your rental is ready for pickup at the scheduled time.</p>
+        </div>
+      <% elsif @rental_booking.status_checked_out? %>
+        <div class="text-center p-4 bg-purple-50 rounded-lg">
+          <h3 class="font-semibold text-purple-900">Rental In Progress</h3>
+          <p class="text-sm text-purple-700 mt-1">Please return by <%= @rental_booking.local_end_time&.strftime('%B %d at %I:%M %p') %></p>
+        </div>
+      <% elsif @rental_booking.status_completed? %>
+        <div class="text-center p-4 bg-gray-50 rounded-lg">
+          <h3 class="font-semibold text-gray-900">Rental Completed</h3>
+          <p class="text-sm text-gray-600 mt-1">Thank you for renting with us!</p>
+        </div>
+      <% end %>
+
+      <!-- Location -->
+      <% if @rental_booking.location.present? %>
+        <div class="mt-6 pt-6 border-t">
+          <h3 class="font-medium text-gray-900 mb-2">Pickup Location</h3>
+          <div class="text-gray-700">
+            <div><%= @rental_booking.location.name %></div>
+            <div class="text-sm text-gray-500">
+              <%= @rental_booking.location.address %><br>
+              <%= @rental_booking.location.city %>, <%= @rental_booking.location.state %> <%= @rental_booking.location.zip %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+

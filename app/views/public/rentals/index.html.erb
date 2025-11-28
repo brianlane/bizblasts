@@ -1,0 +1,114 @@
+<%# app/views/public/rentals/index.html.erb %>
+<div class="min-h-screen bg-gray-50">
+  <div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-gray-900">Rentals</h1>
+      <p class="mt-2 text-gray-600">Browse our available rental items</p>
+    </div>
+
+    <!-- Filters -->
+    <% if @rental_categories.any? || @locations.any? %>
+      <div class="mb-8 bg-white shadow rounded-lg p-4">
+        <div class="flex flex-wrap gap-4 items-center">
+          <% if @rental_categories.any? %>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">Category</label>
+              <%= form_tag rentals_path, method: :get, class: "inline" do %>
+                <%= select_tag :category, 
+                    options_for_select([['All Categories', '']] + @rental_categories.map { |c| [c.titleize, c] }, params[:category]),
+                    class: "text-sm border-gray-300 rounded-md", onchange: "this.form.submit()" %>
+              <% end %>
+            </div>
+          <% end %>
+          
+          <% if @locations.any? %>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">Location</label>
+              <%= form_tag rentals_path, method: :get, class: "inline" do %>
+                <%= hidden_field_tag :category, params[:category] %>
+                <%= select_tag :location_id,
+                    options_for_select([['All Locations', '']] + @locations.map { |l| [l.name, l.id] }, params[:location_id]),
+                    class: "text-sm border-gray-300 rounded-md", onchange: "this.form.submit()" %>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Rentals Grid -->
+    <% if @rentals.any? %>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <% @rentals.each do |rental| %>
+          <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+            <!-- Image -->
+            <div class="aspect-w-16 aspect-h-10 bg-gray-100">
+              <% if rental.images.attached? %>
+                <%= image_tag rental.images.first.variant(:medium), 
+                      class: "w-full h-48 object-cover" %>
+              <% else %>
+                <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
+                  <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                  </svg>
+                </div>
+              <% end %>
+            </div>
+            
+            <!-- Content -->
+            <div class="p-4">
+              <div class="flex items-start justify-between">
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-900">
+                    <%= link_to rental.name, rental_path(rental), class: "hover:text-blue-600" %>
+                  </h3>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mt-1">
+                    <%= rental.rental_category&.titleize %>
+                  </span>
+                </div>
+              </div>
+              
+              <p class="mt-2 text-sm text-gray-600 line-clamp-2"><%= rental.description %></p>
+              
+              <!-- Pricing -->
+              <div class="mt-4 space-y-1">
+                <div class="text-xl font-bold text-green-600">
+                  <%= number_to_currency(rental.daily_rate) %><span class="text-sm font-normal text-gray-500">/day</span>
+                </div>
+                <% if rental.hourly_rate.present? && rental.allow_hourly_rental? %>
+                  <div class="text-sm text-gray-500">
+                    or <%= number_to_currency(rental.hourly_rate) %>/hour
+                  </div>
+                <% end %>
+              </div>
+              
+              <% if rental.security_deposit.to_d > 0 %>
+                <div class="mt-2 text-sm text-orange-600">
+                  <%= number_to_currency(rental.security_deposit) %> refundable deposit
+                </div>
+              <% end %>
+              
+              <div class="mt-4 flex items-center justify-between">
+                <div class="text-sm text-gray-500">
+                  <%= rental.rental_quantity_available %> available
+                </div>
+                <%= link_to 'Book Now', book_rental_path(rental), 
+                      class: "px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors" %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="text-center py-12 bg-white rounded-lg shadow">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+        </svg>
+        <h3 class="mt-2 text-lg font-medium text-gray-900">No rentals available</h3>
+        <p class="mt-1 text-sm text-gray-500">Check back later for available rental items.</p>
+      </div>
+    <% end %>
+  </div>
+</div>
+

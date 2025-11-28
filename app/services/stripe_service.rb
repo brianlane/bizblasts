@@ -309,6 +309,110 @@ class StripeService
     { session: session }
   end
 
+  # Create a Stripe Checkout session for rental security deposit
+  def self.create_rental_deposit_checkout_session(rental_booking:, success_url:, cancel_url:)
+    configure_stripe_api_key
+    business = rental_booking.business
+    tenant_customer = rental_booking.tenant_customer
+
+    deposit_amount = rental_booking.security_deposit_amount.to_f
+    
+    # Stripe requires a minimum charge amount of $0.50 USD
+    if deposit_amount < 0.50
+      raise ArgumentError, "Deposit amount must be at least $0.50 USD. Current amount: $#{deposit_amount}"
+    end
+
+    # Validate connected account
+    unless business.stripe_account_id.present? && business.stripe_onboarding_complete?
+      raise ArgumentError, "Business must have a completed Stripe Connect account to accept rental deposits"
+    end
+
+    # Calculate platform fee (same logic as other payments)
+    platform_fee = calculate_platform_fee(deposit_amount, business)
+    stripe_fee = calculate_stripe_fee(deposit_amount)
+    
+    # Ensure customer exists on the connected account
+    stripe_customer = ensure_stripe_customer_on_connected_account(
+      business: business,
+      tenant_customer: tenant_customer
+    )
+
+    amount_cents = (deposit_amount * 100).to_i
+
+    session_params = {
+      payment_method_types: ['card'],
+      mode: 'payment',
+      customer: stripe_customer.id,
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: "Security Deposit - #{rental_booking.rental_name}",
+            description: "Refundable security deposit for rental booking ##{rental_booking.booking_number}"
+          },
+          unit_amount: amount_cents
+        },
+        quantity: 1
+      }],
+      metadata: {
+        type: 'rental_deposit',
+        rental_booking_id: rental_booking.id,
+        business_id: business.id,
+        customer_id: tenant_customer.id,
+        booking_number: rental_booking.booking_number
+      },
+      payment_intent_data: {
+        application_fee_amount: (platform_fee * 100).to_i,
+        metadata: {
+          type: 'rental_deposit',
+          rental_booking_id: rental_booking.id,
+          booking_number: rental_booking.booking_number
+        }
+      },
+      success_url: success_url,
+      cancel_url: cancel_url
+    }
+
+    # Create the checkout session on the connected account
+    session = Stripe::Checkout::Session.create(session_params, {
+      stripe_account: business.stripe_account_id
+    })
+
+    session
+  end
+
+  # Process rental deposit refund
+  def self.process_rental_deposit_refund(rental_booking:)
+    configure_stripe_api_key
+    business = rental_booking.business
+    
+    return unless rental_booking.stripe_deposit_payment_intent_id.present?
+    return unless rental_booking.deposit_refund_amount.to_d > 0
+    
+    refund_amount_cents = (rental_booking.deposit_refund_amount * 100).to_i
+    
+    begin
+      refund = Stripe::Refund.create(
+        {
+          payment_intent: rental_booking.stripe_deposit_payment_intent_id,
+          amount: refund_amount_cents,
+          metadata: {
+            type: 'rental_deposit_refund',
+            rental_booking_id: rental_booking.id,
+            booking_number: rental_booking.booking_number
+          }
+        },
+        { stripe_account: business.stripe_account_id }
+      )
+      
+      Rails.logger.info("[StripeService] Refund processed for rental #{rental_booking.booking_number}: #{refund.id}")
+      refund
+    rescue Stripe::StripeError => e
+      Rails.logger.error("[StripeService] Failed to process refund for rental #{rental_booking.booking_number}: #{e.message}")
+      raise
+    end
+  end
+
   # Create a Stripe Checkout session for tip payment
   def self.create_tip_checkout_session(tip:, success_url:, cancel_url:)
     configure_stripe_api_key
