@@ -240,7 +240,7 @@ class RentalBookingService
   end
   
   def update_params
-    allowed = [:start_time, :end_time, :quantity, :customer_notes, :notes, :location_id]
+    allowed = [:start_time, :end_time, :duration_mins, :quantity, :customer_notes, :notes, :location_id]
     params.slice(*allowed)
   end
   

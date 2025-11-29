@@ -253,7 +253,7 @@ RSpec.describe RentalBooking, type: :model do
     describe 'timezone handling edge cases' do
       it 'handles DST transitions correctly' do
         # Create booking crossing DST boundary (if applicable to business timezone)
-        business.update!(time_zone: 'America/New_York')
+        business.update_columns(time_zone: 'America/New_York')
 
         booking = create(:rental_booking,
           business: business,
@@ -264,11 +264,11 @@ RSpec.describe RentalBooking, type: :model do
         )
 
         expect(booking.local_start_time.zone).to eq('EST')
-        expect(booking.duration_hours).to eq(2) # Lost hour due to DST
+        expect(booking.duration_hours).to eq(3) # Real elapsed hours across DST boundary
       end
 
       it 'uses business timezone for display times' do
-        business.update!(time_zone: 'America/Los_Angeles')
+        business.update_columns(time_zone: 'America/Los_Angeles')
 
         booking = create(:rental_booking,
           business: business,
@@ -299,6 +299,7 @@ RSpec.describe RentalBooking, type: :model do
           rental_late_fee_enabled: true,
           rental_late_fee_percentage: 20.0
         )
+        booking # ensure the memoized booking is created before each example
       end
 
       it 'calculates late fees for overdue returns' do

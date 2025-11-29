@@ -7,7 +7,7 @@ FactoryBot.define do
     association :tenant_customer
 
     start_time { 1.day.from_now }
-    end_time { 3.days.from_now }
+    end_time { start_time + 2.days }
     quantity { 1 }
     rate_type { 'daily' }
 

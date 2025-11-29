@@ -356,10 +356,18 @@ class Product < ApplicationRecord
     schedule = (rental_availability_schedule || {}).with_indifferent_access
     exceptions = schedule[:exceptions] || {}
     iso_date = date.iso8601
-    return build_schedule_intervals_for(date, exceptions[iso_date]) if exceptions[iso_date].present?
 
-    day_key = date.strftime('%A').downcase
-    build_schedule_intervals_for(date, schedule[day_key])
+    slots = if exceptions.key?(iso_date)
+              exceptions[iso_date]
+            else
+              day_key = date.strftime('%A').downcase
+              schedule[day_key]
+            end
+
+    intervals = build_schedule_intervals_for(date, slots)
+    return intervals if intervals.present?
+
+    rental_availability_schedule.blank? ? full_day_intervals_for(date) : []
   end
 
   def rental_schedule_allows?(start_time, end_time)
@@ -367,15 +375,43 @@ class Product < ApplicationRecord
 
     tz = business&.time_zone.presence || 'UTC'
     Time.use_zone(tz) do
-      date = start_time.in_time_zone(tz).to_date
-      return false unless date == end_time.in_time_zone(tz).to_date
+      start_date = start_time.in_time_zone(tz).to_date
+      end_date = end_time.in_time_zone(tz).to_date
 
-      intervals = rental_schedule_for(date)
-      return false if intervals.blank?
+      # Single-day rental: check that there's a slot covering the entire period
+      if start_date == end_date
+        intervals = rental_schedule_for(start_date)
+        return false if intervals.blank?
 
-      intervals.any? do |slot|
-        slot[:start] <= start_time && slot[:end] >= end_time
+        return intervals.any? do |slot|
+          slot[:start] <= start_time && slot[:end] >= end_time
+        end
       end
+
+      # Multi-day rental: check each day in the rental period
+      current_date = start_date
+
+      while current_date <= end_date
+        intervals = rental_schedule_for(current_date)
+        return false if intervals.blank?
+
+        if current_date == start_date
+          # First day: ensure there's a slot that starts at or before the start_time
+          has_valid_slot = intervals.any? { |slot| slot[:start] <= start_time }
+          return false unless has_valid_slot
+        elsif current_date == end_date
+          # Last day: ensure there's a slot that ends at or after the end_time
+          has_valid_slot = intervals.any? { |slot| slot[:end] >= end_time }
+          return false unless has_valid_slot
+        else
+          # Middle days: just need to have availability (at least one slot exists)
+          # intervals.blank? check above already handles this
+        end
+
+        current_date = current_date.next_day
+      end
+
+      true
     end
   end
 
@@ -629,6 +665,15 @@ class Product < ApplicationRecord
         next unless start_time && end_time && end_time > start_time
         { start: start_time, end: end_time }
       end
+    end
+  end
+
+  def full_day_intervals_for(date)
+    tz = business&.time_zone.presence || 'UTC'
+    Time.use_zone(tz) do
+      start_time = date.in_time_zone.beginning_of_day
+      end_time = date.in_time_zone.end_of_day
+      [{ start: start_time, end: end_time }]
     end
   end
 

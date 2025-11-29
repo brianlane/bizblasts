@@ -33,6 +33,9 @@ class RentalBooking < ApplicationRecord
   #   "System"
   # end
 
+  # Grace period before assessing late fees (in hours)
+  LATE_FEE_GRACE_HOURS = 36
+
   # ============================================
   # ASSOCIATIONS
   # ============================================
@@ -62,12 +65,12 @@ class RentalBooking < ApplicationRecord
   }, prefix: true
   
   enum :deposit_status, {
-    deposit_pending: 'pending',
-    deposit_collected: 'collected',
-    deposit_partial_refund: 'partial_refund',
-    deposit_full_refund: 'full_refund',
-    deposit_forfeited: 'forfeited'
-  }, prefix: false
+    pending: 'pending',
+    collected: 'collected',
+    partial_refund: 'partial_refund',
+    full_refund: 'full_refund',
+    forfeited: 'forfeited'
+  }, prefix: :deposit
   
   # ============================================
   # VALIDATIONS
@@ -128,7 +131,7 @@ class RentalBooking < ApplicationRecord
   
   # Time zone helpers (consistent with Booking model)
   def local_timezone
-    @local_timezone ||= business&.time_zone.presence || 'UTC'
+    business&.time_zone.presence || Time.zone.name || 'UTC'
   end
   
   def local_start_time
@@ -142,7 +145,7 @@ class RentalBooking < ApplicationRecord
   # Duration helpers
   def duration_minutes
     return 0 unless start_time && end_time
-    ((end_time - start_time) / 60).ceil
+    ((local_end_time - local_start_time) / 60).ceil
   end
   
   def duration_hours
@@ -228,7 +231,7 @@ class RentalBooking < ApplicationRecord
     transaction do
       update!(
         status: 'deposit_paid',
-        deposit_status: 'collected',
+        deposit_status: :collected,
         deposit_paid_at: Time.current,
         stripe_deposit_payment_intent_id: payment_intent_id
       )
@@ -256,7 +259,7 @@ class RentalBooking < ApplicationRecord
     transaction do
       update!(
         status: 'deposit_paid',  # Status is still "paid" (funds secured)
-        deposit_status: 'collected',
+        deposit_status: :collected,
         deposit_authorization_id: authorization_id,
         deposit_authorized_at: Time.current
       )
@@ -437,8 +440,12 @@ class RentalBooking < ApplicationRecord
         damage_fee_amount: damage_amount
       )
 
-      # Calculate late fees if overdue
-      calculate_late_fees! if was_overdue?
+      # Calculate late fees if applicable
+      if late_fee_applicable?
+        calculate_late_fees!
+      else
+        update!(late_fee_amount: nil)
+      end
 
       # Process deposit refund
       process_deposit_refund!
@@ -490,13 +497,13 @@ class RentalBooking < ApplicationRecord
         end
 
         update!(
-          deposit_status: 'full_refund',
+          deposit_status: :full_refund,
           deposit_refund_amount: 0  # No charge was made, so nothing to refund
         )
       # Handle captured deposits (refund the charge)
       elsif deposit_collected?
         update!(
-          deposit_status: 'full_refund',
+          deposit_status: :full_refund,
           deposit_refund_amount: security_deposit_amount
         )
         # Trigger Stripe refund if deposit was paid
@@ -574,7 +581,6 @@ class RentalBooking < ApplicationRecord
   
   def calculate_late_fees!
     return unless business&.rental_late_fee_enabled? && actual_return_time && end_time
-    return unless actual_return_time > end_time
     
     late_hours = ((actual_return_time - end_time) / 1.hour).ceil
     late_days = (late_hours / 24.0).ceil
@@ -590,17 +596,28 @@ class RentalBooking < ApplicationRecord
     actual_return_time.present? && actual_return_time > end_time
   end
   
+  def late_fee_applicable?
+    return false unless business&.rental_late_fee_enabled? && actual_return_time && end_time
+    actual_return_time > (end_time + late_fee_grace_period_hours.hours)
+  end
+  
+  def late_fee_grace_period_hours
+    value = business.try(:rental_late_fee_grace_hours)
+    return value.to_i if value.present? && value.to_i.positive?
+    LATE_FEE_GRACE_HOURS
+  end
+  
   def process_deposit_refund!
     total_deductions = (late_fee_amount || 0) + (damage_fee_amount || 0)
     deposit = security_deposit_amount || 0
     
     if total_deductions >= deposit
-      update!(deposit_status: 'forfeited', deposit_refund_amount: 0)
+      update!(deposit_status: :forfeited, deposit_refund_amount: 0)
     elsif total_deductions > 0
       refund = deposit - total_deductions
-      update!(deposit_status: 'partial_refund', deposit_refund_amount: refund)
+      update!(deposit_status: :partial_refund, deposit_refund_amount: refund)
     else
-      update!(deposit_status: 'full_refund', deposit_refund_amount: deposit)
+      update!(deposit_status: :full_refund, deposit_refund_amount: deposit)
     end
     
     # Trigger Stripe refund
