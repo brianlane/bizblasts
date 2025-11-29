@@ -357,17 +357,18 @@ class RentalBooking < ApplicationRecord
   def check_out!(staff_member:, condition_notes: nil, checklist_items: [], photos: [])
     return false unless can_check_out?
 
+    # If using preauthorization, capture the deposit BEFORE the transaction
+    # This prevents inconsistent state if capture succeeds but transaction fails
+    if using_deposit_preauth? && !deposit_captured_at.present?
+      unless capture_deposit!
+        Rails.logger.error("[RentalBooking] Failed to capture preauthorized deposit for booking #{booking_number}")
+        return false
+      end
+    end
+
     success = false
 
     transaction do
-      # If using preauthorization, capture the deposit now
-      if using_deposit_preauth? && !deposit_captured_at.present?
-        unless capture_deposit!
-          Rails.logger.error("[RentalBooking] Failed to capture preauthorized deposit for booking #{booking_number}")
-          raise ActiveRecord::Rollback
-        end
-      end
-
       report = rental_condition_reports.create!(
         staff_member: staff_member,
         report_type: 'checkout',
@@ -531,7 +532,13 @@ class RentalBooking < ApplicationRecord
   # Mark as overdue
   def mark_overdue!
     return unless status_checked_out? && end_time < Time.current
-    update!(status: 'overdue')
+
+    # Update status and add note about notification
+    update!(
+      status: 'overdue',
+      notes: [notes, "Overdue notification sent: #{Date.current}"].compact.join("\n")
+    )
+
     send_overdue_notification
   end
   

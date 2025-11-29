@@ -132,9 +132,15 @@ class RentalAvailabilityService
       return [] if windows.blank?
 
       slots = []
+      # For multi-day rentals, show all pickup times in the availability window
+      # The multi-day validation happens in available?() method
+      is_multiday = duration_mins >= (24 * 60)
+
       windows.each do |period|
         current_time = period[:start]
-        end_boundary = period[:end] - duration_mins.minutes
+        # For single-day rentals, ensure full duration fits in window
+        # For multi-day rentals, allow any pickup time in the window
+        end_boundary = is_multiday ? period[:end] : (period[:end] - duration_mins.minutes)
         next if end_boundary <= current_time
 
         while current_time <= end_boundary

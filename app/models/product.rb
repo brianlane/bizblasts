@@ -396,12 +396,14 @@ class Product < ApplicationRecord
         return false if intervals.blank?
 
         if current_date == start_date
-          # First day: ensure there's a slot that starts at or before the start_time
-          has_valid_slot = intervals.any? { |slot| slot[:start] <= start_time }
+          # First day: ensure there's a slot that covers the start_time
+          # Must start at or before start_time AND end after start_time
+          has_valid_slot = intervals.any? { |slot| slot[:start] <= start_time && slot[:end] > start_time }
           return false unless has_valid_slot
         elsif current_date == end_date
-          # Last day: ensure there's a slot that ends at or after the end_time
-          has_valid_slot = intervals.any? { |slot| slot[:end] >= end_time }
+          # Last day: ensure there's a slot that covers the end_time
+          # Must start before end_time AND end at or after end_time
+          has_valid_slot = intervals.any? { |slot| slot[:start] < end_time && slot[:end] >= end_time }
           return false unless has_valid_slot
         else
           # Middle days: just need to have availability (at least one slot exists)
