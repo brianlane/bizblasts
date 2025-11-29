@@ -488,6 +488,8 @@ class RentalBooking < ApplicationRecord
   def cancel!(reason: nil)
     return false unless can_cancel?
 
+    success = false
+
     transaction do
       # Handle preauthorized deposits (release hold without charging)
       if deposit_authorization_id.present? && !deposit_captured_at.present? && !deposit_authorization_released_at.present?
@@ -514,10 +516,16 @@ class RentalBooking < ApplicationRecord
         status: 'cancelled',
         notes: [notes, "Cancellation reason: #{reason}"].compact.join("\n")
       )
+
+      success = true
     end
 
-    send_cancellation_notification
-    true
+    if success
+      send_cancellation_notification
+      true
+    else
+      false
+    end
   end
   
   # Mark as overdue

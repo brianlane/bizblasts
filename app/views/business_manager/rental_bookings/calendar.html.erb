@@ -22,7 +22,7 @@
         <% end %>
         
         <!-- Calendar days -->
-        <% (@start_date.beginning_of_month.beginning_of_week..@start_date.end_of_month.end_of_week).each do |date| %>
+        <% (@visible_start_date..@visible_end_date).each do |date| %>
           <% day_bookings = @bookings.select { |b| b.start_time.to_date <= date && b.end_time.to_date >= date } %>
           <div class="bg-white min-h-[100px] p-1 <%= date.month != @start_date.month ? 'opacity-40' : '' %>">
             <div class="text-xs font-medium text-gray-500 mb-1"><%= date.day %></div>

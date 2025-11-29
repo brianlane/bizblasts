@@ -24,7 +24,7 @@ RSpec.describe 'RentalBooking Deposit Preauthorization', type: :model do
       expect {
         rental_booking.mark_deposit_authorized!(authorization_id: authorization_id)
       }.to change { rental_booking.reload.status }.from('pending_deposit').to('deposit_paid')
-        .and change { rental_booking.deposit_status }.from('deposit_pending').to('deposit_collected')
+        .and change { rental_booking.deposit_status }.from('pending').to('collected')
         .and change { rental_booking.deposit_authorization_id }.from(nil).to(authorization_id)
         .and change { rental_booking.deposit_authorized_at }.from(nil)
     end

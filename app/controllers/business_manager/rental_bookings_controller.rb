@@ -196,10 +196,12 @@ module BusinessManager
     def calendar
       @start_date = params[:start_date].present? ? Date.parse(params[:start_date]) : Date.current.beginning_of_month
       @end_date = @start_date.end_of_month
+      @visible_start_date = @start_date.beginning_of_month.beginning_of_week
+      @visible_end_date = @start_date.end_of_month.end_of_week
 
       @bookings = policy_scope(RentalBooking)
         .where.not(status: :cancelled)
-        .where('start_time < ? AND end_time > ?', @end_date.end_of_day, @start_date.beginning_of_day)
+        .where('start_time < ? AND end_time > ?', @visible_end_date.end_of_day, @visible_start_date.beginning_of_day)
         .includes(:product, :tenant_customer)
 
       @rentals = current_business.products.rentals.active
