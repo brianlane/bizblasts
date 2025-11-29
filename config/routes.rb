@@ -36,6 +36,26 @@ Rails.application.routes.draw do
       get '/services/:id', to: 'services#show', as: :tenant_service
       # Product listings under tenant public scope
       resources :products, only: [:index, :show]
+      
+      # Rental listings and bookings
+      resources :rentals, only: [:index, :show] do
+        member do
+          get :availability
+          get :calendar
+          get :available_slots
+          get :book
+          post :create_booking
+        end
+      end
+      resources :rental_bookings, only: [:show] do
+        member do
+          get :pay_deposit
+          get :deposit_success
+          get :deposit_cancel
+          get :confirmation
+        end
+      end
+      
       get '/contact', to: 'pages#show', page: 'contact', as: :tenant_contact_page
 
       # Estimate page and form submission
@@ -233,6 +253,30 @@ Rails.application.routes.draw do
           patch :update_position
           patch :move_up
           patch :move_down
+        end
+      end
+      
+      # Rental product management
+      resources :rentals do
+        member do
+          patch :update_position
+          get :availability
+          get :manage_availability
+          patch :update_availability
+        end
+      end
+      
+      # Rental bookings management
+      resources :rental_bookings do
+        member do
+          patch :check_out
+          patch :process_return
+          patch :complete
+          patch :cancel
+        end
+        collection do
+          get :calendar
+          get :overdue
         end
       end
       resources :shipping_methods

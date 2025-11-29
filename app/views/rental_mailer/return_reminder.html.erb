@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { text-align: center; padding: 20px 0; border-bottom: 2px solid #f59e0b; }
+    .header h1 { color: #d97706; margin: 0; }
+    .reminder-badge { background: #fef3c7; color: #92400e; padding: 15px 30px; border-radius: 8px; text-align: center; margin: 20px 0; }
+    .content { padding: 30px 0; }
+    .booking-details { background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0; }
+    .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0; }
+    .detail-row:last-child { border-bottom: none; }
+    .footer { text-align: center; padding: 20px 0; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1><%= @business.name %></h1>
+    </div>
+    
+    <div class="content">
+      <div class="reminder-badge">
+        <h2>⏰ Return Reminder</h2>
+        <p style="margin: 10px 0 0 0;">Your rental is due for return tomorrow!</p>
+      </div>
+      
+      <p>Hi <%= @customer.first_name %>,</p>
+      <p>This is a friendly reminder that your rental is due for return.</p>
+      
+      <div class="booking-details">
+        <h3><%= @rental.name %></h3>
+        <div class="detail-row">
+          <span>Return By</span>
+          <span style="font-weight: bold; color: #d97706;"><%= @rental_booking.local_end_time&.strftime('%B %d, %Y at %I:%M %p') %></span>
+        </div>
+      </div>
+      
+      <p>Please ensure the item is returned in good condition to receive your full deposit refund.</p>
+      
+      <% if @rental_booking.location.present? %>
+        <h3>📍 Return Location</h3>
+        <p>
+          <%= @rental_booking.location.name %><br>
+          <%= @rental_booking.location.address %><br>
+          <%= @rental_booking.location.city %>, <%= @rental_booking.location.state %> <%= @rental_booking.location.zip %>
+        </p>
+      <% end %>
+    </div>
+    
+    <div class="footer">
+      <p>Questions? Contact us at <%= @business.email %></p>
+    </div>
+  </div>
+</body>
+</html>
+

@@ -51,6 +51,11 @@ class Rack::Attack
     req.ip if req.path.include?('password') && req.post?
   end
 
+  # Throttle rental booking creation to prevent spam/abuse
+  throttle('rental_bookings/ip', limit: 5, period: 1.hour) do |req|
+    req.ip if req.path.match?(%r{/rentals/\d+/create_booking}) && req.post?
+  end
+
   # SECURITY: Throttle Place ID extraction to prevent DoS via headless browser
   # Limit: 5 extractions per hour per IP (in addition to user-based limit in controller)
   throttle('place_id_extraction/ip', limit: 5, period: 1.hour) do |req|

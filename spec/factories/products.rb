@@ -18,6 +18,23 @@ FactoryBot.define do
       featured { true }
     end
 
+    # Rental product trait with all required rental fields
+    trait :rental do
+      product_type { :rental }
+      price { 50.00 } # This becomes the daily_rate for rentals
+      hourly_rate { 10.00 }
+      weekly_rate { 300.00 }
+      security_deposit { 100.00 } # Must be >= $0.50 for Stripe or 0
+      rental_quantity_available { 5 }
+      rental_category { 'equipment' }
+      min_rental_duration_mins { 60 } # 1 hour minimum
+      max_rental_duration_mins { 20160 } # 2 weeks maximum
+      rental_buffer_mins { 30 } # 30 minute buffer between rentals
+      allow_hourly_rental { true }
+      allow_daily_rental { true }
+      allow_weekly_rental { true }
+    end
+
     # Trait to create variants along with the product
     transient do
       variants_count { 0 }

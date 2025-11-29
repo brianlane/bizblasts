@@ -52,6 +52,7 @@ FactoryBot.define do
     end
 
     time_zone { 'UTC' }
+    rental_late_fee_enabled { false }
     active { true }
     stock_management_enabled { true }
     tip_mailer_if_no_tip_received { true }

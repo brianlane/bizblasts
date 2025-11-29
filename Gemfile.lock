@@ -624,6 +624,7 @@ GEM
     thruster (0.1.16-arm64-darwin)
     thruster (0.1.16-x86_64-darwin)
     thruster (0.1.16-x86_64-linux)
+    timecop (0.9.10)
     timeout (0.4.4)
     tod (3.1.2)
     trailblazer-option (0.1.2)
@@ -743,6 +744,7 @@ DEPENDENCIES
   stripe (~> 18.0)
   tailwindcss-rails
   thruster
+  timecop
   tod
   twilio-ruby (~> 7.8)
   tzinfo-data
