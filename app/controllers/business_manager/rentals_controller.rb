@@ -2,7 +2,7 @@
 
 module BusinessManager
   class RentalsController < BaseController
-    before_action :set_rental, only: [:show, :edit, :update, :destroy, :update_position, :availability]
+    before_action :set_rental, only: [:show, :edit, :update, :destroy, :update_position, :availability, :manage_availability, :update_availability]
     
     # GET /manage/rentals
     def index
@@ -27,7 +27,10 @@ module BusinessManager
     
     # GET /manage/rentals/:id
     def show
-      @recent_bookings = @rental.rental_bookings.order(created_at: :desc).limit(10)
+      @recent_bookings = @rental.rental_bookings
+        .includes(:tenant_customer)
+        .order(created_at: :desc)
+        .limit(10)
       @availability_calendar = RentalAvailabilityService.availability_calendar(
         rental: @rental,
         start_date: Date.current,
@@ -124,6 +127,30 @@ module BusinessManager
         format.json { render json: @calendar }
       end
     end
+
+    def manage_availability
+      authorize @rental
+      prepare_availability_context
+    end
+
+    def update_availability
+      authorize @rental
+      prepare_availability_context
+
+      availability_payload = build_rental_availability_payload
+      final_payload = if params.dig(:product, :only_current_week) == '1'
+                        merge_current_week_overrides(availability_payload)
+                      else
+                        availability_payload
+                      end
+
+      if @rental.update(rental_availability_schedule: final_payload)
+        redirect_to manage_availability_business_manager_rental_path(@rental, date: @date), notice: 'Rental availability updated.'
+      else
+        flash.now[:alert] = @rental.errors.full_messages.to_sentence.presence || 'Unable to update rental availability.'
+        render :manage_availability, status: :unprocessable_content
+      end
+    end
     
     private
     
@@ -146,6 +173,7 @@ module BusinessManager
         :rental_buffer_mins,
         :allow_hourly_rental, :allow_daily_rental, :allow_weekly_rental,
         :location_id,
+        rental_duration_options: [],
         
         # Images
         images: [],
@@ -180,6 +208,94 @@ module BusinessManager
     rescue => e
       @rental.errors.add(:images, "Error processing images: #{e.message}")
       false
+    end
+
+    def prepare_availability_context
+      @date = params[:date].present? ? Date.parse(params[:date]) : Date.current
+      @start_date = @date.beginning_of_week
+      @end_date = @date.end_of_week
+      @calendar_data = build_calendar_preview
+    end
+
+    def build_calendar_preview
+      tz = @rental.business&.time_zone.presence || 'UTC'
+      data = {}
+
+      Time.use_zone(tz) do
+        (@start_date..@end_date).each do |date|
+          data[date.to_s] = Array(@rental.rental_schedule_for(date))
+        end
+      end
+
+      data
+    end
+
+    def build_rental_availability_payload
+      days = (%w[monday tuesday wednesday thursday friday saturday sunday]).index_with { [] }
+      days['exceptions'] = {}
+
+      availability_params = availability_permitted_params
+      full_day_params = params[:full_day] || {}
+
+      days.keys.each do |day|
+        next if day == 'exceptions'
+
+        if full_day_params[day] == '1'
+          days[day] = [{ 'start' => '00:00', 'end' => '23:59' }]
+        else
+          slot_hash = availability_params[day]
+          slots = if slot_hash.is_a?(Hash)
+                    slot_hash.values
+                  elsif slot_hash.is_a?(Array)
+                    slot_hash
+                  else
+                    []
+                  end
+
+          days[day] = slots.filter_map do |slot|
+            start_time = slot['start'] || slot[:start]
+            end_time = slot['end'] || slot[:end]
+            next if start_time.blank? || end_time.blank?
+            { 'start' => start_time, 'end' => end_time }
+          end
+        end
+      end
+
+      days
+    end
+
+    def merge_current_week_overrides(base_schedule)
+      schedule = (@rental.rental_availability_schedule || {}).deep_dup
+      schedule = schedule.with_indifferent_access
+      schedule[:exceptions] ||= {}
+
+      (@start_date..@end_date).each do |date|
+        day_key = date.strftime('%A').downcase
+        schedule[:exceptions][date.iso8601] = base_schedule[day_key] || []
+      end
+
+      schedule
+    end
+
+    def availability_permitted_params
+      return {} unless params[:product].present? && params[:product][:availability].present?
+
+      params.require(:product).require(:availability).permit(
+        monday: permit_dynamic_slots,
+        tuesday: permit_dynamic_slots,
+        wednesday: permit_dynamic_slots,
+        thursday: permit_dynamic_slots,
+        friday: permit_dynamic_slots,
+        saturday: permit_dynamic_slots,
+        sunday: permit_dynamic_slots,
+        exceptions: {}
+      ).to_h
+    rescue ActionController::ParameterMissing
+      {}
+    end
+
+    def permit_dynamic_slots
+      Hash.new { |h, k| h[k] = [:start, :end] }
     end
   end
 end

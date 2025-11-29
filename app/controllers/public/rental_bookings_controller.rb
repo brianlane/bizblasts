@@ -60,10 +60,12 @@ module Public
     private
     
     def set_rental_booking
+      scope = current_tenant.rental_bookings.includes(:product, :tenant_customer, :location)
+
       @rental_booking = if params[:token].present?
-        current_tenant.rental_bookings.find_by!(guest_access_token: params[:token])
+        scope.find_by!(guest_access_token: params[:token])
       else
-        current_tenant.rental_bookings.find(params[:id])
+        scope.find(params[:id])
       end
     end
     

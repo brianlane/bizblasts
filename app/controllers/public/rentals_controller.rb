@@ -2,7 +2,7 @@
 
 module Public
   class RentalsController < ApplicationController
-    before_action :set_rental, only: [:show, :availability, :book, :create_booking]
+    before_action :set_rental, only: [:show, :availability, :book, :create_booking, :calendar, :available_slots]
     before_action :set_customer, only: [:create_booking]
     
     # GET /rentals
@@ -27,9 +27,11 @@ module Public
     def show
       @variants = @rental.product_variants.where.not(name: 'Default')
       @similar_rentals = current_tenant.products.rentals.active
+        .includes(images_attachments: :blob)
         .where(rental_category: @rental.rental_category)
         .where.not(id: @rental.id)
         .limit(4)
+      @duration_options = @rental.effective_rental_durations
       
       # Get availability for next 30 days
       @availability_calendar = RentalAvailabilityService.availability_calendar(
@@ -52,32 +54,59 @@ module Public
       
       render json: calendar
     end
+
+    def calendar
+      @duration_options = @rental.effective_rental_durations
+      @duration_minutes = params[:duration].to_i
+      @duration_minutes = @duration_options.first unless @duration_options.include?(@duration_minutes)
+      @quantity = params[:quantity].to_i.positive? ? params[:quantity].to_i : 1
+
+      @date = params[:date].present? ? Date.parse(params[:date]) : Date.current
+      @calendar_start_date = @date.beginning_of_month.beginning_of_week(:sunday)
+      @calendar_end_date = @date.end_of_month.end_of_week(:sunday)
+      @calendar_data = rental_calendar_data(@calendar_start_date, @calendar_end_date, @duration_minutes, @quantity)
+    rescue ArgumentError
+      redirect_to rental_path(@rental), alert: 'Invalid calendar parameters.'
+    end
+
+    def available_slots
+      date = params[:date].present? ? Date.parse(params[:date]) : Date.current
+      duration = params[:duration].to_i
+      quantity = params[:quantity].to_i.positive? ? params[:quantity].to_i : 1
+      slots = RentalAvailabilityService.available_slots(
+        rental: @rental,
+        date: date,
+        duration_mins: duration,
+        quantity: quantity
+      )
+      render json: { date: date, slots: slots }
+    rescue ArgumentError
+      render json: { error: 'Invalid date' }, status: :unprocessable_entity
+    end
     
     # GET /rentals/:id/book
     def book
-      # Check if rental requires authentication
+      @duration_minutes = params[:duration].to_i
+      @duration_minutes = @rental.effective_rental_durations.first unless @duration_minutes.positive?
+      @quantity = params[:quantity].to_i.positive? ? params[:quantity].to_i : 1
+
+      @start_time = params[:start_time].present? ? Time.zone.parse(params[:start_time]) : nil
+      unless @start_time
+        redirect_to calendar_rental_path(@rental, duration: @duration_minutes, quantity: @quantity),
+                    alert: 'Please select a time slot before continuing.' and return
+      end
+
+      @end_time = @start_time + @duration_minutes.minutes
       @booking = RentalBooking.new(
         product: @rental,
-        start_time: params[:start_time],
-        end_time: params[:end_time],
-        quantity: params[:quantity] || 1
+        start_time: @start_time,
+        end_time: @end_time,
+        quantity: @quantity
       )
-      
-      # Pre-calculate pricing if dates provided
-      if params[:start_time].present? && params[:end_time].present?
-        begin
-          start_time = Time.zone.parse(params[:start_time])
-          end_time = Time.zone.parse(params[:end_time])
-          
-          # Only calculate price if both times are valid
-          if start_time.present? && end_time.present?
-            @pricing = @rental.calculate_rental_price(start_time, end_time, rate_type: params[:rate_type])
-          end
-        rescue ArgumentError
-          # Invalid time format - skip pricing calculation
-          @pricing = nil
-        end
-      end
+      @pricing = @rental.calculate_rental_price(@start_time, @end_time)
+    rescue ArgumentError
+      redirect_to calendar_rental_path(@rental, duration: @duration_minutes, quantity: @quantity),
+                  alert: 'Invalid time slot selected.' and return
     end
     
     # POST /rentals/:id/create_booking
@@ -104,6 +133,14 @@ module Public
         end
       else
         @booking = RentalBooking.new(booking_params.merge(product: @rental))
+        @duration_minutes = booking_params[:duration_mins].to_i
+        @duration_minutes = @rental.effective_rental_durations.first unless @duration_minutes.positive?
+        @start_time = @booking.start_time
+        @end_time = @start_time && (@start_time + @duration_minutes.minutes)
+        @quantity = @booking.quantity || 1
+        @pricing = if @start_time && @end_time
+                     @rental.calculate_rental_price(@start_time, @end_time)
+                   end
         flash.now[:alert] = result[:errors].join(', ')
         render :book, status: :unprocessable_content
       end
@@ -140,7 +177,7 @@ module Public
     
     def booking_params
       params.require(:rental_booking).permit(
-        :start_time, :end_time, :quantity,
+        :start_time, :end_time, :duration_mins, :quantity,
         :product_variant_id, :rate_type,
         :customer_notes
       )
@@ -149,6 +186,20 @@ module Public
     def rental_booking_payment_path(booking)
       # This will redirect to the Stripe checkout for security deposit
       pay_deposit_rental_booking_path(booking)
+    end
+
+    def rental_calendar_data(start_date, end_date, duration_mins, quantity)
+      data = {}
+      (start_date..end_date).each do |date|
+        slots = RentalAvailabilityService.available_slots(
+          rental: @rental,
+          date: date,
+          duration_mins: duration_mins,
+          quantity: quantity
+        )
+        data[date.to_s] = slots
+      end
+      data
     end
   end
 end

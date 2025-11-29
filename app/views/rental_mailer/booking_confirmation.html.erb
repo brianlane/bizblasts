@@ -68,7 +68,7 @@
           <strong>⚠️ Action Required:</strong> Please pay the security deposit to confirm your booking.
         </div>
         <p style="text-align: center;">
-          <a href="<%= pay_deposit_rental_booking_url(@rental_booking, host: @business.public_url) %>" class="cta-button">Pay Deposit Now</a>
+          <a href="<%= pay_deposit_rental_booking_url(@rental_booking, host: @business.full_url) %>" class="cta-button">Pay Deposit Now</a>
         </p>
       <% end %>
       

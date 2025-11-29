@@ -3,10 +3,15 @@
 # Service for managing rental availability
 # Follows patterns from AvailabilityService but adapted for rental products
 class RentalAvailabilityService
+  # Constants
+  MAX_CALENDAR_DAYS = 90  # Maximum date range for availability calendar
+  CACHE_EXPIRY_MINUTES = 15  # Cache expiration time
+  DEFAULT_REMINDER_HOURS = 24  # Default hours before rental to send reminder
+
   # ============================================
   # CLASS METHODS
   # ============================================
-  
+
   # Find available rentals for a business within a time period
   #
   # @param business [Business] the business to search
@@ -54,7 +59,17 @@ class RentalAvailabilityService
   # @return [Hash] calendar data with availability per day
   def self.availability_calendar(rental:, start_date:, end_date:, bust_cache: false)
     return {} unless rental.rental?
-    
+
+    # Validate date range
+    days = (end_date - start_date).to_i
+    if days > MAX_CALENDAR_DAYS
+      raise ArgumentError, "Date range cannot exceed #{MAX_CALENDAR_DAYS} days (requested: #{days} days)"
+    end
+
+    if days < 0
+      raise ArgumentError, "End date must be after start date"
+    end
+
     # Build cache key
     tz = rental.business&.time_zone.presence || 'UTC'
     cache_key = build_calendar_cache_key(
@@ -63,11 +78,11 @@ class RentalAvailabilityService
       end_date: end_date,
       tz: tz
     )
-    
+
     # Bust cache if requested
     Rails.cache.delete(cache_key) if bust_cache
-    
-    Rails.cache.fetch(cache_key, expires_in: 15.minutes) do
+
+    Rails.cache.fetch(cache_key, expires_in: CACHE_EXPIRY_MINUTES.minutes, race_condition_ttl: 5.seconds) do
       compute_availability_calendar(rental, start_date, end_date)
     end
   end
@@ -102,41 +117,40 @@ class RentalAvailabilityService
   # @param duration_mins [Integer] required duration in minutes
   # @param interval_mins [Integer] interval between slot starts (default: 60)
   # @return [Array<Hash>] available time slots with start_time and end_time
-  def self.available_slots(rental:, date:, duration_mins:, interval_mins: 60)
+  def self.available_slots(rental:, date:, duration_mins:, interval_mins: nil, quantity: 1)
     return [] unless rental.rental?
-    return [] unless rental.allow_hourly_rental?
     return [] if date < Date.current
-    
+    duration_mins = duration_mins.to_i
+    return [] if duration_mins <= 0
+
     business = rental.business
     tz = business&.time_zone.presence || 'UTC'
-    
+    step_interval = slot_interval_minutes(rental: rental, duration_mins: duration_mins, override: interval_mins)
+
     Time.use_zone(tz) do
+      windows = rental.rental_schedule_for(date)
+      return [] if windows.blank?
+
       slots = []
-      
-      # Use business hours if available, otherwise default 9am-5pm
-      business_hours = get_business_hours(business, date)
-      
-      business_hours.each do |period|
+      windows.each do |period|
         current_time = period[:start]
         end_boundary = period[:end] - duration_mins.minutes
-        
+        next if end_boundary <= current_time
+
         while current_time <= end_boundary
           slot_end = current_time + duration_mins.minutes
-          
-          if rental.rental_available_for?(current_time, slot_end)
+          if available?(rental: rental, start_time: current_time, end_time: slot_end, quantity: quantity)
             slots << { start_time: current_time, end_time: slot_end }
           end
-          
-          current_time += interval_mins.minutes
+          current_time += step_interval.minutes
         end
       end
-      
-      # Filter out past slots if checking today
+
       if date == Date.current
-        current_time = Time.current
-        slots.reject! { |slot| slot[:start_time] <= current_time }
+        now = Time.current
+        slots.reject! { |slot| slot[:start_time] <= now }
       end
-      
+
       slots
     end
   end
@@ -222,35 +236,17 @@ class RentalAvailabilityService
     "#{base_key}_#{version_components.join('_')}"
   end
   
-  private_class_method def self.get_business_hours(business, date)
-    return default_hours(date) unless business&.hours.present?
-    
-    day_name = date.strftime('%A').downcase
-    day_hours = business.hours[day_name]
-    
-    return default_hours(date) unless day_hours.present?
-    
-    tz = business.time_zone.presence || 'UTC'
-    
-    Array(day_hours).map do |period|
-      start_str = period['start'] || period['open'] || '09:00'
-      end_str = period['end'] || period['close'] || '17:00'
-      
-      start_h, start_m = start_str.split(':').map(&:to_i)
-      end_h, end_m = end_str.split(':').map(&:to_i)
-      
-      {
-        start: Time.zone.local(date.year, date.month, date.day, start_h, start_m),
-        end: Time.zone.local(date.year, date.month, date.day, end_h, end_m)
-      }
+  private_class_method def self.slot_interval_minutes(rental:, duration_mins:, override:)
+    return override.to_i if override.present?
+
+    policy = rental.business&.booking_policy
+    if policy&.use_fixed_intervals?
+      (policy.interval_mins || duration_mins).clamp(5, 480)
+    elsif policy&.interval_mins.present?
+      policy.interval_mins.clamp(5, 480)
+    else
+      duration_mins.clamp(5, 480)
     end
-  end
-  
-  private_class_method def self.default_hours(date)
-    [{
-      start: date.in_time_zone.change(hour: 9),
-      end: date.in_time_zone.change(hour: 17)
-    }]
   end
 end
 

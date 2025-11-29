@@ -41,6 +41,8 @@ Rails.application.routes.draw do
       resources :rentals, only: [:index, :show] do
         member do
           get :availability
+          get :calendar
+          get :available_slots
           get :book
           post :create_booking
         end
@@ -259,6 +261,8 @@ Rails.application.routes.draw do
         member do
           patch :update_position
           get :availability
+          get :manage_availability
+          patch :update_availability
         end
       end
       

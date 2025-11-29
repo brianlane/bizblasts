@@ -535,7 +535,7 @@ class Business < ApplicationRecord
   
   # Define which attributes are allowed to be searched with Ransack
   def self.ransackable_attributes(auth_object = nil)
-    %w[id name hostname host_type tier industry time_zone active created_at updated_at status cname_monitoring_active domain_coverage_applied domain_cost_covered domain_renewal_date stripe_customer_id stripe_status payment_reminders_enabled stock_management_enabled show_rentals_section rental_late_fee_enabled rental_late_fee_percentage rental_buffer_mins rental_require_deposit_upfront rental_reminder_hours_before]
+    %w[id name hostname host_type tier industry time_zone active created_at updated_at status cname_monitoring_active domain_coverage_applied domain_cost_covered domain_renewal_date stripe_customer_id stripe_status payment_reminders_enabled stock_management_enabled show_rentals_section rental_late_fee_enabled rental_late_fee_percentage rental_buffer_mins rental_require_deposit_upfront rental_reminder_hours_before rental_deposit_preauth_enabled]
   end
   
   # Define which associations are allowed to be searched with Ransack
@@ -760,7 +760,8 @@ class Business < ApplicationRecord
       late_fee_percentage: rental_late_fee_percentage || 15.0,
       buffer_mins: rental_buffer_mins || 30,
       require_deposit_upfront: rental_require_deposit_upfront?,
-      reminder_hours_before: rental_reminder_hours_before || 24
+      reminder_hours_before: rental_reminder_hours_before || 24,
+      deposit_preauth_enabled: rental_deposit_preauth_enabled?
     }
   end
   

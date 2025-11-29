@@ -120,6 +120,8 @@
                         class: "inline-flex items-center px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-colors" %>
                   <%= link_to 'View', business_manager_rental_path(rental), 
                         class: "inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors" %>
+                  <%= link_to 'Availability', manage_availability_business_manager_rental_path(rental),
+                        class: "inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors" %>
                   <%= button_to 'Delete', business_manager_rental_path(rental),
                         method: :delete,
                         data: { confirm: "Are you sure you want to delete '#{rental.name}'?" },

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_27_204840) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_28_201427) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -278,6 +278,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_27_204840) do
     t.boolean "referral_program_enabled", default: false, null: false
     t.boolean "render_domain_added", default: false, null: false
     t.integer "rental_buffer_mins", default: 30
+    t.boolean "rental_deposit_preauth_enabled", default: false, null: false
     t.boolean "rental_late_fee_enabled", default: true
     t.decimal "rental_late_fee_percentage", precision: 5, scale: 2, default: "15.0"
     t.integer "rental_reminder_hours_before", default: 24
@@ -332,6 +333,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_27_204840) do
     t.index ["hostname"], name: "index_businesses_on_hostname", unique: true
     t.index ["name"], name: "index_businesses_on_name"
     t.index ["platform_referral_code"], name: "index_businesses_on_platform_referral_code", unique: true
+    t.index ["rental_deposit_preauth_enabled"], name: "index_businesses_on_deposit_preauth_enabled", where: "(rental_deposit_preauth_enabled = true)"
     t.index ["service_template_id"], name: "index_businesses_on_service_template_id"
     t.index ["sms_auto_invitations_enabled"], name: "index_businesses_on_sms_auto_invitations_enabled"
     t.index ["status"], name: "index_businesses_on_status"
@@ -883,7 +885,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_27_204840) do
     t.index ["tenant_customer_id", "created_at"], name: "index_orders_on_tenant_customer_id_and_created_at"
     t.index ["tenant_customer_id"], name: "index_orders_on_tenant_customer_id"
     t.index ["tip_amount"], name: "index_orders_on_tip_amount"
-    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying, 'paid'::character varying, 'cancelled'::character varying, 'shipped'::character varying, 'refunded'::character varying, 'processing'::character varying, 'completed'::character varying, 'business_deleted'::character varying]::text[])", name: "status_enum_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying::text, 'paid'::character varying::text, 'cancelled'::character varying::text, 'shipped'::character varying::text, 'refunded'::character varying::text, 'processing'::character varying::text, 'completed'::character varying::text, 'business_deleted'::character varying::text])", name: "status_enum_check"
   end
 
   create_table "page_sections", force: :cascade do |t|
@@ -1133,8 +1135,10 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_27_204840) do
     t.integer "position", default: 0
     t.decimal "price", precision: 10, scale: 2, null: false
     t.integer "product_type", null: false
+    t.jsonb "rental_availability_schedule", default: {}, null: false
     t.integer "rental_buffer_mins", default: 0
     t.string "rental_category", default: "equipment"
+    t.jsonb "rental_duration_options", default: [], null: false
     t.integer "rental_quantity_available", default: 1
     t.decimal "security_deposit", precision: 10, scale: 2, default: "0.0"
     t.boolean "show_stock_to_customers", default: true, null: false
@@ -1155,6 +1159,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_27_204840) do
     t.index ["business_id"], name: "index_products_on_business_id"
     t.index ["featured"], name: "index_products_on_featured"
     t.index ["location_id"], name: "index_products_on_location_id"
+    t.index ["rental_availability_schedule"], name: "index_products_on_rental_availability_schedule", using: :gin
     t.index ["tips_enabled"], name: "index_products_on_tips_enabled"
   end
 
@@ -1262,6 +1267,10 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_27_204840) do
     t.datetime "created_at", null: false
     t.text "customer_notes"
     t.decimal "damage_fee_amount", precision: 10, scale: 2, default: "0.0"
+    t.string "deposit_authorization_id"
+    t.datetime "deposit_authorization_released_at"
+    t.datetime "deposit_authorized_at"
+    t.datetime "deposit_captured_at"
     t.datetime "deposit_paid_at"
     t.decimal "deposit_refund_amount", precision: 10, scale: 2
     t.datetime "deposit_refunded_at"
@@ -1271,6 +1280,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_27_204840) do
     t.string "guest_access_token"
     t.decimal "late_fee_amount", precision: 10, scale: 2, default: "0.0"
     t.bigint "location_id"
+    t.integer "lock_version", default: 0, null: false
     t.text "notes"
     t.bigint "product_id", null: false
     t.bigint "product_variant_id"
@@ -1291,16 +1301,22 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_27_204840) do
     t.decimal "total_amount", precision: 10, scale: 2
     t.datetime "updated_at", null: false
     t.index ["booking_number"], name: "index_rental_bookings_on_booking_number", unique: true
+    t.index ["business_id", "booking_number"], name: "index_rental_bookings_on_business_and_booking_number", unique: true
+    t.index ["business_id", "status"], name: "index_rental_bookings_on_business_and_status"
     t.index ["business_id", "status"], name: "index_rental_bookings_on_business_id_and_status"
     t.index ["business_id"], name: "index_rental_bookings_on_business_id"
+    t.index ["deposit_authorization_id"], name: "index_rental_bookings_on_deposit_authorization_id"
+    t.index ["end_time"], name: "index_rental_bookings_on_end_time_for_overdue", where: "((status)::text = ANY (ARRAY[('checked_out'::character varying)::text, ('overdue'::character varying)::text]))"
     t.index ["guest_access_token"], name: "index_rental_bookings_on_guest_access_token", unique: true
     t.index ["location_id"], name: "index_rental_bookings_on_location_id"
     t.index ["product_id", "start_time", "end_time"], name: "idx_on_product_id_start_time_end_time_f527c29028"
+    t.index ["product_id", "start_time", "end_time"], name: "index_rental_bookings_on_product_and_times"
     t.index ["product_id"], name: "index_rental_bookings_on_product_id"
     t.index ["product_variant_id"], name: "index_rental_bookings_on_product_variant_id"
     t.index ["promotion_id"], name: "index_rental_bookings_on_promotion_id"
     t.index ["staff_member_id"], name: "index_rental_bookings_on_staff_member_id"
     t.index ["status", "end_time"], name: "index_rental_bookings_on_status_and_end_time"
+    t.index ["stripe_deposit_payment_intent_id"], name: "index_rental_bookings_on_stripe_payment_intent"
     t.index ["tenant_customer_id", "status"], name: "index_rental_bookings_on_tenant_customer_id_and_status"
     t.index ["tenant_customer_id"], name: "index_rental_bookings_on_tenant_customer_id"
   end

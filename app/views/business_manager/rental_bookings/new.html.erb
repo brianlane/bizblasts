@@ -80,8 +80,9 @@
           <%= form.datetime_local_field :start_time, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
         </div>
         <div>
-          <%= form.label :end_time, "Return Date & Time", class: "block text-sm font-medium text-gray-700" %>
-          <%= form.datetime_local_field :end_time, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+          <%= form.label :duration_mins, "Duration (minutes)", class: "block text-sm font-medium text-gray-700" %>
+          <%= form.number_field :duration_mins, min: 15, step: 15, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+          <p class="mt-1 text-xs text-gray-500">Matches the customer-facing durations.</p>
         </div>
         <div>
           <%= form.label :quantity, "Quantity", class: "block text-sm font-medium text-gray-700" %>

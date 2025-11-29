@@ -176,8 +176,8 @@ RSpec.describe 'Product Rental Features', type: :model do
   
   describe 'scopes' do
     before do
-      @rental1 = create(:product, business: business, product_type: :rental, price: 50, rental_category: 'equipment')
-      @rental2 = create(:product, business: business, product_type: :rental, price: 100, rental_category: 'vehicle')
+      @rental1 = create(:product, :rental, business: business, price: 50, rental_category: 'equipment')
+      @rental2 = create(:product, :rental, business: business, price: 100, rental_category: 'vehicle')
       @standard = create(:product, business: business, product_type: :standard)
     end
     

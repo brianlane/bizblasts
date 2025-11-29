@@ -2,8 +2,37 @@
 
 class RentalBooking < ApplicationRecord
   include TenantScoped
+  include DurationFormatting
   acts_as_tenant(:business)
-  
+
+  # Enable optimistic locking to prevent concurrent booking conflicts
+  self.locking_column = :lock_version
+
+  # Enable audit trail with PaperTrail for compliance and debugging
+  # Tracks all changes to rental bookings including who made the change
+  #
+  # Setup required:
+  # 1. Add to Gemfile: gem 'paper_trail'
+  # 2. Run: bundle install
+  # 3. Run: bundle exec rails generate paper_trail:install
+  # 4. Run: bundle exec rails db:migrate
+  # 5. Uncomment the line below
+  #
+  # has_paper_trail on: [:create, :update, :destroy],
+  #                 ignore: [:updated_at, :lock_version],
+  #                 meta: {
+  #                   whodunnit: :paper_trail_originator,
+  #                   business_id: :business_id,
+  #                   booking_number: :booking_number
+  #                 }
+  #
+  # def paper_trail_originator
+  #   # Track who made the change (staff member, customer, or system)
+  #   return "Staff: #{staff_member.user.email}" if staff_member.present?
+  #   return "Customer: #{tenant_customer.email}" if tenant_customer.present?
+  #   "System"
+  # end
+
   # ============================================
   # ASSOCIATIONS
   # ============================================
@@ -48,7 +77,10 @@ class RentalBooking < ApplicationRecord
   validates :booking_number, presence: true, uniqueness: { scope: :business_id }
   validates :status, presence: true
   validates :deposit_status, presence: true
-  
+  validates :security_deposit_amount,
+    numericality: { greater_than_or_equal_to: 0.50, message: "must be at least $0.50 USD for Stripe processing" },
+    if: -> { security_deposit_amount.present? && security_deposit_amount > 0 }
+
   validate :end_time_after_start_time
   validate :rental_product_required
   validate :rental_available_for_period, on: :create
@@ -96,7 +128,7 @@ class RentalBooking < ApplicationRecord
   
   # Time zone helpers (consistent with Booking model)
   def local_timezone
-    @local_timezone ||= business&.time_zone.presence || Time.zone.name
+    @local_timezone ||= business&.time_zone.presence || 'UTC'
   end
   
   def local_start_time
@@ -179,9 +211,20 @@ class RentalBooking < ApplicationRecord
   # ============================================
   
   # Mark deposit as paid (called after Stripe payment succeeds)
+  #
+  # This method is called by the Stripe webhook handler when a deposit payment
+  # is successfully processed. It transitions the booking from pending_deposit
+  # to deposit_paid status and sends confirmation notifications.
+  #
+  # @param payment_intent_id [String, nil] the Stripe PaymentIntent ID
+  # @return [Boolean] true if successful, false otherwise
+  #
+  # @example Called by Stripe webhook
+  #   rental_booking.mark_deposit_paid!(payment_intent_id: "pi_123abc")
+  #   #=> true
   def mark_deposit_paid!(payment_intent_id: nil)
     return false unless status_pending_deposit?
-    
+
     transaction do
       update!(
         status: 'deposit_paid',
@@ -189,41 +232,192 @@ class RentalBooking < ApplicationRecord
         deposit_paid_at: Time.current,
         stripe_deposit_payment_intent_id: payment_intent_id
       )
-      
+
       send_deposit_confirmation
     end
     true
   end
-  
-  # Check out the rental (customer picks up)
-  def check_out!(staff_member:, condition_notes: nil, checklist_items: [])
-    return false unless can_check_out?
-    
+
+  # Mark deposit as authorized (preauth hold placed)
+  #
+  # Called when deposit is authorized (held) but not yet captured.
+  # Used when business has rental_deposit_preauth_enabled set to true.
+  # The funds are held on customer's card but not charged until checkout.
+  #
+  # @param authorization_id [String] the Stripe PaymentIntent ID
+  # @return [Boolean] true if successful, false otherwise
+  #
+  # @example Called by Stripe webhook for authorized payment
+  #   rental_booking.mark_deposit_authorized!(authorization_id: "pi_123abc")
+  #   #=> true
+  def mark_deposit_authorized!(authorization_id:)
+    return false unless status_pending_deposit?
+
     transaction do
-      rental_condition_reports.create!(
+      update!(
+        status: 'deposit_paid',  # Status is still "paid" (funds secured)
+        deposit_status: 'collected',
+        deposit_authorization_id: authorization_id,
+        deposit_authorized_at: Time.current
+      )
+
+      send_deposit_confirmation
+    end
+    true
+  end
+
+  # Capture the authorized deposit (charge the held funds)
+  #
+  # Captures the previously authorized deposit amount.
+  # Called during checkout when business uses preauthorization.
+  #
+  # @return [Boolean] true if successful, false otherwise
+  #
+  # @example Capture deposit at checkout
+  #   rental_booking.capture_deposit!
+  #   #=> true
+  def capture_deposit!
+    return false unless deposit_authorization_id.present?
+    return false if deposit_captured_at.present?
+
+    # Call Stripe to capture the authorized payment
+    result = StripeService.capture_rental_deposit_authorization(self)
+
+    if result[:success]
+      update!(
+        deposit_captured_at: Time.current,
+        stripe_deposit_payment_intent_id: deposit_authorization_id
+      )
+      true
+    else
+      Rails.logger.error("[RentalBooking] Failed to capture deposit for booking #{booking_number}: #{result[:error]}")
+      false
+    end
+  rescue => e
+    Rails.logger.error("[RentalBooking] Error capturing deposit for booking #{booking_number}: #{e.message}")
+    false
+  end
+
+  # Release the authorized deposit (cancel the hold)
+  #
+  # Releases the authorization without charging the customer.
+  # Called when rental is cancelled before checkout.
+  #
+  # @return [Boolean] true if successful, false otherwise
+  #
+  # @example Release authorization on cancellation
+  #   rental_booking.release_deposit_authorization!
+  #   #=> true
+  def release_deposit_authorization!
+    return false unless deposit_authorization_id.present?
+    return false if deposit_authorization_released_at.present?
+    return false if deposit_captured_at.present?  # Can't release if already captured
+
+    # Call Stripe to cancel the authorization
+    result = StripeService.cancel_rental_deposit_authorization(self)
+
+    if result[:success]
+      update!(deposit_authorization_released_at: Time.current)
+      true
+    else
+      Rails.logger.error("[RentalBooking] Failed to release deposit authorization for booking #{booking_number}: #{result[:error]}")
+      false
+    end
+  rescue => e
+    Rails.logger.error("[RentalBooking] Error releasing deposit authorization for booking #{booking_number}: #{e.message}")
+    false
+  end
+
+  # Check if deposit is using preauthorization (vs immediate capture)
+  def using_deposit_preauth?
+    business.rental_deposit_preauth_enabled? && deposit_authorization_id.present?
+  end
+
+  # Check out the rental (customer picks up)
+  #
+  # Transitions booking from deposit_paid to checked_out status.
+  # Creates a checkout condition report documenting item condition at pickup.
+  # Only allowed if deposit is paid and start_time has arrived.
+  #
+  # @param staff_member [StaffMember] the staff member processing the checkout
+  # @param condition_notes [String, nil] optional notes about item condition
+  # @param checklist_items [Array<String>] checklist items verified at checkout
+  # @return [Boolean] true if successful, false otherwise
+  #
+  # @example Staff member checking out rental
+  #   rental_booking.check_out!(
+  #     staff_member: current_staff,
+  #     condition_notes: "All items in excellent condition",
+  #     checklist_items: ["Battery fully charged", "All accessories included"]
+  #   )
+  #   #=> true
+  def check_out!(staff_member:, condition_notes: nil, checklist_items: [], photos: [])
+    return false unless can_check_out?
+
+    success = false
+
+    transaction do
+      # If using preauthorization, capture the deposit now
+      if using_deposit_preauth? && !deposit_captured_at.present?
+        unless capture_deposit!
+          Rails.logger.error("[RentalBooking] Failed to capture preauthorized deposit for booking #{booking_number}")
+          raise ActiveRecord::Rollback
+        end
+      end
+
+      report = rental_condition_reports.create!(
         staff_member: staff_member,
         report_type: 'checkout',
         condition_rating: 'good',
         notes: condition_notes,
         checklist_items: checklist_items
       )
-      
+
+      # Attach photos if provided
+      report.photos.attach(photos) if photos.present?
+
       update!(
         status: 'checked_out',
         staff_member: staff_member,
         actual_pickup_time: Time.current,
         condition_notes_checkout: condition_notes
       )
+
+      success = true
     end
-    true
+    success
   end
   
   # Process return (customer returns item)
-  def process_return!(staff_member:, condition_rating:, notes: nil, damage_amount: 0, checklist_items: [])
+  #
+  # Transitions booking from checked_out/overdue to returned status.
+  # Creates a return condition report documenting item condition.
+  # Calculates late fees if returned after end_time.
+  # Processes deposit refund (full, partial, or forfeited) based on:
+  #   - Late fees (if any)
+  #   - Damage fees (if any)
+  #
+  # @param staff_member [StaffMember] the staff member processing the return
+  # @param condition_rating [String] condition rating: 'excellent', 'good', 'fair', 'poor', 'damaged'
+  # @param notes [String, nil] optional notes about condition or damage
+  # @param damage_amount [Numeric] damage fee amount (deducted from deposit)
+  # @param checklist_items [Array<String>] checklist items verified at return
+  # @return [Boolean] true if successful, false otherwise
+  #
+  # @example Processing return with damage
+  #   rental_booking.process_return!(
+  #     staff_member: current_staff,
+  #     condition_rating: 'fair',
+  #     notes: "Minor scratch on side panel",
+  #     damage_amount: 25.00,
+  #     checklist_items: ["All accessories returned"]
+  #   )
+  #   #=> true
+  def process_return!(staff_member:, condition_rating:, notes: nil, damage_amount: 0, checklist_items: [], photos: [])
     return false unless can_return?
-    
+
     transaction do
-      rental_condition_reports.create!(
+      report = rental_condition_reports.create!(
         staff_member: staff_member,
         report_type: 'return',
         condition_rating: condition_rating,
@@ -232,17 +426,20 @@ class RentalBooking < ApplicationRecord
         damage_assessment_amount: damage_amount,
         damage_description: notes
       )
-      
+
+      # Attach photos if provided (important for damage documentation)
+      report.photos.attach(photos) if photos.present?
+
       update!(
         status: 'returned',
         actual_return_time: Time.current,
         condition_notes_return: notes,
         damage_fee_amount: damage_amount
       )
-      
+
       # Calculate late fees if overdue
       calculate_late_fees! if was_overdue?
-      
+
       # Process deposit refund
       process_deposit_refund!
     end
@@ -250,21 +447,54 @@ class RentalBooking < ApplicationRecord
   end
   
   # Complete the rental (after return processing)
+  #
+  # Transitions booking from returned to completed status.
+  # This is the final state - deposit has been processed and rental is done.
+  # Sends completion notification to customer.
+  #
+  # @return [Boolean] true if successful, false otherwise
+  #
+  # @example Mark rental as completed
+  #   rental_booking.complete!
+  #   #=> true
   def complete!
     return false unless status_returned?
-    
+
     update!(status: 'completed')
     send_completion_notification
     true
   end
-  
+
   # Cancel the rental
+  #
+  # Cancels the rental booking and processes deposit refund if applicable.
+  # Only allowed for bookings in pending_deposit or deposit_paid status.
+  # If deposit was already collected, initiates full refund via Stripe.
+  # If deposit was preauthorized (held but not captured), releases the authorization.
+  #
+  # @param reason [String, nil] optional cancellation reason (appended to notes)
+  # @return [Boolean] true if successful, false otherwise
+  #
+  # @example Cancel with reason
+  #   rental_booking.cancel!(reason: "Customer request - schedule conflict")
+  #   #=> true
   def cancel!(reason: nil)
     return false unless can_cancel?
-    
+
     transaction do
-      # Refund deposit if already collected
-      if deposit_collected?
+      # Handle preauthorized deposits (release hold without charging)
+      if deposit_authorization_id.present? && !deposit_captured_at.present? && !deposit_authorization_released_at.present?
+        unless release_deposit_authorization!
+          Rails.logger.error("[RentalBooking] Failed to release deposit authorization for booking #{booking_number}")
+          raise ActiveRecord::Rollback
+        end
+
+        update!(
+          deposit_status: 'full_refund',
+          deposit_refund_amount: 0  # No charge was made, so nothing to refund
+        )
+      # Handle captured deposits (refund the charge)
+      elsif deposit_collected?
         update!(
           deposit_status: 'full_refund',
           deposit_refund_amount: security_deposit_amount
@@ -272,13 +502,13 @@ class RentalBooking < ApplicationRecord
         # Trigger Stripe refund if deposit was paid
         process_stripe_deposit_refund! if stripe_deposit_payment_intent_id.present?
       end
-      
+
       update!(
         status: 'cancelled',
         notes: [notes, "Cancellation reason: #{reason}"].compact.join("\n")
       )
     end
-    
+
     send_cancellation_notification
     true
   end
@@ -425,18 +655,6 @@ class RentalBooking < ApplicationRecord
     end
   end
   
-  def duration_in_words(minutes)
-    if minutes < 60
-      "#{minutes} minute#{'s' if minutes != 1}"
-    elsif minutes < 1440
-      hours = (minutes / 60.0).round(1)
-      "#{hours} hour#{'s' if hours != 1}"
-    else
-      days = (minutes / 1440.0).round(1)
-      "#{days} day#{'s' if days != 1}"
-    end
-  end
-  
   # ============================================
   # NOTIFICATION METHODS (to be implemented)
   # ============================================
@@ -444,28 +662,40 @@ class RentalBooking < ApplicationRecord
   def send_booking_confirmation
     RentalMailer.booking_confirmation(self).deliver_later
     RentalMailer.new_booking_notification(self).deliver_later
+
+    # Send SMS notification if customer is opted in
+    SmsService.send_rental_booking_confirmation(self)
   rescue => e
     Rails.logger.error("[RentalBooking] Failed to send booking confirmation: #{e.message}")
   end
-  
+
   def send_deposit_confirmation
     RentalMailer.deposit_paid_confirmation(self).deliver_later
+
+    # Send SMS notification if customer is opted in
+    SmsService.send_rental_deposit_paid(self)
   rescue => e
     Rails.logger.error("[RentalBooking] Failed to send deposit confirmation: #{e.message}")
   end
-  
+
   def send_overdue_notification
     RentalMailer.overdue_notice(self).deliver_later
+
+    # Send SMS notification if customer is opted in
+    SmsService.send_rental_overdue_notice(self)
   rescue => e
     Rails.logger.error("[RentalBooking] Failed to send overdue notification: #{e.message}")
   end
-  
+
   def send_completion_notification
     RentalMailer.completion_confirmation(self).deliver_later
+
+    # Send SMS notification if customer is opted in
+    SmsService.send_rental_completion(self)
   rescue => e
     Rails.logger.error("[RentalBooking] Failed to send completion notification: #{e.message}")
   end
-  
+
   def send_cancellation_notification
     RentalMailer.cancellation_confirmation(self).deliver_later
   rescue => e

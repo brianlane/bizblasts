@@ -316,28 +316,27 @@ class StripeService
     tenant_customer = rental_booking.tenant_customer
 
     deposit_amount = rental_booking.security_deposit_amount.to_f
-    
+
     # Stripe requires a minimum charge amount of $0.50 USD
     if deposit_amount < 0.50
       raise ArgumentError, "Deposit amount must be at least $0.50 USD. Current amount: $#{deposit_amount}"
     end
 
     # Validate connected account
-    unless business.stripe_account_id.present? && business.stripe_onboarding_complete?
-      raise ArgumentError, "Business must have a completed Stripe Connect account to accept rental deposits"
+    unless business.stripe_account_id.present?
+      raise ArgumentError, "Business must have a Stripe Connect account to accept rental deposits"
     end
 
-    # Calculate platform fee (same logic as other payments)
-    platform_fee = calculate_platform_fee(deposit_amount, business)
-    stripe_fee = calculate_stripe_fee(deposit_amount)
-    
     # Ensure customer exists on the connected account
-    stripe_customer = ensure_stripe_customer_on_connected_account(
-      business: business,
-      tenant_customer: tenant_customer
-    )
+    stripe_customer = ensure_stripe_customer_for_tenant(tenant_customer, business)
 
     amount_cents = (deposit_amount * 100).to_i
+
+    # Calculate platform fee (same logic as other payments)
+    platform_fee = calculate_platform_fee_cents(amount_cents, business) / 100.0
+
+    # Check if business uses preauthorization (hold funds) vs immediate capture (charge funds)
+    use_preauth = business.rental_deposit_preauth_enabled?
 
     session_params = {
       payment_method_types: ['card'],
@@ -359,7 +358,8 @@ class StripeService
         rental_booking_id: rental_booking.id,
         business_id: business.id,
         customer_id: tenant_customer.id,
-        booking_number: rental_booking.booking_number
+        booking_number: rental_booking.booking_number,
+        preauth_enabled: use_preauth
       },
       payment_intent_data: {
         application_fee_amount: (platform_fee * 100).to_i,
@@ -373,12 +373,98 @@ class StripeService
       cancel_url: cancel_url
     }
 
+    # Add manual capture mode if preauth is enabled
+    if use_preauth
+      session_params[:payment_intent_data][:capture_method] = 'manual'
+      Rails.logger.info "[RENTAL_DEPOSIT] Creating preauthorization checkout session for booking #{rental_booking.booking_number}"
+    else
+      Rails.logger.info "[RENTAL_DEPOSIT] Creating immediate capture checkout session for booking #{rental_booking.booking_number}"
+    end
+
     # Create the checkout session on the connected account
     session = Stripe::Checkout::Session.create(session_params, {
       stripe_account: business.stripe_account_id
     })
 
     session
+  end
+
+  # Capture a preauthorized rental deposit (charge the held funds)
+  # @param rental_booking [RentalBooking] The rental booking with authorized deposit
+  # @return [Hash] Result hash with :success and :error keys
+  def self.capture_rental_deposit_authorization(rental_booking)
+    configure_stripe_api_key
+    business = rental_booking.business
+
+    unless rental_booking.deposit_authorization_id.present?
+      return { success: false, error: 'No authorization ID found for this rental booking' }
+    end
+
+    if rental_booking.deposit_captured_at.present?
+      return { success: false, error: 'Deposit has already been captured' }
+    end
+
+    begin
+      # Capture the authorized payment intent
+      payment_intent = Stripe::PaymentIntent.capture(
+        rental_booking.deposit_authorization_id,
+        { stripe_account: business.stripe_account_id }
+      )
+
+      Rails.logger.info "[RENTAL_DEPOSIT] Successfully captured preauthorization #{rental_booking.deposit_authorization_id} for booking #{rental_booking.booking_number}"
+
+      { success: true, payment_intent: payment_intent }
+    rescue Stripe::InvalidRequestError => e
+      Rails.logger.error "[RENTAL_DEPOSIT] Invalid request when capturing authorization for booking #{rental_booking.booking_number}: #{e.message}"
+      { success: false, error: e.message }
+    rescue Stripe::StripeError => e
+      Rails.logger.error "[RENTAL_DEPOSIT] Stripe error capturing authorization for booking #{rental_booking.booking_number}: #{e.message}"
+      { success: false, error: e.message }
+    rescue => e
+      Rails.logger.error "[RENTAL_DEPOSIT] Unexpected error capturing authorization for booking #{rental_booking.booking_number}: #{e.message}"
+      { success: false, error: e.message }
+    end
+  end
+
+  # Cancel a preauthorized rental deposit (release the hold without charging)
+  # @param rental_booking [RentalBooking] The rental booking with authorized deposit
+  # @return [Hash] Result hash with :success and :error keys
+  def self.cancel_rental_deposit_authorization(rental_booking)
+    configure_stripe_api_key
+    business = rental_booking.business
+
+    unless rental_booking.deposit_authorization_id.present?
+      return { success: false, error: 'No authorization ID found for this rental booking' }
+    end
+
+    if rental_booking.deposit_captured_at.present?
+      return { success: false, error: 'Cannot cancel - deposit has already been captured' }
+    end
+
+    if rental_booking.deposit_authorization_released_at.present?
+      return { success: false, error: 'Authorization has already been released' }
+    end
+
+    begin
+      # Cancel the authorized payment intent
+      payment_intent = Stripe::PaymentIntent.cancel(
+        rental_booking.deposit_authorization_id,
+        { stripe_account: business.stripe_account_id }
+      )
+
+      Rails.logger.info "[RENTAL_DEPOSIT] Successfully cancelled preauthorization #{rental_booking.deposit_authorization_id} for booking #{rental_booking.booking_number}"
+
+      { success: true, payment_intent: payment_intent }
+    rescue Stripe::InvalidRequestError => e
+      Rails.logger.error "[RENTAL_DEPOSIT] Invalid request when cancelling authorization for booking #{rental_booking.booking_number}: #{e.message}"
+      { success: false, error: e.message }
+    rescue Stripe::StripeError => e
+      Rails.logger.error "[RENTAL_DEPOSIT] Stripe error cancelling authorization for booking #{rental_booking.booking_number}: #{e.message}"
+      { success: false, error: e.message }
+    rescue => e
+      Rails.logger.error "[RENTAL_DEPOSIT] Unexpected error cancelling authorization for booking #{rental_booking.booking_number}: #{e.message}"
+      { success: false, error: e.message }
+    end
   end
 
   # Process rental deposit refund
@@ -968,6 +1054,12 @@ class StripeService
       return
     end
 
+    # Check if this is a rental security deposit payment
+    if session.dig('metadata', 'type') == 'rental_deposit'
+      handle_rental_deposit_payment_completion(session)
+      return
+    end
+
     # Check if this is a payment (not subscription) by looking for invoice_id in metadata
     invoice_id = session.dig('metadata', 'invoice_id')
     return unless invoice_id
@@ -1436,6 +1528,65 @@ class StripeService
     end
   rescue => e
     Rails.logger.error "[ESTIMATE] Error processing estimate payment for session #{session['id']}: #{e.message}"
+    Rails.logger.error e.backtrace.join("\n")
+  end
+
+  # Handle rental security deposit payment completion
+  def self.handle_rental_deposit_payment_completion(session)
+    Rails.logger.info "[RENTAL_DEPOSIT] Processing rental deposit payment for session #{session['id']}"
+
+    business_id = session.dig('metadata', 'business_id')
+    rental_booking_id = session.dig('metadata', 'rental_booking_id')
+    customer_id = session.dig('metadata', 'customer_id')
+    preauth_enabled = session.dig('metadata', 'preauth_enabled') == 'true' || session.dig('metadata', 'preauth_enabled') == true
+
+    unless business_id && rental_booking_id
+      Rails.logger.error "[RENTAL_DEPOSIT] Missing required metadata in session #{session['id']}"
+      return
+    end
+
+    business = Business.find_by(id: business_id)
+    unless business
+      Rails.logger.error "[RENTAL_DEPOSIT] Could not find business #{business_id} for session #{session['id']}"
+      return
+    end
+
+    ActsAsTenant.with_tenant(business) do
+      rental_booking = business.rental_bookings.find_by(id: rental_booking_id)
+      tenant_customer = TenantCustomer.find_by(id: customer_id) if customer_id
+
+      unless rental_booking
+        Rails.logger.error "[RENTAL_DEPOSIT] Could not find rental booking #{rental_booking_id} for session #{session['id']}"
+        return
+      end
+
+      # Save the Stripe customer ID if we don't have it yet
+      if session['customer'].present? && tenant_customer.present? && tenant_customer.stripe_customer_id.blank?
+        tenant_customer.update!(stripe_customer_id: session['customer'])
+        Rails.logger.info "[RENTAL_DEPOSIT] Saved Stripe customer ID #{session['customer']} for tenant customer #{tenant_customer.id}"
+      end
+
+      payment_intent_id = session['payment_intent']
+
+      # Handle differently based on whether this is preauth or immediate capture
+      if preauth_enabled
+        # Preauthorization: mark as authorized (funds are held, not charged yet)
+        if rental_booking.mark_deposit_authorized!(authorization_id: payment_intent_id)
+          Rails.logger.info "[RENTAL_DEPOSIT] Successfully marked rental booking #{rental_booking.booking_number} deposit as authorized (preauth)"
+        else
+          Rails.logger.error "[RENTAL_DEPOSIT] Failed to mark rental booking #{rental_booking.booking_number} deposit as authorized"
+        end
+      else
+        # Immediate capture: mark as paid (funds are charged immediately)
+        if rental_booking.mark_deposit_paid!(payment_intent_id: payment_intent_id)
+          Rails.logger.info "[RENTAL_DEPOSIT] Successfully marked rental booking #{rental_booking.booking_number} deposit as paid (immediate capture)"
+        else
+          Rails.logger.error "[RENTAL_DEPOSIT] Failed to mark rental booking #{rental_booking.booking_number} deposit as paid"
+        end
+      end
+    end
+  rescue => e
+    Rails.logger.error "[RENTAL_DEPOSIT] Error processing rental deposit for session #{session['id']}: #{e.message}"
     Rails.logger.error e.backtrace.join("\n")
   end
 

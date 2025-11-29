@@ -157,6 +157,49 @@
     </div>
   </div>
 
+  <!-- Customer Durations & Availability -->
+  <div class="bg-white shadow rounded-lg p-6">
+    <h2 class="text-lg	font-medium text-gray-900 mb-4">Customer Durations & Availability</h2>
+    <p class="text-sm text-gray-600 mb-4">
+      Choose the rental session lengths customers can select before they pick a time slot. Leave blanks to remove an option. 
+      Slots on the calendar will automatically adjust to these durations.
+    </p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <% duration_values = (@rental.rental_duration_options.presence || [@rental.default_rental_duration_mins]).dup %>
+      <% (duration_values + Array.new(3)).each do |duration| %>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Duration (minutes)</label>
+          <input type="number"
+                 name="product[rental_duration_options][]"
+                 value="<%= duration %>"
+                 min="15"
+                 step="15"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                 placeholder="e.g., 60" />
+        </div>
+      <% end %>
+    </div>
+    <p class="mt-2 text-xs text-gray-500">Tip: common options are 60, 90, 120 minutes.</p>
+
+    <% if @rental.persisted? %>
+      <div class="mt-6">
+        <%= link_to manage_availability_business_manager_rental_path(@rental),
+              class: "inline-flex items-center px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium rounded-md transition-colors" do %>
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          Manage Weekly Availability
+        <% end %>
+        <p class="mt-1 text-xs text-gray-500">Set the pickup/return windows that power the rental calendar.</p>
+      </div>
+    <% else %>
+      <p class="mt-4 text-xs text-gray-500">
+        Save the rental first to configure the weekly availability calendar.
+      </p>
+    <% end %>
+  </div>
+
   <!-- Images -->
   <div class="bg-white shadow rounded-lg p-6">
     <h2 class="text-lg font-medium text-gray-900 mb-4">Images</h2>

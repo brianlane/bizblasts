@@ -42,7 +42,29 @@ if defined?(SolidQueue)
         task.static      = true
         task.description = 'Proactively refresh expiring calendar OAuth tokens'
       end
-      
+
+      # Schedule rental overdue check every hour
+      SolidQueue::RecurringTask.find_or_create_by!(key: 'rental_overdue_check') do |task|
+        task.schedule    = '0 * * * *' # every hour at minute 0
+        task.class_name  = 'RentalOverdueCheckJob'
+        task.arguments   = '[]'
+        task.queue_name  = 'default'
+        task.priority    = 5
+        task.static      = true
+        task.description = 'Check for overdue rentals and send notifications'
+      end
+
+      # Schedule rental reminders daily at 9 AM
+      SolidQueue::RecurringTask.find_or_create_by!(key: 'rental_reminder') do |task|
+        task.schedule    = '0 9 * * *' # daily at 9:00 AM
+        task.class_name  = 'RentalReminderJob'
+        task.arguments   = '[]'
+        task.queue_name  = 'default'
+        task.priority    = 5
+        task.static      = true
+        task.description = 'Send rental pickup and return reminders'
+      end
+
       Rails.logger.info "SolidQueue recurring tasks configured successfully"
       
     rescue ActiveRecord::ConnectionNotEstablished, ActiveRecord::NoDatabaseError, PG::ConnectionBad => e

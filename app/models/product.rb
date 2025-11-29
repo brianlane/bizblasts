@@ -2,6 +2,7 @@
 class Product < ApplicationRecord
   # Assuming TenantScoped concern handles belongs_to :business and default scoping
   include TenantScoped
+  include DurationFormatting
 
   has_many :product_variants, -> { order(:id) }, dependent: :destroy
   # If variants are mandatory, line_items might associate through variants
@@ -74,6 +75,8 @@ class Product < ApplicationRecord
   validates :rental_category, inclusion: { in: RENTAL_CATEGORIES }, if: :rental?
   validate :min_rental_not_greater_than_max
   validate :rental_must_have_daily_rate, if: :rental?
+  validate :rental_duration_options_valid, if: :rental?
+  validate :rental_schedule_structure, if: :rental?
   
   # Validate attachments using built-in ActiveStorage validators - Updated for 15MB max with HEIC support
   validates :images, **FileUploadSecurity.image_validation_options
@@ -296,9 +299,95 @@ class Product < ApplicationRecord
     'daily'
   end
   
+  MAX_RENTAL_DURATION_OPTIONS = 12
+  WEEKDAY_NAMES = %w[monday tuesday wednesday thursday friday saturday sunday].freeze
+
+  # ---------------------------------------------------------------------------
+  # Rental duration helpers
+  # ---------------------------------------------------------------------------
+
+  def rental_duration_options=(value)
+    normalized = Array(value).flat_map do |entry|
+      if entry.is_a?(Hash)
+        entry[:minutes] || entry['minutes']
+      else
+        entry
+      end
+    end
+
+    normalized = normalized.map { |v| v.to_i }.select { |v| v.positive? }.uniq
+    normalized = normalized.first(MAX_RENTAL_DURATION_OPTIONS)
+    super(normalized)
+  end
+
+  def rental_duration_options
+    super || []
+  end
+
+  def effective_rental_durations
+    return rental_duration_options if rental_duration_options.present?
+
+    base = min_rental_duration_mins.presence || default_rental_duration_mins
+    max_duration = max_rental_duration_mins.presence || base
+    return [base] if base >= max_duration
+
+    step = base
+    durations = []
+    current = base
+    while current <= max_duration
+      durations << current
+      current += step
+    end
+    durations
+  end
+
+  def default_rental_duration_mins
+    return 60 if allow_hourly_rental?
+    return (24.hours / 60).to_i if allow_daily_rental?
+
+    60
+  end
+
+  # ---------------------------------------------------------------------------
+  # Rental availability helpers
+  # ---------------------------------------------------------------------------
+
+  def rental_schedule_for(date)
+    schedule = (rental_availability_schedule || {}).with_indifferent_access
+    exceptions = schedule[:exceptions] || {}
+    iso_date = date.iso8601
+    return build_schedule_intervals_for(date, exceptions[iso_date]) if exceptions[iso_date].present?
+
+    day_key = date.strftime('%A').downcase
+    build_schedule_intervals_for(date, schedule[day_key])
+  end
+
+  def rental_schedule_allows?(start_time, end_time)
+    return true if rental_availability_schedule.blank?
+
+    tz = business&.time_zone.presence || 'UTC'
+    Time.use_zone(tz) do
+      date = start_time.in_time_zone(tz).to_date
+      return false unless date == end_time.in_time_zone(tz).to_date
+
+      intervals = rental_schedule_for(date)
+      return false if intervals.blank?
+
+      intervals.any? do |slot|
+        slot[:start] <= start_time && slot[:end] >= end_time
+      end
+    end
+  end
+
+  def rental_availability_schedule=(value)
+    super(normalize_schedule_payload(value))
+  end
+
   # Check rental availability for a time period
   def rental_available_for?(start_time, end_time, quantity: 1, exclude_booking_id: nil)
     return false unless rental?
+    return false unless rental_schedule_allows?(start_time, end_time)
+
     available_rental_quantity(start_time, end_time, exclude_booking_id: exclude_booking_id) >= quantity
   end
   
@@ -487,18 +576,117 @@ class Product < ApplicationRecord
 
   private
 
-  def duration_in_words(minutes)
-    if minutes < 60
-      "#{minutes} min#{'s' if minutes != 1}"
-    elsif minutes < 1440
-      hours = (minutes / 60.0).round(1)
-      hours == hours.to_i ? "#{hours.to_i} hour#{'s' if hours.to_i != 1}" : "#{hours} hours"
-    else
-      days = (minutes / 1440.0).round(1)
-      days == days.to_i ? "#{days.to_i} day#{'s' if days.to_i != 1}" : "#{days} days"
+  def normalize_schedule_payload(value)
+    return {} if value.blank?
+
+    schedule_hash = if value.is_a?(String)
+                      JSON.parse(value) rescue {}
+                    else
+                      value
+                    end
+
+    schedule_hash = schedule_hash.deep_stringify_keys
+    normalized = {}
+
+    WEEKDAY_NAMES.each do |day|
+      slots = schedule_hash[day]
+      next unless slots.is_a?(Array)
+      normalized[day] = slots.map { |slot| normalize_schedule_slot(slot) }.compact
+    end
+
+    if schedule_hash['exceptions'].is_a?(Hash)
+      normalized['exceptions'] = {}
+      schedule_hash['exceptions'].each do |date, slots|
+        next unless slots.is_a?(Array)
+        normalized['exceptions'][date.to_s] = slots.map { |slot| normalize_schedule_slot(slot) }.compact
+      end
+    end
+
+    normalized
+  end
+
+  def normalize_schedule_slot(slot)
+    return nil unless slot.is_a?(Hash)
+    start_str = slot['start'] || slot[:start]
+    end_str = slot['end'] || slot[:end]
+    return nil if start_str.blank? || end_str.blank?
+    { 'start' => start_str, 'end' => end_str }
+  end
+
+  def build_schedule_intervals_for(date, slots)
+    tz = business&.time_zone.presence || 'UTC'
+    Time.use_zone(tz) do
+      Array(slots).filter_map do |slot|
+        start_str = slot['start'] || slot[:start]
+        end_str = slot['end'] || slot[:end]
+        next if start_str.blank? || end_str.blank?
+        begin
+          start_time = Time.zone.parse("#{date} #{start_str}")
+          end_time = Time.zone.parse("#{date} #{end_str}")
+        rescue ArgumentError
+          next
+        end
+        next unless start_time && end_time && end_time > start_time
+        { start: start_time, end: end_time }
+      end
     end
   end
-  
+
+  def rental_duration_options_valid
+    return if rental_duration_options.blank?
+
+    unless rental_duration_options.is_a?(Array)
+      errors.add(:rental_duration_options, 'must be a list of minute values')
+      return
+    end
+
+    unless rental_duration_options.all? { |val| val.is_a?(Integer) && val.positive? }
+      errors.add(:rental_duration_options, 'must contain positive minute values')
+    end
+
+    if rental_duration_options.size > MAX_RENTAL_DURATION_OPTIONS
+      errors.add(:rental_duration_options, "cannot have more than #{MAX_RENTAL_DURATION_OPTIONS} options")
+    end
+  end
+
+  def rental_schedule_structure
+    return if rental_availability_schedule.blank?
+
+    schedule = rental_availability_schedule.is_a?(Hash) ? rental_availability_schedule : {}
+    WEEKDAY_NAMES.each do |day|
+      next unless schedule[day].present?
+      validate_schedule_slots_for(day, schedule[day])
+    end
+
+    if schedule['exceptions'].present? && schedule['exceptions'].is_a?(Hash)
+      schedule['exceptions'].each do |date, slots|
+        validate_schedule_slots_for(date, slots)
+      end
+    end
+  end
+
+  def validate_schedule_slots_for(key, slots)
+    unless slots.is_a?(Array)
+      errors.add(:rental_availability_schedule, "#{key} must be a list of time slots")
+      return
+    end
+
+    slots.each do |slot|
+      start_str = slot['start'] || slot[:start]
+      end_str = slot['end'] || slot[:end]
+      if start_str.blank? || end_str.blank?
+        errors.add(:rental_availability_schedule, "#{key} slots must include start and end times")
+        next
+      end
+      begin
+        Tod::TimeOfDay.parse(start_str)
+        Tod::TimeOfDay.parse(end_str)
+      rescue ArgumentError
+        errors.add(:rental_availability_schedule, "#{key} has invalid time format")
+      end
+    end
+  end
+
   def min_rental_not_greater_than_max
     return unless min_rental_duration_mins.present? && max_rental_duration_mins.present?
     if min_rental_duration_mins > max_rental_duration_mins

@@ -43,7 +43,7 @@ RSpec.describe 'Public::Rentals', type: :request do
     end
     
     it 'does not show inactive rentals' do
-      inactive = create(:product, business: business, product_type: :rental, active: false, price: 25)
+      inactive = create(:product, :rental, business: business, active: false, price: 25)
       get rentals_path
       expect(response.body).not_to include(inactive.name)
     end
@@ -79,20 +79,42 @@ RSpec.describe 'Public::Rentals', type: :request do
     end
   end
   
-  describe 'GET /rentals/:id/book' do
-    it 'returns http success' do
-      get book_rental_path(rental)
+  describe 'GET /rentals/:id/calendar' do
+    it 'renders the calendar page' do
+      get calendar_rental_path(rental, duration: 60)
       expect(response).to have_http_status(:success)
+      expect(response.body).to include('Available Time Slots')
+    end
+  end
+
+  describe 'GET /rentals/:id/available_slots' do
+    it 'returns slot data as JSON' do
+      travel_to Time.zone.parse('2025-01-01 09:00') do
+        get available_slots_rental_path(rental, duration: 60, date: Date.current), as: :json
+        expect(response).to have_http_status(:success)
+        json = JSON.parse(response.body)
+        expect(json['slots']).to be_an(Array)
+      end
+    end
+  end
+
+  describe 'GET /rentals/:id/book' do
+    let(:start_time) { 2.days.from_now.change(hour: 10).iso8601 }
+
+    it 'redirects if no slot provided' do
+      get book_rental_path(rental)
+      expect(response).to redirect_to(calendar_rental_path(rental, duration: 60, quantity: 1))
     end
     
-    it 'displays the booking form' do
-      get book_rental_path(rental)
-      expect(response.body).to include('Book')
-      expect(response.body).to include(rental.name)
+    it 'returns http success when slot params are included' do
+      get book_rental_path(rental, start_time: start_time, duration: 60)
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include('Confirm Slot')
     end
   end
   
   describe 'POST /rentals/:id/create_booking' do
+    let(:start_time) { 2.days.from_now.change(hour: 10) }
     let(:customer_params) do
       {
         customer: {
@@ -102,8 +124,8 @@ RSpec.describe 'Public::Rentals', type: :request do
           phone: '555-1234'
         },
         rental_booking: {
-          start_time: 2.days.from_now.iso8601,
-          end_time: 4.days.from_now.iso8601,
+          start_time: start_time.iso8601,
+          duration_mins: 120,
           quantity: 1
         }
       }
@@ -135,8 +157,8 @@ RSpec.describe 'Public::Rentals', type: :request do
       it 'uses the logged in user for customer' do
         post create_booking_rental_path(rental), params: {
           rental_booking: {
-            start_time: 2.days.from_now.iso8601,
-            end_time: 4.days.from_now.iso8601,
+            start_time: start_time.iso8601,
+            duration_mins: 60,
             quantity: 1
           }
         }

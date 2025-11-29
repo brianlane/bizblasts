@@ -88,12 +88,18 @@
                   <%= number_to_currency(rental.security_deposit) %> refundable deposit
                 </div>
               <% end %>
+              <% durations = rental.effective_rental_durations %>
+              <% if durations.present? %>
+                <div class="mt-2 text-xs text-gray-500">
+                  Durations: <%= durations.first(3).map { |mins| distance_of_time_in_words(Time.current, Time.current + mins.minutes) }.join(', ') %>
+                </div>
+              <% end %>
               
               <div class="mt-4 flex items-center justify-between">
                 <div class="text-sm text-gray-500">
                   <%= rental.rental_quantity_available %> available
                 </div>
-                <%= link_to 'Book Now', book_rental_path(rental), 
+                <%= link_to 'Rent Now', rental_path(rental, rent_now: true), 
                       class: "px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors" %>
               </div>
             </div>

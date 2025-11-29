@@ -4,10 +4,12 @@ module BusinessManager
   class RentalBookingsController < BaseController
     before_action :set_rental_booking, only: [:show, :edit, :update, :check_out, :process_return, :complete, :cancel]
     before_action :set_rentals, only: [:new, :create, :edit, :update]
-    
+    after_action :verify_authorized, except: [:index, :calendar, :overdue]
+    after_action :verify_policy_scoped, only: [:index, :calendar, :overdue]
+
     # GET /manage/rental_bookings
     def index
-      @rental_bookings = current_business.rental_bookings
+      @rental_bookings = policy_scope(RentalBooking)
         .includes(:product, :tenant_customer, :location)
         .order(start_time: :desc)
       
@@ -41,17 +43,22 @@ module BusinessManager
     
     # GET /manage/rental_bookings/:id
     def show
-      @condition_reports = @rental_booking.rental_condition_reports.order(created_at: :desc)
+      authorize @rental_booking
+      @condition_reports = @rental_booking.rental_condition_reports
+        .includes(:staff_member)
+        .order(created_at: :desc)
     end
-    
+
     # GET /manage/rental_bookings/new
     def new
       @rental_booking = current_business.rental_bookings.new
+      authorize @rental_booking
       @customers = current_business.tenant_customers.order(:first_name, :last_name)
     end
-    
+
     # POST /manage/rental_bookings
     def create
+      authorize RentalBooking
       rental = current_business.products.rentals.find_by(id: params[:rental_booking][:product_id])
       
       unless rental
@@ -86,81 +93,96 @@ module BusinessManager
     
     # GET /manage/rental_bookings/:id/edit
     def edit
+      authorize @rental_booking
       @customers = current_business.tenant_customers.order(:first_name, :last_name)
     end
-    
+
     # PATCH/PUT /manage/rental_bookings/:id
     def update
-      if @rental_booking.update(update_booking_params)
-        redirect_to business_manager_rental_booking_path(@rental_booking), 
+      authorize @rental_booking
+      service = RentalBookingService.new(
+        rental: @rental_booking.product,
+        tenant_customer: @rental_booking.tenant_customer,
+        params: update_booking_params
+      )
+      result = service.update_booking(@rental_booking)
+
+      if result[:success]
+        redirect_to business_manager_rental_booking_path(@rental_booking),
                     notice: 'Rental booking was successfully updated.'
       else
         @customers = current_business.tenant_customers.order(:first_name, :last_name)
-        flash.now[:alert] = @rental_booking.errors.full_messages.to_sentence
+        flash.now[:alert] = result[:errors].join(', ')
         render :edit, status: :unprocessable_content
       end
     end
     
     # PATCH /manage/rental_bookings/:id/check_out
     def check_out
+      authorize @rental_booking
       unless @rental_booking.can_check_out?
-        redirect_to business_manager_rental_booking_path(@rental_booking), 
+        redirect_to business_manager_rental_booking_path(@rental_booking),
                     alert: 'This rental cannot be checked out at this time.'
         return
       end
-      
+
       if @rental_booking.check_out!(
         staff_member: current_staff_member,
         condition_notes: params[:condition_notes],
-        checklist_items: params[:checklist_items] || []
+        checklist_items: params[:checklist_items] || [],
+        photos: params[:photos] || []
       )
-        redirect_to business_manager_rental_booking_path(@rental_booking), 
+        redirect_to business_manager_rental_booking_path(@rental_booking),
                     notice: 'Rental has been checked out successfully.'
       else
-        redirect_to business_manager_rental_booking_path(@rental_booking), 
+        redirect_to business_manager_rental_booking_path(@rental_booking),
                     alert: 'Failed to check out rental.'
       end
     end
     
     # PATCH /manage/rental_bookings/:id/process_return
     def process_return
+      authorize @rental_booking
       unless @rental_booking.can_return?
-        redirect_to business_manager_rental_booking_path(@rental_booking), 
+        redirect_to business_manager_rental_booking_path(@rental_booking),
                     alert: 'This rental cannot be returned at this time.'
         return
       end
-      
+
       if @rental_booking.process_return!(
         staff_member: current_staff_member,
         condition_rating: params[:condition_rating] || 'good',
         notes: params[:return_notes],
         damage_amount: params[:damage_amount].to_d,
-        checklist_items: params[:checklist_items] || []
+        checklist_items: params[:checklist_items] || [],
+        photos: params[:photos] || []
       )
         # Auto-complete if no issues
         @rental_booking.complete! if @rental_booking.deposit_full_refund?
-        
-        redirect_to business_manager_rental_booking_path(@rental_booking), 
+
+        redirect_to business_manager_rental_booking_path(@rental_booking),
                     notice: 'Return has been processed successfully.'
       else
-        redirect_to business_manager_rental_booking_path(@rental_booking), 
+        redirect_to business_manager_rental_booking_path(@rental_booking),
                     alert: 'Failed to process return.'
       end
     end
     
     # PATCH /manage/rental_bookings/:id/complete
     def complete
+      authorize @rental_booking
       if @rental_booking.complete!
-        redirect_to business_manager_rental_booking_path(@rental_booking), 
+        redirect_to business_manager_rental_booking_path(@rental_booking),
                     notice: 'Rental has been marked as completed.'
       else
-        redirect_to business_manager_rental_booking_path(@rental_booking), 
+        redirect_to business_manager_rental_booking_path(@rental_booking),
                     alert: 'Cannot complete this rental.'
       end
     end
-    
+
     # PATCH /manage/rental_bookings/:id/cancel
     def cancel
+      authorize @rental_booking
       if @rental_booking.cancel!(reason: params[:cancellation_reason])
         redirect_to business_manager_rental_booking_path(@rental_booking), 
                     notice: 'Rental has been cancelled.'
@@ -174,18 +196,18 @@ module BusinessManager
     def calendar
       @start_date = params[:start_date].present? ? Date.parse(params[:start_date]) : Date.current.beginning_of_month
       @end_date = @start_date.end_of_month
-      
-      @bookings = current_business.rental_bookings
+
+      @bookings = policy_scope(RentalBooking)
         .where.not(status: :cancelled)
         .where('start_time < ? AND end_time > ?', @end_date.end_of_day, @start_date.beginning_of_day)
         .includes(:product, :tenant_customer)
-      
+
       @rentals = current_business.products.rentals.active
     end
-    
+
     # GET /manage/rental_bookings/overdue
     def overdue
-      @rental_bookings = current_business.rental_bookings
+      @rental_bookings = policy_scope(RentalBooking)
         .overdue_rentals
         .includes(:product, :tenant_customer)
         .order(end_time: :asc)
@@ -194,7 +216,9 @@ module BusinessManager
     private
     
     def set_rental_booking
-      @rental_booking = current_business.rental_bookings.find(params[:id])
+      @rental_booking = current_business.rental_bookings
+        .includes(:product, :product_variant, :tenant_customer, :staff_member, :location, :promotion)
+        .find(params[:id])
     end
     
     def set_rentals
@@ -204,7 +228,7 @@ module BusinessManager
     def rental_booking_params
       params.require(:rental_booking).permit(
         :product_id, :product_variant_id, :tenant_customer_id,
-        :start_time, :end_time, :quantity,
+        :start_time, :end_time, :duration_mins, :quantity,
         :rate_type, :location_id, :promotion_id,
         :customer_notes, :notes
       )
