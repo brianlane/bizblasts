@@ -327,18 +327,47 @@ class Product < ApplicationRecord
   def effective_rental_durations
     return rental_duration_options if rental_duration_options.present?
 
-    base = min_rental_duration_mins.presence || default_rental_duration_mins
-    max_duration = max_rental_duration_mins.presence || base
-    return [base] if base >= max_duration
-
-    step = base
+    # Generate smart defaults based on allowed rental types
     durations = []
-    current = base
-    while current <= max_duration
-      durations << current
-      current += step
+    min_duration = min_rental_duration_mins.presence || default_rental_duration_mins
+    max_duration = max_rental_duration_mins
+
+    if allow_hourly_rental?
+      # Common hourly options: 1h, 2h, 4h, 8h, 12h, 24h
+      hourly_options = [60, 120, 240, 480, 720, 1440]
+      hourly_options.each do |mins|
+        next if mins < min_duration
+        break if max_duration.present? && mins > max_duration
+        durations << mins
+      end
     end
-    durations
+
+    if allow_daily_rental?
+      # Common daily options: 1d, 2d, 3d, 7d, 14d, 30d
+      daily_options = [1, 2, 3, 7, 14, 30].map { |days| days * 24 * 60 }
+      daily_options.each do |mins|
+        next if mins < min_duration
+        next if durations.include?(mins) # Avoid duplicates
+        break if max_duration.present? && mins > max_duration
+        durations << mins
+      end
+    end
+
+    if allow_weekly_rental?
+      # Common weekly options: 1w, 2w, 4w
+      weekly_options = [1, 2, 4].map { |weeks| weeks * 7 * 24 * 60 }
+      weekly_options.each do |mins|
+        next if mins < min_duration
+        next if durations.include?(mins) # Avoid duplicates
+        break if max_duration.present? && mins > max_duration
+        durations << mins
+      end
+    end
+
+    # Ensure we have at least the minimum duration if no options were generated
+    durations << min_duration if durations.empty?
+
+    durations.sort.uniq
   end
 
   def default_rental_duration_mins
@@ -390,6 +419,9 @@ class Product < ApplicationRecord
 
       # Multi-day rental: check first and last day for pickup/return availability
       # Also validate that most days in the rental period have availability
+      schedule = (rental_availability_schedule || {}).with_indifferent_access
+      exceptions = schedule[:exceptions] || {}
+
       current_date = start_date
       total_days = 0
       days_with_availability = 0
@@ -398,6 +430,11 @@ class Product < ApplicationRecord
         intervals = rental_schedule_for(current_date)
         total_days += 1
         days_with_availability += 1 if intervals.present?
+
+        # Check if this is a schedule exception (specific date override)
+        # Exception days with no availability should always block the rental
+        iso_date = current_date.iso8601
+        is_exception = exceptions.key?(iso_date)
 
         if current_date == start_date
           # First day: ensure there's a slot that covers the start_time (pickup)
@@ -409,6 +446,12 @@ class Product < ApplicationRecord
           return false if intervals.blank?
           has_valid_slot = intervals.any? { |slot| slot[:start] <= end_time && slot[:end] >= end_time }
           return false unless has_valid_slot
+        else
+          # Middle days: exception days with no availability always block the rental
+          # This handles holidays, special closures, etc.
+          if is_exception && intervals.blank?
+            return false
+          end
         end
 
         current_date = current_date.next_day

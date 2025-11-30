@@ -12,21 +12,24 @@ class RentalOverdueCheckJob < ApplicationJob
     notification_count = 0
     error_count = 0
 
-    # Find all rentals that are checked out and past their return time
-    RentalBooking.status_checked_out.where('end_time < ?', Time.current).find_each do |booking|
+    # Find all rentals that are overdue (checked out or already marked overdue and past return time)
+    RentalBooking.overdue_rentals.find_each do |booking|
       begin
-        # Mark as overdue
-        booking.mark_overdue!
-        overdue_count += 1
-
-        # Send overdue notification if not already sent today
-        last_notification = booking.notes&.match(/Overdue notification sent: (\d{4}-\d{2}-\d{2})/)
-        last_date = last_notification ? Date.parse(last_notification[1]) : nil
-
-        if last_date != Date.current
-          RentalMailer.overdue_notice(booking).deliver_later
-          booking.update!(notes: [booking.notes, "Overdue notification sent: #{Date.current}"].compact.join("\n"))
+        # If still checked_out, mark as overdue (first detection)
+        if booking.status_checked_out?
+          booking.mark_overdue!  # This changes status, adds note, and sends first notification
+          overdue_count += 1
           notification_count += 1
+        else
+          # Already marked overdue - send daily reminder if not already sent today
+          last_notification = booking.notes&.match(/Overdue notification sent: (\d{4}-\d{2}-\d{2})/)
+          last_date = last_notification ? Date.parse(last_notification[1]) : nil
+
+          if last_date != Date.current
+            RentalMailer.overdue_notice(booking).deliver_later
+            booking.update!(notes: [booking.notes, "Overdue notification sent: #{Date.current}"].compact.join("\n"))
+            notification_count += 1
+          end
         end
       rescue => e
         error_count += 1

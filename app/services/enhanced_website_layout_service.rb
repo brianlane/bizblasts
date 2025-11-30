@@ -192,7 +192,7 @@ class EnhancedWebsiteLayoutService
   end
 
   def include_rental_section?
-    business.has_visible_rentals?
+    business.show_rentals_section? && business.has_visible_rentals?
   end
 
   def include_estimate_section?
