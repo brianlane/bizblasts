@@ -22,8 +22,9 @@ class RentalOverdueCheckJob < ApplicationJob
           notification_count += 1
         else
           # Already marked overdue - send daily reminder if not already sent today
-          last_notification = booking.notes&.match(/Overdue notification sent: (\d{4}-\d{2}-\d{2})/)
-          last_date = last_notification ? Date.parse(last_notification[1]) : nil
+          # Use scan to find all matches and take the last one (most recent)
+          notifications = booking.notes&.scan(/Overdue notification sent: (\d{4}-\d{2}-\d{2})/)
+          last_date = notifications&.last ? Date.parse(notifications.last[0]) : nil
 
           if last_date != Date.current
             RentalMailer.overdue_notice(booking).deliver_later

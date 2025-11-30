@@ -19,8 +19,9 @@ class RentalReminderJob < ApplicationJob
     RentalBooking.status_deposit_paid.where(start_time: tomorrow_start..tomorrow_end).find_each do |booking|
       begin
         # Check if we already sent a pickup reminder today to prevent duplicates
-        last_reminder = booking.notes&.match(/Pickup reminder sent: (\d{4}-\d{2}-\d{2})/)
-        last_date = last_reminder ? Date.parse(last_reminder[1]) : nil
+        # Use scan to find all matches and take the last one (most recent)
+        reminders = booking.notes&.scan(/Pickup reminder sent: (\d{4}-\d{2}-\d{2})/)
+        last_date = reminders&.last ? Date.parse(reminders.last[0]) : nil
 
         if last_date != Date.current
           RentalMailer.pickup_reminder(booking).deliver_later
@@ -44,8 +45,9 @@ class RentalReminderJob < ApplicationJob
 
         # Check if we're within the reminder window and haven't sent already
         if Time.current >= reminder_time && booking.end_time > Time.current
-          last_reminder = booking.notes&.match(/Return reminder sent: (\d{4}-\d{2}-\d{2})/)
-          last_date = last_reminder ? Date.parse(last_reminder[1]) : nil
+          # Use scan to find all matches and take the last one (most recent)
+          reminders = booking.notes&.scan(/Return reminder sent: (\d{4}-\d{2}-\d{2})/)
+          last_date = reminders&.last ? Date.parse(reminders.last[0]) : nil
 
           if last_date != Date.current
             RentalMailer.return_reminder(booking).deliver_later
