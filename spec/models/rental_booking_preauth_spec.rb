@@ -247,7 +247,7 @@ RSpec.describe 'RentalBooking Deposit Preauthorization', type: :model do
 
       it 'processes a refund instead of releasing authorization' do
         allow(StripeService).to receive(:process_rental_deposit_refund)
-          .with(rental_booking: rental_booking)
+          .with(rental_booking: rental_booking, refund_amount: anything)
           .and_return(double(id: 'refund_123'))
 
         expect(StripeService).not_to receive(:cancel_rental_deposit_authorization)

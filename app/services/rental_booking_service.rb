@@ -240,8 +240,21 @@ class RentalBookingService
   end
   
   def update_params
-    allowed = [:start_time, :end_time, :duration_mins, :quantity, :customer_notes, :notes, :location_id]
-    params.slice(*allowed)
+    # Convert duration_mins to end_time if present
+    if params[:duration_mins].present? && params[:start_time].present?
+      start_time = parse_time(params[:start_time])
+      calculated_end_time = start_time + params[:duration_mins].to_i.minutes if start_time.present?
+    end
+
+    allowed = [:start_time, :end_time, :quantity, :customer_notes, :notes, :location_id]
+    update_hash = params.slice(*allowed)
+
+    # Use calculated end_time from duration_mins if available, otherwise use provided end_time
+    if calculated_end_time.present?
+      update_hash[:end_time] = calculated_end_time
+    end
+
+    update_hash
   end
   
   def parse_time(value)

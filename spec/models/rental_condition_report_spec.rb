@@ -236,6 +236,9 @@ RSpec.describe RentalConditionReport, type: :model do
       booking.mark_deposit_paid!(payment_intent_id: 'pi_test')
       booking.update!(status: 'checked_out', start_time: 2.days.ago, end_time: 1.day.ago, actual_pickup_time: 2.days.ago)
 
+      # Mock StripeService to allow refund processing
+      allow(StripeService).to receive(:process_rental_deposit_refund).and_return(true)
+
       file = fixture_file_upload(Rails.root.join('spec/fixtures/files/test_image.jpg'), 'image/jpeg')
 
       booking.process_return!(

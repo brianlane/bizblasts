@@ -468,14 +468,14 @@ class StripeService
   end
 
   # Process rental deposit refund
-  def self.process_rental_deposit_refund(rental_booking:)
+  def self.process_rental_deposit_refund(rental_booking:, refund_amount:)
     configure_stripe_api_key
     business = rental_booking.business
-    
+
     return unless rental_booking.stripe_deposit_payment_intent_id.present?
-    return unless rental_booking.deposit_refund_amount.to_d > 0
-    
-    refund_amount_cents = (rental_booking.deposit_refund_amount * 100).to_i
+    return unless refund_amount.to_d > 0
+
+    refund_amount_cents = (refund_amount.to_d * 100).to_i
     
     begin
       refund = Stripe::Refund.create(
