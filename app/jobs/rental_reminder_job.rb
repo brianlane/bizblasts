@@ -18,9 +18,16 @@ class RentalReminderJob < ApplicationJob
 
     RentalBooking.status_deposit_paid.where(start_time: tomorrow_start..tomorrow_end).find_each do |booking|
       begin
-        RentalMailer.pickup_reminder(booking).deliver_later
-        SmsService.send_rental_pickup_reminder(booking)
-        pickup_count += 1
+        # Check if we already sent a pickup reminder today to prevent duplicates
+        last_reminder = booking.notes&.match(/Pickup reminder sent: (\d{4}-\d{2}-\d{2})/)
+        last_date = last_reminder ? Date.parse(last_reminder[1]) : nil
+
+        if last_date != Date.current
+          RentalMailer.pickup_reminder(booking).deliver_later
+          SmsService.send_rental_pickup_reminder(booking)
+          booking.update!(notes: [booking.notes, "Pickup reminder sent: #{Date.current}"].compact.join("\n"))
+          pickup_count += 1
+        end
       rescue => e
         error_count += 1
         Rails.logger.error("[RentalReminderJob] Failed to send pickup reminder for booking #{booking.id} (#{booking.booking_number}): #{e.message}")

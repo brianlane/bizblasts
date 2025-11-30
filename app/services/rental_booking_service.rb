@@ -125,15 +125,15 @@ class RentalBookingService
       return failure_response
     end
     
-    # If dates changed, check availability
-    if params[:start_time].present? || params[:end_time].present? || params[:duration_mins].present?
+    # If dates or quantity changed, check availability
+    if params[:start_time].present? || params[:end_time].present? || params[:duration_mins].present? || params[:quantity].present?
       new_start = parse_time(params[:start_time]) || booking.start_time
       new_end = if params[:duration_mins].present?
                   new_start + params[:duration_mins].to_i.minutes
                 else
                   parse_time(params[:end_time]) || booking.end_time
                 end
-      
+
       unless RentalAvailabilityService.available?(
         rental: rental,
         start_time: new_start,
