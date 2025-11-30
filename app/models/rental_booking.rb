@@ -420,6 +420,7 @@ class RentalBooking < ApplicationRecord
   def process_return!(staff_member:, condition_rating:, notes: nil, damage_amount: 0, checklist_items: [], photos: [])
     return false unless can_return?
 
+    success = false
     transaction do
       report = rental_condition_reports.create!(
         staff_member: staff_member,
@@ -448,10 +449,16 @@ class RentalBooking < ApplicationRecord
         update!(late_fee_amount: nil)
       end
 
-      # Process deposit refund
-      process_deposit_refund!
+      # Process deposit refund - if it fails, rollback transaction
+      unless process_deposit_refund!
+        Rails.logger.error("[RentalBooking] Failed to process deposit refund for #{booking_number} - rolling back return")
+        raise ActiveRecord::Rollback
+      end
+
+      success = true
     end
-    true
+
+    success
   end
   
   # Complete the rental (after return processing)
@@ -505,12 +512,18 @@ class RentalBooking < ApplicationRecord
         )
       # Handle captured deposits (refund the charge)
       elsif deposit_collected?
+        # Process Stripe refund BEFORE updating database to prevent inconsistent state
+        if stripe_deposit_payment_intent_id.present?
+          unless process_stripe_deposit_refund!(security_deposit_amount)
+            Rails.logger.error("[RentalBooking] Failed to process Stripe refund for booking #{booking_number}")
+            raise ActiveRecord::Rollback
+          end
+        end
+
         update!(
           deposit_status: :full_refund,
           deposit_refund_amount: security_deposit_amount
         )
-        # Trigger Stripe refund if deposit was paid
-        process_stripe_deposit_refund! if stripe_deposit_payment_intent_id.present?
       end
 
       update!(
@@ -633,28 +646,50 @@ class RentalBooking < ApplicationRecord
   def process_deposit_refund!
     total_deductions = (late_fee_amount || 0) + (damage_fee_amount || 0)
     deposit = security_deposit_amount || 0
-    
+
     if total_deductions >= deposit
       update!(deposit_status: :forfeited, deposit_refund_amount: 0)
     elsif total_deductions > 0
       refund = deposit - total_deductions
+
+      # Process Stripe refund BEFORE updating database to prevent inconsistent state
+      if stripe_deposit_payment_intent_id.present?
+        unless process_stripe_deposit_refund!(refund)
+          Rails.logger.error("[RentalBooking] Failed to process partial Stripe refund for booking #{booking_number}")
+          return false
+        end
+      end
+
       update!(deposit_status: :partial_refund, deposit_refund_amount: refund)
     else
+      # Process Stripe refund BEFORE updating database to prevent inconsistent state
+      if stripe_deposit_payment_intent_id.present?
+        unless process_stripe_deposit_refund!(deposit)
+          Rails.logger.error("[RentalBooking] Failed to process full Stripe refund for booking #{booking_number}")
+          return false
+        end
+      end
+
       update!(deposit_status: :full_refund, deposit_refund_amount: deposit)
     end
-    
-    # Trigger Stripe refund
-    process_stripe_deposit_refund! if deposit_refund_amount.to_d > 0 && stripe_deposit_payment_intent_id.present?
+
+    true
   end
   
-  def process_stripe_deposit_refund!
-    return unless stripe_deposit_payment_intent_id.present? && deposit_refund_amount.to_d > 0
-    
-    # This will be implemented in StripeService
-    StripeService.process_rental_deposit_refund(rental_booking: self)
+  def process_stripe_deposit_refund!(refund_amount)
+    return false unless stripe_deposit_payment_intent_id.present?
+    return false unless refund_amount.to_d > 0
+
+    # Process Stripe refund - let exceptions bubble up to caller
+    StripeService.process_rental_deposit_refund(
+      rental_booking: self,
+      refund_amount: refund_amount
+    )
     update!(deposit_refunded_at: Time.current)
+    true
   rescue => e
     Rails.logger.error("[RentalBooking] Failed to process deposit refund for #{booking_number}: #{e.message}")
+    false
   end
   
   # ============================================

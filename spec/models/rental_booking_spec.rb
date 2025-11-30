@@ -557,6 +557,48 @@ RSpec.describe RentalBooking, type: :model do
         expect(booking.total_amount).to eq(original_total)
       end
     end
+
+    describe 'Stripe refund error handling' do
+      before do
+        # Mock StripeService to simulate successful refund by default
+        allow(StripeService).to receive(:process_rental_deposit_refund).and_return(true)
+      end
+
+      it 'returns false from process_stripe_deposit_refund! when Stripe fails' do
+        booking = create(:rental_booking,
+          business: business,
+          product: rental_product,
+          tenant_customer: customer,
+          stripe_deposit_payment_intent_id: 'pi_test123'
+        )
+
+        allow(StripeService).to receive(:process_rental_deposit_refund).and_raise(Stripe::InvalidRequestError.new('test error', 'param'))
+
+        result = booking.send(:process_stripe_deposit_refund!, 50.00)
+
+        expect(result).to be false
+      end
+
+      it 'does not update database when Stripe refund fails during process_deposit_refund!' do
+        booking = create(:rental_booking,
+          business: business,
+          product: rental_product,
+          tenant_customer: customer,
+          status: 'returned',
+          stripe_deposit_payment_intent_id: 'pi_test123',
+          security_deposit_amount: 100,
+          damage_fee_amount: 25
+        )
+
+        allow(StripeService).to receive(:process_rental_deposit_refund).and_raise(Stripe::InvalidRequestError.new('test error', 'param'))
+
+        result = booking.send(:process_deposit_refund!)
+
+        expect(result).to be false
+        # Deposit status should remain unchanged
+        expect(booking.reload.deposit_refund_amount).to be_nil
+      end
+    end
   end
 end
 
