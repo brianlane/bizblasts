@@ -1,7 +1,13 @@
 require 'rails_helper'
 
 RSpec.describe EnhancedWebsiteLayoutService, type: :service do
-  let(:business) { create(:business, :free_tier, show_services_section: true, show_products_section: true) }
+  let(:business) do
+    create(:business,
+           :free_tier,
+           show_services_section: true,
+           show_products_section: true,
+           show_estimate_page: true)
+  end
 
   before do
     business.update!(website_layout: 'enhanced')
@@ -11,6 +17,7 @@ RSpec.describe EnhancedWebsiteLayoutService, type: :service do
     context 'with services and products' do
       let!(:service) { create(:service, business: business, name: 'Premium Detail') }
       let!(:product) { create(:product, business: business, name: 'Ceramic Kit') }
+      let!(:rental) { create(:product, :rental, business: business, name: 'Lift') }
 
       it 'creates a published home page with enhanced sections' do
         business.pages.destroy_all
@@ -22,8 +29,16 @@ RSpec.describe EnhancedWebsiteLayoutService, type: :service do
         home_page = business.pages.find_by(slug: 'home')
         expect(home_page).to be_present
         expect(home_page).to be_published
-        expect(home_page.page_sections.pluck(:section_type)).to include(
-          'hero_banner', 'text', 'service_list', 'product_list', 'testimonial', 'newsletter_signup', 'social_media'
+        expect(home_page.page_sections.active.pluck(:section_type)).to include(
+          'hero_banner',
+          'text',
+          'service_list',
+          'product_list',
+          'rental_list',
+          'estimate_cta',
+          'testimonial',
+          'newsletter_signup',
+          'social_media'
         )
       end
 
@@ -72,7 +87,7 @@ RSpec.describe EnhancedWebsiteLayoutService, type: :service do
       it 'skips the service section' do
         described_class.apply!(business)
         home_page = business.pages.find_by(slug: 'home')
-        expect(home_page.page_sections.pluck(:section_type)).not_to include('service_list')
+        expect(home_page.page_sections.active.pluck(:section_type)).not_to include('service_list')
       end
     end
 
@@ -83,7 +98,33 @@ RSpec.describe EnhancedWebsiteLayoutService, type: :service do
         business.products.destroy_all
         described_class.apply!(business)
         home_page = business.pages.find_by(slug: 'home')
-        expect(home_page.page_sections.pluck(:section_type)).not_to include('product_list')
+        expect(home_page.page_sections.active.pluck(:section_type)).not_to include('product_list')
+      end
+    end
+
+    context 'without rentals' do
+      let!(:service) { create(:service, business: business, name: 'Premium Detail') }
+      let!(:product) { create(:product, business: business) }
+
+      it 'skips the rental section' do
+        business.products.rentals.destroy_all
+        described_class.apply!(business)
+        home_page = business.pages.find_by(slug: 'home')
+        expect(home_page.page_sections.active.pluck(:section_type)).not_to include('rental_list')
+      end
+    end
+
+    context 'when estimate page is hidden' do
+      let!(:service) { create(:service, business: business, name: 'Premium Detail') }
+      let!(:product) { create(:product, business: business) }
+
+      it 'skips the estimate section' do
+        business.update!(show_estimate_page: false)
+        expect(business.reload.show_estimate_page?).to be false
+        expect(described_class.new(business).send(:include_estimate_section?)).to be false
+        described_class.apply!(business)
+        home_page = business.pages.find_by(slug: 'home')
+        expect(home_page.page_sections.active.pluck(:section_type)).not_to include('estimate_cta')
       end
     end
 

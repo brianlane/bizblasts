@@ -388,30 +388,37 @@ class Product < ApplicationRecord
         end
       end
 
-      # Multi-day rental: check each day in the rental period
+      # Multi-day rental: check first and last day for pickup/return availability
+      # Also validate that most days in the rental period have availability
       current_date = start_date
+      total_days = 0
+      days_with_availability = 0
 
       while current_date <= end_date
         intervals = rental_schedule_for(current_date)
-        return false if intervals.blank?
+        total_days += 1
+        days_with_availability += 1 if intervals.present?
 
         if current_date == start_date
-          # First day: ensure there's a slot that covers the start_time
-          # Must start at or before start_time AND end after start_time
-          has_valid_slot = intervals.any? { |slot| slot[:start] <= start_time && slot[:end] > start_time }
+          # First day: ensure there's a slot that covers the start_time (pickup)
+          return false if intervals.blank?
+          has_valid_slot = intervals.any? { |slot| slot[:start] <= start_time && slot[:end] >= start_time }
           return false unless has_valid_slot
         elsif current_date == end_date
-          # Last day: ensure there's a slot that covers the end_time
-          # Must start before end_time AND end at or after end_time
-          has_valid_slot = intervals.any? { |slot| slot[:start] < end_time && slot[:end] >= end_time }
+          # Last day: ensure there's a slot that covers the end_time (return)
+          return false if intervals.blank?
+          has_valid_slot = intervals.any? { |slot| slot[:start] <= end_time && slot[:end] >= end_time }
           return false unless has_valid_slot
-        else
-          # Middle days: just need to have availability (at least one slot exists)
-          # intervals.blank? check above already handles this
         end
 
         current_date = current_date.next_day
       end
+
+      # Require that at least 60% of days have availability
+      # This allows weekend closures for longer rentals while blocking
+      # short rentals that are primarily during closed periods
+      availability_ratio = days_with_availability.to_f / total_days
+      return false if availability_ratio < 0.6
 
       true
     end

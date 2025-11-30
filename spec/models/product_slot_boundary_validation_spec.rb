@@ -55,14 +55,14 @@ RSpec.describe Product, 'slot boundary validation for multi-day rentals', type: 
         end
       end
 
-      it 'rejects rental starting at 10am when slot is 8am-10am (start_time at slot end)' do
+      it 'allows rental starting at 10am when slot is 8am-10am (start_time at slot end)' do
         Time.use_zone(business.time_zone) do
           # Monday 10am to Tuesday 9am
           start_time = Time.zone.parse('2025-01-06 10:00')
           end_time = Time.zone.parse('2025-01-07 09:00')
 
-          # slot[:end] (10am) > start_time (10am) is false
-          expect(rental_product.rental_schedule_allows?(start_time, end_time)).to be false
+          # slot[:end] (10am) >= start_time (10am) is true - can pickup at closing time
+          expect(rental_product.rental_schedule_allows?(start_time, end_time)).to be true
         end
       end
     end
@@ -92,14 +92,14 @@ RSpec.describe Product, 'slot boundary validation for multi-day rentals', type: 
         end
       end
 
-      it 'rejects rental ending at 8am when slot is 8am-10am (end_time at slot start)' do
+      it 'allows rental ending at 8am when slot is 8am-10am (end_time at slot start)' do
         Time.use_zone(business.time_zone) do
           # Monday 9am to Tuesday 8am
           start_time = Time.zone.parse('2025-01-06 09:00')
           end_time = Time.zone.parse('2025-01-07 08:00')
 
-          # slot[:start] (8am) < end_time (8am) is false
-          expect(rental_product.rental_schedule_allows?(start_time, end_time)).to be false
+          # slot[:start] (8am) <= end_time (8am) is true - can return when shop opens
+          expect(rental_product.rental_schedule_allows?(start_time, end_time)).to be true
         end
       end
     end

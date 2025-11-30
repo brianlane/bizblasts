@@ -1,0 +1,94 @@
+<% current_business = local_assigns[:business] %>
+<% return unless current_business&.has_visible_rentals? %>
+
+<% limit = section.section_config&.dig('limit') || 6 %>
+<% rentals = current_business.products.rentals.active.positioned.limit(limit) %>
+<% rentals = rentals.select { |r| r.respond_to?(:visible_to_customers?) ? r.visible_to_customers? : true } %>
+<% return if rentals.empty? %>
+
+<% enhanced_layout = current_business.website_layout_enhanced? %>
+<% section_classes = enhanced_layout ? "rental-list-section py-16 bg-[rgba(15,23,42,0.85)]" : "rental-list-section bg-gray-50 py-16" %>
+<% heading_classes = enhanced_layout ? "text-3xl md:text-4xl font-bold text-white" : "text-3xl md:text-4xl font-bold text-gray-900" %>
+<% description_classes = enhanced_layout ? "text-gray-300 max-w-2xl" : "text-gray-600 max-w-2xl" %>
+<% badge_classes = enhanced_layout ? "inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full accent-bg text-white" : "inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-gray-900 text-white" %>
+<% card_classes = enhanced_layout ? "rounded-3xl border border-white/10 shadow-lg bg-[rgba(15,23,42,0.75)] overflow-hidden flex flex-col" : "rounded-3xl border border-gray-200 shadow-md bg-white overflow-hidden flex flex-col" %>
+<% title_classes = enhanced_layout ? "text-xl font-semibold text-white" : "text-xl font-semibold text-gray-900" %>
+<% body_classes = enhanced_layout ? "text-sm text-gray-300 mt-2 line-clamp-3" : "text-sm text-gray-600 mt-2 line-clamp-3" %>
+<% price_classes = enhanced_layout ? "text-2xl font-bold text-white" : "text-2xl font-bold text-gray-900" %>
+<% meta_classes = enhanced_layout ? "text-xs text-gray-300 uppercase tracking-wide" : "text-xs text-gray-500 uppercase tracking-wide" %>
+<% button_classes = enhanced_layout ? "w-full inline-flex justify-center px-4 py-2 text-sm font-semibold text-white accent-bg rounded-full hover:opacity-90 transition-colors" : "w-full inline-flex justify-center px-4 py-2 text-sm font-semibold text-white bg-gray-900 rounded-full hover:bg-gray-800 transition-colors" %>
+<% link_classes = enhanced_layout ? "text-sm font-semibold text-white/90 hover:text-white transition" : "text-sm font-semibold text-gray-900 hover:text-gray-700 transition" %>
+
+<div class="<%= section_classes %>">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+      <div>
+        <p class="text-sm uppercase tracking-[0.3em] <%= enhanced_layout ? 'accent-text' : 'text-gray-500' %>">Rentals</p>
+        <h2 class="<%= heading_classes %>">
+          <%= section.content_data['title'].presence || 'Rentals Ready When You Are' %>
+        </h2>
+        <% if section.content_data['description'].present? %>
+          <p class="<%= description_classes %>">
+            <%= section.content_data['description'] %>
+          </p>
+        <% end %>
+      </div>
+      <div>
+        <%= link_to 'View All Rentals', rentals_path, class: link_classes %>
+      </div>
+    </div>
+
+    <div class="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+      <% rentals.each do |rental| %>
+        <div class="<%= card_classes %>">
+          <% if rental.images.attached? %>
+            <%= image_tag rental.images.first.variant(:thumb), class: "w-full h-48 object-cover" %>
+          <% else %>
+            <div class="w-full h-48 bg-gradient-to-r <%= enhanced_layout ? 'from-slate-700 to-slate-800' : 'from-gray-100 to-gray-200' %> flex items-center justify-center">
+              <svg class="w-12 h-12 <%= enhanced_layout ? 'text-white/60' : 'text-gray-400' %>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7l9-4 9 4-9 4-9-4zm0 6l9 4 9-4m-9 4v6" />
+              </svg>
+            </div>
+          <% end %>
+
+          <div class="flex-1 flex flex-col p-6">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h3 class="<%= title_classes %>"><%= rental.name %></h3>
+                <% if rental.rental_category.present? %>
+                  <p class="<%= meta_classes %>"><%= rental.rental_category.titleize %></p>
+                <% end %>
+              </div>
+              <% if rental.rental_quantity_available.to_i <= 2 %>
+                <span class="<%= badge_classes %>">Limited</span>
+              <% end %>
+            </div>
+
+            <% if rental.description.present? %>
+              <p class="<%= body_classes %>"><%= truncate(rental.description, length: 140) %></p>
+            <% end %>
+
+            <div class="mt-6 flex items-center justify-between">
+              <div>
+                <p class="<%= price_classes %>">
+                  <%= number_to_currency(rental.daily_rate) %><span class="text-base font-medium <%= enhanced_layout ? 'text-gray-300' : 'text-gray-500' %>">/day</span>
+                </p>
+                <% if rental.hourly_rate.present? %>
+                  <p class="<%= meta_classes %>"><%= number_to_currency(rental.hourly_rate) %>/hr options</p>
+                <% end %>
+              </div>
+              <p class="<%= meta_classes %>"><%= rental.rental_quantity_available %> available</p>
+            </div>
+
+            <div class="mt-6 flex flex-col gap-3">
+              <%= link_to 'Book Now', book_rental_path(rental), class: button_classes %>
+              <%= link_to 'View Details', rental_path(rental), class: link_classes %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+

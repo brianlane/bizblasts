@@ -18,8 +18,8 @@ class UserSidebarItem < ApplicationRecord
       { key: 'staff', label: 'Staff' },
       { key: 'services', label: 'Services' },
       { key: 'products', label: 'Products' },
-      { key: 'rentals', label: 'Rentals', requires_rentals: true },
-      { key: 'rental_bookings', label: 'Rental Bookings', requires_rentals: true },
+      { key: 'rentals', label: 'Rentals' },
+      { key: 'rental_bookings', label: 'Rental Bookings' },
       { key: 'shipping_methods', label: 'Shipping Methods', requires_products: true },
       { key: 'tax_rates', label: 'Tax Rates', requires_products: true },
       { key: 'customers', label: 'Customers' },
@@ -41,11 +41,6 @@ class UserSidebarItem < ApplicationRecord
     # Filter items that require products when business has no active products
     unless business&.products&.active&.exists?
       items.reject! { |i| i[:requires_products] }
-    end
-
-    # Filter items that require rentals when business has rentals disabled
-    unless business&.show_rentals_section?
-      items.reject! { |i| i[:requires_rentals] }
     end
 
     # Filter estimates unless business has show_estimate_page enabled

@@ -71,6 +71,15 @@ module BusinessManager
         redirect_to new_business_manager_rental_booking_path, alert: 'Customer information is required.'
         return
       end
+
+      # Validate customer was saved (check if persisted or if it can be saved)
+      unless customer.persisted? || customer.save
+        @rental_booking = current_business.rental_bookings.new(rental_booking_params)
+        @customers = current_business.tenant_customers.order(:first_name, :last_name)
+        flash.now[:alert] = "Customer validation failed: #{customer.errors.full_messages.join(', ')}"
+        render :new, status: :unprocessable_content
+        return
+      end
       
       service = RentalBookingService.new(
         rental: rental,
@@ -253,10 +262,11 @@ module BusinessManager
         current_business.tenant_customers.find_by(id: params[:rental_booking][:tenant_customer_id])
       elsif params[:customer].present?
         customer_params = params.require(:customer).permit(:first_name, :last_name, :email, :phone)
-        
-        # Try to find existing customer by email
-        customer = current_business.tenant_customers.find_by(email: customer_params[:email])
-        customer || current_business.tenant_customers.create(customer_params)
+
+        # Find or initialize customer by email
+        customer = current_business.tenant_customers.find_or_initialize_by(email: customer_params[:email])
+        customer.assign_attributes(customer_params)
+        customer
       end
     end
     
