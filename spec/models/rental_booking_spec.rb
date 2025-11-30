@@ -486,6 +486,77 @@ RSpec.describe RentalBooking, type: :model do
         }.not_to raise_error
       end
     end
+
+    describe 'totals recalculation' do
+      let(:booking) do
+        create(:rental_booking,
+          business: business,
+          product: rental_product,
+          tenant_customer: customer,
+          start_time: 1.day.from_now,
+          end_time: 2.days.from_now,
+          quantity: 1
+        )
+      end
+
+      it 'calculates totals on create' do
+        expect(booking.subtotal).to be_present
+        expect(booking.total_amount).to be_present
+        expect(booking.security_deposit_amount).to eq(rental_product.security_deposit)
+      end
+
+      it 'recalculates totals when start_time changes' do
+        original_subtotal = booking.subtotal
+        original_total = booking.total_amount
+
+        # Change from 1-day to 3-day rental by moving start time earlier but keeping same end time
+        booking.update!(start_time: booking.end_time - 3.days)
+
+        expect(booking.reload.subtotal).not_to eq(original_subtotal)
+        expect(booking.total_amount).not_to eq(original_total)
+      end
+
+      it 'recalculates totals when end_time changes' do
+        original_subtotal = booking.subtotal
+
+        # Extend rental by 1 day
+        booking.update!(end_time: 3.days.from_now)
+
+        expect(booking.reload.subtotal).not_to eq(original_subtotal)
+      end
+
+      it 'recalculates totals when quantity changes' do
+        original_subtotal = booking.subtotal
+        original_deposit = booking.security_deposit_amount
+
+        # Double the quantity
+        booking.update!(quantity: 2)
+
+        expect(booking.reload.subtotal).to eq(original_subtotal * 2)
+        expect(booking.security_deposit_amount).to eq(original_deposit * 2)
+      end
+
+      it 'recalculates totals when product changes' do
+        different_rental = create(:product, :rental, business: business, price: 100, security_deposit: 200)
+        original_deposit = booking.security_deposit_amount
+
+        booking.update!(product: different_rental)
+
+        expect(booking.reload.security_deposit_amount).not_to eq(original_deposit)
+        expect(booking.security_deposit_amount).to eq(different_rental.security_deposit)
+      end
+
+      it 'does not recalculate totals when other fields change' do
+        original_subtotal = booking.subtotal
+        original_total = booking.total_amount
+
+        # Update status (not a pricing-related field)
+        booking.update!(status: 'deposit_paid')
+
+        expect(booking.reload.subtotal).to eq(original_subtotal)
+        expect(booking.total_amount).to eq(original_total)
+      end
+    end
   end
 end
 

@@ -94,7 +94,7 @@ class RentalBooking < ApplicationRecord
   # ============================================
   before_validation :set_booking_number, on: :create
   before_validation :set_guest_access_token, on: :create
-  before_validation :calculate_totals, on: :create
+  before_validation :calculate_totals, if: :should_recalculate_totals?
   before_validation :set_location_from_product
   
   after_create :send_booking_confirmation
@@ -565,7 +565,15 @@ class RentalBooking < ApplicationRecord
   def set_location_from_product
     self.location_id ||= product&.location_id
   end
-  
+
+  def should_recalculate_totals?
+    new_record? ||
+      start_time_changed? ||
+      end_time_changed? ||
+      quantity_changed? ||
+      product_id_changed?
+  end
+
   def calculate_totals
     return unless product && start_time && end_time
     return unless quantity.present? && quantity > 0

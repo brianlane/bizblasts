@@ -6,6 +6,7 @@ RSpec.describe EnhancedWebsiteLayoutService, type: :service do
            :free_tier,
            show_services_section: true,
            show_products_section: true,
+           show_rentals_section: true,
            show_estimate_page: true)
   end
 
