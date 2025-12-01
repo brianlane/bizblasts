@@ -1,0 +1,211 @@
+<%# app/views/public/rentals/index.html.erb %>
+<div class="min-h-screen bg-gray-50">
+  <div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-gray-900">Rentals</h1>
+      <p class="mt-2 text-gray-600">Browse our available rental items</p>
+    </div>
+
+    <!-- Filters -->
+    <% if @rental_categories.any? || @locations.any? %>
+      <div class="mb-8 bg-white shadow rounded-lg p-4">
+        <div class="flex flex-wrap gap-4 items-center">
+          <% if @rental_categories.any? %>
+            <div class="w-48">
+              <label class="block text-xs font-medium text-gray-500 mb-1">Category</label>
+              <%= form_tag rentals_path, method: :get, id: "category-form" do %>
+                <div class="relative" data-controller="dropdown"
+                     data-dropdown-selected-value-value="<%= params[:category] || '' %>"
+                     data-dropdown-selected-text-value="<%= params[:category].present? ? params[:category].titleize : 'All Categories' %>">
+                  <button type="button"
+                          class="w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          data-dropdown-target="button"
+                          data-action="click->dropdown#toggle">
+                    <span class="rich-dropdown-text text-gray-900">
+                      <%= params[:category].present? ? params[:category].titleize : 'All Categories' %>
+                    </span>
+                    <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      <svg class="h-4 w-4 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </span>
+                  </button>
+                  <%= hidden_field_tag :category, params[:category], data: { dropdown_target: 'hidden' } %>
+                  <%= hidden_field_tag :location_id, params[:location_id] if params[:location_id].present? %>
+                  <div class="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-sm ring-1 ring-black ring-opacity-5 overflow-auto hidden"
+                       data-dropdown-target="menu"
+                       data-action="dropdown:selected@document->category-form#submit">
+                    <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+                         data-item-id=""
+                         data-item-text="All Categories"
+                         data-dropdown-target="option"
+                         data-action="click->dropdown#select">
+                      All Categories
+                    </div>
+                    <% @rental_categories.each do |category| %>
+                      <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+                           data-item-id="<%= category %>"
+                           data-item-text="<%= category.titleize %>"
+                           data-dropdown-target="option"
+                           data-action="click->dropdown#select">
+                        <%= category.titleize %>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+
+          <% if @locations.any? %>
+            <div class="w-48">
+              <label class="block text-xs font-medium text-gray-500 mb-1">Location</label>
+              <%= form_tag rentals_path, method: :get, id: "location-form" do %>
+                <div class="relative" data-controller="dropdown"
+                     data-dropdown-selected-value-value="<%= params[:location_id] || '' %>"
+                     data-dropdown-selected-text-value="<%= params[:location_id].present? ? @locations.find { |l| l.id.to_s == params[:location_id].to_s }&.name : 'All Locations' %>">
+                  <button type="button"
+                          class="w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          data-dropdown-target="button"
+                          data-action="click->dropdown#toggle">
+                    <span class="rich-dropdown-text text-gray-900">
+                      <%= params[:location_id].present? ? @locations.find { |l| l.id.to_s == params[:location_id].to_s }&.name : 'All Locations' %>
+                    </span>
+                    <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      <svg class="h-4 w-4 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </span>
+                  </button>
+                  <%= hidden_field_tag :category, params[:category] %>
+                  <%= hidden_field_tag :location_id, params[:location_id], data: { dropdown_target: 'hidden' } %>
+                  <div class="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-sm ring-1 ring-black ring-opacity-5 overflow-auto hidden"
+                       data-dropdown-target="menu"
+                       data-action="dropdown:selected@document->location-form#submit">
+                    <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+                         data-item-id=""
+                         data-item-text="All Locations"
+                         data-dropdown-target="option"
+                         data-action="click->dropdown#select">
+                      All Locations
+                    </div>
+                    <% @locations.each do |location| %>
+                      <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+                           data-item-id="<%= location.id %>"
+                           data-item-text="<%= location.name %>"
+                           data-dropdown-target="option"
+                           data-action="click->dropdown#select">
+                        <%= location.name %>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Rentals Grid -->
+    <% if @rentals.any? %>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <% @rentals.each do |rental| %>
+          <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+            <!-- Image -->
+            <div class="aspect-w-16 aspect-h-10 bg-gray-100">
+              <% if rental.images.attached? %>
+                <%= image_tag rental.images.first.variant(:medium), 
+                      class: "w-full h-48 object-cover" %>
+              <% else %>
+                <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
+                  <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                  </svg>
+                </div>
+              <% end %>
+            </div>
+            
+            <!-- Content -->
+            <div class="p-4">
+              <div class="flex items-start justify-between">
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-900">
+                    <%= link_to rental.name, rental_path(rental), class: "hover:text-blue-600" %>
+                  </h3>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mt-1">
+                    <%= rental.rental_category&.titleize %>
+                  </span>
+                </div>
+              </div>
+              
+              <p class="mt-2 text-sm text-gray-600 line-clamp-2"><%= rental.description %></p>
+              
+              <!-- Pricing -->
+              <div class="mt-4 space-y-1">
+                <div class="text-xl font-bold text-green-600">
+                  <%= number_to_currency(rental.daily_rate) %><span class="text-sm font-normal text-gray-500">/day</span>
+                </div>
+                <% if rental.hourly_rate.present? && rental.allow_hourly_rental? %>
+                  <div class="text-sm text-gray-500">
+                    or <%= number_to_currency(rental.hourly_rate) %>/hour
+                  </div>
+                <% end %>
+              </div>
+              
+              <% if rental.security_deposit.to_d > 0 %>
+                <div class="mt-2 text-sm text-orange-600">
+                  <%= number_to_currency(rental.security_deposit) %> refundable deposit
+                </div>
+              <% end %>
+              <% durations = rental.effective_rental_durations %>
+              <% if durations.present? %>
+                <div class="mt-2 text-xs text-gray-500">
+                  Durations: <%= durations.first(3).map { |mins|
+                    case mins
+                    when 0..119 then "#{mins / 60} hour#{'s' if mins > 60}"
+                    when 120..1439 then "#{mins / 60} hours"
+                    when 1440 then "1 day"
+                    when 2880 then "2 days"
+                    when 4320 then "3 days"
+                    when 10080 then "7 days"
+                    when 20160 then "14 days"
+                    when 40320 then "28 days"
+                    else
+                      days = mins / 1440
+                      days == 1 ? "1 day" : "#{days} days"
+                    end
+                  }.join(', ') %>
+                </div>
+              <% end %>
+              
+              <div class="mt-4 flex items-center justify-between">
+                <div class="text-sm text-gray-500">
+                  <%= rental.rental_quantity_available %> available
+                </div>
+                <%= link_to 'Rent Now', rental_path(rental, rent_now: true), 
+                      class: "px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors" %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="text-center py-12 bg-white rounded-lg shadow">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+        </svg>
+        <h3 class="mt-2 text-lg font-medium text-gray-900">No rentals available</h3>
+        <p class="mt-1 text-sm text-gray-500">Check back later for available rental items.</p>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+// Auto-submit forms when dropdown selection changes
+document.addEventListener('dropdown:selected', function(event) {
+  const form = event.target.closest('form');
+  if (form && (form.id === 'category-form' || form.id === 'location-form')) {
+    form.submit();
+  }
+});
+</script>
+

@@ -18,6 +18,8 @@ class UserSidebarItem < ApplicationRecord
       { key: 'staff', label: 'Staff' },
       { key: 'services', label: 'Services' },
       { key: 'products', label: 'Products' },
+      { key: 'rentals', label: 'Rentals' },
+      { key: 'rental_bookings', label: 'Rental Bookings' },
       { key: 'shipping_methods', label: 'Shipping Methods', requires_products: true },
       { key: 'tax_rates', label: 'Tax Rates', requires_products: true },
       { key: 'customers', label: 'Customers' },

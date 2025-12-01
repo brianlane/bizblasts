@@ -8,3 +8,14 @@
 #     command: "SoftDeletedRecord.due.delete_all"
 #     priority: 2
 #     schedule: at 5am every day
+
+# Rental management jobs
+production:
+  rental_overdue_check:
+    class: RentalOverdueCheckJob
+    queue: default
+    schedule: every hour
+  rental_reminder:
+    class: RentalReminderJob
+    queue: default
+    schedule: at 8am every day

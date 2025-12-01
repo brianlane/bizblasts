@@ -659,6 +659,141 @@ class SmsService
     })
   end
 
+  # ===== RENTAL SMS METHODS =====
+  def self.send_rental_booking_confirmation(rental_booking)
+    # Check TCPA compliance - customer must be opted in
+    unless rental_booking.tenant_customer.can_receive_sms?(:booking)
+      SecureLogger.info "[SMS_SERVICE] Customer #{rental_booking.tenant_customer.id} not opted in for rental booking SMS"
+      return { success: false, error: "Customer not opted in for SMS notifications" }
+    end
+
+    variables = build_rental_booking_variables(rental_booking)
+    variables[:link] = generate_sms_link(rental_booking.business, "/rental_bookings/#{rental_booking.id}", rental_booking_id: rental_booking.id)
+
+    message = Sms::MessageTemplates.render('rental.booking_confirmation', variables)
+    unless message
+      SecureLogger.error "[SMS_SERVICE] Failed to render rental booking confirmation template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
+    send_message_with_rate_limit(rental_booking.tenant_customer.phone, message, {
+      tenant_customer_id: rental_booking.tenant_customer.id,
+      rental_booking_id: rental_booking.id,
+      business_id: rental_booking.business_id
+    })
+  end
+
+  def self.send_rental_deposit_paid(rental_booking)
+    unless rental_booking.tenant_customer.can_receive_sms?(:payment)
+      SecureLogger.info "[SMS_SERVICE] Customer #{rental_booking.tenant_customer.id} not opted in for payment SMS"
+      return { success: false, error: "Customer not opted in for SMS notifications" }
+    end
+
+    variables = build_rental_booking_variables(rental_booking)
+    variables[:link] = generate_sms_link(rental_booking.business, "/rental_bookings/#{rental_booking.id}", rental_booking_id: rental_booking.id)
+
+    message = Sms::MessageTemplates.render('rental.deposit_paid', variables)
+    unless message
+      SecureLogger.error "[SMS_SERVICE] Failed to render rental deposit paid template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
+    send_message_with_rate_limit(rental_booking.tenant_customer.phone, message, {
+      tenant_customer_id: rental_booking.tenant_customer.id,
+      rental_booking_id: rental_booking.id,
+      business_id: rental_booking.business_id
+    })
+  end
+
+  def self.send_rental_pickup_reminder(rental_booking)
+    unless rental_booking.tenant_customer.can_receive_sms?(:booking)
+      SecureLogger.info "[SMS_SERVICE] Customer #{rental_booking.tenant_customer.id} not opted in for rental reminder SMS"
+      return { success: false, error: "Customer not opted in for SMS notifications" }
+    end
+
+    variables = build_rental_booking_variables(rental_booking)
+    variables[:link] = generate_sms_link(rental_booking.business, "/rental_bookings/#{rental_booking.id}", rental_booking_id: rental_booking.id)
+
+    message = Sms::MessageTemplates.render('rental.pickup_reminder', variables)
+    unless message
+      SecureLogger.error "[SMS_SERVICE] Failed to render rental pickup reminder template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
+    send_message_with_rate_limit(rental_booking.tenant_customer.phone, message, {
+      tenant_customer_id: rental_booking.tenant_customer.id,
+      rental_booking_id: rental_booking.id,
+      business_id: rental_booking.business_id
+    })
+  end
+
+  def self.send_rental_return_reminder(rental_booking)
+    unless rental_booking.tenant_customer.can_receive_sms?(:booking)
+      SecureLogger.info "[SMS_SERVICE] Customer #{rental_booking.tenant_customer.id} not opted in for rental reminder SMS"
+      return { success: false, error: "Customer not opted in for SMS notifications" }
+    end
+
+    variables = build_rental_booking_variables(rental_booking)
+    variables[:link] = generate_sms_link(rental_booking.business, "/rental_bookings/#{rental_booking.id}", rental_booking_id: rental_booking.id)
+
+    message = Sms::MessageTemplates.render('rental.return_reminder', variables)
+    unless message
+      SecureLogger.error "[SMS_SERVICE] Failed to render rental return reminder template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
+    send_message_with_rate_limit(rental_booking.tenant_customer.phone, message, {
+      tenant_customer_id: rental_booking.tenant_customer.id,
+      rental_booking_id: rental_booking.id,
+      business_id: rental_booking.business_id
+    })
+  end
+
+  def self.send_rental_overdue_notice(rental_booking)
+    unless rental_booking.tenant_customer.can_receive_sms?(:booking)
+      SecureLogger.info "[SMS_SERVICE] Customer #{rental_booking.tenant_customer.id} not opted in for rental overdue SMS"
+      return { success: false, error: "Customer not opted in for SMS notifications" }
+    end
+
+    variables = build_rental_booking_variables(rental_booking)
+    variables[:link] = generate_sms_link(rental_booking.business, "/rental_bookings/#{rental_booking.id}", rental_booking_id: rental_booking.id)
+
+    message = Sms::MessageTemplates.render('rental.overdue_notice', variables)
+    unless message
+      SecureLogger.error "[SMS_SERVICE] Failed to render rental overdue notice template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
+    send_message_with_rate_limit(rental_booking.tenant_customer.phone, message, {
+      tenant_customer_id: rental_booking.tenant_customer.id,
+      rental_booking_id: rental_booking.id,
+      business_id: rental_booking.business_id
+    })
+  end
+
+  def self.send_rental_completion(rental_booking)
+    unless rental_booking.tenant_customer.can_receive_sms?(:payment)
+      SecureLogger.info "[SMS_SERVICE] Customer #{rental_booking.tenant_customer.id} not opted in for rental completion SMS"
+      return { success: false, error: "Customer not opted in for SMS notifications" }
+    end
+
+    variables = build_rental_booking_variables(rental_booking)
+    variables[:deposit_refund] = format_currency(rental_booking.deposit_refund_amount || 0)
+    variables[:link] = generate_sms_link(rental_booking.business, "/rental_bookings/#{rental_booking.id}", rental_booking_id: rental_booking.id)
+
+    message = Sms::MessageTemplates.render('rental.completion_confirmation', variables)
+    unless message
+      SecureLogger.error "[SMS_SERVICE] Failed to render rental completion template"
+      return { success: false, error: "Failed to render SMS template" }
+    end
+
+    send_message_with_rate_limit(rental_booking.tenant_customer.phone, message, {
+      tenant_customer_id: rental_booking.tenant_customer.id,
+      rental_booking_id: rental_booking.id,
+      business_id: rental_booking.business_id
+    })
+  end
+
   # ===== BUSINESS NOTIFICATION SMS METHODS =====
   def self.send_business_new_booking(booking, business_user)
     variables = build_booking_variables(booking)
@@ -911,6 +1046,22 @@ class SmsService
       order_number: order.order_number,
       amount: format_currency(order.total_amount),
       business_name: order.business.name
+    }
+  end
+
+  def self.build_rental_booking_variables(rental_booking)
+    {
+      booking_number: rental_booking.booking_number,
+      rental_name: rental_booking.rental_name,
+      customer_name: rental_booking.customer_full_name,
+      pickup_date: rental_booking.local_start_time.strftime('%m/%d/%Y'),
+      pickup_time: rental_booking.local_start_time.strftime('%I:%M %p'),
+      return_date: rental_booking.local_end_time.strftime('%m/%d/%Y'),
+      return_time: rental_booking.local_end_time.strftime('%I:%M %p'),
+      total_amount: format_currency(rental_booking.total_amount),
+      deposit_amount: format_currency(rental_booking.security_deposit_amount),
+      business_name: rental_booking.business.name,
+      business_phone: rental_booking.business.phone
     }
   end
 

@@ -1,0 +1,120 @@
+<%# app/views/business_manager/rental_bookings/new.html.erb %>
+<div class="container mx-auto px-4 py-4 sm:py-8 max-w-4xl">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">New Rental Booking</h1>
+    <p class="mt-1 text-sm text-gray-600">Create a new rental booking for a customer</p>
+  </div>
+
+  <%= form_with model: [:business_manager, @rental_booking], local: true, class: "space-y-6" do |form| %>
+    <% if @rental_booking.errors.any? %>
+      <div class="bg-red-50 border border-red-200 rounded-md p-4">
+        <div class="flex">
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-red-800">Please fix the following errors:</h3>
+            <ul class="mt-2 text-sm text-red-700 list-disc list-inside">
+              <% @rental_booking.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+              <% end %>
+            </ul>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Rental Selection -->
+    <div class="bg-white shadow rounded-lg p-6">
+      <h2 class="text-lg font-medium text-gray-900 mb-4">Select Rental Item</h2>
+      <div>
+        <%= form.label :product_id, "Rental Item", class: "block text-sm font-medium text-gray-700" %>
+        <%= form.select :product_id, 
+              @rentals.map { |r| ["#{r.name} - #{number_to_currency(r.daily_rate)}/day", r.id] },
+              { include_blank: 'Select a rental item...' },
+              class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+      </div>
+    </div>
+
+    <!-- Customer Selection -->
+    <div class="bg-white shadow rounded-lg p-6">
+      <h2 class="text-lg font-medium text-gray-900 mb-4">Customer Information</h2>
+      
+      <% if @customers.any? %>
+        <div class="mb-4">
+          <%= form.label :tenant_customer_id, "Existing Customer", class: "block text-sm font-medium text-gray-700" %>
+          <%= form.select :tenant_customer_id, 
+                @customers.map { |c| ["#{c.full_name} (#{c.email})", c.id] },
+                { include_blank: 'Select existing customer or create new...' },
+                class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+        </div>
+        
+        <div class="border-t pt-4 mt-4">
+          <p class="text-sm text-gray-500 mb-4">Or create a new customer:</p>
+        </div>
+      <% end %>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <%= label_tag 'customer[first_name]', "First Name", class: "block text-sm font-medium text-gray-700" %>
+          <%= text_field_tag 'customer[first_name]', nil, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+        </div>
+        <div>
+          <%= label_tag 'customer[last_name]', "Last Name", class: "block text-sm font-medium text-gray-700" %>
+          <%= text_field_tag 'customer[last_name]', nil, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+        </div>
+        <div>
+          <%= label_tag 'customer[email]', "Email", class: "block text-sm font-medium text-gray-700" %>
+          <%= email_field_tag 'customer[email]', nil, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+        </div>
+        <div>
+          <%= label_tag 'customer[phone]', "Phone", class: "block text-sm font-medium text-gray-700" %>
+          <%= telephone_field_tag 'customer[phone]', nil, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Booking Details -->
+    <div class="bg-white shadow rounded-lg p-6">
+      <h2 class="text-lg font-medium text-gray-900 mb-4">Booking Details</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <%= form.label :start_time, "Pickup Date & Time", class: "block text-sm font-medium text-gray-700" %>
+          <%= form.datetime_local_field :start_time, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+        </div>
+        <div>
+          <%= form.label :duration_mins, "Duration (minutes)", class: "block text-sm font-medium text-gray-700" %>
+          <%= form.number_field :duration_mins, min: 15, step: 15, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+          <p class="mt-1 text-xs text-gray-500">Matches the customer-facing durations.</p>
+        </div>
+        <div>
+          <%= form.label :quantity, "Quantity", class: "block text-sm font-medium text-gray-700" %>
+          <%= form.number_field :quantity, value: 1, min: 1, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+        </div>
+        <div>
+          <%= form.label :rate_type, "Rate Type", class: "block text-sm font-medium text-gray-700" %>
+          <%= form.select :rate_type, [['Auto-select best rate', ''], ['Hourly', 'hourly'], ['Daily', 'daily'], ['Weekly', 'weekly']], {}, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="bg-white shadow rounded-lg p-6">
+      <h2 class="text-lg font-medium text-gray-900 mb-4">Notes</h2>
+      <div class="space-y-4">
+        <div>
+          <%= form.label :customer_notes, "Customer Notes (visible to customer)", class: "block text-sm font-medium text-gray-700" %>
+          <%= form.text_area :customer_notes, rows: 2, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+        </div>
+        <div>
+          <%= form.label :notes, "Internal Notes (staff only)", class: "block text-sm font-medium text-gray-700" %>
+          <%= form.text_area :notes, rows: 2, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <div class="flex justify-end gap-3">
+      <%= link_to 'Cancel', business_manager_rental_bookings_path, class: "px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50" %>
+      <%= form.submit 'Create Booking', class: "px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 cursor-pointer" %>
+    </div>
+  <% end %>
+</div>
+

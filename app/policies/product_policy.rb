@@ -46,6 +46,20 @@ class ProductPolicy < BusinessPolicy # Inherit from the global BusinessPolicy
     user.present? && user.manager? && record.present? && record.business_id == user.business_id
   end
 
+  # Can the user view the availability management form for a rental product? (Managers only)
+  # record is the Product instance here.
+  def manage_availability?
+    # Same permissions as update - managers can manage availability for their business's products
+    update?
+  end
+
+  # Can the user update the availability schedule for a rental product? (Managers only)
+  # record is the Product instance here.
+  def update_availability?
+    # Same permissions as update - managers can update availability for their business's products
+    update?
+  end
+
   # Scope class to filter products based on user role and business tenancy.
   class Scope < Scope # Inherit from BusinessPolicy::Scope which inherits from ApplicationPolicy::Scope
     # Standard Pundit scope initializer

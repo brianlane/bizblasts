@@ -1,0 +1,73 @@
+<%# app/views/business_manager/rental_bookings/overdue.html.erb %>
+<div class="container mx-auto px-4 py-4 sm:py-8">
+  <div class="bg-white shadow rounded-lg">
+    <div class="px-4 py-5 sm:px-6 border-b bg-red-50">
+      <div class="flex items-center gap-2">
+        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <h1 class="text-xl sm:text-2xl font-bold text-red-800">Overdue Rentals</h1>
+      </div>
+      <p class="text-red-600 mt-1">These rentals are past their return date and require immediate attention.</p>
+    </div>
+    
+    <div class="p-4">
+      <% if @rental_bookings.any? %>
+        <div class="space-y-4">
+          <% @rental_bookings.each do |booking| %>
+            <% days_overdue = ((Time.current - booking.end_time) / 1.day).ceil %>
+            <div class="border-2 border-red-300 rounded-lg p-4 bg-red-50">
+              <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <%= link_to booking.rental_name, business_manager_rental_booking_path(booking), 
+                          class: "text-lg font-semibold text-red-800 hover:text-red-900" %>
+                    <span class="px-2 py-1 text-xs font-bold bg-red-600 text-white rounded">
+                      <%= days_overdue %> day<%= days_overdue == 1 ? '' : 's' %> overdue
+                    </span>
+                  </div>
+                  <div class="text-sm text-red-700 mt-1">
+                    Booking #<%= booking.booking_number %>
+                  </div>
+                  <div class="mt-2 grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span class="text-red-600">Customer:</span>
+                      <div class="font-medium text-red-800"><%= booking.customer_full_name %></div>
+                      <% if booking.customer_phone.present? %>
+                        <div class="text-red-600"><%= booking.customer_phone %></div>
+                      <% end %>
+                    </div>
+                    <div>
+                      <span class="text-red-600">Was Due:</span>
+                      <div class="font-medium text-red-800"><%= booking.local_end_time&.strftime('%B %d, %Y at %I:%M %p') %></div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="flex flex-col gap-2">
+                  <%= link_to 'View Details', business_manager_rental_booking_path(booking), 
+                        class: "px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md text-center" %>
+                  <%= link_to 'Process Return', business_manager_rental_booking_path(booking, anchor: 'return-form'),
+                        class: "px-4 py-2 text-sm font-medium text-red-700 bg-white border border-red-300 hover:bg-red-50 rounded-md text-center" %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <h3 class="mt-2 text-lg font-medium text-gray-900">No Overdue Rentals</h3>
+          <p class="mt-1 text-sm text-gray-500">All rentals are currently within their return period. Great job!</p>
+        </div>
+      <% end %>
+    </div>
+    
+    <div class="px-4 py-3 border-t bg-gray-50">
+      <%= link_to '← Back to All Bookings', business_manager_rental_bookings_path, class: "text-blue-600 hover:text-blue-800 text-sm" %>
+    </div>
+  </div>
+</div>
+

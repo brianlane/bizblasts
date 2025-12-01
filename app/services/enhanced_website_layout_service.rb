@@ -102,6 +102,8 @@ class EnhancedWebsiteLayoutService
 
     sections << service_section_definition if include_service_section?
     sections << product_section_definition if include_product_section?
+    sections << rental_section_definition if include_rental_section?
+    sections << estimate_section_definition if include_estimate_section?
     sections << gallery_section_definition if include_gallery_section?
 
     sections << {
@@ -189,6 +191,14 @@ class EnhancedWebsiteLayoutService
     business.show_products_section? && business.has_visible_products?
   end
 
+  def include_rental_section?
+    business.show_rentals_section? && business.has_visible_rentals?
+  end
+
+  def include_estimate_section?
+    business.show_estimate_page?
+  end
+
   def service_section_definition
     {
       type: 'service_list',
@@ -209,6 +219,31 @@ class EnhancedWebsiteLayoutService
       content: {
         'title' => 'Featured Products',
         'description' => "Premium products we trust and use."
+      }
+    }
+  end
+
+  def rental_section_definition
+    {
+      type: 'rental_list',
+      animation: 'slideUp',
+      config: { 'layout' => 'grid', 'columns' => 3, 'limit' => 6 },
+      content: {
+        'title' => 'Rentals Ready When You Are',
+        'description' => "Reserve high-demand items from #{sanitized_business_name}."
+      }
+    }
+  end
+
+  def estimate_section_definition
+    {
+      type: 'estimate_cta',
+      animation: 'fadeIn',
+      content: {
+        'title' => 'Need A Custom Estimate?',
+        'description' => "Tell us what you need and #{sanitized_business_name} will respond within one business day.",
+        'button_text' => 'Start Estimate',
+        'button_subtext' => 'No obligation. Secure, instant confirmation.'
       }
     }
   end
