@@ -3,7 +3,7 @@
 module Public
   class RentalBookingsController < ApplicationController
     before_action :set_rental_booking, only: [:show, :pay_deposit, :deposit_success, :deposit_cancel, :confirmation]
-    before_action :authorize_booking_access!, only: [:show, :confirmation]
+    before_action :authorize_booking_access!, only: [:show, :pay_deposit, :deposit_success, :deposit_cancel, :confirmation]
     
     # GET /rental_bookings/:id
     def show
@@ -47,8 +47,13 @@ module Public
     # GET /rental_bookings/:id/deposit_cancel
     def deposit_cancel
       # Return to booking page - no status change needed
-      redirect_to rental_booking_path(@rental_booking), 
-                  notice: 'Payment was cancelled. You can try again when ready.'
+      redirect_path = if params[:token].present?
+        rental_booking_path(@rental_booking, token: params[:token])
+      else
+        rental_booking_path(@rental_booking)
+      end
+
+      redirect_to redirect_path, notice: 'Payment was cancelled. You can try again when ready.'
     end
     
     # GET /rental_bookings/:id/confirmation
