@@ -12,24 +12,91 @@
       <div class="mb-8 bg-white shadow rounded-lg p-4">
         <div class="flex flex-wrap gap-4 items-center">
           <% if @rental_categories.any? %>
-            <div>
+            <div class="w-48">
               <label class="block text-xs font-medium text-gray-500 mb-1">Category</label>
-              <%= form_tag rentals_path, method: :get, class: "inline" do %>
-                <%= select_tag :category, 
-                    options_for_select([['All Categories', '']] + @rental_categories.map { |c| [c.titleize, c] }, params[:category]),
-                    class: "text-sm border-gray-300 rounded-md", onchange: "this.form.submit()" %>
+              <%= form_tag rentals_path, method: :get, id: "category-form" do %>
+                <div class="relative" data-controller="dropdown"
+                     data-dropdown-selected-value-value="<%= params[:category] || '' %>"
+                     data-dropdown-selected-text-value="<%= params[:category].present? ? params[:category].titleize : 'All Categories' %>">
+                  <button type="button"
+                          class="w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          data-dropdown-target="button"
+                          data-action="click->dropdown#toggle">
+                    <span class="rich-dropdown-text text-gray-900">
+                      <%= params[:category].present? ? params[:category].titleize : 'All Categories' %>
+                    </span>
+                    <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      <svg class="h-4 w-4 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </span>
+                  </button>
+                  <%= hidden_field_tag :category, params[:category], data: { dropdown_target: 'hidden' } %>
+                  <%= hidden_field_tag :location_id, params[:location_id] if params[:location_id].present? %>
+                  <div class="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-sm ring-1 ring-black ring-opacity-5 overflow-auto hidden"
+                       data-dropdown-target="menu"
+                       data-action="dropdown:selected@document->category-form#submit">
+                    <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+                         data-item-id=""
+                         data-item-text="All Categories"
+                         data-dropdown-target="option"
+                         data-action="click->dropdown#select">
+                      All Categories
+                    </div>
+                    <% @rental_categories.each do |category| %>
+                      <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+                           data-item-id="<%= category %>"
+                           data-item-text="<%= category.titleize %>"
+                           data-dropdown-target="option"
+                           data-action="click->dropdown#select">
+                        <%= category.titleize %>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
               <% end %>
             </div>
           <% end %>
-          
+
           <% if @locations.any? %>
-            <div>
+            <div class="w-48">
               <label class="block text-xs font-medium text-gray-500 mb-1">Location</label>
-              <%= form_tag rentals_path, method: :get, class: "inline" do %>
-                <%= hidden_field_tag :category, params[:category] %>
-                <%= select_tag :location_id,
-                    options_for_select([['All Locations', '']] + @locations.map { |l| [l.name, l.id] }, params[:location_id]),
-                    class: "text-sm border-gray-300 rounded-md", onchange: "this.form.submit()" %>
+              <%= form_tag rentals_path, method: :get, id: "location-form" do %>
+                <div class="relative" data-controller="dropdown"
+                     data-dropdown-selected-value-value="<%= params[:location_id] || '' %>"
+                     data-dropdown-selected-text-value="<%= params[:location_id].present? ? @locations.find { |l| l.id.to_s == params[:location_id].to_s }&.name : 'All Locations' %>">
+                  <button type="button"
+                          class="w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          data-dropdown-target="button"
+                          data-action="click->dropdown#toggle">
+                    <span class="rich-dropdown-text text-gray-900">
+                      <%= params[:location_id].present? ? @locations.find { |l| l.id.to_s == params[:location_id].to_s }&.name : 'All Locations' %>
+                    </span>
+                    <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      <svg class="h-4 w-4 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </span>
+                  </button>
+                  <%= hidden_field_tag :category, params[:category] %>
+                  <%= hidden_field_tag :location_id, params[:location_id], data: { dropdown_target: 'hidden' } %>
+                  <div class="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-sm ring-1 ring-black ring-opacity-5 overflow-auto hidden"
+                       data-dropdown-target="menu"
+                       data-action="dropdown:selected@document->location-form#submit">
+                    <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+                         data-item-id=""
+                         data-item-text="All Locations"
+                         data-dropdown-target="option"
+                         data-action="click->dropdown#select">
+                      All Locations
+                    </div>
+                    <% @locations.each do |location| %>
+                      <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+                           data-item-id="<%= location.id %>"
+                           data-item-text="<%= location.name %>"
+                           data-dropdown-target="option"
+                           data-action="click->dropdown#select">
+                        <%= location.name %>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
               <% end %>
             </div>
           <% end %>
@@ -91,7 +158,21 @@
               <% durations = rental.effective_rental_durations %>
               <% if durations.present? %>
                 <div class="mt-2 text-xs text-gray-500">
-                  Durations: <%= durations.first(3).map { |mins| distance_of_time_in_words(Time.current, Time.current + mins.minutes) }.join(', ') %>
+                  Durations: <%= durations.first(3).map { |mins|
+                    case mins
+                    when 0..119 then "#{mins / 60} hour#{'s' if mins > 60}"
+                    when 120..1439 then "#{mins / 60} hours"
+                    when 1440 then "1 day"
+                    when 2880 then "2 days"
+                    when 4320 then "3 days"
+                    when 10080 then "7 days"
+                    when 20160 then "14 days"
+                    when 40320 then "28 days"
+                    else
+                      days = mins / 1440
+                      days == 1 ? "1 day" : "#{days} days"
+                    end
+                  }.join(', ') %>
                 </div>
               <% end %>
               
@@ -117,4 +198,14 @@
     <% end %>
   </div>
 </div>
+
+<script>
+// Auto-submit forms when dropdown selection changes
+document.addEventListener('dropdown:selected', function(event) {
+  const form = event.target.closest('form');
+  if (form && (form.id === 'category-form' || form.id === 'location-form')) {
+    form.submit();
+  }
+});
+</script>
 

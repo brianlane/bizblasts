@@ -111,20 +111,73 @@
           <!-- Duration Selector + CTA -->
           <div class="mt-6">
             <% selected_duration = params[:duration].presence&.to_i || @duration_options.first %>
-            <%= form_with url: calendar_rental_path(@rental), method: :get, local: true, class: "space-y-4" do %>
+            <%
+              selected_duration_label = case selected_duration
+              when 0..119 then "#{selected_duration / 60} hour#{'s' if selected_duration > 60}"
+              when 120..1439 then "#{selected_duration / 60} hours"
+              when 1440 then "1 day"
+              when 2880 then "2 days"
+              when 4320 then "3 days"
+              when 10080 then "7 days"
+              when 20160 then "14 days"
+              when 40320 then "28 days"
+              else
+                days = selected_duration / 1440
+                days == 1 ? "1 day" : "#{days} days"
+              end
+              selected_pricing = @rental.calculate_rental_price(Time.current, Time.current + selected_duration.minutes)
+              selected_price_text = selected_pricing ? number_to_currency(selected_pricing[:total]) : ''
+              selected_label_with_price = "#{selected_duration_label} #{selected_price_text.present? ? "(#{selected_price_text})" : ''}"
+            %>
+            <%= form_with url: calendar_rental_path(@rental), method: :get, local: true, class: "space-y-4", id: "duration-form" do %>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Choose Rental Duration</label>
-                <select name="duration"
-                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                  <% @duration_options.each do |duration_mins| %>
-                    <% duration_label = distance_of_time_in_words(Time.current, Time.current + duration_mins.minutes) %>
-                    <% pricing = @rental.calculate_rental_price(Time.current, Time.current + duration_mins.minutes) %>
-                    <% price_text = pricing ? number_to_currency(pricing[:total]) : '' %>
-                    <option value="<%= duration_mins %>" <%= 'selected' if duration_mins == selected_duration %>>
-                      <%= duration_label.capitalize %> <%= "(#{price_text})" if price_text.present? %>
-                    </option>
-                  <% end %>
-                </select>
+                <div class="relative" data-controller="dropdown"
+                     data-dropdown-selected-value-value="<%= selected_duration %>"
+                     data-dropdown-selected-text-value="<%= selected_label_with_price %>">
+                  <button type="button"
+                          class="w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          data-dropdown-target="button"
+                          data-action="click->dropdown#toggle">
+                    <span class="rich-dropdown-text text-gray-900">
+                      <%= selected_label_with_price %>
+                    </span>
+                    <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </span>
+                  </button>
+                  <%= hidden_field_tag :duration, selected_duration, data: { dropdown_target: 'hidden' } %>
+                  <div class="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 ring-1 ring-black ring-opacity-5 overflow-auto hidden"
+                       data-dropdown-target="menu">
+                    <% @duration_options.each do |duration_mins| %>
+                      <%
+                        duration_label = case duration_mins
+                        when 0..119 then "#{duration_mins / 60} hour#{'s' if duration_mins > 60}"
+                        when 120..1439 then "#{duration_mins / 60} hours"
+                        when 1440 then "1 day"
+                        when 2880 then "2 days"
+                        when 4320 then "3 days"
+                        when 10080 then "7 days"
+                        when 20160 then "14 days"
+                        when 40320 then "28 days"
+                        else
+                          days = duration_mins / 1440
+                          days == 1 ? "1 day" : "#{days} days"
+                        end
+                        pricing = @rental.calculate_rental_price(Time.current, Time.current + duration_mins.minutes)
+                        price_text = pricing ? number_to_currency(pricing[:total]) : ''
+                        label_with_price = "#{duration_label} #{price_text.present? ? "(#{price_text})" : ''}"
+                      %>
+                      <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+                           data-item-id="<%= duration_mins %>"
+                           data-item-text="<%= label_with_price %>"
+                           data-dropdown-target="option"
+                           data-action="click->dropdown#select">
+                        <%= label_with_price %>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
               </div>
               <div>
                 <%= hidden_field_tag :quantity, 1 %>
