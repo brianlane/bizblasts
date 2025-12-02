@@ -6,7 +6,7 @@ class Business < ApplicationRecord
   
   # Define the comprehensive list of industries based on showcase examples
   SHOWCASE_INDUSTRY_MAPPINGS = {
-    # Services (30 items)
+    # Services (36 items)
     hair_salons: "Hair Salons",
     massage_therapy: "Massage Therapy",
     pet_services: "Pet Services",
@@ -37,8 +37,14 @@ class Business < ApplicationRecord
     appliance_repair: "Appliance Repair",
     catering: "Catering",
     it_support: "IT Support",
+    tutoring: "Tutoring",
+    carpet_cleaning: "Carpet Cleaning",
+    moving_services: "Moving Services",
+    dj_services: "DJ Services",
+    tax_preparation: "Tax Preparation",
+    other_services: "Other Services",
 
-    # Experiences (30 items)
+    # Experiences (35 items)
     yoga_classes: "Yoga Classes",
     escape_rooms: "Escape Rooms",
     wine_tasting: "Wine Tasting",
@@ -69,6 +75,11 @@ class Business < ApplicationRecord
     av_equipment_rentals: "AV Equipment Rentals",
     bounce_house_rentals: "Bounce House Rentals",
     boat_rentals: "Boat Rentals",
+    ghost_tours: "Ghost Tours",
+    laser_tag: "Laser Tag",
+    comedy_clubs: "Comedy Clubs",
+    festivals: "Festivals",
+    farmers_markets: "Farmers Markets",
 
     # Products (30 items)
     boutiques: "Boutiques",
