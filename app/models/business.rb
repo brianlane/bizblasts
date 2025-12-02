@@ -116,7 +116,23 @@ class Business < ApplicationRecord
     # Other
     other: "Other"
   }.freeze
-  
+
+  # Category counts for showcase tiles
+  SERVICES_COUNT = 36
+  EXPERIENCES_COUNT = 35
+  PRODUCTS_COUNT = 30
+
+  # Class method to get categorized showcase industries
+  def self.showcase_categories
+    all_values = SHOWCASE_INDUSTRY_MAPPINGS.values.reject { |v| v == "Other" }
+
+    {
+      "Services" => all_values.slice(0, SERVICES_COUNT) || [],
+      "Experiences" => all_values.slice(SERVICES_COUNT, EXPERIENCES_COUNT) || [],
+      "Products" => all_values.slice(SERVICES_COUNT + EXPERIENCES_COUNT, PRODUCTS_COUNT) || []
+    }
+  end
+
   # Explicitly declare the attribute type for the tier enum
   attribute :tier, :string
   
