@@ -178,17 +178,21 @@ module Calendar
         @calendar_service.authorization = @auth_client
         
         # Enable automatic token refresh (this might fail but shouldn't break auth)
-        begin
-          @auth_client.update_token_callback = proc do |token_data|
-            calendar_connection.update!(
-              access_token: token_data[:access_token],
-              token_expires_at: Time.at(token_data[:expires_at]) || 1.hour.from_now
-            )
-            Rails.logger.info("Google Calendar token auto-refreshed for connection #{calendar_connection.id}")
+        if @auth_client.respond_to?(:update_token_callback=)
+          begin
+            @auth_client.update_token_callback = proc do |token_data|
+              calendar_connection.update!(
+                access_token: token_data[:access_token],
+                token_expires_at: Time.at(token_data[:expires_at]) || 1.hour.from_now
+              )
+              Rails.logger.info("Google Calendar token auto-refreshed for connection #{calendar_connection.id}")
+            end
+          rescue => callback_error
+            Rails.logger.warn("Failed to setup token refresh callback: #{callback_error.message}")
+            # Don't fail the whole setup if callback fails
           end
-        rescue => callback_error
-          Rails.logger.warn("Failed to setup token refresh callback: #{callback_error.message}")
-          # Don't fail the whole setup if callback fails
+        else
+          Rails.logger.debug("Signet #{@auth_client.class} does not support update_token_callback=; skipping automatic token persistence")
         end
         
         Rails.logger.debug("Google Calendar authorization setup completed for connection #{calendar_connection.id}")
