@@ -29,6 +29,18 @@
 .border-error     { border-color: #DC3545; }
 .border-info      { border-color: #17A2B8; }
 
+/* Remove native steppers from all numeric inputs */
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 /* Dollar Icon Consistency for Documentation */
 .dollar-icon-circle {
   width: 24px;

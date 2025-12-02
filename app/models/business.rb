@@ -6,7 +6,7 @@ class Business < ApplicationRecord
   
   # Define the comprehensive list of industries based on showcase examples
   SHOWCASE_INDUSTRY_MAPPINGS = {
-    # Services
+    # Services (36 items)
     hair_salons: "Hair Salons",
     massage_therapy: "Massage Therapy",
     pet_services: "Pet Services",
@@ -16,7 +16,6 @@ class Business < ApplicationRecord
     landscaping: "Landscaping",
     pool_services: "Pool Services",
     cleaning_services: "Cleaning Services",
-    tutoring: "Tutoring",
     personal_training: "Personal Training",
     photography: "Photography",
     web_design: "Web Design",
@@ -28,18 +27,24 @@ class Business < ApplicationRecord
     handyman_service: "Handyman Service",
     painting: "Painting",
     roofing: "Roofing",
-    carpet_cleaning: "Carpet Cleaning",
     pest_control: "Pest Control",
     beauty_spa: "Beauty Spa",
-    moving_services: "Moving Services",
-    catering: "Catering",
-    dj_services: "DJ Services",
-    event_planning: "Event Planning",
-    tax_preparation: "Tax Preparation",
-    it_support: "IT Support",
     wellness_services: "Wellness Services",
+    event_planning: "Event Planning",
+    general_contractors: "General Contractors",
+    electrical_contractors: "Electrical Contractors",
+    custom_carpentry: "Custom Carpentry",
+    appliance_repair: "Appliance Repair",
+    catering: "Catering",
+    it_support: "IT Support",
+    tutoring: "Tutoring",
+    carpet_cleaning: "Carpet Cleaning",
+    moving_services: "Moving Services",
+    dj_services: "DJ Services",
+    tax_preparation: "Tax Preparation",
+    other_services: "Other Services",
 
-    # Experiences
+    # Experiences (35 items)
     yoga_classes: "Yoga Classes",
     escape_rooms: "Escape Rooms",
     wine_tasting: "Wine Tasting",
@@ -49,29 +54,34 @@ class Business < ApplicationRecord
     music_lessons: "Music Lessons",
     adventure_tours: "Adventure Tours",
     boat_charters: "Boat Charters",
-    helicopter_tours: "Helicopter Tours",
     food_tours: "Food Tours",
-    ghost_tours: "Ghost Tours",
     museums: "Museums",
     aquariums: "Aquariums",
     theme_parks: "Theme Parks",
     zip_lines: "Zip Lines",
     paintball: "Paintball",
-    laser_tag: "Laser Tag",
     bowling_alleys: "Bowling Alleys",
     mini_golf: "Mini Golf",
-    go_kart_racing: "Go-Kart Racing",
     arcades: "Arcades",
-    comedy_clubs: "Comedy Clubs",
-    theater_shows: "Theater Shows",
-    concerts: "Concerts",
-    festivals: "Festivals",
     workshops: "Workshops",
-    seminars: "Seminars",
     retreats: "Retreats",
-    spa_days: "Spa Days",
+    equipment_rentals: "Equipment Rentals",
+    party_rentals: "Party Rentals",
+    event_rentals: "Event Rentals",
+    photo_booth_rentals: "Photo Booth Rentals",
+    bike_rentals: "Bike Rentals",
+    kayak_rentals: "Kayak Rentals",
+    camping_gear_rentals: "Camping Gear Rentals",
+    av_equipment_rentals: "AV Equipment Rentals",
+    bounce_house_rentals: "Bounce House Rentals",
+    boat_rentals: "Boat Rentals",
+    ghost_tours: "Ghost Tours",
+    laser_tag: "Laser Tag",
+    comedy_clubs: "Comedy Clubs",
+    festivals: "Festivals",
+    farmers_markets: "Farmers Markets",
 
-    # Products
+    # Products (30 items)
     boutiques: "Boutiques",
     jewelry_stores: "Jewelry Stores",
     electronics: "Electronics",
@@ -89,24 +99,40 @@ class Business < ApplicationRecord
     wine_shops: "Wine Shops",
     specialty_foods: "Specialty Foods",
     cosmetics: "Cosmetics",
-    perfume_shops: "Perfume Shops",
     pet_supplies: "Pet Supplies",
     plant_nurseries: "Plant Nurseries",
-    garden_centers: "Garden Centers",
     hardware_stores: "Hardware Stores",
-    music_stores: "Music Stores",
     gift_shops: "Gift Shops",
-    souvenir_shops: "Souvenir Shops",
-    thrift_stores: "Thrift Stores",
     clothing: "Clothing",
     local_artisans: "Local Artisans",
-    handmade_goods: "Handmade Goods",
-    farmers_markets: "Farmers Markets",
+    tool_rental: "Tool Rental",
+    construction_equipment: "Construction Equipment",
+    medical_equipment_rentals: "Medical Equipment Rentals",
+    audiovisual_rentals: "Audiovisual Rentals",
+    costume_rentals: "Costume Rentals",
+    furniture_rentals: "Furniture Rentals",
+    sports_equipment_rentals: "Sports Equipment Rentals",
 
     # Other
     other: "Other"
   }.freeze
-  
+
+  # Category counts for showcase tiles
+  SERVICES_COUNT = 36
+  EXPERIENCES_COUNT = 35
+  PRODUCTS_COUNT = 30
+
+  # Class method to get categorized showcase industries
+  def self.showcase_categories
+    all_values = SHOWCASE_INDUSTRY_MAPPINGS.values.reject { |v| v == "Other" }
+
+    {
+      "Services" => all_values.slice(0, SERVICES_COUNT) || [],
+      "Experiences" => all_values.slice(SERVICES_COUNT, EXPERIENCES_COUNT) || [],
+      "Products" => all_values.slice(SERVICES_COUNT + EXPERIENCES_COUNT, PRODUCTS_COUNT) || []
+    }
+  end
+
   # Explicitly declare the attribute type for the tier enum
   attribute :tier, :string
   
