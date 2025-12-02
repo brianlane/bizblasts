@@ -72,12 +72,26 @@ export default class extends Controller {
       return
     }
 
+    // Immediately mark field as being removed to prevent race conditions
+    field.dataset.removing = 'true'
+
     // Remove the field with animation
     field.style.opacity = '0'
     field.style.transform = 'scale(0.95)'
     field.style.transition = 'all 0.2s ease-out'
 
     setTimeout(() => {
+      // Double-check we still have multiple fields before actual removal
+      const remainingFields = this.fieldTargets.filter(f => !f.dataset.removing || f === field)
+      if (remainingFields.length <= 1) {
+        // Revert the animation if this would leave us with no fields
+        field.style.opacity = '1'
+        field.style.transform = 'scale(1)'
+        delete field.dataset.removing
+        alert('At least one duration option is required')
+        return
+      }
+
       field.remove()
       this.updateAddButtonState()
     }, 200)
