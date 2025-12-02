@@ -21,8 +21,8 @@ class SolidQueuePruneJob < ApplicationJob
   end
 
   def extract_retention_days(first_arg, kwargs)
-    return normalize_days(kwargs[:retention_days] || kwargs['retention_days']) if kwargs.any?
-    return normalize_days(first_arg[:retention_days] || first_arg['retention_days']) if first_arg.is_a?(Hash)
+    return normalize_days(kwargs[:retention_days] || kwargs['retention_days']) || default_retention_days if kwargs.any?
+    return normalize_days(first_arg[:retention_days] || first_arg['retention_days']) || default_retention_days if first_arg.is_a?(Hash)
 
     normalize_days(first_arg) || default_retention_days
   end
