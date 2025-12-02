@@ -8,7 +8,7 @@ class InvalidatedSessionCleanupJob < ApplicationJob
   # Retry with exponential backoff on failure
   retry_on StandardError, wait: :exponentially_longer, attempts: 3
 
-  def perform
+  def perform(**_legacy_options)
     start_time = Time.current
 
     # Determine whether we should emit verbose job-level logs.  For large

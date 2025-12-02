@@ -145,6 +145,14 @@ RSpec.describe InvalidatedSessionCleanupJob, type: :job do
         end
       }.not_to have_enqueued_job(InvalidatedSessionCleanupJob)
     end
+
+    it 'accepts legacy scheduling arguments from pre-conversion jobs' do
+      expect {
+        perform_enqueued_jobs do
+          InvalidatedSessionCleanupJob.perform_later(schedule_next: true, enable_test_scheduling: true)
+        end
+      }.not_to have_enqueued_job(InvalidatedSessionCleanupJob)
+    end
   end
 
   describe 'integration with InvalidatedSession model' do
