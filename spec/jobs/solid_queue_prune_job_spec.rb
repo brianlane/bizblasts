@@ -45,6 +45,16 @@ RSpec.describe SolidQueuePruneJob, type: :job do
         expect(args[:older_than]).to be_within(1.second).of(14.days.ago)
       end
     end
+
+    it 'accepts positional hash arguments like SolidQueue recurring tasks' do
+      allow(SolidQueue::Pruner).to receive(:run)
+
+      described_class.perform_now({ 'retention_days' => 30 })
+
+      expect(SolidQueue::Pruner).to have_received(:run) do |args|
+        expect(args[:older_than]).to be_within(1.second).of(30.days.ago)
+      end
+    end
   end
 end
 
