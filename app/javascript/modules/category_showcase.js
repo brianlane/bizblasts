@@ -35,19 +35,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const categoryName = tile.dataset.category;
     const examples = businessExamples[categoryName] || []; // Ensure examples is an array
 
-    let overlayColorClass = '';
-    let interactiveItemColorClass = '';
-
-    if (categoryName === 'Services') {
-      overlayColorClass = 'bg-green-700';
-      interactiveItemColorClass = 'bg-green-500 bg-opacity-60 hover:bg-green-400 hover:bg-opacity-70';
-    } else if (categoryName === 'Experiences') {
-      overlayColorClass = 'bg-blue-700';
-      interactiveItemColorClass = 'bg-blue-500 bg-opacity-60 hover:bg-blue-400 hover:bg-opacity-70';
-    } else if (categoryName === 'Products') {
-      overlayColorClass = 'bg-orange-700';
-      interactiveItemColorClass = 'bg-orange-500 bg-opacity-60 hover:bg-orange-400 hover:bg-opacity-70';
-    }
+    // Use brand colors for all tiles - secondary overlay, primary items for contrast
+    let overlayColorClass = 'bg-secondary';
+    let interactiveItemColorClass = 'bg-primary bg-opacity-80 hover:bg-primary hover:bg-opacity-100';
 
     tile.overlayTimeoutId = null;
 

@@ -166,7 +166,14 @@
     </p>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <% duration_values = (@rental.rental_duration_options.presence || [@rental.default_rental_duration_mins]).dup %>
+      <% duration_values =
+           if @rental.rental_duration_options.present?
+             @rental.rental_duration_options.dup
+           else
+             # When no custom durations are saved, show the effective defaults so
+             # the manager sees exactly what customers can currently pick.
+             @rental.effective_rental_durations.dup
+           end %>
       <% (duration_values + Array.new(3)).each do |duration| %>
         <div>
           <label class="block text-sm font-medium text-gray-700">Duration (minutes)</label>
