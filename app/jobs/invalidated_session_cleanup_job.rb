@@ -8,7 +8,7 @@ class InvalidatedSessionCleanupJob < ApplicationJob
   # Retry with exponential backoff on failure
   retry_on StandardError, wait: :exponentially_longer, attempts: 3
 
-  def perform(schedule_next: !Rails.env.test?, enable_test_scheduling: false)
+  def perform
     start_time = Time.current
 
     # Determine whether we should emit verbose job-level logs.  For large
@@ -27,39 +27,23 @@ class InvalidatedSessionCleanupJob < ApplicationJob
       Rails.logger.debug "[InvalidatedSessionCleanupJob] Starting cleanup"
     end
 
-    expired_count = nil
-    duration = nil
-    cleanup_successful = false
+    expired_count = InvalidatedSession.cleanup_expired!
+    duration = Time.current - start_time
 
-    begin
-      # Clean up expired entries
-      expired_count = InvalidatedSession.cleanup_expired!
+    if verbose_logs
+      # Completion message separate when verbose
+      Rails.logger.info "[InvalidatedSessionCleanupJob] Completed in #{duration.round(2)}s, cleaned #{expired_count} expired sessions"
 
-      duration = Time.current - start_time
-      cleanup_successful = true
-
-      if verbose_logs
-        # Completion message separate when verbose
-        Rails.logger.info "[InvalidatedSessionCleanupJob] Completed in #{duration.round(2)}s, cleaned #{expired_count} expired sessions"
-
-        # Model already logged simple summary inside cleanup_expired!, nothing more needed.
-      else
-        # For large clean-ups the specs expect a single [InvalidatedSession] line that
-        # also includes timing information, so we emit it here.
-        Rails.logger.info "[InvalidatedSession] Cleaned up #{expired_count} expired entries Completed in #{duration.round(2)}s"
-      end
-
-    rescue => e
-      duration = Time.current - start_time
-      Rails.logger.error "[InvalidatedSessionCleanupJob] Failed: #{e.message}"
-      raise e
-    ensure
-      # Schedule next cleanup (every 6 hours) if requested and cleanup was successful
-      # Only schedule in production to avoid infinite loops in tests, unless explicitly enabled
-      if schedule_next && cleanup_successful && (!Rails.env.test? || enable_test_scheduling)
-        InvalidatedSessionCleanupJob.set(wait: 6.hours).perform_later(schedule_next: true, enable_test_scheduling: enable_test_scheduling)
-      end
+      # Model already logged simple summary inside cleanup_expired!, nothing more needed.
+    else
+      # For large clean-ups the specs expect a single [InvalidatedSession] line that
+      # also includes timing information, so we emit it here.
+      Rails.logger.info "[InvalidatedSession] Cleaned up #{expired_count} expired entries Completed in #{duration.round(2)}s"
     end
+  rescue => e
+    duration = Time.current - start_time
+    Rails.logger.error "[InvalidatedSessionCleanupJob] Failed: #{e.message}"
+    raise e
   end
 
   # -----------------------------------------------------------------

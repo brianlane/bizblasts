@@ -46,12 +46,6 @@ RSpec.describe InvalidatedSessionCleanupJob, type: :job do
         end
       end
 
-      it 'schedules the next cleanup job when scheduling is enabled' do
-        expect {
-          InvalidatedSessionCleanupJob.perform_later(schedule_next: true, enable_test_scheduling: true)
-          perform_enqueued_jobs
-        }.to have_enqueued_job(InvalidatedSessionCleanupJob).at(a_value_within(1.minute).of(6.hours.from_now))
-      end
     end
 
     context 'when no expired sessions exist' do
@@ -75,11 +69,12 @@ RSpec.describe InvalidatedSessionCleanupJob, type: :job do
         end
       end
 
-      it 'still schedules the next cleanup job when scheduling is enabled' do
+      it 'does not enqueue another cleanup job automatically' do
         expect {
-          InvalidatedSessionCleanupJob.perform_later(schedule_next: true, enable_test_scheduling: true)
-          perform_enqueued_jobs
-        }.to have_enqueued_job(InvalidatedSessionCleanupJob).at(a_value_within(1.minute).of(6.hours.from_now))
+          perform_enqueued_jobs do
+            InvalidatedSessionCleanupJob.perform_later
+          end
+        }.not_to have_enqueued_job(InvalidatedSessionCleanupJob)
       end
     end
 
@@ -101,17 +96,6 @@ RSpec.describe InvalidatedSessionCleanupJob, type: :job do
         }.to raise_error
       end
 
-      it 'does not schedule next job when cleanup fails' do
-        allow(InvalidatedSession).to receive(:cleanup_expired!).and_raise(StandardError.new("Database error"))
-
-        expect {
-          begin
-            InvalidatedSessionCleanupJob.new.perform(schedule_next: true)
-          rescue StandardError
-            # Expected to raise
-          end
-        }.not_to have_enqueued_job(InvalidatedSessionCleanupJob)
-      end
     end
 
     context 'performance and timing' do
@@ -154,37 +138,10 @@ RSpec.describe InvalidatedSessionCleanupJob, type: :job do
   end
 
   describe 'recurring job behavior' do
-    it 'creates a self-sustaining cleanup cycle when scheduling is enabled' do
-      # First job should schedule the next one
-      expect {
-        InvalidatedSessionCleanupJob.perform_later(schedule_next: true, enable_test_scheduling: true)
-        perform_enqueued_jobs
-      }.to have_enqueued_job(InvalidatedSessionCleanupJob).at(a_value_within(1.minute).of(6.hours.from_now))
-
-      # Clear the queue to simulate time passing
-      clear_enqueued_jobs
-
-      # Simulate the next scheduled job running
-      expect {
-        InvalidatedSessionCleanupJob.perform_later(schedule_next: true, enable_test_scheduling: true)
-        perform_enqueued_jobs
-      }.to have_enqueued_job(InvalidatedSessionCleanupJob).at(a_value_within(1.minute).of(6.hours.from_now))
-    end
-
-    it 'schedules next job even when no cleanup is needed' do
-      # No expired sessions exist
-      expect(InvalidatedSession.expired.count).to eq(0)
-
-      expect {
-        InvalidatedSessionCleanupJob.perform_later(schedule_next: true, enable_test_scheduling: true)
-        perform_enqueued_jobs
-      }.to have_enqueued_job(InvalidatedSessionCleanupJob).at(a_value_within(1.minute).of(6.hours.from_now))
-    end
-
-    it 'does not schedule next job when scheduling is disabled' do
+    it 'runs exactly once per enqueue' do
       expect {
         perform_enqueued_jobs do
-          InvalidatedSessionCleanupJob.perform_later(schedule_next: false)
+          InvalidatedSessionCleanupJob.perform_later
         end
       }.not_to have_enqueued_job(InvalidatedSessionCleanupJob)
     end

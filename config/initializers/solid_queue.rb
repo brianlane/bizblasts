@@ -65,6 +65,28 @@ if defined?(SolidQueue)
         task.description = 'Send rental pickup and return reminders'
       end
 
+      # Schedule invalidated session cleanup every 6 hours
+      SolidQueue::RecurringTask.find_or_create_by!(key: 'invalidated_session_cleanup') do |task|
+        task.schedule    = '0 */6 * * *'
+        task.class_name  = 'InvalidatedSessionCleanupJob'
+        task.arguments   = '[]'
+        task.queue_name  = 'default'
+        task.priority    = 5
+        task.static      = true
+        task.description = 'Purge expired invalidated sessions to keep the blacklist small'
+      end
+
+      # Schedule SolidQueue job pruning daily at 3 AM UTC
+      SolidQueue::RecurringTask.find_or_create_by!(key: 'solid_queue_pruner') do |task|
+        task.schedule    = '0 3 * * *'
+        task.class_name  = 'SolidQueuePruneJob'
+        task.arguments   = '[{"retention_days":14}]'
+        task.queue_name  = 'default'
+        task.priority    = 20
+        task.static      = true
+        task.description = 'Remove completed SolidQueue jobs older than the retention window'
+      end
+
       Rails.logger.info "SolidQueue recurring tasks configured successfully"
       
     rescue ActiveRecord::ConnectionNotEstablished, ActiveRecord::NoDatabaseError, PG::ConnectionBad => e

@@ -37,13 +37,79 @@
       
       <div>
         <%= form.label :rental_category, "Category", class: "block text-sm font-medium text-gray-700" %>
-        <%= form.select :rental_category, Product::RENTAL_CATEGORIES.map { |c| [c.titleize, c] }, {}, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+        <div class="relative" data-controller="dropdown"
+             data-dropdown-selected-value-value="<%= @rental.rental_category %>"
+             data-dropdown-selected-text-value="<%= @rental.rental_category&.titleize %>">
+          <button type="button"
+                  class="mt-1 w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  data-dropdown-target="button"
+                  data-action="click->dropdown#toggle">
+            <span class="rich-dropdown-text text-gray-900">
+              <%= @rental.rental_category&.titleize || 'Select category...' %>
+            </span>
+            <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+              <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </span>
+          </button>
+          <%= form.hidden_field :rental_category, data: { dropdown_target: 'hidden' } %>
+          <div class="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 ring-1 ring-black ring-opacity-5 overflow-auto hidden"
+               data-dropdown-target="menu">
+            <% Product::RENTAL_CATEGORIES.each do |category| %>
+              <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+                   data-item-id="<%= category %>"
+                   data-item-text="<%= category.titleize %>"
+                   data-dropdown-target="option"
+                   data-action="click->dropdown#select">
+                <%= category.titleize %>
+              </div>
+            <% end %>
+          </div>
+        </div>
       </div>
       
       <% if @locations.any? %>
         <div>
           <%= form.label :location_id, "Location", class: "block text-sm font-medium text-gray-700" %>
-          <%= form.select :location_id, [['No specific location', '']] + @locations.map { |l| [l.name, l.id] }, {}, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+          <%
+            selected_location = @locations.find { |l| l.id == @rental.location_id }
+            selected_text = selected_location ? selected_location.name : 'No specific location'
+            selected_value = @rental.location_id || ''
+          %>
+          <div class="relative" data-controller="dropdown"
+               data-dropdown-selected-value-value="<%= selected_value %>"
+               data-dropdown-selected-text-value="<%= selected_text %>">
+            <button type="button"
+                    class="mt-1 w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    data-dropdown-target="button"
+                    data-action="click->dropdown#toggle">
+              <span class="rich-dropdown-text text-gray-900">
+                <%= selected_text %>
+              </span>
+              <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </span>
+            </button>
+            <%= form.hidden_field :location_id, data: { dropdown_target: 'hidden' } %>
+            <div class="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 ring-1 ring-black ring-opacity-5 overflow-auto hidden"
+                 data-dropdown-target="menu">
+              <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+                   data-item-id=""
+                   data-item-text="No specific location"
+                   data-dropdown-target="option"
+                   data-action="click->dropdown#select">
+                No specific location
+              </div>
+              <% @locations.each do |location| %>
+                <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+                     data-item-id="<%= location.id %>"
+                     data-item-text="<%= location.name %>"
+                     data-dropdown-target="option"
+                     data-action="click->dropdown#select">
+                  <%= location.name %>
+                </div>
+              <% end %>
+            </div>
+          </div>
         </div>
       <% end %>
       
@@ -158,36 +224,73 @@
   </div>
 
   <!-- Customer Durations & Availability -->
-  <div class="bg-white shadow rounded-lg p-6">
-    <h2 class="text-lg	font-medium text-gray-900 mb-4">Customer Durations & Availability</h2>
-    <p class="text-sm text-gray-600 mb-4">
-      Choose the rental session lengths customers can select before they pick a time slot. Leave blanks to remove an option. 
-      Slots on the calendar will automatically adjust to these durations.
-    </p>
+  <div class="bg-white shadow rounded-lg p-6" data-controller="rental-durations">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h2 class="text-lg font-medium text-gray-900">Customer Durations & Availability</h2>
+        <p class="text-sm text-gray-600 mt-1">
+          Choose the rental session lengths customers can select before they pick a time slot.
+          Slots on the calendar will automatically adjust to these durations.
+        </p>
+      </div>
+    </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <% duration_values =
-           if @rental.rental_duration_options.present?
-             @rental.rental_duration_options.dup
-           else
-             # When no custom durations are saved, show the effective defaults so
-             # the manager sees exactly what customers can currently pick.
-             @rental.effective_rental_durations.dup
-           end %>
-      <% (duration_values + Array.new(3)).each do |duration| %>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Duration (minutes)</label>
-          <input type="number"
-                 name="product[rental_duration_options][]"
-                 value="<%= duration %>"
-                 min="15"
-                 step="15"
-                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                 placeholder="e.g., 60" />
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4" data-rental-durations-target="container">
+      <%
+        # Show custom durations if saved, otherwise show effective defaults
+        duration_values = if @rental.rental_duration_options.present?
+          @rental.rental_duration_options
+        else
+          # Show the effective defaults so manager sees exactly what customers can pick
+          @rental.effective_rental_durations
+        end
+
+        # Ensure we have at least one field
+        duration_values = [60] if duration_values.empty?
+      %>
+      <% duration_values.each_with_index do |duration, index| %>
+        <div class="flex gap-2" data-rental-durations-target="field">
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-700">Duration (minutes)</label>
+            <input type="number"
+                   name="product[rental_duration_options][]"
+                   value="<%= duration %>"
+                   min="15"
+                   step="15"
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                   placeholder="e.g., 60"
+                   data-rental-durations-target="input" />
+          </div>
+          <div class="flex items-end">
+            <button type="button"
+                    class="px-3 py-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+                    data-action="click->rental-durations#remove"
+                    title="Remove duration">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+            </button>
+          </div>
         </div>
       <% end %>
     </div>
-    <p class="mt-2 text-xs text-gray-500">Tip: common options are 60, 90, 120 minutes.</p>
+
+    <div class="flex items-center justify-between">
+      <div>
+        <button type="button"
+                class="inline-flex items-center px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium rounded-md transition-colors"
+                data-action="click->rental-durations#add"
+                data-rental-durations-target="addButton">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          Add Duration Option
+        </button>
+        <p class="mt-1 text-xs text-gray-500">
+          Tip: common options are 60, 90, 120 minutes. Maximum <%= Product::MAX_RENTAL_DURATION_OPTIONS %> options.
+        </p>
+      </div>
+    </div>
 
     <% if @rental.persisted? %>
       <div class="mt-6">

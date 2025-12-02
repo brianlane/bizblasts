@@ -57,7 +57,8 @@ RSpec.describe "Admin::SessionsController CSRF Protection", type: :request do
 
         expect(controller_file).to include('render :new')
         expect(controller_file).to include('status: :unprocessable_content')
-        expect(controller_file).to include('build_resource({})')
+        expect(controller_file).to include('resource_class.new')
+        expect(controller_file).to include('resource_name')
       end
     end
 
@@ -140,6 +141,30 @@ RSpec.describe "Admin::SessionsController CSRF Protection", type: :request do
       expect(response).to have_http_status(:redirect)
         .or have_http_status(:unprocessable_content)
         .or have_http_status(:ok)
+    end
+  end
+
+  describe "Invalid CSRF token handling" do
+    around do |example|
+      original = ActionController::Base.allow_forgery_protection
+      ActionController::Base.allow_forgery_protection = true
+      example.run
+    ensure
+      ActionController::Base.allow_forgery_protection = original
+    end
+
+    it "rescues the exception and re-renders the form" do
+      expect {
+        post admin_user_session_path, params: {
+          admin_user: {
+            email: admin_user.email,
+            password: 'password123'
+          }
+        }
+      }.not_to raise_error
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include("Your session has expired")
     end
   end
 end

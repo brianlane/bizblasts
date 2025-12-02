@@ -166,6 +166,10 @@ application.register("dynamic-line-items", DynamicLineItemsController)
 application.register("estimate-line-items", EstimateLineItemsController)
 application.register("signature-pad", SignaturePadController)
 
+// Rental durations controller
+import RentalDurationsController from "./controllers/rental_durations_controller"
+application.register("rental-durations", RentalDurationsController)
+
 // Auto-discovery for additional controllers (compatible approach)
 // This will automatically discover and register any controllers not manually registered above
 function autoDiscoverControllers() {
@@ -182,7 +186,7 @@ function autoDiscoverControllers() {
       'navbar', 'dropdown', 'customer-dropdown', 'product-variants', 'service-form', 'sortable', 'hello',
       'service-variants', 'dropdown-updater', 'service-availability', 'google-business-search', 'qr-payment',
       'place-id-lookup', 'enhanced-layout-selector', 'photo-upload', 'gallery-manager', 'gallery-lightbox', 'gallery-carousel',
-      'hero-video', 'date-picker', 'dynamic-line-items', 'estimate-line-items', 'signature-pad'
+      'hero-video', 'date-picker', 'dynamic-line-items', 'estimate-line-items', 'signature-pad', 'rental-durations'
     ]);
     
     // Dynamically import and register each controller
