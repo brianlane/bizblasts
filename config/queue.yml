@@ -4,29 +4,13 @@ default: &default
       batch_size: 500
       concurrency_maintenance_interval: 300
   workers:
-    # Dedicated worker for email jobs - 1 thread to enforce serial execution
-    # This prevents hitting Resend's 2 requests/second rate limit
-    # The EmailRateLimiter enforces 2 req/sec PER THREAD, so with 1 thread
-    # we guarantee max 2 emails/sec globally
-    - queues: [ mailers ]
+    # Single worker process that handles all queues sequentially.
+    # This minimizes memory usage on the shared web dyno and ensures we never
+    # run multiple heavy jobs in parallel (mailers, imports, image processing).
+    - queues: [ default, mailers, image_processing, low_priority ]
       threads: 1
-      processes: 1
-      polling_interval: 0.5
-
-    # Dedicated worker for image processing jobs - 1 thread to prevent memory spikes
-    # Image processing is memory-intensive: a 4000x3000 image decompresses to ~48MB
-    # Running multiple jobs concurrently can easily exceed memory limits
-    # Serial processing ensures stable memory usage
-    - queues: [ image_processing ]
-      threads: 1
-      processes: 1
-      polling_interval: 1
-
-    # Default worker for all other jobs - higher concurrency for throughput
-    - queues: [ default, low_priority ]
-      threads: 3
       processes: <%= ENV.fetch("JOB_CONCURRENCY", 1) %>
-      polling_interval: 0.1
+      polling_interval: 0.25
 
 development:
   <<: *default
