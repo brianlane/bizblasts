@@ -191,6 +191,8 @@ class Business < ApplicationRecord
   has_many :shipping_methods, dependent: :destroy
   has_many :tax_rates, dependent: :destroy
   has_many :estimates, dependent: :destroy
+  has_many :client_documents, dependent: :destroy
+  has_many :document_templates, dependent: :destroy
   
   # Referral and Loyalty system associations
   has_one :referral_program, dependent: :destroy

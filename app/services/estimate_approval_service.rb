@@ -36,6 +36,8 @@ class EstimateApprovalService
       # Step 3: Process optional items selection (mark non-selected as declined)
       process_optional_items_selection
 
+      document = prepare_client_document
+
       # Step 4: Save signature and move to pending_payment status
       @estimate.update!(
         signature_data: @signature_data,
@@ -44,8 +46,19 @@ class EstimateApprovalService
         status: :pending_payment
       )
 
+      ClientDocuments::SignatureService.new(document).capture!(
+        signer_name: @signature_name,
+        signer_email: @estimate.customer_email,
+        signature_data: @signature_data
+      )
+      ClientDocuments::WorkflowService.new(document).mark_signature_captured!
+
       # Step 5: Recalculate totals with final optional items selection
       @estimate.recalculate_totals!
+      document.update!(
+        deposit_amount: @estimate.deposit_amount,
+        payment_required: @estimate.deposit_amount.to_f.positive?
+      )
 
       # Step 6: Generate PDF with signature
       EstimatePdfGenerator.new(@estimate).generate
@@ -61,10 +74,11 @@ class EstimateApprovalService
       unless invoice.present?
         raise StandardError, "Failed to create invoice for payment"
       end
+      document.update!(invoice: invoice)
 
       # Step 9: Create Stripe checkout session for deposit payment
-      checkout_result = create_checkout_session(invoice)
-      unless checkout_result[:success]
+      checkout_result = create_checkout_session(document)
+      if checkout_result[:url].blank?
         raise StandardError, checkout_result[:error] || "Failed to create payment session"
       end
 
@@ -91,6 +105,12 @@ class EstimateApprovalService
 
   private
 
+  def prepare_client_document
+    document = @estimate.ensure_client_document!
+    ClientDocuments::WorkflowService.new(document).mark_pending_signature!
+    document
+  end
+
   def process_optional_items_selection
     return unless @estimate.has_optional_items?
 
@@ -106,28 +126,28 @@ class EstimateApprovalService
     end
   end
 
-  def create_checkout_session(invoice)
-    # Determine payment amount (deposit or full total)
+  def create_checkout_session(document)
     payment_amount = @estimate.deposit_amount
+
+    if payment_amount < 0.50
+      raise ArgumentError, "Payment amount must be at least $0.50 USD. Current amount: $#{payment_amount}"
+    end
 
     # Build success/cancel URLs
     success_url = build_success_url
     cancel_url = build_cancel_url
 
-    # Use existing StripeService pattern for creating checkout session
-    result = StripeService.create_estimate_deposit_checkout_session(
-      estimate: @estimate,
-      invoice: invoice,
-      payment_amount: payment_amount,
+    result = ClientDocuments::DepositService.new(document).initiate_checkout!(
       success_url: success_url,
       cancel_url: cancel_url
     )
 
+    session = result[:session]
     {
       success: true,
-      session_id: result[:session].id,
-      payment_intent_id: result[:session].payment_intent,
-      url: result[:session].url
+      session_id: session.id,
+      payment_intent_id: session.payment_intent,
+      url: session.url
     }
   rescue ArgumentError => e
     # Handle minimum amount validation

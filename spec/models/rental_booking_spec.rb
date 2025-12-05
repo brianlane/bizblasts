@@ -110,6 +110,22 @@ RSpec.describe RentalBooking, type: :model do
       end
     end
   end
+
+  describe '#ensure_client_document!' do
+    let(:booking) { create(:rental_booking, business: business, product: rental_product, tenant_customer: customer, security_deposit_amount: 150) }
+
+    it 'creates a client document with deposit details' do
+      ActsAsTenant.current_tenant = business
+      booking.update!(security_deposit_amount: 150)
+      document = booking.ensure_client_document!
+      expect(document).to be_persisted
+      expect(document.document_type).to eq('rental_security_deposit')
+      expect(document.deposit_amount.to_f).to eq(150.0)
+      expect(document.status).to eq('pending_signature')
+    ensure
+      ActsAsTenant.current_tenant = nil
+    end
+  end
   
   describe 'duration helpers' do
     let(:booking) do

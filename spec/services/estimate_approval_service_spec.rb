@@ -60,15 +60,16 @@ RSpec.describe EstimateApprovalService, type: :service do
              url: 'https://checkout.stripe.com/pay/cs_test_123')
     end
 
+    let(:deposit_service) { instance_double(ClientDocuments::DepositService) }
+
     before do
       # Mock external services
       allow(EstimatePdfGenerator).to receive(:new).and_return(double(generate: true))
       allow(EstimateToBookingService).to receive(:new).and_return(double(call: mock_booking))
       allow(mock_booking).to receive(:reload).and_return(mock_booking)
       allow(mock_booking).to receive(:invoice).and_return(mock_invoice)
-      allow(StripeService).to receive(:create_estimate_deposit_checkout_session).and_return(
-        { session: mock_checkout_session }
-      )
+      allow(ClientDocuments::DepositService).to receive(:new).and_return(deposit_service)
+      allow(deposit_service).to receive(:initiate_checkout!).and_return({ session: mock_checkout_session })
     end
 
     context 'when all validations pass' do
@@ -127,14 +128,15 @@ RSpec.describe EstimateApprovalService, type: :service do
         described_class.new(estimate, params).call
       end
 
-      it 'calls StripeService to create checkout session' do
-        expect(StripeService).to receive(:create_estimate_deposit_checkout_session).with(
+      it 'initiates a client document checkout session' do
+        expect(ClientDocuments::DepositService).to receive(:new).with(instance_of(ClientDocument)).and_return(deposit_service)
+        expect(deposit_service).to receive(:initiate_checkout!).with(
           hash_including(
-            estimate: estimate,
-            invoice: mock_invoice,
-            payment_amount: 50
+            success_url: match(/payment_success=true/),
+            cancel_url: match(/payment_cancelled=true/)
           )
-        )
+        ).and_return({ session: mock_checkout_session })
+
         described_class.new(estimate, params).call
       end
     end
@@ -294,7 +296,7 @@ RSpec.describe EstimateApprovalService, type: :service do
       end
 
       it 'returns failure when Stripe checkout session creation fails' do
-        allow(StripeService).to receive(:create_estimate_deposit_checkout_session)
+        allow(deposit_service).to receive(:initiate_checkout!)
           .and_raise(Stripe::StripeError.new('Card declined'))
 
         result = described_class.new(estimate, params).call
@@ -303,7 +305,7 @@ RSpec.describe EstimateApprovalService, type: :service do
       end
 
       it 'returns failure when Stripe raises ArgumentError for minimum amount' do
-        allow(StripeService).to receive(:create_estimate_deposit_checkout_session)
+        allow(deposit_service).to receive(:initiate_checkout!)
           .and_raise(ArgumentError.new('Amount must be at least $0.50'))
 
         result = described_class.new(estimate, params).call
@@ -334,7 +336,7 @@ RSpec.describe EstimateApprovalService, type: :service do
         result = described_class.new(estimate, params).call
 
         # The service builds URLs internally, verify via Stripe call
-        expect(StripeService).to have_received(:create_estimate_deposit_checkout_session).with(
+        expect(deposit_service).to have_received(:initiate_checkout!).with(
           hash_including(
             success_url: match(/\/estimates\/#{estimate.token}\?payment_success=true/)
           )
@@ -344,7 +346,7 @@ RSpec.describe EstimateApprovalService, type: :service do
       it 'builds cancel URL with estimate token' do
         result = described_class.new(estimate, params).call
 
-        expect(StripeService).to have_received(:create_estimate_deposit_checkout_session).with(
+        expect(deposit_service).to have_received(:initiate_checkout!).with(
           hash_including(
             cancel_url: match(/\/estimates\/#{estimate.token}\?payment_cancelled=true/)
           )
@@ -356,7 +358,7 @@ RSpec.describe EstimateApprovalService, type: :service do
 
         result = described_class.new(estimate, params).call
 
-        expect(StripeService).to have_received(:create_estimate_deposit_checkout_session).with(
+        expect(deposit_service).to have_received(:initiate_checkout!).with(
           hash_including(
             success_url: match(/^https:\/\//),
             cancel_url: match(/^https:\/\//)
@@ -369,7 +371,7 @@ RSpec.describe EstimateApprovalService, type: :service do
 
         result = described_class.new(estimate, params).call
 
-        expect(StripeService).to have_received(:create_estimate_deposit_checkout_session).with(
+        expect(deposit_service).to have_received(:initiate_checkout!).with(
           hash_including(
             success_url: match(/^http:\/\//),
             cancel_url: match(/^http:\/\//)
@@ -384,9 +386,8 @@ RSpec.describe EstimateApprovalService, type: :service do
 
         result = described_class.new(estimate, params).call
 
-        expect(StripeService).to have_received(:create_estimate_deposit_checkout_session).with(
-          hash_including(payment_amount: 75)
-        )
+        described_class.new(estimate, params).call
+        expect(estimate.reload.client_document.deposit_amount.to_f).to eq(75)
       end
 
       it 'uses full total when required_deposit is nil' do
@@ -395,11 +396,8 @@ RSpec.describe EstimateApprovalService, type: :service do
         estimate.recalculate_totals!
         estimate.update!(required_deposit: nil)
 
-        result = described_class.new(estimate, params).call
-
-        expect(StripeService).to have_received(:create_estimate_deposit_checkout_session).with(
-          hash_including(payment_amount: estimate.total)
-        )
+        described_class.new(estimate, params).call
+        expect(estimate.reload.client_document.deposit_amount.to_f).to eq(estimate.total.to_f)
       end
 
       it 'uses full total when required_deposit is zero' do
@@ -408,11 +406,8 @@ RSpec.describe EstimateApprovalService, type: :service do
         estimate.recalculate_totals!
         estimate.update!(required_deposit: 0)
 
-        result = described_class.new(estimate, params).call
-
-        expect(StripeService).to have_received(:create_estimate_deposit_checkout_session).with(
-          hash_including(payment_amount: estimate.total)
-        )
+        described_class.new(estimate, params).call
+        expect(estimate.reload.client_document.deposit_amount.to_f).to eq(estimate.total.to_f)
       end
     end
 

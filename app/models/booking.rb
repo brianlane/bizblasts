@@ -21,6 +21,7 @@ class Booking < ApplicationRecord
   belongs_to :promotion, optional: true
   has_one :invoice, dependent: :nullify
   has_one :tip, dependent: :destroy
+  has_one :client_document, as: :documentable, dependent: :nullify
   has_many :booking_product_add_ons, dependent: :destroy
   has_many :calendar_event_mappings, dependent: :destroy
   has_many :add_on_product_variants, through: :booking_product_add_ons, source: :product_variant

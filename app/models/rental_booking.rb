@@ -50,6 +50,7 @@ class RentalBooking < ApplicationRecord
   has_many :rental_condition_reports, dependent: :destroy
   has_one :invoice, as: :invoiceable, dependent: :nullify
   has_many :payments, through: :invoice
+  has_one :client_document, as: :documentable, dependent: :destroy
   
   # ============================================
   # ENUMS
@@ -239,6 +240,40 @@ class RentalBooking < ApplicationRecord
       send_deposit_confirmation
     end
     true
+  end
+
+  def handle_client_document_payment(document, payment)
+    mark_deposit_paid!(payment_intent_id: document.payment_intent_id || payment&.stripe_payment_intent_id)
+  end
+
+  def ensure_client_document!
+    template = active_template_for('rental_security_deposit')
+    deposit = security_deposit_amount || 0
+
+    if client_document
+      client_document.assign_attributes(
+        deposit_amount: deposit,
+        payment_required: deposit.to_f.positive?
+      )
+      apply_template_if_needed(client_document, template)
+      client_document.save! if client_document.changed?
+      return client_document
+    end
+
+    build_client_document(
+      business: business,
+      tenant_customer: tenant_customer,
+      document_type: 'rental_security_deposit',
+      title: "Rental Deposit ##{booking_number}",
+      deposit_amount: deposit,
+      payment_required: deposit.to_f.positive?,
+      signature_required: true,
+      status: 'pending_signature'
+    ).tap do |document|
+      apply_template_if_needed(document, template)
+      document.save!
+      document.record_event!('created')
+    end
   end
 
   # Mark deposit as authorized (preauth hold placed)
@@ -613,6 +648,17 @@ class RentalBooking < ApplicationRecord
     end
     
     self.total_amount = subtotal - (discount_amount || 0) + (tax_amount || 0)
+  end
+
+  def active_template_for(document_type)
+    business.document_templates.active.for_type(document_type).order(version: :desc).first
+  end
+
+  def apply_template_if_needed(document, template)
+    return unless template
+    return if document.document_template_id == template.id && document.body.present?
+
+    document.apply_template(template)
   end
   
   def calculate_late_fees!

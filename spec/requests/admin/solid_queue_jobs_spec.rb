@@ -70,20 +70,41 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
       end
     end
 
-    context "when there are non-BusinessMailer failed jobs" do
+    context "when there are non-BusinessMailer failed jobs with missing records" do
       before do
-        create_failed_non_business_mailer_job
+        create_failed_non_business_mailer_job_with_missing_record
       end
 
-      it "ignores non-BusinessMailer jobs" do
+      it "cleans up orphaned jobs regardless of mailer type" do
         initial_failed_count = SolidQueue::FailedExecution.count
         expect(initial_failed_count).to eq(1)
 
         post "/admin/solid_queue_jobs/cleanup_orphaned_jobs"
 
         expect(response).to redirect_to(admin_solid_queue_jobs_path)
-        
-        # Should not touch non-BusinessMailer jobs
+
+        # Should clean up ANY job referencing non-existent records
+        remaining_failed_count = SolidQueue::FailedExecution.count
+        expect(remaining_failed_count).to eq(0)
+      end
+    end
+
+    context "when there are non-BusinessMailer failed jobs with valid records" do
+      let(:existing_user) { create(:user, :manager) }
+
+      before do
+        create_failed_non_business_mailer_job_with_existing_record(existing_user)
+      end
+
+      it "does not clean up jobs with valid record references" do
+        initial_failed_count = SolidQueue::FailedExecution.count
+        expect(initial_failed_count).to eq(1)
+
+        post "/admin/solid_queue_jobs/cleanup_orphaned_jobs"
+
+        expect(response).to redirect_to(admin_solid_queue_jobs_path)
+
+        # Should NOT touch jobs with valid references
         remaining_failed_count = SolidQueue::FailedExecution.count
         expect(remaining_failed_count).to eq(initial_failed_count)
       end
@@ -111,26 +132,27 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
     end
 
     context "mixed scenario with valid and orphaned jobs" do
+      let(:existing_user) { create(:user, :manager) }
+
       before do
         # Create a mix of job types
         create_failed_business_mailer_job_with_error("Couldn't find Business with 'id'=#{deleted_business_id}")
         create_failed_business_mailer_job_for_existing_business
-        create_failed_non_business_mailer_job
+        create_failed_non_business_mailer_job_with_existing_record(existing_user)
         create_failed_business_mailer_job_with_customer_reference
       end
 
-      it "only cleans up the orphaned BusinessMailer jobs" do
+      it "cleans up all orphaned jobs regardless of type" do
         initial_failed_count = SolidQueue::FailedExecution.count
         expect(initial_failed_count).to eq(4)
 
         post "/admin/solid_queue_jobs/cleanup_orphaned_jobs"
 
         expect(response).to redirect_to(admin_solid_queue_jobs_path)
-        
+
         remaining_failed_count = SolidQueue::FailedExecution.count
-        # Should clean up some but not all jobs
-        expect(remaining_failed_count).to be < initial_failed_count
-        expect(remaining_failed_count).to be > 0
+        # Should clean up orphaned jobs but keep valid ones (2 orphaned removed, 2 valid remain)
+        expect(remaining_failed_count).to eq(2)
       end
     end
   end
@@ -138,7 +160,7 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
   describe "POST #retry_all_failed_jobs" do
     before do
       create_failed_business_mailer_job_for_existing_business
-      create_failed_non_business_mailer_job
+      create_failed_non_business_mailer_job_with_missing_record
     end
 
     it "attempts to retry all failed jobs" do
@@ -427,7 +449,7 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
     )
   end
 
-  def create_failed_non_business_mailer_job
+  def create_failed_non_business_mailer_job_with_missing_record
     job = SolidQueue::Job.create!(
       class_name: 'ActionMailer::MailDeliveryJob',
       queue_name: 'default',
@@ -435,7 +457,7 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
         'arguments' => [
           'UserMailer',
           'welcome_email',
-          [{ '_aj_globalid' => "gid://bizblasts/User/123" }]
+          [{ '_aj_globalid' => "gid://bizblasts/User/99999" }]  # Non-existent user
         ]
       }.to_json,
       created_at: 1.hour.ago
@@ -443,7 +465,28 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
 
     SolidQueue::FailedExecution.create!(
       job: job,
-      error: { 'message' => 'Some user mailer error' }.to_json,
+      error: { 'message' => "Couldn't find User with 'id'=99999" }.to_json,
+      created_at: 1.hour.ago
+    )
+  end
+
+  def create_failed_non_business_mailer_job_with_existing_record(user)
+    job = SolidQueue::Job.create!(
+      class_name: 'ActionMailer::MailDeliveryJob',
+      queue_name: 'default',
+      arguments: {
+        'arguments' => [
+          'UserMailer',
+          'welcome_email',
+          [{ '_aj_globalid' => "gid://bizblasts/User/#{user.id}" }]  # Existing user
+        ]
+      }.to_json,
+      created_at: 1.hour.ago
+    )
+
+    SolidQueue::FailedExecution.create!(
+      job: job,
+      error: { 'message' => 'Temporary network error' }.to_json,
       created_at: 1.hour.ago
     )
   end
