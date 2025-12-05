@@ -39,34 +39,68 @@ class ExternalCalendarEvent < ApplicationRecord
   after_destroy_commit :clear_staff_availability_cache
   
   def self.import_for_connection(connection, events_data)
-    imported_count = 0
+    return { imported_count: 0, errors: [] } if events_data.blank?
+
+    current_time = Time.current
     errors = []
-    
-    events_data.each do |event_data|
-      begin
-        external_event = find_or_initialize_by(
-          calendar_connection: connection,
-          external_event_id: event_data[:external_event_id]
-        )
-        
-        external_event.assign_attributes(
-          external_calendar_id: event_data[:external_calendar_id],
-          starts_at: event_data[:starts_at],
-          ends_at: event_data[:ends_at],
-          summary: event_data[:summary],
-          last_imported_at: Time.current
-        )
-        
-        if external_event.save
-          imported_count += 1
-        else
-          errors << "Event #{event_data[:external_event_id]}: #{external_event.errors.full_messages.join(', ')}"
+
+    # Prepare records for bulk upsert
+    records_to_upsert = events_data.filter_map do |event_data|
+      next if event_data[:external_event_id].blank? || event_data[:starts_at].blank? || event_data[:ends_at].blank?
+
+      # Validate end_time > start_time
+      if event_data[:ends_at] <= event_data[:starts_at]
+        errors << "Event #{event_data[:external_event_id]}: ends_at must be after starts_at"
+        next
+      end
+
+      {
+        calendar_connection_id: connection.id,
+        external_event_id: event_data[:external_event_id],
+        external_calendar_id: event_data[:external_calendar_id],
+        starts_at: event_data[:starts_at]&.utc,
+        ends_at: event_data[:ends_at]&.utc,
+        summary: event_data[:summary] || 'Untitled Event',
+        last_imported_at: current_time,
+        created_at: current_time,
+        updated_at: current_time
+      }
+    end
+
+    return { imported_count: 0, errors: errors } if records_to_upsert.empty?
+
+    # Bulk upsert with conflict resolution on unique constraint
+    # This is much more efficient than individual saves
+    begin
+      result = upsert_all(
+        records_to_upsert,
+        unique_by: :index_external_calendar_events_on_connection_event_id,
+        update_only: [:external_calendar_id, :starts_at, :ends_at, :summary, :last_imported_at, :updated_at]
+      )
+
+      imported_count = result.respond_to?(:length) ? result.length : records_to_upsert.size
+    rescue ActiveRecord::RecordNotUnique => e
+      # Fallback to individual inserts if bulk fails
+      Rails.logger.warn("Bulk upsert failed, falling back to individual inserts: #{e.message}")
+      imported_count = 0
+
+      records_to_upsert.each do |record|
+        begin
+          external_event = find_or_initialize_by(
+            calendar_connection_id: record[:calendar_connection_id],
+            external_event_id: record[:external_event_id]
+          )
+          external_event.assign_attributes(record.except(:created_at))
+          imported_count += 1 if external_event.save
+        rescue => e
+          errors << "Event #{record[:external_event_id]}: #{e.message}"
         end
-      rescue => e
-        errors << "Event #{event_data[:external_event_id]}: #{e.message}"
       end
     end
-    
+
+    # Clear cache once after bulk import (not per-record)
+    AvailabilityService.clear_staff_availability_cache(connection.staff_member) if imported_count > 0
+
     { imported_count: imported_count, errors: errors }
   end
   

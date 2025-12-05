@@ -87,6 +87,18 @@ if defined?(SolidQueue)
         task.description = 'Remove completed SolidQueue jobs older than the retention window'
       end
 
+      # Schedule calendar availability imports every 2 hours
+      # This replaces the self-scheduling that was causing job pile-up
+      SolidQueue::RecurringTask.find_or_create_by!(key: 'calendar_availability_import') do |task|
+        task.schedule    = '0 */2 * * *' # every 2 hours at minute 0
+        task.class_name  = 'Calendar::ScheduleImportsJob'
+        task.arguments   = '[]'
+        task.queue_name  = 'default'
+        task.priority    = 10
+        task.static      = true
+        task.description = 'Schedule calendar availability imports for all staff with connected calendars'
+      end
+
       Rails.logger.info "SolidQueue recurring tasks configured successfully"
       
     rescue ActiveRecord::ConnectionNotEstablished, ActiveRecord::NoDatabaseError, PG::ConnectionBad => e

@@ -199,99 +199,100 @@ ActiveAdmin.register_page "Solid Queue Jobs" do
     def cleanup_orphaned_jobs
       cleaned_count = 0
 
-      # Find failed jobs that reference non-existent businesses
       SolidQueue::FailedExecution.joins(:job).find_each do |failed_execution|
         begin
-          # Handle both string and already-parsed arguments
-          job_args = if failed_execution.job.arguments.is_a?(String)
-                       JSON.parse(failed_execution.job.arguments)
-                     else
-                       failed_execution.job.arguments
-                     end
+          should_discard = false
+          discard_reason = nil
 
-          # Check if this is a mailer job that might reference a business
-          if failed_execution.job.class_name == 'ActionMailer::MailDeliveryJob'
-            mailer_class = job_args.dig('arguments', 0)
-
-            if mailer_class == 'BusinessMailer'
-              # Try to find the business referenced in the job
-              mailer_args = job_args.dig('arguments', 2)
-              business_id = nil
-              should_discard = false
-
-              # Handle different argument structures for different mailer methods
-              case mailer_args
-              when Hash
-                business_id = mailer_args['business_id'] if mailer_args.key?('business_id')
-              when Array
-                # Extract business ID from various ActiveRecord objects
-                mailer_args.each do |arg|
-                  if arg.is_a?(Hash) && arg['_aj_globalid']
-                    gid = arg['_aj_globalid']
-
-                    if gid.include?('Business/')
-                      business_id = gid.split('/').last.to_i
-                      break
-                    elsif gid.include?('TenantCustomer/') || gid.include?('Order/') || gid.include?('Payment/') || gid.include?('Booking/')
-                      # These objects have business associations - check if the referenced object exists
-                      begin
-                        object_class = gid.split('/')[1]
-                        object_id = gid.split('/').last.to_i
-
-                        case object_class
-                        when 'TenantCustomer'
-                          customer = TenantCustomer.find(object_id)
-                          business_id = customer.business_id
-                        when 'Order'
-                          order = Order.find(object_id)
-                          business_id = order.business_id
-                        when 'Payment'
-                          payment = Payment.find(object_id)
-                          business_id = payment.business_id
-                        when 'Booking'
-                          booking = Booking.find(object_id)
-                          business_id = booking.business_id
-                        end
-                      rescue ActiveRecord::RecordNotFound
-                        # If the referenced object doesn't exist, discard the job
-                        should_discard = true
-                        break
+          # Get error text for checking
+          error_text = if failed_execution.error.is_a?(String)
+                        failed_execution.error
+                      elsif failed_execution.error.is_a?(Hash)
+                        failed_execution.error['message'] || failed_execution.error['error'] || failed_execution.error.to_s
+                      else
+                        failed_execution.error.to_s
                       end
-                    end
-                  end
-                end
-              end
 
-              # Also check the error message for business ID references
-              if business_id.nil?
-                error_text = if failed_execution.error.is_a?(String)
-                              failed_execution.error
-                            elsif failed_execution.error.is_a?(Hash)
-                              failed_execution.error['message'] || failed_execution.error['error'] || failed_execution.error.to_s
-                            else
-                              failed_execution.error.to_s
-                            end
+          # 1. Clean up jobs where worker process died (orphaned by dead workers)
+          if error_text&.include?('Process was found dead and pruned')
+            should_discard = true
+            discard_reason = "worker process died"
+          end
 
-                if error_text && (match = error_text.match(/Couldn't find Business with 'id'=(\d+)/))
-                  business_id = match[1].to_i
-                end
-              end
+          # 2. Clean up jobs referencing non-existent records
+          unless should_discard
+            job_args = if failed_execution.job.arguments.is_a?(String)
+                         JSON.parse(failed_execution.job.arguments)
+                       else
+                         failed_execution.job.arguments
+                       end
 
-              # If we can identify a business ID and it doesn't exist, discard the job
-              if should_discard || (business_id && !Business.exists?(business_id))
-                failed_execution.discard
-                cleaned_count += 1
-                Rails.logger.info "[SolidQueue] Cleaned up failed job #{failed_execution.id} referencing non-existent Business #{business_id}"
-              end
-            end
+            # Check for missing ActiveRecord objects in job arguments
+            should_discard, discard_reason = check_for_missing_records(job_args, error_text)
+          end
+
+          if should_discard
+            failed_execution.discard
+            cleaned_count += 1
+            Rails.logger.info "[SolidQueue] Cleaned up failed job #{failed_execution.id} (#{failed_execution.job.class_name}): #{discard_reason}"
           end
         rescue => e
           Rails.logger.error "[SolidQueue] Error checking job #{failed_execution.id}: #{e.message}"
-          # Continue with other jobs
         end
       end
 
       redirect_to admin_solid_queue_jobs_path, notice: "Cleaned up #{cleaned_count} orphaned failed jobs."
+    end
+
+    private
+
+    def check_for_missing_records(job_args, error_text)
+      # Check error message for common "record not found" patterns
+      if error_text
+        not_found_patterns = [
+          /Couldn't find (\w+) with 'id'=(\d+)/,
+          /Couldn't find (\w+) with id=(\d+)/,
+          /RecordNotFound.*(\w+)/
+        ]
+
+        not_found_patterns.each do |pattern|
+          if (match = error_text.match(pattern))
+            return [true, "referenced #{match[1]} not found"]
+          end
+        end
+      end
+
+      # Check job arguments for GlobalID references to deleted records
+      return [false, nil] unless job_args.is_a?(Hash)
+
+      args_to_check = job_args['arguments'] || []
+      args_to_check = [args_to_check] unless args_to_check.is_a?(Array)
+
+      args_to_check.flatten.each do |arg|
+        next unless arg.is_a?(Hash) && arg['_aj_globalid']
+
+        gid = arg['_aj_globalid']
+        # Parse GlobalID format: gid://app-name/ModelName/id
+        parts = gid.split('/')
+        next unless parts.length >= 2
+
+        model_name = parts[-2]
+        record_id = parts[-1].to_i
+
+        # Check if the referenced record exists
+        begin
+          model_class = model_name.constantize
+          unless model_class.exists?(record_id)
+            return [true, "referenced #{model_name}##{record_id} not found"]
+          end
+        rescue NameError
+          # Unknown model class, skip
+        rescue ActiveRecord::RecordNotFound
+          return [true, "referenced #{model_name}##{record_id} not found"]
+        end
+      end
+
+      [false, nil]
     end
   end
 end 
