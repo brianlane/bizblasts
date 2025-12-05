@@ -13,11 +13,11 @@ module Public
     # GET /rental_bookings/:id/pay_deposit
     def pay_deposit
       unless @rental_booking.status_pending_deposit?
-        redirect_to rental_booking_path(@rental_booking),
+        redirect_to rental_booking_path(@rental_booking), 
                     notice: 'Deposit has already been paid.'
         return
       end
-
+      
       @client_document = @rental_booking.ensure_client_document!
     end
 
@@ -49,7 +49,7 @@ module Public
         success_url: deposit_success_rental_booking_url(@rental_booking, token: params[:token]),
         cancel_url: deposit_cancel_rental_booking_url(@rental_booking, token: params[:token])
       )
-
+      
       redirect_to result[:session].url, allow_other_host: true
     rescue => e
       Rails.logger.error("[RentalBookingsController] Failed to process deposit submission: #{e.message}")

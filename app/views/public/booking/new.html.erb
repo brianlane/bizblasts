@@ -536,6 +536,19 @@
 
     <% if @service.experience? %>
       <div class="mb-6 space-y-4">
+        <% if @experience_template.present? %>
+          <div class="bg-white border border-gray-200 rounded-lg p-4">
+            <p class="text-sm text-gray-500 uppercase tracking-wide mb-1">Experience Agreement</p>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <p class="text-base font-semibold text-gray-900"><%= @experience_template.name %></p>
+                <p class="text-sm text-gray-600">Version <%= @experience_template.version %></p>
+              </div>
+              <p class="text-xs text-gray-500">Last updated <%= l(@experience_template.updated_at, format: :long) %></p>
+            </div>
+          </div>
+        <% end %>
+
         <% if @experience_template&.body.present? %>
           <div class="prose prose-sm text-gray-700 max-w-none bg-white border border-gray-200 rounded-lg p-4">
             <%= sanitize(@experience_template.body, tags: %w[p br strong em ul ol li a h3 h4], attributes: %w[href target rel]) %>

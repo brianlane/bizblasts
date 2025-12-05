@@ -128,6 +128,7 @@ module ClientDocuments
 
       NotificationService.business_new_booking(booking)
       NotificationService.business_payment_received(@payment) if @payment
+      NotificationService.booking_confirmation(booking)
     rescue => e
       Rails.logger.error "[CLIENT_DOCUMENT] Failed to send booking notifications: #{e.message}"
     end

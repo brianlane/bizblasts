@@ -54,4 +54,25 @@ RSpec.describe Estimate, type: :model do
       expect(estimate).to be_valid
     end
   end
+
+  describe '#ensure_client_document!' do
+    let(:business) { create(:business) }
+    let(:customer) { create(:tenant_customer, business: business) }
+
+    it 'creates a client document and applies the latest template' do
+      template = create(:document_template, business: business, document_type: 'estimate', body: '<p>Estimate Terms</p>')
+      estimate = create(:estimate, business: business, tenant_customer: customer, required_deposit: 50, total: 200)
+
+      ActsAsTenant.current_tenant = business
+      document = estimate.ensure_client_document!
+
+      expect(document).to be_persisted
+      expect(document.document_template).to eq(template)
+      expect(document.body).to include('Estimate Terms')
+      expect(document.metadata['template_version']).to eq(template.version)
+      expect(document.deposit_amount.to_f).to eq(50.0)
+    ensure
+      ActsAsTenant.current_tenant = nil
+    end
+  end
 end

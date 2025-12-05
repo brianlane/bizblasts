@@ -110,7 +110,7 @@ RSpec.describe RentalBooking, type: :model do
       end
     end
   end
-
+  
   describe '#ensure_client_document!' do
     let(:booking) { create(:rental_booking, business: business, product: rental_product, tenant_customer: customer, security_deposit_amount: 150) }
 
@@ -122,6 +122,19 @@ RSpec.describe RentalBooking, type: :model do
       expect(document.document_type).to eq('rental_security_deposit')
       expect(document.deposit_amount.to_f).to eq(150.0)
       expect(document.status).to eq('pending_signature')
+    ensure
+      ActsAsTenant.current_tenant = nil
+    end
+
+    it 'applies the associated template body and metadata' do
+      template = create(:document_template, business: business, document_type: 'rental_security_deposit', body: '<p>Rental Terms</p>')
+      ActsAsTenant.current_tenant = business
+
+      document = booking.ensure_client_document!
+
+      expect(document.document_template).to eq(template)
+      expect(document.body).to include('Rental Terms')
+      expect(document.metadata['template_version']).to eq(template.version)
     ensure
       ActsAsTenant.current_tenant = nil
     end

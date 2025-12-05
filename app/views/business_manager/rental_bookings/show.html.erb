@@ -81,6 +81,13 @@
         <% end %>
       </div>
 
+      <% if (deposit_document = @rental_booking.client_document)&.document_template.present? %>
+        <%= render 'shared/template_preview_panel',
+                   template: deposit_document.document_template,
+                   document: deposit_document,
+                   heading: 'Security Deposit Agreement' %>
+      <% end %>
+
       <!-- Condition Reports -->
       <% if @condition_reports.any? %>
         <div class="bg-white shadow rounded-lg p-6">

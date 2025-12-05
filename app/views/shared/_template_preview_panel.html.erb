@@ -1,0 +1,28 @@
+<% template = local_assigns.fetch(:template, nil) %>
+<% document = local_assigns.fetch(:document, nil) %>
+<% heading = local_assigns.fetch(:heading, 'Client Document Template') %>
+<% return if template.blank? %>
+
+<div class="bg-white shadow rounded-lg p-6 space-y-4">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div>
+      <h2 class="text-lg font-semibold text-gray-900"><%= heading %></h2>
+      <p class="text-sm text-gray-600">
+        <%= template.document_type.to_s.humanize %> • Version <%= template.version %>
+      </p>
+    </div>
+    <% if document.present? %>
+      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= document.completed? ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' %>">
+        <%= document.status.to_s.humanize %>
+      </span>
+    <% end %>
+  </div>
+
+  <div class="text-xs text-gray-500">
+    Last updated <%= l(template.updated_at, format: :long) %>
+  </div>
+
+  <div class="prose prose-sm max-w-none text-gray-700 border border-gray-100 rounded-lg p-4 bg-gray-50">
+    <%= sanitize(template.body, tags: %w[p br strong em ul ol li a h3 h4 span b i], attributes: %w[href target rel class]) %>
+  </div>
+</div>

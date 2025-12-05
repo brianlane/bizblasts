@@ -5,7 +5,16 @@ module BusinessManager
     before_action :set_template, only: [:edit, :update, :destroy]
 
     def index
-      @templates = current_business.document_templates.order(:document_type, :name)
+      @document_type_filters = [['All templates', 'all']] + DocumentTemplate::DOCUMENT_TYPES
+      scope = current_business.document_templates.order(:document_type, :name)
+      @latest_version_map = current_business.document_templates.group(:document_type).maximum(:version)
+      @selected_document_type = params[:document_type].presence || 'all'
+
+      if @selected_document_type != 'all'
+        scope = scope.where(document_type: @selected_document_type)
+      end
+
+      @templates = scope
     end
 
     def new

@@ -280,7 +280,15 @@ module Public
             render :new, status: :unprocessable_content and return
           end
 
-          service_amount = @service.price || 0
+          quantity = @booking.quantity.to_i
+          quantity = 1 if quantity < 1
+
+          service_price = if @booking.service_variant.present?
+                            @booking.service_variant.price || @service.price || 0
+                          else
+                            @service.price || 0
+                          end
+          service_amount = service_price * quantity
           addon_amount = 0
 
           if @booking.booking_product_add_ons.any?
@@ -294,7 +302,10 @@ module Public
             end
           end
 
-          total_amount = service_amount + addon_amount
+          promo_discount = @booking.promo_discount_amount.to_f
+          subtotal = service_amount + addon_amount
+          total_amount = subtotal - promo_discount
+          total_amount = 0 if total_amount.negative?
 
           if total_amount < 0.50
             flash[:alert] = "This booking amount is too small for online payment. Please contact the business directly."
@@ -309,7 +320,7 @@ module Public
             end_time: @booking.end_time.iso8601,
             notes: @booking.notes,
             tenant_customer_id: customer.id,
-            quantity: @booking.quantity || 1,
+            quantity: quantity,
             booking_product_add_ons: @booking.booking_product_add_ons.select { |addon| addon.quantity.to_i.positive? }.map do |addon|
               {
                 product_variant_id: addon.product_variant_id,

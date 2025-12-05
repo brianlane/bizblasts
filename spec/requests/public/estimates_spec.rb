@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe "Public::Estimates", type: :request do
-  let(:business) { create(:business) }
+  let(:business) { create(:business, stripe_account_id: 'acct_test_123') }
   let!(:customer) { create(:tenant_customer, business: business) }
   let!(:staff_member) { create(:staff_member, business: business) }
   let!(:service) do 
@@ -61,15 +61,19 @@ RSpec.describe "Public::Estimates", type: :request do
              url: 'https://checkout.stripe.com/pay/cs_test_123')
     end
 
+    let(:signature_service) { instance_double(ClientDocuments::SignatureService, capture!: true) }
+    let(:workflow_service) { instance_double(ClientDocuments::WorkflowService, mark_signature_captured!: true, mark_pending_signature!: true) }
+    let(:deposit_service) { instance_double(ClientDocuments::DepositService, initiate_checkout!: { session: mock_checkout_session }) }
+
     before do
       # Mock external services
       allow(EstimatePdfGenerator).to receive(:new).and_return(double(generate: true))
       allow(EstimateToBookingService).to receive(:new).and_return(double(call: mock_booking))
       allow(mock_booking).to receive(:reload).and_return(mock_booking)
       allow(mock_booking).to receive(:invoice).and_return(mock_invoice)
-      allow(StripeService).to receive(:create_estimate_deposit_checkout_session).and_return(
-        { session: mock_checkout_session }
-      )
+      allow(ClientDocuments::SignatureService).to receive(:new).and_return(signature_service)
+      allow(ClientDocuments::WorkflowService).to receive(:new).and_return(workflow_service)
+      allow(ClientDocuments::DepositService).to receive(:new).and_return(deposit_service)
     end
 
     it "approves the estimate and creates a booking" do
@@ -140,10 +144,8 @@ RSpec.describe "Public::Estimates", type: :request do
       expect(response).to redirect_to(public_estimate_path(token: estimate.token))
     end
 
-    it "calls StripeService to create checkout session" do
-      expect(StripeService).to receive(:create_estimate_deposit_checkout_session).and_return(
-        { session: mock_checkout_session }
-      )
+    it "calls ClientDocuments::DepositService to initiate checkout session" do
+      expect(ClientDocuments::DepositService).to receive(:new).and_return(deposit_service)
       patch approve_public_estimate_path(token: estimate.token), params: signature_params
       expect(response).to redirect_to(mock_checkout_session.url)
     end

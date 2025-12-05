@@ -132,6 +132,34 @@ RSpec.describe Public::BookingController, type: :controller do
           # Verify no booking was created
           expect(Booking.count).to eq(0)
         end
+
+        context 'with quantity, service variant, and promo code' do
+          let!(:service_variant) { create(:service_variant, service: experience_service, price: 120.0) }
+          let(:experience_booking_params) do
+            {
+              booking: {
+                service_id: experience_service.id,
+                service_variant_id: service_variant.id,
+                staff_member_id: staff_member.id,
+                start_time: 1.day.from_now,
+                notes: 'Test variant booking',
+                quantity: 2,
+                promo_code: 'SAVE40'
+              }
+            }
+          end
+
+          it 'applies quantity, variant price, and promo discount to the deposit amount' do
+            allow(PromoCodeService).to receive(:validate_code).and_return(valid: true, type: 'fixed')
+            allow(PromoCodeService).to receive(:calculate_discount).and_return(40.0)
+
+            post :create, params: experience_booking_params.merge(signature_params)
+
+            document = ClientDocument.last
+            expect(document.deposit_amount.to_f).to eq((service_variant.price * 2) - 40.0)
+            expect(document.metadata['booking_payload']['quantity']).to eq(2)
+          end
+        end
       end
     end
 
