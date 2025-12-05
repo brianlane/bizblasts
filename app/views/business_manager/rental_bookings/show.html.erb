@@ -83,8 +83,8 @@
 
       <% if (deposit_document = @rental_booking.client_document)&.document_template.present? %>
         <%= render 'shared/template_preview_panel',
-                   template: deposit_document.document_template,
-                   document: deposit_document,
+                   document_template: deposit_document.document_template,
+                   client_document: deposit_document,
                    heading: 'Security Deposit Agreement' %>
       <% end %>
 

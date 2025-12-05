@@ -1,5 +1,5 @@
-<% template = local_assigns.fetch(:template, nil) %>
-<% document = local_assigns.fetch(:document, nil) %>
+<% template = local_assigns[:document_template] || local_assigns[:template] %>
+<% document = local_assigns[:client_document] || local_assigns[:document] %>
 <% heading = local_assigns.fetch(:heading, 'Client Document Template') %>
 <% return if template.blank? %>
 

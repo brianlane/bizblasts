@@ -101,8 +101,8 @@
   <% if (estimate_document = @estimate.client_document)&.document_template.present? %>
     <div class="mb-6">
       <%= render 'shared/template_preview_panel',
-                 template: estimate_document.document_template,
-                 document: estimate_document,
+                 document_template: estimate_document.document_template,
+                 client_document: estimate_document,
                  heading: 'Customer Agreement Preview' %>
     </div>
   <% end %>
