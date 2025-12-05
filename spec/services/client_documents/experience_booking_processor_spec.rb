@@ -84,4 +84,18 @@ RSpec.describe ClientDocuments::ExperienceBookingProcessor do
       described_class.process!(document: document, payment: payment, session: session_data)
     }.not_to change { Booking.count }
   end
+
+  it 'is idempotent when invoked multiple times for the same document' do
+    described_class.process!(document: document, payment: payment, session: session_data)
+    document.reload
+    original_booking_id = document.metadata['booking_id']
+
+    expect {
+      described_class.process!(document: document, payment: payment, session: session_data)
+    }.not_to change { Booking.count }
+
+    document.reload
+    expect(document.metadata['booking_id']).to eq(original_booking_id)
+    expect(document.documentable_id).to eq(original_booking_id)
+  end
 end

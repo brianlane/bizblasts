@@ -75,7 +75,7 @@ class ExternalCalendarEvent < ApplicationRecord
       result = upsert_all(
         records_to_upsert,
         unique_by: :index_external_calendar_events_on_connection_event_id,
-        update_only: [:external_calendar_id, :starts_at, :ends_at, :summary, :last_imported_at]
+        update_only: [:external_calendar_id, :starts_at, :ends_at, :summary, :last_imported_at, :updated_at]
       )
 
       imported_count = result.respond_to?(:length) ? result.length : records_to_upsert.size

@@ -19,6 +19,12 @@ module ClientDocuments
       return unless @business && @tenant_customer
 
       ActsAsTenant.with_tenant(@business) do
+        if (existing_booking = existing_booking_from_metadata)
+          ensure_payment_linked(existing_booking)
+          Rails.logger.info "[CLIENT_DOCUMENT] Skipping duplicate booking creation for document #{@document.id}"
+          return existing_booking
+        end
+
         ActiveRecord::Base.transaction do
           persist_stripe_customer!
           booking = create_booking!
@@ -30,7 +36,7 @@ module ClientDocuments
           @document.update!(
             documentable: booking,
             invoice: invoice,
-            metadata: (@document.metadata || {}).merge('booking_id' => booking.id)
+            metadata: metadata_with_booking_id(booking.id)
           )
           @document.record_event!('booking_created', booking_id: booking.id)
         end
@@ -44,6 +50,10 @@ module ClientDocuments
       return unless raw_payload.present?
 
       @booking_payload ||= raw_payload.deep_symbolize_keys
+    end
+
+    def metadata_with_booking_id(booking_id)
+      (@document.metadata || {}).merge('booking_id' => booking_id)
     end
 
     def persist_stripe_customer!
@@ -119,6 +129,22 @@ module ClientDocuments
       return unless @payment && invoice
 
       @payment.update!(invoice: invoice)
+    end
+
+    def ensure_payment_linked(booking)
+      return unless @payment
+
+      invoice = booking.invoice
+      return if invoice.blank? || @payment.invoice_id == invoice.id
+
+      @payment.update!(invoice: invoice)
+    end
+
+    def existing_booking_from_metadata
+      booking_id = (@document.metadata || {})['booking_id']
+      return if booking_id.blank?
+
+      @business.bookings.find_by(id: booking_id)
     end
 
     def send_notifications(booking, invoice)

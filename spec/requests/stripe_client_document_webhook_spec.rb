@@ -42,10 +42,9 @@ RSpec.describe 'Stripe client document webhooks', type: :request do
       event_object = Stripe::Event.construct_from(webhook_payload)
       allow(Stripe::Webhook).to receive(:construct_event).and_return(event_object)
 
-      processor_double = class_double(ClientDocuments::ExperienceBookingProcessor).as_stubbed_const
-      expect(processor_double).to receive(:process!).with(
+      expect(ClientDocuments::ExperienceBookingProcessor).to receive(:process!).with(
         hash_including(document: document, payment: kind_of(Payment), session: hash_including('payment_intent' => 'pi_123'))
-      )
+      ).and_call_original
 
       perform_enqueued_jobs do
         post '/webhooks/stripe', params: webhook_payload.to_json, headers: { 'Stripe-Signature' => 't=123,v1=test' }
