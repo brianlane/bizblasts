@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_05_010000) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_05_011000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -455,8 +455,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_05_010000) do
     t.datetime "deposit_paid_at"
     t.bigint "document_template_id"
     t.string "document_type", null: false
-    t.bigint "documentable_id", null: false
-    t.string "documentable_type", null: false
+    t.bigint "documentable_id"
+    t.string "documentable_type"
     t.bigint "invoice_id"
     t.jsonb "metadata", default: {}, null: false
     t.string "payment_intent_id"

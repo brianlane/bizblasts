@@ -3,7 +3,7 @@ class CreateClientDocuments < ActiveRecord::Migration[8.1]
     create_table :client_documents do |t|
       t.references :business, null: false, foreign_key: true
       t.references :tenant_customer, foreign_key: true
-      t.references :documentable, polymorphic: true, null: false
+      t.references :documentable, polymorphic: true
       t.references :invoice, foreign_key: true
       t.string :document_type, null: false
       t.string :title
