@@ -209,6 +209,39 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
     end
   end
 
+  describe "POST #remove_all_failed_jobs" do
+    before do
+      create_failed_business_mailer_job_for_existing_business
+      create_failed_non_business_mailer_job_with_missing_record
+    end
+
+    it "removes every failed job regardless of type" do
+      expect(SolidQueue::FailedExecution.count).to eq(2)
+
+      post "/admin/solid_queue_jobs/remove_all_failed_jobs"
+
+      expect(response).to redirect_to(admin_solid_queue_jobs_path)
+      expect(SolidQueue::FailedExecution.count).to eq(0)
+      expect(flash[:notice]).to include("Removed 2 failed jobs")
+    end
+  end
+
+  describe "POST #discard_day_old_jobs" do
+    let!(:old_failed_execution) { create_generic_failed_job(created_at: 2.days.ago) }
+    let!(:recent_failed_execution) { create_generic_failed_job(created_at: 12.hours.ago) }
+
+    it "removes only jobs that are at least a day old" do
+      expect(SolidQueue::FailedExecution.count).to eq(2)
+
+      post "/admin/solid_queue_jobs/discard_day_old_jobs"
+
+      expect(response).to redirect_to(admin_solid_queue_jobs_path)
+      expect(SolidQueue::FailedExecution.exists?(old_failed_execution.id)).to be_falsey
+      expect(SolidQueue::FailedExecution.exists?(recent_failed_execution.id)).to be_truthy
+      expect(flash[:notice]).to include("Discarded 1 failed jobs")
+    end
+  end
+
   # Production failure scenarios based on actual logs
   describe 'production failure scenarios' do
     context 'retry functionality issues from production logs' do
@@ -503,6 +536,27 @@ RSpec.describe "Admin SolidQueue Jobs", type: :request, admin: true do
       job: job,
       error: { 'message' => 'Malformed job arguments' }.to_json,
       created_at: 1.hour.ago
+    )
+  end
+
+  def create_generic_failed_job(created_at:)
+    job = SolidQueue::Job.create!(
+      class_name: 'ActionMailer::MailDeliveryJob',
+      queue_name: 'default',
+      arguments: {
+        'arguments' => [
+          'GenericMailer',
+          'test',
+          [{ '_aj_globalid' => "gid://bizblasts/TenantCustomer/#{tenant_customer.id}" }]
+        ]
+      }.to_json,
+      created_at: created_at
+    )
+
+    SolidQueue::FailedExecution.create!(
+      job: job,
+      error: { 'message' => 'Generic failure' }.to_json,
+      created_at: created_at
     )
   end
 end

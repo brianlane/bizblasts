@@ -80,6 +80,24 @@ ActiveAdmin.register_page "Solid Queue Jobs" do
                        class: "button",
                        style: "background-color: #6c757d; color: white; border: none; padding: 8px 16px; cursor: pointer;"
           end
+
+          div style: "margin-top: 10px;" do
+            form_tag admin_solid_queue_jobs_remove_all_failed_jobs_path, method: :post,
+                     onsubmit: "return confirm('This will permanently remove all failed jobs. Continue?')",
+                     style: "display: inline-block; margin-right: 10px;" do
+              submit_tag "Remove All Failed Jobs",
+                         class: "button",
+                         style: "background-color: #343a40; color: white; border: none; padding: 8px 16px; cursor: pointer;"
+            end
+
+            form_tag admin_solid_queue_jobs_discard_day_old_jobs_path, method: :post,
+                     onsubmit: "return confirm('Discard all failed jobs that are at least 24 hours old?')",
+                     style: "display: inline-block;" do
+              submit_tag "Discard Day-Old Jobs",
+                         class: "button",
+                         style: "background-color: #495057; color: white; border: none; padding: 8px 16px; cursor: pointer;"
+            end
+          end
         end
         
         table_for SolidQueue::FailedExecution.joins(:job).order('solid_queue_jobs.created_at DESC').limit(10), class: "index_table" do
@@ -242,6 +260,55 @@ ActiveAdmin.register_page "Solid Queue Jobs" do
       end
 
       redirect_to admin_solid_queue_jobs_path, notice: "Cleaned up #{cleaned_count} orphaned failed jobs."
+    end
+
+    def remove_all_failed_jobs
+      removed_count = 0
+      error_count = 0
+
+      SolidQueue::FailedExecution.find_each do |failed_execution|
+        begin
+          failed_execution.discard
+          removed_count += 1
+        rescue => e
+          error_count += 1
+          Rails.logger.error "[SolidQueue] Failed to remove job #{failed_execution.id}: #{e.message}"
+        end
+      end
+
+      message = if removed_count.positive?
+                  "Removed #{removed_count} failed jobs."
+                else
+                  "No failed jobs were removed."
+                end
+      message += " #{error_count} jobs could not be removed (check logs for details)." if error_count.positive?
+
+      redirect_to admin_solid_queue_jobs_path, notice: message
+    end
+
+    def discard_day_old_jobs
+      cutoff_time = 1.day.ago
+      removed_count = 0
+      error_count = 0
+
+      SolidQueue::FailedExecution.where('created_at <= ?', cutoff_time).find_each do |failed_execution|
+        begin
+          failed_execution.discard
+          removed_count += 1
+        rescue => e
+          error_count += 1
+          Rails.logger.error "[SolidQueue] Failed to remove day-old job #{failed_execution.id}: #{e.message}"
+        end
+      end
+
+      message = if removed_count.positive?
+                  "Discarded #{removed_count} failed jobs that were at least 24 hours old."
+                else
+                  "No failed jobs were old enough to discard."
+                end
+      message += " #{error_count} jobs could not be removed (check logs for details)." if error_count.positive?
+
+      redirect_to admin_solid_queue_jobs_path, notice: message
     end
 
     private
