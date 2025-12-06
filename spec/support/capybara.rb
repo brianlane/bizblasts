@@ -2,46 +2,48 @@ require 'capybara/rspec'
 require 'capybara/cuprite'
 
 # Configure Capybara for system tests
+# Note: ENV['CI'] is checked at require time, so this configuration is applied
+# when capybara.rb is loaded by rails_helper.rb
 Capybara.register_driver(:cuprite) do |app|
+  # Determine if we're in CI environment
+  # Check multiple indicators for robustness
+  is_ci = ENV['CI'] == 'true' || ENV['GITHUB_ACTIONS'].present?
+
+  # Base browser options that work everywhere
+  browser_options = {
+    'no-sandbox' => nil,
+    'disable-gpu' => nil,
+    'disable-dev-shm-usage' => nil
+  }
+
+  # Add CI-specific browser options
+  if is_ci
+    browser_options.merge!(
+      'single-process' => nil,
+      'no-zygote' => nil,
+      'memory-pressure-off' => nil,
+      'max_old_space_size' => '2048',
+      'disable-features' => 'VizDisplayCompositor'
+    )
+  end
+
   options = {
     window_size: [1200, 800],
-    # Browser options for CI/Docker compatibility
-    browser_options: {
-      'no-sandbox' => nil,
-      'disable-gpu' => nil,
-      'disable-dev-shm-usage' => nil
-    },
+    browser_options: browser_options,
     headless: ENV['HEADLESS'] != 'false',
     inspector: ENV['INSPECTOR'] == 'true',
     js_errors: true,
     dialog_handler: ->(_page, dialog) { dialog.accept },
     # Note: pending_connection_errors: false documented to suppress these errors,
     # but in practice with Ferrum 0.17.1 they still occur when timeout is hit first
-    pending_connection_errors: false
+    pending_connection_errors: false,
+    # Use generous timeouts by default - Chrome startup can be slow
+    # These timeouts are increased for CI but reasonable for local dev too
+    process_timeout: is_ci ? 120 : 30,    # Time for Chrome process to start
+    timeout: is_ci ? 90 : 30,              # General command timeout
+    network_timeout: is_ci ? 120 : 60,     # Network request timeout
+    slowmo: is_ci ? 0.1 : 0                # Slight delay in CI for stability
   }
-
-  # CI-specific settings for better stability
-  if ENV['CI'] == 'true'
-    options.merge!(
-      process_timeout: 90,      # Increased from 60
-      timeout: 90,              # Increased from 60
-      network_timeout: 120,     # Increased from 90
-      slowmo: 0.1,              # Slightly slower to give CI more breathing room
-      browser_options: options[:browser_options].merge(
-        'single-process' => nil,
-        'no-zygote' => nil,
-        'memory-pressure-off' => nil,
-        'max_old_space_size' => '2048',
-        'disable-features' => 'VizDisplayCompositor'  # Can help with CI stability
-      )
-    )
-  else
-    options.merge!(
-      process_timeout: 20,
-      timeout: 20,
-      network_timeout: 30
-    )
-  end
 
   Capybara::Cuprite::Driver.new(app, **options)
 end

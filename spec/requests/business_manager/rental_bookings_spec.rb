@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'rails_helper'
+require 'cgi'
 
 RSpec.describe 'BusinessManager::RentalBookings', type: :request do
   let!(:business) { create(:business, host_type: 'subdomain') }
@@ -79,7 +80,7 @@ RSpec.describe 'BusinessManager::RentalBookings', type: :request do
       it 'displays booking details' do
         get business_manager_rental_booking_path(booking)
         expect(response.body).to include(booking.booking_number)
-        expect(response.body).to include(customer.full_name)
+        expect(response.body).to include(CGI.escapeHTML(customer.full_name))
       end
     end
   end

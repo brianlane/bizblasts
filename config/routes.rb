@@ -50,6 +50,7 @@ Rails.application.routes.draw do
       resources :rental_bookings, only: [:show] do
         member do
           get :pay_deposit
+          post :submit_deposit
           get :deposit_success
           get :deposit_cancel
           get :confirmation
@@ -337,6 +338,8 @@ Rails.application.routes.draw do
           get :download_csv
         end
       end
+
+      resources :document_templates
 
       # Business orders management
       resources :orders, only: [:index, :show, :new, :create, :edit, :update] do

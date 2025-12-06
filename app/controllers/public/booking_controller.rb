@@ -274,62 +274,90 @@ module Public
         # Client and guest users - validate booking but don't save yet for experience services
         # For standard services, save immediately and allow flexible payment
         if @service.experience?
-          # Experience services require immediate payment - redirect to Stripe
-          # Create a temporary invoice to calculate the total amount for Stripe
-          temp_invoice = Invoice.new(
-            tenant_customer: customer,
-            business: current_tenant,
-            due_date: @booking.start_time.to_date,
-            status: :pending
-          )
-          
-          # Calculate total amount including service and any add-ons
-          service_amount = @service.price || 0
+          unless params[:signature_name].present? && params[:signature_data].present?
+            flash.now[:alert] = "Signature is required to continue."
+            @experience_template ||= active_document_template_for('experience_booking')
+            render :new, status: :unprocessable_content and return
+          end
+
+          quantity = @booking.quantity.to_i
+          quantity = 1 if quantity < 1
+
+          service_price = if @booking.service_variant.present?
+                            @booking.service_variant.price || @service.price || 0
+                          else
+                            @service.price || 0
+                          end
+          service_amount = service_price * quantity
           addon_amount = 0
-          
+
           if @booking.booking_product_add_ons.any?
             addon_amount = @booking.booking_product_add_ons.sum do |addon|
               variant = ProductVariant.find_by(id: addon.product_variant_id)
               next 0 unless variant
-              
+
               base_price = variant.product.price || 0
               modifier = variant.price_modifier || 0
-              final_price = base_price + modifier
-              final_price * addon.quantity
+              (base_price + modifier) * addon.quantity
             end
           end
-          
-          total_amount = service_amount + addon_amount
-          temp_invoice.total_amount = total_amount
-          
-          # Prepare booking data for Stripe metadata
+
+          promo_discount = @booking.promo_discount_amount.to_f
+          subtotal = service_amount + addon_amount
+          total_amount = subtotal - promo_discount
+          total_amount = 0 if total_amount.negative?
+
+          if total_amount < 0.50
+            flash[:alert] = "This booking amount is too small for online payment. Please contact the business directly."
+            redirect_to new_tenant_booking_path(service_id: @service.id, staff_member_id: @booking.staff_member_id) and return
+          end
+
           booking_data = {
             service_id: @booking.service_id,
+            service_variant_id: @booking.service_variant_id,
             staff_member_id: @booking.staff_member_id,
             start_time: @booking.start_time.iso8601,
             end_time: @booking.end_time.iso8601,
             notes: @booking.notes,
             tenant_customer_id: customer.id,
-            booking_product_add_ons: @booking.booking_product_add_ons.map do |addon|
+            quantity: quantity,
+            booking_product_add_ons: @booking.booking_product_add_ons.select { |addon| addon.quantity.to_i.positive? }.map do |addon|
               {
                 product_variant_id: addon.product_variant_id,
                 quantity: addon.quantity
               }
             end
           }
-          
-          # Redirect directly to Stripe Checkout for experience services
+
+          if @booking.applied_promo_code.present?
+            booking_data[:applied_promo_code] = @booking.applied_promo_code
+            booking_data[:promo_code_type] = @booking.promo_code_type
+            booking_data[:promo_discount_amount] = @booking.promo_discount_amount
+          end
+
           begin
             success_url = tenant_booking_confirmation_url('PENDING', payment_success: true, host: request.host_with_port)
             cancel_url = new_tenant_booking_url(service_id: @service.id, staff_member_id: @booking.staff_member_id, payment_cancelled: true, host: request.host_with_port)
-            
-            result = StripeService.create_payment_checkout_session_for_booking(
-              invoice: temp_invoice,
-              booking_data: booking_data,
+
+            document = build_experience_client_document!(
+              customer: customer,
+              total_amount: total_amount,
+              booking_data: booking_data
+            )
+
+            ClientDocuments::SignatureService.new(document).capture!(
+              signer_name: params[:signature_name],
+              signer_email: customer.email,
+              signature_data: params[:signature_data],
+              request: request
+            )
+            ClientDocuments::WorkflowService.new(document).mark_signature_captured!
+
+            result = ClientDocuments::DepositService.new(document).initiate_checkout!(
               success_url: success_url,
               cancel_url: cancel_url
             )
-            
+
             redirect_to result[:session].url, allow_other_host: true
           rescue ArgumentError => e
             if e.message.include?("Payment amount must be at least")
@@ -340,6 +368,14 @@ module Public
             end
           rescue Stripe::StripeError => e
             flash[:alert] = "Could not connect to Stripe: #{e.message}"
+            redirect_to new_tenant_booking_path(service_id: @service.id, staff_member_id: @booking.staff_member_id)
+          rescue ActiveRecord::RecordInvalid => e
+            Rails.logger.error "[BookingController] Validation failed during experience checkout: #{e.message}"
+            flash[:alert] = "Unable to process your booking. Please check your information and try again."
+            redirect_to new_tenant_booking_path(service_id: @service.id, staff_member_id: @booking.staff_member_id)
+          rescue ActiveRecord::RecordNotFound => e
+            Rails.logger.error "[BookingController] Record not found during experience checkout: #{e.message}"
+            flash[:alert] = "The requested service or staff member is no longer available."
             redirect_to new_tenant_booking_path(service_id: @service.id, staff_member_id: @booking.staff_member_id)
           end
         else
@@ -470,6 +506,10 @@ module Public
       else
         [] # Return an empty array if service is not found
       end
+
+      if @service&.experience?
+        @experience_template = active_document_template_for('experience_booking')
+      end
     end
 
     def booking_params
@@ -503,6 +543,40 @@ module Public
       # The Invoice model's calculate_totals should sum service and booking_product_add_ons
       invoice.save! # This will trigger calculate_totals on the invoice
     end
+
+  def active_document_template_for(document_type)
+    return unless current_tenant
+
+    current_tenant.document_templates.active.for_type(document_type).order(version: :desc).first
+  end
+
+  def build_experience_client_document!(customer:, total_amount:, booking_data:)
+    document = current_tenant.client_documents.new(
+      business: current_tenant,
+      tenant_customer: customer,
+      documentable: customer,
+      document_type: 'experience_booking',
+      title: "#{@service.name} Experience Booking",
+      deposit_amount: total_amount,
+      payment_required: total_amount.to_f.positive?,
+      signature_required: true,
+      status: 'pending_signature'
+    )
+
+    document.metadata = (document.metadata || {}).merge(
+      'booking_payload' => booking_data.deep_stringify_keys,
+      'service_id' => @service.id,
+      'service_name' => @service.name
+    )
+
+    if (template = active_document_template_for('experience_booking'))
+      document.apply_template(template)
+    end
+
+    document.save!
+    document.record_event!('created')
+    document
+  end
 
     def current_tenant
       ActsAsTenant.current_tenant

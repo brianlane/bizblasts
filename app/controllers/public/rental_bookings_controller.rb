@@ -2,8 +2,8 @@
 
 module Public
   class RentalBookingsController < ApplicationController
-    before_action :set_rental_booking, only: [:show, :pay_deposit, :deposit_success, :deposit_cancel, :confirmation]
-    before_action :authorize_booking_access!, only: [:show, :pay_deposit, :deposit_success, :deposit_cancel, :confirmation]
+    before_action :set_rental_booking, only: [:show, :pay_deposit, :submit_deposit, :deposit_success, :deposit_cancel, :confirmation]
+    before_action :authorize_booking_access!, only: [:show, :pay_deposit, :submit_deposit, :deposit_success, :deposit_cancel, :confirmation]
     
     # GET /rental_bookings/:id
     def show
@@ -18,18 +18,58 @@ module Public
         return
       end
       
-      # Create Stripe checkout session for deposit
-      checkout_session = StripeService.create_rental_deposit_checkout_session(
-        rental_booking: @rental_booking,
-        success_url: deposit_success_rental_booking_url(@rental_booking),
-        cancel_url: deposit_cancel_rental_booking_url(@rental_booking)
-      )
-      
-      redirect_to checkout_session.url, allow_other_host: true
-    rescue => e
-      Rails.logger.error("[RentalBookingsController] Failed to create Stripe session: #{e.message}")
-      redirect_to rental_booking_path(@rental_booking), 
-                  alert: 'Unable to process payment at this time. Please try again later.'
+      @client_document = @rental_booking.ensure_client_document!
+    end
+
+    # POST /rental_bookings/:id/submit_deposit
+    def submit_deposit
+      unless @rental_booking.status_pending_deposit?
+        redirect_to rental_booking_path(@rental_booking),
+                    notice: 'Deposit has already been paid.'
+        return
+      end
+
+      unless params[:signature_data].present? && params[:signature_name].present?
+        flash.now[:alert] = 'Signature is required to continue.'
+        @client_document = @rental_booking.ensure_client_document!
+        render :pay_deposit, status: :unprocessable_content
+        return
+      end
+
+      result = nil
+      ActiveRecord::Base.transaction do
+        @client_document = @rental_booking.ensure_client_document!
+        ClientDocuments::SignatureService.new(@client_document).capture!(
+          signer_name: params[:signature_name],
+          signer_email: @rental_booking.customer_email,
+          signature_data: params[:signature_data],
+          request: request
+        )
+        ClientDocuments::WorkflowService.new(@client_document).mark_signature_captured!
+
+        result = ClientDocuments::DepositService.new(@client_document).initiate_checkout!(
+          success_url: deposit_success_rental_booking_url(@rental_booking, token: params[:token]),
+          cancel_url: deposit_cancel_rental_booking_url(@rental_booking, token: params[:token])
+        )
+      end
+
+      redirect_to result[:session].url, allow_other_host: true
+    rescue Stripe::StripeError => e
+      Rails.logger.error("[RentalBookingsController] Stripe error during deposit submission: #{e.message}")
+      redirect_to rental_booking_path(@rental_booking, token: params[:token]),
+                  alert: 'Unable to connect to payment provider. Please try again later.'
+    rescue ActiveRecord::RecordInvalid => e
+      Rails.logger.error("[RentalBookingsController] Validation failed during deposit submission: #{e.message}")
+      redirect_to rental_booking_path(@rental_booking, token: params[:token]),
+                  alert: 'Unable to process your signature. Please try again.'
+    rescue ActiveRecord::RecordNotFound => e
+      Rails.logger.error("[RentalBookingsController] Record not found during deposit submission: #{e.message}")
+      redirect_to rental_booking_path(@rental_booking, token: params[:token]),
+                  alert: 'This rental booking is no longer available.'
+    rescue ArgumentError => e
+      Rails.logger.error("[RentalBookingsController] Invalid argument during deposit submission: #{e.message}")
+      redirect_to rental_booking_path(@rental_booking, token: params[:token]),
+                  alert: e.message.include?("$0.50") ? 'Deposit amount is too small for online payment.' : 'Unable to process payment at this time.'
     end
     
     # GET /rental_bookings/:id/deposit_success

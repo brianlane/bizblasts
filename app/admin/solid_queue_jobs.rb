@@ -257,7 +257,7 @@ ActiveAdmin.register_page "Solid Queue Jobs" do
 
         not_found_patterns.each do |pattern|
           if (match = error_text.match(pattern))
-            return [true, "referenced #{match[1]} not found"]
+            return [true, "referencing non-existent #{match[1]}"]
           end
         end
       end
@@ -283,12 +283,12 @@ ActiveAdmin.register_page "Solid Queue Jobs" do
         begin
           model_class = model_name.constantize
           unless model_class.exists?(record_id)
-            return [true, "referenced #{model_name}##{record_id} not found"]
+            return [true, "referencing non-existent #{model_name}"]
           end
         rescue NameError
           # Unknown model class, skip
         rescue ActiveRecord::RecordNotFound
-          return [true, "referenced #{model_name}##{record_id} not found"]
+          return [true, "referencing non-existent #{model_name}"]
         end
       end
 

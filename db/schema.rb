@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_29_000007) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_05_011000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -427,6 +427,58 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_29_000007) do
     t.index ["user_id"], name: "index_client_businesses_on_user_id"
   end
 
+  create_table "client_document_events", force: :cascade do |t|
+    t.bigint "actor_id"
+    t.string "actor_type"
+    t.bigint "business_id", null: false
+    t.bigint "client_document_id", null: false
+    t.datetime "created_at", null: false
+    t.jsonb "data", default: {}
+    t.string "event_type", null: false
+    t.string "ip_address"
+    t.text "message"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.index ["business_id"], name: "index_client_document_events_on_business_id"
+    t.index ["client_document_id", "event_type"], name: "idx_on_client_document_id_event_type_808a7c3557"
+    t.index ["client_document_id"], name: "index_client_document_events_on_client_document_id"
+  end
+
+  create_table "client_documents", force: :cascade do |t|
+    t.text "body"
+    t.bigint "business_id", null: false
+    t.string "checkout_session_id"
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.string "currency", default: "usd", null: false
+    t.decimal "deposit_amount", precision: 10, scale: 2, default: "0.0", null: false
+    t.datetime "deposit_paid_at"
+    t.bigint "document_template_id"
+    t.string "document_type", null: false
+    t.bigint "documentable_id"
+    t.string "documentable_type"
+    t.bigint "invoice_id"
+    t.jsonb "metadata", default: {}, null: false
+    t.string "payment_intent_id"
+    t.boolean "payment_required", default: false, null: false
+    t.datetime "sent_at"
+    t.boolean "signature_required", default: true, null: false
+    t.datetime "signed_at"
+    t.string "status", default: "draft", null: false
+    t.bigint "tenant_customer_id"
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.index ["business_id", "status"], name: "index_client_documents_on_business_id_and_status"
+    t.index ["business_id"], name: "index_client_documents_on_business_id"
+    t.index ["checkout_session_id"], name: "index_client_documents_on_checkout_session_id"
+    t.index ["document_template_id"], name: "index_client_documents_on_document_template_id"
+    t.index ["document_type", "status"], name: "index_client_documents_on_document_type_and_status"
+    t.index ["documentable_type", "documentable_id"], name: "index_client_documents_on_documentable"
+    t.index ["invoice_id"], name: "index_client_documents_on_invoice_id"
+    t.index ["payment_intent_id"], name: "index_client_documents_on_payment_intent_id"
+    t.index ["tenant_customer_id"], name: "index_client_documents_on_tenant_customer_id"
+  end
+
   create_table "customer_subscriptions", force: :cascade do |t|
     t.boolean "allow_customer_preferences", default: true, null: false
     t.integer "billing_day_of_month", null: false
@@ -501,6 +553,37 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_29_000007) do
     t.index ["stripe_coupon_id"], name: "index_discount_codes_on_stripe_coupon_id"
     t.index ["tenant_customer_id"], name: "index_discount_codes_on_tenant_customer_id"
     t.index ["used_by_customer_id"], name: "index_discount_codes_on_used_by_customer_id"
+  end
+
+  create_table "document_signatures", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.bigint "client_document_id", null: false
+    t.datetime "created_at", null: false
+    t.string "ip_address"
+    t.integer "position"
+    t.string "role", default: "client", null: false
+    t.text "signature_data"
+    t.datetime "signed_at"
+    t.string "signer_email"
+    t.string "signer_name", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.index ["business_id"], name: "index_document_signatures_on_business_id"
+    t.index ["client_document_id", "role"], name: "index_document_signatures_on_client_document_id_and_role"
+    t.index ["client_document_id"], name: "index_document_signatures_on_client_document_id"
+  end
+
+  create_table "document_templates", force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.text "body", null: false
+    t.bigint "business_id", null: false
+    t.datetime "created_at", null: false
+    t.string "document_type", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.integer "version", default: 1, null: false
+    t.index ["business_id", "document_type", "active"], name: "idx_on_business_id_document_type_active_ad65b373a5"
+    t.index ["business_id"], name: "index_document_templates_on_business_id"
   end
 
   create_table "estimate_items", force: :cascade do |t|
@@ -1922,6 +2005,12 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_29_000007) do
   add_foreign_key "campaign_recipients", "tenant_customers"
   add_foreign_key "client_businesses", "businesses", on_delete: :cascade
   add_foreign_key "client_businesses", "users"
+  add_foreign_key "client_document_events", "businesses"
+  add_foreign_key "client_document_events", "client_documents"
+  add_foreign_key "client_documents", "businesses"
+  add_foreign_key "client_documents", "document_templates"
+  add_foreign_key "client_documents", "invoices"
+  add_foreign_key "client_documents", "tenant_customers"
   add_foreign_key "customer_subscriptions", "businesses", on_delete: :cascade
   add_foreign_key "customer_subscriptions", "product_variants"
   add_foreign_key "customer_subscriptions", "products"
@@ -1932,6 +2021,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_29_000007) do
   add_foreign_key "discount_codes", "referrals", column: "generated_by_referral_id"
   add_foreign_key "discount_codes", "tenant_customers"
   add_foreign_key "discount_codes", "tenant_customers", column: "used_by_customer_id", on_delete: :nullify
+  add_foreign_key "document_signatures", "businesses"
+  add_foreign_key "document_signatures", "client_documents"
+  add_foreign_key "document_templates", "businesses"
   add_foreign_key "estimate_items", "estimates"
   add_foreign_key "estimate_items", "product_variants"
   add_foreign_key "estimate_items", "products"

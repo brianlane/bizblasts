@@ -81,6 +81,7 @@ class RentalBookingService
     
     RentalBooking.transaction do
       if booking.save
+        booking.ensure_client_document! if booking.security_deposit_amount.to_f.positive?
         # Note: Security deposit is handled via Stripe checkout session
         # No invoice needed - deposit is collected before rental checkout
         success_response(booking)

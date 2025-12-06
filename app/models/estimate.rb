@@ -10,6 +10,7 @@ class Estimate < ApplicationRecord
   has_many :estimate_versions, dependent: :destroy
 
   has_one_attached :pdf # Generated PDF attachment
+  has_one :client_document, as: :documentable, dependent: :destroy
 
   accepts_nested_attributes_for :estimate_items, allow_destroy: true,
     reject_if: ->(attrs) {
@@ -133,28 +134,61 @@ class Estimate < ApplicationRecord
     total - deposit_amount
   end
 
-  # Mark an optional item as declined (customer did not select it)
-  def decline_optional_item(item_id)
-    item = estimate_items.find_by(id: item_id, optional: true)
-    return false unless item
-
-    item.update(customer_selected: false, customer_declined: true)
-    recalculate_totals!
-  end
-
-  # Mark an optional item as selected
-  def select_optional_item(item_id)
-    item = estimate_items.find_by(id: item_id, optional: true)
-    return false unless item
-
-    item.update(customer_selected: true, customer_declined: false)
-    recalculate_totals!
-  end
-
-  # Force recalculation and save
   def recalculate_totals!
     calculate_totals
     save!
+  end
+
+  def ensure_client_document!
+    template = active_template_for('estimate')
+
+    if client_document
+      client_document.assign_attributes(
+        deposit_amount: deposit_amount,
+        payment_required: deposit_amount.to_f.positive?
+      )
+      apply_template_if_needed(client_document, template)
+      client_document.save! if client_document.changed?
+      return client_document
+    end
+
+    build_client_document(
+      business: business,
+      tenant_customer: tenant_customer,
+      document_type: 'estimate',
+      title: "Estimate #{estimate_number || id}",
+      deposit_amount: deposit_amount,
+      payment_required: deposit_amount.to_f.positive?,
+      signature_required: true,
+      status: 'pending_signature'
+    ).tap do |doc|
+      apply_template_if_needed(doc, template)
+      doc.save!
+      doc.record_event!('created')
+    end
+  end
+
+  def handle_client_document_payment(document, payment)
+    return false if approved?
+
+    invoice_to_update = nil
+
+    transaction do
+      update!(
+        status: :approved,
+        approved_at: Time.current,
+        deposit_paid_at: Time.current,
+        payment_intent_id: document.payment_intent_id || payment&.stripe_payment_intent_id
+      )
+
+      invoice_to_update = document.invoice || booking&.invoice
+      invoice_to_update&.update!(status: :paid)
+    end
+
+    EstimateMailer.deposit_paid_confirmation(self).deliver_later(queue: 'mailers')
+    EstimateMailer.estimate_approved(self).deliver_later(queue: 'mailers')
+
+    true
   end
 
   private
@@ -209,6 +243,17 @@ class Estimate < ApplicationRecord
     end
 
     self.total = (subtotal || 0) + (taxes || 0)
+  end
+
+  def active_template_for(document_type)
+    business.document_templates.active.for_type(document_type).order(version: :desc).first
+  end
+
+  def apply_template_if_needed(document, template)
+    return unless template
+    return if document.document_template_id == template.id && document.body.present?
+
+    document.apply_template(template)
   end
 
   def generate_token

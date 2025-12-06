@@ -1,0 +1,64 @@
+<div class="min-h-screen bg-gray-50 py-10">
+  <div class="container mx-auto px-4 max-w-2xl">
+    <div class="bg-white shadow rounded-lg p-6">
+      <h1 class="text-2xl font-bold text-gray-900 mb-2">Pay Security Deposit</h1>
+      <p class="text-sm text-gray-500 mb-6">Booking #<%= @rental_booking.booking_number %></p>
+
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <p class="text-blue-900 font-medium">Deposit Amount</p>
+        <p class="text-2xl font-bold text-blue-700"><%= number_to_currency(@rental_booking.security_deposit_amount) %></p>
+        <p class="text-sm text-blue-800 mt-2">
+          This fully refundable deposit will be released after the rental is returned in good condition.
+        </p>
+      </div>
+
+      <p class="text-gray-700 mb-6">
+        Please review and sign the agreement below to continue. After signing you will be redirected to our secure payment provider to authorize the deposit.
+      </p>
+
+      <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6 text-sm text-gray-600">
+        <h2 class="text-base font-semibold text-gray-900 mb-2">Agreement Summary</h2>
+        <p>
+          By signing, you agree to the rental terms for <strong><%= @rental_booking.rental_name %></strong> and authorize
+          <strong><%= @rental_booking.business.name %></strong> to place a refundable hold of
+          <strong><%= number_to_currency(@rental_booking.security_deposit_amount) %></strong> on your payment method.
+        </p>
+      </div>
+
+      <% if @client_document&.document_template.present? %>
+        <% template = @client_document.document_template %>
+        <div class="bg-white border border-gray-200 rounded-lg p-4 mb-6">
+          <p class="text-sm text-gray-500 uppercase tracking-wide mb-1">Agreement Template</p>
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <p class="text-base font-semibold text-gray-900"><%= template.name %></p>
+              <p class="text-sm text-gray-600">Version <%= template.version %></p>
+            </div>
+            <p class="text-xs text-gray-500">Last updated <%= l(template.updated_at, format: :long) %></p>
+          </div>
+        </div>
+      <% end %>
+
+      <% if @client_document&.body.present? %>
+        <div class="prose prose-sm text-gray-700 max-w-none mb-6">
+          <%= sanitize(@client_document.body, tags: %w[p br strong em ul ol li a h3 h4], attributes: %w[href target rel]) %>
+        </div>
+      <% end %>
+
+      <div data-controller="signature-pad" data-signature-pad-required-value="true">
+        <%= form_with url: submit_deposit_rental_booking_path(@rental_booking), method: :post, local: true do %>
+          <%= hidden_field_tag :token, params[:token] if params[:token].present? %>
+          <%= render 'shared/signature_fields' %>
+
+          <button type="submit"
+            data-signature-pad-target="submitButton"
+            data-action="signature-pad#prepareSubmission"
+            disabled
+            class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow disabled:opacity-50 disabled:cursor-not-allowed">
+            Sign & Pay Deposit (<%= number_to_currency(@rental_booking.security_deposit_amount) %>)
+          </button>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

@@ -205,19 +205,26 @@ RSpec.configure do |config|
   # RSpec Retry Configuration for flaky tests - optimized for CI performance
   config.verbose_retry = true
   config.display_try_failure_messages = true
-  
+
   # Only retry specific browser-related errors and only in CI
-  # Reduced retries for faster feedback - 1 retry (2 total attempts)
+  # 2 retries (3 total attempts) for browser startup issues which can be intermittent
   config.around(:each, type: :system) do |ex|
-    if ENV['CI'] == 'true'
+    if ENV['CI'] == 'true' || ENV['GITHUB_ACTIONS'].present?
       ex.run_with_retry(
-        retry: 1,  # 1 retry only (2 total) - reduced from 2 retries
+        retry: 2,  # 2 retries (3 total attempts) for better CI stability
         exceptions_to_retry: [
           Ferrum::ProcessTimeoutError,
           Ferrum::TimeoutError,
+          Ferrum::PendingConnectionsError,
+          Ferrum::BrowserError,
           Net::ReadTimeout
         ],
-        retry_callback: -> { Capybara.reset! }
+        retry_callback: -> {
+          # Reset Capybara session on retry
+          Capybara.reset!
+          # Brief sleep to let resources settle
+          sleep 1
+        }
       )
     else
       ex.run

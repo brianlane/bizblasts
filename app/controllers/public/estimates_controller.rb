@@ -4,6 +4,7 @@ class Public::EstimatesController < ApplicationController
   skip_before_action :authenticate_user!, only: [:show, :approve, :decline, :request_changes, :download_pdf]
   before_action :find_estimate_by_token
   before_action :set_tenant_from_estimate
+  before_action :ensure_client_document, only: [:show]
 
   # Token-based show for public access
   def show
@@ -112,5 +113,9 @@ class Public::EstimatesController < ApplicationController
 
   def set_tenant_from_estimate
     ActsAsTenant.current_tenant = @estimate.business if @estimate
+  end
+
+  def ensure_client_document
+    @client_document = @estimate.ensure_client_document!
   end
 end

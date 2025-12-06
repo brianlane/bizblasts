@@ -534,6 +534,37 @@
       </div>
     <% end %>
 
+    <% if @service.experience? %>
+      <div class="mb-6 space-y-4">
+        <% if @experience_template.present? %>
+          <div class="bg-white border border-gray-200 rounded-lg p-4">
+            <p class="text-sm text-gray-500 uppercase tracking-wide mb-1">Experience Agreement</p>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <p class="text-base font-semibold text-gray-900"><%= @experience_template.name %></p>
+                <p class="text-sm text-gray-600">Version <%= @experience_template.version %></p>
+              </div>
+              <p class="text-xs text-gray-500">Last updated <%= l(@experience_template.updated_at, format: :long) %></p>
+            </div>
+          </div>
+        <% end %>
+
+        <% if @experience_template&.body.present? %>
+          <div class="prose prose-sm text-gray-700 max-w-none bg-white border border-gray-200 rounded-lg p-4">
+            <%= sanitize(@experience_template.body, tags: %w[p br strong em ul ol li a h3 h4], attributes: %w[href target rel]) %>
+          </div>
+        <% end %>
+
+        <div class="bg-white border border-gray-200 rounded-lg p-4" data-controller="signature-pad" data-signature-pad-required-value="true">
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Sign & Authorize Payment</h3>
+          <p class="text-sm text-gray-600 mb-4">
+            Your signature confirms the experience terms and authorizes the immediate deposit payment required to secure your spot.
+          </p>
+          <%= render 'shared/signature_fields' %>
+        </div>
+      </div>
+    <% end %>
+
     <div class="flex items-center justify-between">
       <%# Show submit button if user is client or staff members are available %>
       <% if current_user&.role == 'client' || current_user.nil? || @service.staff_members.any? %>

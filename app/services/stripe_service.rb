@@ -389,6 +389,68 @@ class StripeService
     session
   end
 
+  def self.create_client_document_checkout_session(document:, success_url:, cancel_url:)
+    configure_stripe_api_key
+    business = document.business
+    tenant_customer = document.tenant_customer
+
+    unless business.stripe_account_id.present?
+      raise ArgumentError, "Business must have a Stripe Connect account to collect document deposits"
+    end
+
+    deposit_amount = document.deposit_amount.to_f
+    raise ArgumentError, "Payment amount must be at least $0.50 USD. Current amount: $#{deposit_amount}" if deposit_amount < 0.50
+
+    stripe_customer = tenant_customer.present? ? ensure_stripe_customer_for_tenant(tenant_customer, business) : nil
+    amount_cents = (deposit_amount * 100).to_i
+    platform_fee_cents = calculate_platform_fee_cents(amount_cents, business)
+
+    metadata = {
+      payment_type: 'client_document',
+      client_document_id: document.id,
+      business_id: business.id,
+      documentable_type: document.documentable_type,
+      documentable_id: document.documentable_id,
+      invoice_id: document.invoice_id
+    }.compact
+
+    session_params = {
+      payment_method_types: ['card'],
+      line_items: [{
+        price_data: {
+          currency: document.currency || 'usd',
+          product_data: {
+            name: document.title.presence || document.document_type.titleize,
+            description: "Payment for #{business.name}"
+          },
+          unit_amount: amount_cents
+        },
+        quantity: 1
+      }],
+      mode: 'payment',
+      success_url: success_url,
+      cancel_url: cancel_url,
+      metadata: metadata,
+      payment_intent_data: {
+        application_fee_amount: platform_fee_cents,
+        metadata: metadata
+      }
+    }
+
+    if stripe_customer
+      session_params[:customer] = stripe_customer.id
+    elsif tenant_customer&.email.present?
+      session_params[:customer_creation] = 'always'
+      session_params[:customer_email] = tenant_customer.email
+    end
+
+    session = Stripe::Checkout::Session.create(session_params, {
+      stripe_account: business.stripe_account_id
+    })
+
+    { session: session }
+  end
+
   # Capture a preauthorized rental deposit (charge the held funds)
   # @param rental_booking [RentalBooking] The rental booking with authorized deposit
   # @return [Hash] Result hash with :success and :error keys
@@ -1025,6 +1087,11 @@ class StripeService
   # Handle successful checkout session completion for payments and registrations
   def self.handle_checkout_session_completed(session)
     # Check if this is a business registration
+    if session.dig('metadata', 'payment_type') == 'client_document' && session.dig('metadata', 'client_document_id').present?
+      handle_client_document_payment_completion(session)
+      return
+    end
+
     if session.dig('metadata', 'registration_type') == 'business'
       handle_business_registration_completion(session)
       return
@@ -1531,6 +1598,36 @@ class StripeService
     Rails.logger.error e.backtrace.join("\n")
   end
 
+  def self.handle_client_document_payment_completion(session)
+    document_id = session.dig('metadata', 'client_document_id')
+    # Use unscoped to find document without tenant context since we set it after
+    document = ClientDocument.unscoped.find_by(id: document_id)
+    return unless document
+
+    ActsAsTenant.with_tenant(document.business) do
+      payment = ensure_document_payment_record(document: document, session: session)
+      ClientDocuments::WorkflowService.new(document).mark_payment_received!(
+        payment_intent_id: session['payment_intent'],
+        amount_cents: session['amount_total']
+      )
+      document.invoice&.update!(status: :paid)
+
+      if document.metadata['booking_payload'].present?
+        ClientDocuments::ExperienceBookingProcessor.process!(
+          document: document,
+          payment: payment,
+          session: session
+        )
+      elsif document.documentable&.respond_to?(:handle_client_document_payment)
+        document.documentable.handle_client_document_payment(document, payment)
+      end
+    end
+  rescue => e
+    Rails.logger.error "[CLIENT_DOCUMENT] Error processing payment for document #{document_id}: #{e.message}"
+    Rails.logger.error e.backtrace.join("\n")
+    raise
+  end
+
   # Handle rental security deposit payment completion
   def self.handle_rental_deposit_payment_completion(session)
     Rails.logger.info "[RENTAL_DEPOSIT] Processing rental deposit payment for session #{session['id']}"
@@ -1645,6 +1742,32 @@ class StripeService
   rescue => e
     Rails.logger.error "[TIP] Error processing tip payment for session #{session['id']}: #{e.message}"
     Rails.logger.error e.backtrace.join("\n")
+  end
+
+  def self.ensure_document_payment_record(document:, session:)
+    existing_payment = Payment.find_by(stripe_payment_intent_id: session['payment_intent'])
+    return existing_payment if existing_payment
+
+    total_amount = session['amount_total'].to_f / 100.0
+    amount_cents = session['amount_total']
+    stripe_fee_amount   = calculate_stripe_fee_cents(amount_cents) / 100.0
+    platform_fee_amount = calculate_platform_fee_cents(amount_cents, document.business) / 100.0
+    business_amount     = (total_amount - stripe_fee_amount - platform_fee_amount).round(2)
+
+    Payment.create!(
+      business: document.business,
+      invoice: document.invoice,
+      tenant_customer: document.tenant_customer,
+      amount: total_amount,
+      stripe_fee_amount: stripe_fee_amount,
+      platform_fee_amount: platform_fee_amount,
+      business_amount: business_amount,
+      stripe_payment_intent_id: session['payment_intent'],
+      stripe_customer_id: session['customer'],
+      payment_method: :credit_card,
+      status: :completed,
+      paid_at: Time.current
+    )
   end
 
   # Handle booking creation after successful payment

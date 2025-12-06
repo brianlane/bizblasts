@@ -17,12 +17,6 @@ RSpec.describe Public::BookingController, type: :controller do
   end
 
   describe 'POST #create' do
-    before do
-      # Mock the checkout session creation for the redirect
-      allow(StripeService).to receive(:create_payment_checkout_session_for_booking).and_return({
-        session: double('Stripe::Checkout::Session', url: 'https://checkout.stripe.com/pay/cs_booking_test_123')
-      })
-    end
 
     let(:valid_booking_params) do
       {
@@ -58,8 +52,6 @@ RSpec.describe Public::BookingController, type: :controller do
       expect(invoice.tax_amount).to be_within(0.01).of(9.80) # 9.8% of $100
       expect(invoice.total_amount).to be_within(0.01).of(109.80) # $100 + $9.80 tax
       
-      # Verify Stripe service was NOT called for standard services
-      expect(StripeService).not_to have_received(:create_payment_checkout_session_for_booking)
     end
 
     context 'with experience service' do
@@ -74,32 +66,51 @@ RSpec.describe Public::BookingController, type: :controller do
           }
         }
       end
+      let(:signature_params) { { signature_name: 'Test User', signature_data: 'data:image/png;base64,AAA' } }
+      let(:checkout_session) { double('Stripe::Checkout::Session', url: 'https://checkout.stripe.com/pay/cs_booking_test_123') }
+      let(:deposit_service) { instance_double(ClientDocuments::DepositService, initiate_checkout!: { session: checkout_session }) }
+      let(:signature_service) { instance_double(ClientDocuments::SignatureService, capture!: true) }
+      let(:workflow_service) { instance_double(ClientDocuments::WorkflowService, mark_signature_captured!: true) }
 
       before do
         create(:services_staff_member, service: experience_service, staff_member: staff_member)
+        allow(ClientDocuments::DepositService).to receive(:new).and_return(deposit_service)
+        allow(ClientDocuments::SignatureService).to receive(:new).and_return(signature_service)
+        allow(ClientDocuments::WorkflowService).to receive(:new).and_return(workflow_service)
+      end
+
+      it 'requires a signature before continuing' do
+        post :create, params: experience_booking_params
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response).to render_template(:new)
+        expect(flash[:alert]).to include('Signature is required')
       end
 
       it 'redirects to Stripe Checkout for experience services' do
-        post :create, params: experience_booking_params
+        expect {
+          post :create, params: experience_booking_params.merge(signature_params)
+        }.to change { ClientDocument.count }.by(1)
         
-        # Should redirect to Stripe for experience services
+        document = ClientDocument.last
+        expect(document.document_type).to eq('experience_booking')
+        
         expect(response).to redirect_to('https://checkout.stripe.com/pay/cs_booking_test_123')
         
-        # Verify booking was NOT created yet (will be created after payment)
         expect(Booking.count).to eq(0)
         
-        # Verify Stripe service was called
-        expect(StripeService).to have_received(:create_payment_checkout_session_for_booking)
+        expect(ClientDocuments::SignatureService).to have_received(:new).with(document)
+        expect(ClientDocuments::DepositService).to have_received(:new).with(document)
+        expect(document.metadata['booking_payload']).to be_present
       end
 
       context 'when Stripe error occurs' do
         before do
-          allow(StripeService).to receive(:create_payment_checkout_session_for_booking)
-            .and_raise(Stripe::StripeError.new('Stripe connection error'))
+          allow(deposit_service).to receive(:initiate_checkout!).and_raise(Stripe::StripeError.new('Stripe connection error'))
         end
 
         it 'redirects to booking form with error message' do
-          post :create, params: experience_booking_params
+          post :create, params: experience_booking_params.merge(signature_params)
           
           expect(response).to redirect_to(new_tenant_booking_path(service_id: experience_service.id, staff_member_id: staff_member.id))
           expect(flash[:alert]).to include('Could not connect to Stripe')
@@ -110,19 +121,44 @@ RSpec.describe Public::BookingController, type: :controller do
       end
 
       context 'when booking amount is too small' do
-        before do
-          allow(StripeService).to receive(:create_payment_checkout_session_for_booking)
-            .and_raise(ArgumentError, "Payment amount must be at least $0.50 USD")
-        end
-
         it 'redirects to booking form with error message' do
-          post :create, params: experience_booking_params
+          allow(deposit_service).to receive(:initiate_checkout!).and_raise(ArgumentError, "Payment amount must be at least $0.50 USD")
+
+          post :create, params: experience_booking_params.merge(signature_params)
           
           expect(response).to redirect_to(new_tenant_booking_path(service_id: experience_service.id, staff_member_id: staff_member.id))
           expect(flash[:alert]).to include('This booking amount is too small for online payment')
           
           # Verify no booking was created
           expect(Booking.count).to eq(0)
+        end
+
+        context 'with quantity, service variant, and promo code' do
+          let!(:service_variant) { create(:service_variant, service: experience_service, price: 120.0) }
+          let(:experience_booking_params) do
+            {
+              booking: {
+                service_id: experience_service.id,
+                service_variant_id: service_variant.id,
+                staff_member_id: staff_member.id,
+                start_time: 1.day.from_now,
+                notes: 'Test variant booking',
+                quantity: 2,
+                promo_code: 'SAVE40'
+              }
+            }
+          end
+
+          it 'applies quantity, variant price, and promo discount to the deposit amount' do
+            allow(PromoCodeService).to receive(:validate_code).and_return(valid: true, type: 'fixed')
+            allow(PromoCodeService).to receive(:calculate_discount).and_return(40.0)
+
+            post :create, params: experience_booking_params.merge(signature_params)
+
+            document = ClientDocument.last
+            expect(document.deposit_amount.to_f).to eq((service_variant.price * 2) - 40.0)
+            expect(document.metadata['booking_payload']['quantity']).to eq(2)
+          end
         end
       end
     end
@@ -172,8 +208,6 @@ RSpec.describe Public::BookingController, type: :controller do
         expect(invoice.tax_amount).to be_within(0.01).of(9.80) # 9.8% of $100
         expect(invoice.total_amount).to be_within(0.01).of(109.80) # $100 + $9.80 tax
         
-        # Verify Stripe service was NOT called
-        expect(StripeService).not_to have_received(:create_payment_checkout_session_for_booking)
       end
     end
 
@@ -222,8 +256,6 @@ RSpec.describe Public::BookingController, type: :controller do
         expect(invoice.tax_amount).to be_within(0.01).of(9.80) # 9.8% of $100
         expect(invoice.total_amount).to be_within(0.01).of(109.80) # $100 + $9.80 tax
         
-        # Verify Stripe service was NOT called
-        expect(StripeService).not_to have_received(:create_payment_checkout_session_for_booking)
       end
     end
 

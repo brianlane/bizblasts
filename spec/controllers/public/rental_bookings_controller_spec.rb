@@ -59,11 +59,8 @@ RSpec.describe Public::RentalBookingsController, type: :controller do
 
     context 'when accessing with valid guest token' do
       it 'allows access to pay_deposit with valid token' do
-        allow(StripeService).to receive(:create_rental_deposit_checkout_session)
-          .and_return(double(url: 'https://checkout.stripe.com/test'))
-
         get :pay_deposit, params: { id: rental_booking.id, token: 'valid_token_123' }
-        expect(response).to redirect_to('https://checkout.stripe.com/test')
+        expect(response).to have_http_status(:success)
       end
 
       it 'allows access to deposit_success with valid token' do
@@ -95,11 +92,8 @@ RSpec.describe Public::RentalBookingsController, type: :controller do
       end
 
       it 'allows access to pay_deposit when signed in as customer' do
-        allow(StripeService).to receive(:create_rental_deposit_checkout_session)
-          .and_return(double(url: 'https://checkout.stripe.com/test'))
-
         get :pay_deposit, params: { id: rental_booking.id }
-        expect(response).to redirect_to('https://checkout.stripe.com/test')
+        expect(response).to have_http_status(:success)
       end
 
       it 'allows access to deposit_success when signed in as customer' do
@@ -186,27 +180,57 @@ RSpec.describe Public::RentalBookingsController, type: :controller do
       expect(flash[:notice]).to eq('Deposit has already been paid.')
     end
 
-    it 'creates Stripe checkout session and redirects' do
-      checkout_session = double(url: 'https://checkout.stripe.com/test_session')
-      expect(StripeService).to receive(:create_rental_deposit_checkout_session)
-        .with(
-          rental_booking: rental_booking,
-          success_url: deposit_success_rental_booking_url(rental_booking),
-          cancel_url: deposit_cancel_rental_booking_url(rental_booking)
-        )
-        .and_return(checkout_session)
-
+    it 'renders the deposit form when pending' do
       get :pay_deposit, params: { id: rental_booking.id }
-      expect(response).to redirect_to('https://checkout.stripe.com/test_session')
+      expect(response).to have_http_status(:success)
+    end
+  end
+
+  describe 'submit_deposit action' do
+    let(:user) { create(:user, :client, email: customer.email) }
+    let(:signature_service) { instance_double(ClientDocuments::SignatureService, capture!: true) }
+    let(:workflow_service) { instance_double(ClientDocuments::WorkflowService, mark_signature_captured!: true) }
+    let(:deposit_service) { instance_double(ClientDocuments::DepositService) }
+    let(:checkout_session) { double(url: 'https://checkout.stripe.com/test_session', id: 'cs_123', payment_intent: 'pi_123') }
+
+    before do
+      sign_in user
+      allow(ClientDocuments::SignatureService).to receive(:new).and_return(signature_service)
+      allow(ClientDocuments::WorkflowService).to receive(:new).and_return(workflow_service)
+      allow(ClientDocuments::DepositService).to receive(:new).and_return(deposit_service)
+      allow(deposit_service).to receive(:initiate_checkout!).and_return({ session: checkout_session })
     end
 
-    it 'handles Stripe service errors gracefully' do
-      allow(StripeService).to receive(:create_rental_deposit_checkout_session)
-        .and_raise(StandardError.new('Stripe API error'))
+    it 'redirects to Stripe checkout when signature provided' do
+      post :submit_deposit, params: {
+        id: rental_booking.id,
+        signature_name: 'John Doe',
+        signature_data: 'data:image/png;base64,AAAA'
+      }
 
-      get :pay_deposit, params: { id: rental_booking.id }
+      expect(response).to redirect_to('https://checkout.stripe.com/test_session')
+      expect(ClientDocuments::SignatureService).to have_received(:new)
+      expect(ClientDocuments::DepositService).to have_received(:new)
+    end
+
+    it 're-renders form when signature is missing' do
+      post :submit_deposit, params: { id: rental_booking.id, signature_name: '', signature_data: '' }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response).to render_template(:pay_deposit)
+    end
+
+    it 'redirects back when a Stripe error occurs' do
+      allow(deposit_service).to receive(:initiate_checkout!).and_raise(Stripe::StripeError.new('stripe down'))
+
+      post :submit_deposit, params: {
+        id: rental_booking.id,
+        signature_name: 'John Doe',
+        signature_data: 'data:image/png;base64,AAAA'
+      }
+
       expect(response).to redirect_to(rental_booking_path(rental_booking))
-      expect(flash[:alert]).to eq('Unable to process payment at this time. Please try again later.')
+      expect(flash[:alert]).to eq('Unable to connect to payment provider. Please try again later.')
     end
   end
 

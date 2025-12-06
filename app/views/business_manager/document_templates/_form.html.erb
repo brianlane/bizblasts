@@ -1,0 +1,46 @@
+<%= form_with model: [:business_manager, @template], class: "space-y-6" do |form| %>
+  <div class="space-y-1.5">
+    <%= form.label :name, class: "block text-sm font-medium text-gray-700" %>
+    <%= form.text_field :name,
+                        class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500",
+                        placeholder: "Rental Agreement 2025" %>
+    <p class="text-xs text-gray-500">Visible to clients at the top of the document.</p>
+  </div>
+
+  <div class="space-y-1.5">
+    <%= form.label :document_type, class: "block text-sm font-medium text-gray-700" %>
+    <%= form.select :document_type,
+                    options_for_select(DocumentTemplate::DOCUMENT_TYPES, @template.document_type),
+                    {},
+                    class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+    <p class="text-xs text-gray-500">Determines where this template shows up in client-facing flows.</p>
+  </div>
+
+  <div class="space-y-1.5">
+    <%= form.label :body, "Document Body", class: "block text-sm font-medium text-gray-700" %>
+    <%= form.text_area :body,
+                       rows: 12,
+                       class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-mono text-sm",
+                       placeholder: "Enter the language clients must acknowledge before signing..." %>
+    <p class="text-xs text-gray-500">Supports plain text and basic HTML (paragraphs, strong, em, lists).</p>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <%= form.check_box :active, class: "rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" %>
+    <%= form.label :active, "Active template", class: "text-sm text-gray-700" %>
+  </div>
+
+  <% if @template.persisted? %>
+    <div class="text-sm text-gray-500">
+      Version <strong>v<%= @template.version %></strong> &middot; Last updated <%= l(@template.updated_at, format: :short) %>
+    </div>
+  <% end %>
+
+  <div class="flex flex-wrap gap-4">
+    <%= form.submit (@template.persisted? ? "Update Template" : "Create Template"),
+                    class: "inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" %>
+    <%= link_to "Cancel",
+                business_manager_document_templates_path,
+                class: "inline-flex items-center justify-center rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50" %>
+  </div>
+<% end %>
