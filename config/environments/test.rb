@@ -99,6 +99,14 @@ Rails.application.configure do
   ENV['ADMIN_EMAIL'] ||= 'admin@example.com'
 
   # -----------------------------------------------------------------
+  # Stripe webhook secret fallback for test environment
+  # This allows webhook signature verification to pass the "secret present"
+  # check in the middleware, while RSpec stubs intercept the actual
+  # Stripe::Webhook.construct_event call for signature verification.
+  # -----------------------------------------------------------------
+  ENV['STRIPE_WEBHOOK_SECRET'] ||= 'whsec_test_secret_for_tests'
+
+  # -----------------------------------------------------------------
   # Geocoder configuration for tests
   # Prevent external HTTP calls and return deterministic coordinates
   # -----------------------------------------------------------------
