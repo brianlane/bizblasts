@@ -369,9 +369,13 @@ module Public
           rescue Stripe::StripeError => e
             flash[:alert] = "Could not connect to Stripe: #{e.message}"
             redirect_to new_tenant_booking_path(service_id: @service.id, staff_member_id: @booking.staff_member_id)
-          rescue => e
-            Rails.logger.error "[BookingController] Failed to initiate experience checkout: #{e.message}"
-            flash[:alert] = "Unable to start payment at this time. Please try again later."
+          rescue ActiveRecord::RecordInvalid => e
+            Rails.logger.error "[BookingController] Validation failed during experience checkout: #{e.message}"
+            flash[:alert] = "Unable to process your booking. Please check your information and try again."
+            redirect_to new_tenant_booking_path(service_id: @service.id, staff_member_id: @booking.staff_member_id)
+          rescue ActiveRecord::RecordNotFound => e
+            Rails.logger.error "[BookingController] Record not found during experience checkout: #{e.message}"
+            flash[:alert] = "The requested service or staff member is no longer available."
             redirect_to new_tenant_booking_path(service_id: @service.id, staff_member_id: @booking.staff_member_id)
           end
         else

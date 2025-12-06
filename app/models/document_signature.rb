@@ -11,6 +11,7 @@ class DocumentSignature < ApplicationRecord
 
   validates :role, presence: true
   validates :signer_name, presence: true
+  validate :business_matches_document
 
   private
 
@@ -20,5 +21,12 @@ class DocumentSignature < ApplicationRecord
 
   def set_signed_at
     self.signed_at ||= Time.current if signature_data.present? && signed_at.nil?
+  end
+
+  def business_matches_document
+    return unless business_id && client_document&.business_id
+    return if business_id == client_document.business_id
+
+    errors.add(:business, "must match the client document's business")
   end
 end

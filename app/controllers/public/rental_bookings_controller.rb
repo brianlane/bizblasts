@@ -36,25 +36,40 @@ module Public
         return
       end
 
-      @client_document = @rental_booking.ensure_client_document!
-      ClientDocuments::SignatureService.new(@client_document).capture!(
-        signer_name: params[:signature_name],
-        signer_email: @rental_booking.customer_email,
-        signature_data: params[:signature_data],
-        request: request
-      )
-      ClientDocuments::WorkflowService.new(@client_document).mark_signature_captured!
+      result = nil
+      ActiveRecord::Base.transaction do
+        @client_document = @rental_booking.ensure_client_document!
+        ClientDocuments::SignatureService.new(@client_document).capture!(
+          signer_name: params[:signature_name],
+          signer_email: @rental_booking.customer_email,
+          signature_data: params[:signature_data],
+          request: request
+        )
+        ClientDocuments::WorkflowService.new(@client_document).mark_signature_captured!
 
-      result = ClientDocuments::DepositService.new(@client_document).initiate_checkout!(
-        success_url: deposit_success_rental_booking_url(@rental_booking, token: params[:token]),
-        cancel_url: deposit_cancel_rental_booking_url(@rental_booking, token: params[:token])
-      )
-      
+        result = ClientDocuments::DepositService.new(@client_document).initiate_checkout!(
+          success_url: deposit_success_rental_booking_url(@rental_booking, token: params[:token]),
+          cancel_url: deposit_cancel_rental_booking_url(@rental_booking, token: params[:token])
+        )
+      end
+
       redirect_to result[:session].url, allow_other_host: true
-    rescue => e
-      Rails.logger.error("[RentalBookingsController] Failed to process deposit submission: #{e.message}")
+    rescue Stripe::StripeError => e
+      Rails.logger.error("[RentalBookingsController] Stripe error during deposit submission: #{e.message}")
       redirect_to rental_booking_path(@rental_booking, token: params[:token]),
-                  alert: 'Unable to process payment at this time. Please try again later.'
+                  alert: 'Unable to connect to payment provider. Please try again later.'
+    rescue ActiveRecord::RecordInvalid => e
+      Rails.logger.error("[RentalBookingsController] Validation failed during deposit submission: #{e.message}")
+      redirect_to rental_booking_path(@rental_booking, token: params[:token]),
+                  alert: 'Unable to process your signature. Please try again.'
+    rescue ActiveRecord::RecordNotFound => e
+      Rails.logger.error("[RentalBookingsController] Record not found during deposit submission: #{e.message}")
+      redirect_to rental_booking_path(@rental_booking, token: params[:token]),
+                  alert: 'This rental booking is no longer available.'
+    rescue ArgumentError => e
+      Rails.logger.error("[RentalBookingsController] Invalid argument during deposit submission: #{e.message}")
+      redirect_to rental_booking_path(@rental_booking, token: params[:token]),
+                  alert: e.message.include?("$0.50") ? 'Deposit amount is too small for online payment.' : 'Unable to process payment at this time.'
     end
     
     # GET /rental_bookings/:id/deposit_success

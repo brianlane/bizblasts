@@ -220,8 +220,8 @@ RSpec.describe Public::RentalBookingsController, type: :controller do
       expect(response).to render_template(:pay_deposit)
     end
 
-    it 'redirects back when an error occurs' do
-      allow(deposit_service).to receive(:initiate_checkout!).and_raise(StandardError.new('stripe down'))
+    it 'redirects back when a Stripe error occurs' do
+      allow(deposit_service).to receive(:initiate_checkout!).and_raise(Stripe::StripeError.new('stripe down'))
 
       post :submit_deposit, params: {
         id: rental_booking.id,
@@ -230,7 +230,7 @@ RSpec.describe Public::RentalBookingsController, type: :controller do
       }
 
       expect(response).to redirect_to(rental_booking_path(rental_booking))
-      expect(flash[:alert]).to eq('Unable to process payment at this time. Please try again later.')
+      expect(flash[:alert]).to eq('Unable to connect to payment provider. Please try again later.')
     end
   end
 
