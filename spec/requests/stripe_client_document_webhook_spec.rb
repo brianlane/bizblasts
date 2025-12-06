@@ -62,7 +62,12 @@ RSpec.describe 'Stripe client document webhooks', type: :request do
       ).and_call_original
 
       perform_enqueued_jobs do
-        post '/webhooks/stripe', params: webhook_payload.to_json, headers: { 'Stripe-Signature' => 't=123,v1=test' }
+        post '/webhooks/stripe',
+             params: webhook_payload.to_json,
+             headers: {
+               'Stripe-Signature' => 't=123,v1=test',
+               'CONTENT_TYPE' => 'application/json'
+             }
       end
 
       document.reload
