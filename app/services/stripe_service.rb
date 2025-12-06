@@ -1600,7 +1600,8 @@ class StripeService
 
   def self.handle_client_document_payment_completion(session)
     document_id = session.dig('metadata', 'client_document_id')
-    document = ClientDocument.find_by(id: document_id)
+    # Use unscoped to find document without tenant context since we set it after
+    document = ClientDocument.unscoped.find_by(id: document_id)
     return unless document
 
     ActsAsTenant.with_tenant(document.business) do
