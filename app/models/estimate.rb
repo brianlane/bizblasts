@@ -169,18 +169,26 @@ class Estimate < ApplicationRecord
   end
 
   def handle_client_document_payment(document, payment)
-    update!(
-      status: :approved,
-      approved_at: Time.current,
-      deposit_paid_at: Time.current,
-      payment_intent_id: document.payment_intent_id || payment&.stripe_payment_intent_id
-    )
+    return false if approved?
 
-    invoice_to_update = document.invoice || booking&.invoice
-    invoice_to_update&.update!(status: :paid)
+    invoice_to_update = nil
+
+    transaction do
+      update!(
+        status: :approved,
+        approved_at: Time.current,
+        deposit_paid_at: Time.current,
+        payment_intent_id: document.payment_intent_id || payment&.stripe_payment_intent_id
+      )
+
+      invoice_to_update = document.invoice || booking&.invoice
+      invoice_to_update&.update!(status: :paid)
+    end
 
     EstimateMailer.deposit_paid_confirmation(self).deliver_later(queue: 'mailers')
     EstimateMailer.estimate_approved(self).deliver_later(queue: 'mailers')
+
+    true
   end
 
   private

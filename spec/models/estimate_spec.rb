@@ -75,4 +75,47 @@ RSpec.describe Estimate, type: :model do
       ActsAsTenant.current_tenant = nil
     end
   end
+
+  describe '#handle_client_document_payment' do
+    let(:business) { create(:business) }
+    let(:customer) { create(:tenant_customer, business: business) }
+    let(:estimate) do
+      create(
+        :estimate,
+        :pending_payment,
+        business: business,
+        tenant_customer: customer,
+        required_deposit: 50,
+        total: 200
+      )
+    end
+    let(:document) do
+      create(
+        :client_document,
+        business: business,
+        tenant_customer: customer,
+        documentable: estimate,
+        status: 'pending_payment',
+        document_type: 'estimate',
+        deposit_amount: 50,
+        payment_intent_id: 'pi_123'
+      )
+    end
+    let(:payment) { instance_double(Payment, stripe_payment_intent_id: 'pi_123') }
+    let(:mailer_double) { double(deliver_later: true) }
+
+    before do
+      allow(EstimateMailer).to receive(:deposit_paid_confirmation).and_return(mailer_double)
+      allow(EstimateMailer).to receive(:estimate_approved).and_return(mailer_double)
+    end
+
+    it 'approves the estimate once and ignores duplicate webhook deliveries' do
+      expect(estimate.handle_client_document_payment(document, payment)).to be_truthy
+      expect(estimate.reload).to be_approved
+
+      expect(estimate.handle_client_document_payment(document, payment)).to be_falsey
+      expect(EstimateMailer).to have_received(:deposit_paid_confirmation).once
+      expect(EstimateMailer).to have_received(:estimate_approved).once
+    end
+  end
 end
