@@ -232,6 +232,26 @@ RSpec.describe Public::RentalBookingsController, type: :controller do
       expect(response).to redirect_to(rental_booking_path(rental_booking))
       expect(flash[:alert]).to eq('Unable to connect to payment provider. Please try again later.')
     end
+
+    it 'prevents duplicate checkout sessions when status changes during processing (race condition)' do
+      # Simulate a race condition where another request already processed the deposit
+      # by changing the status after the initial load but before our lock
+      allow_any_instance_of(RentalBooking).to receive(:lock!) do |booking|
+        # Simulate the status being changed by another concurrent request
+        booking.update_column(:status, 'deposit_paid')
+      end
+
+      post :submit_deposit, params: {
+        id: rental_booking.id,
+        signature_name: 'John Doe',
+        signature_data: 'data:image/png;base64,AAAA'
+      }
+
+      # Should redirect to booking page with notice, NOT create a new checkout session
+      expect(response).to redirect_to(rental_booking_path(rental_booking))
+      expect(flash[:notice]).to eq('Deposit has already been paid.')
+      expect(ClientDocuments::DepositService).not_to have_received(:new)
+    end
   end
 
   describe 'deposit_success action' do
