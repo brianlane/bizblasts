@@ -300,6 +300,56 @@ RSpec.describe StripeService, type: :service do
     end
   end
 
+  describe '.handle_client_document_payment_completion' do
+    let(:business) { create(:business) }
+    let(:customer) { create(:tenant_customer, business: business) }
+    let(:service) do
+      create(:service, business: business, service_type: :experience, price: 120, duration: 60, min_bookings: 1, max_bookings: 10, spots: 10)
+    end
+    let(:staff_member) { create(:staff_member, business: business) }
+    let(:document) do
+      create(
+        :client_document,
+        business: business,
+        tenant_customer: customer,
+        document_type: 'experience_booking',
+        status: 'pending_payment',
+        metadata: {
+          'booking_payload' => {
+            'service_id' => service.id,
+            'staff_member_id' => staff_member.id,
+            'start_time' => 1.day.from_now.iso8601,
+            'end_time' => (1.day.from_now + 1.hour).iso8601,
+            'notes' => 'Webhook booking',
+            'tenant_customer_id' => customer.id,
+            'booking_product_add_ons' => []
+          }
+        }
+      )
+    end
+    let(:session_data) do
+      {
+        'id' => 'cs_doc_123',
+        'payment_intent' => 'pi_doc_123',
+        'customer' => 'cus_doc_123',
+        'amount_total' => 5000,
+        'metadata' => {
+          'payment_type' => 'client_document',
+          'client_document_id' => document.id,
+          'business_id' => business.id
+        }
+      }
+    end
+
+    it 're-raises processor failures so webhook can retry' do
+      allow(ClientDocuments::ExperienceBookingProcessor).to receive(:process!).and_raise(StandardError.new('boom'))
+
+      expect {
+        described_class.handle_client_document_payment_completion(session_data)
+      }.to raise_error(StandardError, 'boom')
+    end
+  end
+
   describe ".handle_payment_completion with tips" do
     let(:business) { create(:business, stripe_account_id: "acct_test123") }
     let(:customer) { create(:tenant_customer, business: business) }

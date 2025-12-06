@@ -54,6 +54,7 @@ RSpec.describe ClientDocuments::ExperienceBookingProcessor do
     allow(NotificationService).to receive(:invoice_payment_confirmation)
     allow(NotificationService).to receive(:business_new_booking)
     allow(NotificationService).to receive(:business_payment_received)
+    allow(NotificationService).to receive(:booking_confirmation)
   end
 
   after do
@@ -97,5 +98,23 @@ RSpec.describe ClientDocuments::ExperienceBookingProcessor do
     document.reload
     expect(document.metadata['booking_id']).to eq(original_booking_id)
     expect(document.documentable_id).to eq(original_booking_id)
+  end
+
+  it 'applies promo code usage when present in the payload' do
+    metadata['booking_payload']['applied_promo_code'] = 'SAVE50'
+    metadata['booking_payload']['promo_code_type'] = 'fixed'
+    metadata['booking_payload']['promo_discount_amount'] = 20.0
+    document.update!(metadata: metadata)
+
+    allow(PromoCodeService).to receive(:apply_code).and_return(success: true)
+
+    described_class.process!(document: document, payment: payment, session: session_data)
+
+    expect(PromoCodeService).to have_received(:apply_code).with(
+      'SAVE50',
+      business,
+      kind_of(Booking),
+      customer
+    )
   end
 end

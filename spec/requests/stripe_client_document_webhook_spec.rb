@@ -11,6 +11,21 @@ RSpec.describe 'Stripe client document webhooks', type: :request do
     it 'routes client document checkout completions through the experience processor' do
       business = create(:business)
       customer = create(:tenant_customer, business: business)
+      service = create(:service, business: business, service_type: :experience, price: 125.0, duration: 60, min_bookings: 1, max_bookings: 10, spots: 10)
+      staff_member = create(:staff_member, business: business)
+      start_time = 2.days.from_now
+      payload = {
+        'service_id' => service.id,
+        'staff_member_id' => staff_member.id,
+        'service_variant_id' => nil,
+        'start_time' => start_time.iso8601,
+        'end_time' => (start_time + 1.hour).iso8601,
+        'notes' => 'Excited for this!',
+        'tenant_customer_id' => customer.id,
+        'quantity' => 2,
+        'booking_product_add_ons' => []
+      }
+
       document = create(
         :client_document,
         business: business,
@@ -18,7 +33,7 @@ RSpec.describe 'Stripe client document webhooks', type: :request do
         document_type: 'experience_booking',
         status: 'pending_payment',
         documentable: nil,
-        metadata: { 'booking_payload' => { 'service_id' => 'svc_123' } }
+        metadata: { 'booking_payload' => payload }
       )
 
       session_object = {

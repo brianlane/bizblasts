@@ -98,6 +98,9 @@ module ClientDocuments
         booking.update_column(:quantity, quantity_value)
         booking.reload
       end
+
+      apply_promo_code!(booking)
+
       booking
     end
 
@@ -157,6 +160,19 @@ module ClientDocuments
       NotificationService.booking_confirmation(booking)
     rescue => e
       Rails.logger.error "[CLIENT_DOCUMENT] Failed to send booking notifications: #{e.message}"
+    end
+
+    def apply_promo_code!(booking)
+      return unless booking_payload[:applied_promo_code].present?
+
+      PromoCodeService.apply_code(
+        booking_payload[:applied_promo_code],
+        @business,
+        booking,
+        @tenant_customer
+      )
+    rescue => e
+      Rails.logger.error "[CLIENT_DOCUMENT] Failed to apply promo code #{booking_payload[:applied_promo_code]} for document #{@document.id}: #{e.message}"
     end
   end
 end

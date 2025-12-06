@@ -1624,6 +1624,7 @@ class StripeService
   rescue => e
     Rails.logger.error "[CLIENT_DOCUMENT] Error processing payment for document #{document_id}: #{e.message}"
     Rails.logger.error e.backtrace.join("\n")
+    raise
   end
 
   # Handle rental security deposit payment completion
