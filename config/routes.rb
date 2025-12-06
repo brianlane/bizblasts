@@ -182,6 +182,8 @@ Rails.application.routes.draw do
     post 'solid_queue_jobs/retry_all_failed_jobs', to: 'solid_queue_jobs#retry_all_failed_jobs', as: :solid_queue_jobs_retry_all_failed_jobs
     post 'solid_queue_jobs/retry_failed_job', to: 'solid_queue_jobs#retry_failed_job', as: :solid_queue_jobs_retry_failed_job
     post 'solid_queue_jobs/cleanup_orphaned_jobs', to: 'solid_queue_jobs#cleanup_orphaned_jobs', as: :solid_queue_jobs_cleanup_orphaned_jobs
+    post 'solid_queue_jobs/remove_all_failed_jobs', to: 'solid_queue_jobs#remove_all_failed_jobs', as: :solid_queue_jobs_remove_all_failed_jobs
+    post 'solid_queue_jobs/discard_day_old_jobs', to: 'solid_queue_jobs#discard_day_old_jobs', as: :solid_queue_jobs_discard_day_old_jobs
   end
   
   devise_for :users, skip: [:registrations], controllers: {
