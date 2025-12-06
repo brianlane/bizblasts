@@ -23,12 +23,7 @@ module Public
 
     # POST /rental_bookings/:id/submit_deposit
     def submit_deposit
-      unless @rental_booking.status_pending_deposit?
-        redirect_to rental_booking_path(@rental_booking),
-                    notice: 'Deposit has already been paid.'
-        return
-      end
-
+      # Validate signature presence before acquiring lock (fast fail for invalid input)
       unless params[:signature_data].present? && params[:signature_name].present?
         flash.now[:alert] = 'Signature is required to continue.'
         @client_document = @rental_booking.ensure_client_document!
@@ -37,7 +32,19 @@ module Public
       end
 
       result = nil
+      already_processed = false
+
       ActiveRecord::Base.transaction do
+        # Lock the rental booking row to prevent race conditions from concurrent submissions
+        # (e.g., double-click, multiple tabs). This ensures only one checkout session is created.
+        @rental_booking.lock!
+
+        # Re-check status after acquiring lock - another request may have already processed
+        unless @rental_booking.status_pending_deposit?
+          already_processed = true
+          raise ActiveRecord::Rollback
+        end
+
         @client_document = @rental_booking.ensure_client_document!
         ClientDocuments::SignatureService.new(@client_document).capture!(
           signer_name: params[:signature_name],
@@ -51,6 +58,12 @@ module Public
           success_url: deposit_success_rental_booking_url(@rental_booking, token: params[:token]),
           cancel_url: deposit_cancel_rental_booking_url(@rental_booking, token: params[:token])
         )
+      end
+
+      if already_processed
+        redirect_to rental_booking_path(@rental_booking),
+                    notice: 'Deposit has already been paid.'
+        return
       end
 
       redirect_to result[:session].url, allow_other_host: true
