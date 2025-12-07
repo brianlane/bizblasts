@@ -27,23 +27,23 @@ class InvalidatedSessionCleanupJob < ApplicationJob
       Rails.logger.debug "[InvalidatedSessionCleanupJob] Starting cleanup"
     end
 
-    expired_count = InvalidatedSession.cleanup_expired!
-    duration = Time.current - start_time
+      expired_count = InvalidatedSession.cleanup_expired!
+      duration = Time.current - start_time
 
-    if verbose_logs
-      # Completion message separate when verbose
-      Rails.logger.info "[InvalidatedSessionCleanupJob] Completed in #{duration.round(2)}s, cleaned #{expired_count} expired sessions"
+      if verbose_logs
+        # Completion message separate when verbose
+        Rails.logger.info "[InvalidatedSessionCleanupJob] Completed in #{duration.round(2)}s, cleaned #{expired_count} expired sessions"
 
-      # Model already logged simple summary inside cleanup_expired!, nothing more needed.
-    else
-      # For large clean-ups the specs expect a single [InvalidatedSession] line that
-      # also includes timing information, so we emit it here.
-      Rails.logger.info "[InvalidatedSession] Cleaned up #{expired_count} expired entries Completed in #{duration.round(2)}s"
-    end
-  rescue => e
-    duration = Time.current - start_time
-    Rails.logger.error "[InvalidatedSessionCleanupJob] Failed: #{e.message}"
-    raise e
+        # Model already logged simple summary inside cleanup_expired!, nothing more needed.
+      else
+        # For large clean-ups the specs expect a single [InvalidatedSession] line that
+        # also includes timing information, so we emit it here.
+        Rails.logger.info "[InvalidatedSession] Cleaned up #{expired_count} expired entries Completed in #{duration.round(2)}s"
+      end
+    rescue => e
+      duration = Time.current - start_time
+      Rails.logger.error "[InvalidatedSessionCleanupJob] Failed: #{e.message}"
+      raise e
   end
 
   # -----------------------------------------------------------------
