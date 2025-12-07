@@ -7,9 +7,12 @@ default: &default
     # Single worker process that handles all queues sequentially.
     # This minimizes memory usage on the shared web dyno and ensures we never
     # run multiple heavy jobs in parallel (mailers, imports, image processing).
+    # IMPORTANT: processes must be 1 to maintain global email rate limiting
+    # instead of processes: <%= ENV.fetch("JOB_CONCURRENCY", 1) %>
+    # (EmailRateLimiter uses per-thread sleep, not distributed limiting).
     - queues: [ default, mailers, image_processing, low_priority ]
       threads: 1
-      processes: <%= ENV.fetch("JOB_CONCURRENCY", 1) %>
+      processes: 1
       polling_interval: 0.25
 
 development:
