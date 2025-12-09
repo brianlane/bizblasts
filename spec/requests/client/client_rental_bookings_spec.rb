@@ -15,13 +15,9 @@ RSpec.describe "Client::RentalBookings", type: :request do
   end
 
   before do
-    host! "#{business.hostname}.lvh.me"
-    ActsAsTenant.current_tenant = business
+    # Client rental bookings is a main domain route for cross-business view
+    host! "www.example.com"
     sign_in client
-  end
-
-  after do
-    ActsAsTenant.current_tenant = nil
   end
 
   describe "GET /my-rentals" do

@@ -11,6 +11,7 @@ module Client
         ClientDocument
           .where(tenant_customer_id: @tenant_customer_ids)
           .includes(:business)
+          .with_attached_pdf
           .order(updated_at: :desc)
       end
     end
@@ -33,7 +34,10 @@ module Client
 
     def set_document
       @document = ActsAsTenant.without_tenant do
-        ClientDocument.includes(:business).find_by(id: params[:id], tenant_customer_id: @tenant_customer_ids)
+        ClientDocument
+          .includes(:business)
+          .with_attached_pdf
+          .find_by(id: params[:id], tenant_customer_id: @tenant_customer_ids)
       end
 
       return if @document

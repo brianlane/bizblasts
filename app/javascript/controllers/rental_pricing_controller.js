@@ -7,7 +7,8 @@ export default class extends Controller {
     "totalDisplay",
     "rateDetail",
     "depositDisplay",
-    "depositRow"
+    "depositRow",
+    "loadingIndicator"
   ]
 
   static values = {
@@ -44,6 +45,8 @@ export default class extends Controller {
   }
 
   update() {
+    this.showLoading()
+
     const duration = parseInt(this.durationInputTarget?.value || "0", 10)
     const quantity = Math.max(1, parseInt(this.quantityInputTarget?.value || "1", 10))
     const pricing = this.lookupPricing(duration)
@@ -67,6 +70,26 @@ export default class extends Controller {
       } else {
         this.depositRowTarget.classList.add("hidden")
       }
+    }
+
+    this.hideLoading()
+  }
+
+  showLoading() {
+    if (this.hasLoadingIndicatorTarget) {
+      this.loadingIndicatorTarget.classList.remove("hidden")
+    }
+    if (this.hasTotalDisplayTarget) {
+      this.totalDisplayTarget.classList.add("opacity-50")
+    }
+  }
+
+  hideLoading() {
+    if (this.hasLoadingIndicatorTarget) {
+      this.loadingIndicatorTarget.classList.add("hidden")
+    }
+    if (this.hasTotalDisplayTarget) {
+      this.totalDisplayTarget.classList.remove("opacity-50")
     }
   }
 

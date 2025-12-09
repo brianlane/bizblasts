@@ -71,9 +71,9 @@
             <%= @rental_booking.location.name %><br>
             <%= @rental_booking.location.full_address %>
           </p>
-        <% elsif @business.address.present? %>
+        <% elsif @rental_booking.business&.address.present? %>
           <p class="mt-2 text-sm text-gray-600">
-            <%= [@business.address, @business.city, @business.state, @business.zip].compact.join(', ') %>
+            <%= [@rental_booking.business.address, @rental_booking.business.city, @rental_booking.business.state, @rental_booking.business.zip].compact.join(', ') %>
           </p>
         <% else %>
           <p class="mt-2 text-sm text-gray-600">Your confirmation email includes pickup instructions from the business.</p>
