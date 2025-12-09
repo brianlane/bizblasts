@@ -717,6 +717,7 @@ Rails.application.routes.draw do
       patch 'cancel'
     end
   end
+  resources :client_rental_bookings, path: 'my-rentals', only: [:index, :show]
 
   # New unified transactions view
   resources :transactions, only: [:index, :show]

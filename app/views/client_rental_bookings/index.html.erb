@@ -1,0 +1,49 @@
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div>
+      <p class="text-sm uppercase tracking-wide text-gray-500">All businesses</p>
+      <h1 class="text-2xl font-bold text-gray-900">My Rentals</h1>
+      <p class="text-sm text-gray-500 mt-1">Track deposits, pickup times, and return windows in one place.</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <%= link_to 'Back to Dashboard', dashboard_path, class: "inline-flex items-center px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50" %>
+      <%= link_to 'Browse Rentals', rentals_path, class: "inline-flex items-center px-4 py-2 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow hover:bg-blue-700" %>
+    </div>
+  </div>
+
+  <% if @rental_bookings.any? %>
+    <div class="bg-white rounded-2xl shadow divide-y divide-gray-100">
+      <% @rental_bookings.each do |booking| %>
+        <div class="p-4 sm:p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="text-sm text-gray-500"><%= booking.business.name %></p>
+            <p class="text-lg font-semibold text-gray-900"><%= booking.rental_name %></p>
+            <p class="text-sm text-gray-600">
+              <%= booking.local_start_time&.strftime("%b %d, %Y %l:%M %p") %> —
+              <%= booking.local_end_time&.strftime("%b %d, %Y %l:%M %p") %>
+            </p>
+            <p class="text-xs text-gray-500 mt-1">Quantity: <%= booking.quantity %></p>
+          </div>
+          <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+            <span class="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold <%= rental_status_badge(booking.status) %>">
+              <%= booking.status.humanize %>
+            </span>
+            <div class="text-right text-sm text-gray-600">
+              <p>Total: <%= number_to_currency(booking.total_amount || 0) %></p>
+              <p>Deposit: <%= number_to_currency(booking.security_deposit_amount || 0) %></p>
+            </div>
+            <%= link_to 'View Details', client_rental_booking_path(booking),
+                  class: "inline-flex items-center justify-center px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="bg-white rounded-2xl shadow p-10 text-center text-gray-500">
+      <p>You don’t have any rental bookings yet.</p>
+      <%= link_to 'Find a rental to book', rentals_path,
+            class: "mt-6 inline-flex items-center px-5 py-3 rounded-2xl bg-blue-600 text-white font-semibold shadow hover:bg-blue-700" %>
+    </div>
+  <% end %>
+</div>
+

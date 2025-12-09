@@ -1,0 +1,89 @@
+<% booking_path = "/rental_bookings/#{@rental_booking.id}?token=#{@rental_booking.guest_access_token}" %>
+<% deposit_path = "/rental_bookings/#{@rental_booking.id}/pay_deposit?token=#{@rental_booking.guest_access_token}" %>
+<% booking_url = TenantHost.url_for_with_auth(@rental_booking.business, request, booking_path, user_signed_in: user_signed_in?, current_user: current_user) rescue nil %>
+<% deposit_url = TenantHost.url_for_with_auth(@rental_booking.business, request, deposit_path, user_signed_in: user_signed_in?, current_user: current_user) rescue nil %>
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
+  <div class="flex items-center gap-3 text-sm">
+    <%= link_to '← Back to rentals', client_rental_bookings_path, class: 'text-blue-600 hover:text-blue-700 font-medium' %>
+    <span class="text-gray-400">/</span>
+    <span class="text-gray-600">Booking #<%= @rental_booking.booking_number %></span>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow p-6 sm:p-8 space-y-6">
+    <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+      <div>
+        <p class="text-sm text-gray-500">Booked with <%= @rental_booking.business.name %></p>
+        <h1 class="text-3xl font-bold text-gray-900"><%= @rental_booking.rental_name %></h1>
+        <p class="text-sm text-gray-500 mt-1">
+          <%= @rental_booking.local_start_time&.strftime("%b %d, %Y %l:%M %p") %> —
+          <%= @rental_booking.local_end_time&.strftime("%b %d, %Y %l:%M %p") %>
+        </p>
+      </div>
+      <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold <%= rental_status_badge(@rental_booking.status) %>">
+        <%= @rental_booking.status.humanize %>
+      </span>
+    </div>
+
+    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-600">
+      <div class="rounded-xl border border-gray-100 p-4">
+        <dt class="text-gray-500">Pickup Window</dt>
+        <dd class="mt-1 font-semibold text-gray-900">
+          <%= @rental_booking.local_start_time&.strftime("%A, %b %d at %l:%M %p") %>
+        </dd>
+      </div>
+      <div class="rounded-xl border border-gray-100 p-4">
+        <dt class="text-gray-500">Return By</dt>
+        <dd class="mt-1 font-semibold text-gray-900">
+          <%= @rental_booking.local_end_time&.strftime("%A, %b %d at %l:%M %p") %>
+        </dd>
+      </div>
+      <div class="rounded-xl border border-gray-100 p-4">
+        <dt class="text-gray-500">Quantity</dt>
+        <dd class="mt-1 font-semibold text-gray-900"><%= @rental_booking.quantity %> unit<%= 's' if @rental_booking.quantity.to_i > 1 %></dd>
+      </div>
+      <div class="rounded-xl border border-gray-100 p-4">
+        <dt class="text-gray-500">Total Amount</dt>
+        <dd class="mt-1 font-semibold text-gray-900"><%= number_to_currency(@rental_booking.total_amount || 0) %></dd>
+      </div>
+    </dl>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="rounded-2xl bg-blue-50 border border-blue-100 p-5">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-blue-700 font-medium">Security Deposit</p>
+            <p class="text-2xl font-semibold text-blue-900 mt-1"><%= number_to_currency(@rental_booking.security_deposit_amount || 0) %></p>
+            <p class="text-xs text-blue-700 mt-1">Status: <%= @rental_booking.deposit_status.humanize %></p>
+          </div>
+          <% if @rental_booking.status_pending_deposit? && deposit_url.present? %>
+            <%= link_to 'Pay Deposit', deposit_url, target: '_blank', rel: 'noopener',
+                  class: "inline-flex items-center px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold shadow hover:bg-blue-700" %>
+          <% end %>
+        </div>
+        <p class="mt-3 text-xs text-blue-800">Deposits are fully refundable when items are returned on time and in good condition.</p>
+      </div>
+
+      <div class="rounded-2xl border border-gray-100 p-5">
+        <h3 class="text-sm font-semibold text-gray-900">Pickup Details</h3>
+        <% if @rental_booking.location.present? %>
+          <p class="mt-2 text-sm text-gray-600">
+            <%= @rental_booking.location.name %><br>
+            <%= @rental_booking.location.full_address %>
+          </p>
+        <% elsif @business.address.present? %>
+          <p class="mt-2 text-sm text-gray-600">
+            <%= [@business.address, @business.city, @business.state, @business.zip].compact.join(', ') %>
+          </p>
+        <% else %>
+          <p class="mt-2 text-sm text-gray-600">Your confirmation email includes pickup instructions from the business.</p>
+        <% end %>
+        <% if booking_url.present? %>
+          <%= link_to 'View on business site', booking_url, target: '_blank', rel: 'noopener',
+                class: "inline-flex items-center text-sm text-blue-600 font-medium mt-3 hover:text-blue-700" %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+

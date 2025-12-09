@@ -78,6 +78,39 @@
       <% end %>
     </div>
 
+    <!-- Upcoming Rentals Widget -->
+    <div class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+      <h3 class="text-lg sm:text-xl font-semibold mb-4">Upcoming Rentals</h3>
+      <% if @upcoming_rental_bookings.present? %>
+        <div class="space-y-3">
+          <% @upcoming_rental_bookings.each do |booking| %>
+            <div class="py-3 border-b border-gray-100 last:border-b-0">
+              <div class="font-medium text-sm sm:text-base"><%= booking.rental_name %></div>
+              <div class="text-sm text-gray-600">with <%= booking.business.name %></div>
+              <div class="text-xs sm:text-sm text-gray-500 mt-1">
+                Pickup: <%= booking.local_start_time.strftime("%a, %b %d, %Y %l:%M %p") %>
+              </div>
+              <div class="text-xs sm:text-sm text-gray-500">
+                Return: <%= booking.local_end_time.strftime("%a, %b %d, %Y %l:%M %p") %>
+              </div>
+              <div class="mt-2 flex items-center gap-2">
+                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full <%= rental_status_badge(booking.status) %>">
+                  <%= booking.status.humanize %>
+                </span>
+                <span class="text-xs text-gray-500">Qty: <%= booking.quantity %></span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+        <%= link_to "View All Rentals", client_rental_bookings_path,
+              class: "inline-flex items-center text-primary hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
+      <% else %>
+        <p class="text-gray-600 text-sm sm:text-base">No upcoming rentals yet.</p>
+        <%= link_to "Browse Rentals", rentals_path,
+              class: "inline-flex items-center text-primary hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
+      <% end %>
+    </div>
+
     <!-- Recent Transactions Widget -->
     <div class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
       <h3 class="text-lg sm:text-xl font-semibold mb-4">Recent Transactions (Last 30 Days)</h3>
@@ -107,6 +140,67 @@
       <% else %>
         <p class="text-gray-600 text-sm sm:text-base">No transactions in the last 30 days.</p>
         <%= link_to "Browse Products", businesses_path, 
+              class: "inline-flex items-center text-primary hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
+      <% end %>
+    </div>
+
+    <!-- Recent Estimates Widget -->
+    <div class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+      <h3 class="text-lg sm:text-xl font-semibold mb-4">Recent Estimates</h3>
+      <% if @recent_estimates.present? %>
+        <div class="space-y-3">
+          <% @recent_estimates.each do |estimate| %>
+            <div class="py-3 border-b border-gray-100 last:border-b-0">
+              <div class="flex items-center justify-between">
+                <div class="font-medium text-sm sm:text-base">
+                  Estimate #<%= estimate.estimate_number || estimate.id %>
+                </div>
+                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full <%= estimate_status_badge(estimate.status) %>">
+                  <%= estimate.status.humanize %>
+                </span>
+              </div>
+              <div class="text-sm text-gray-600">from <%= estimate.business.name %></div>
+              <div class="text-xs sm:text-sm text-gray-500 mt-1">
+                Total: <%= number_to_currency(estimate.total) %> • Updated <%= estimate.updated_at.strftime("%b %d, %Y") %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+        <%= link_to "View All Estimates", client_estimates_path,
+              class: "inline-flex items-center text-primary hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
+      <% else %>
+        <p class="text-gray-600 text-sm sm:text-base">You don’t have any estimates yet.</p>
+        <%= link_to "Request an Estimate", tenant_estimate_page_path,
+              class: "inline-flex items-center text-primary hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
+      <% end %>
+    </div>
+
+    <!-- Recent Documents Widget -->
+    <div class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+      <h3 class="text-lg sm:text-xl font-semibold mb-4">Waivers & Documents</h3>
+      <% if @recent_documents.present? %>
+        <div class="space-y-3">
+          <% @recent_documents.each do |document| %>
+            <div class="py-3 border-b border-gray-100 last:border-b-0">
+              <div class="flex items-center justify-between">
+                <div class="font-medium text-sm sm:text-base">
+                  <%= document.title || document_type_label(document) %>
+                </div>
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full <%= document_status_badge(document.status) %>">
+                  <%= document.status.humanize %>
+                </span>
+              </div>
+              <div class="text-xs text-gray-500">
+                <%= document_type_label(document) %> • <%= document.updated_at.strftime("%b %d, %Y") %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+        <%= link_to "View All Documents", client_documents_path,
+              class: "inline-flex items-center text-primary hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
+      <% else %>
+        <p class="text-gray-600 text-sm sm:text-base">No documents yet. Signed waivers and agreements will appear here.</p>
+        <%= link_to "View Documents", client_documents_path,
               class: "inline-flex items-center text-primary hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
       <% end %>
     </div>
@@ -201,6 +295,22 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293A1 1 0 004 16v0a1 1 0 001 1h1"/>
         </svg>
         <span class="text-sm sm:text-base">Shopping Cart</span>
+      <% end %>
+
+      <%= link_to client_rental_bookings_path, 
+            class: "flex items-center p-3 text-primary hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors border border-gray-200 hover:border-blue-200" do %>
+        <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+        <span class="text-sm sm:text-base">My Rentals</span>
+      <% end %>
+
+      <%= link_to client_estimates_path, 
+            class: "flex items-center p-3 text-primary hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors border border-gray-200 hover:border-blue-200" do %>
+        <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+        </svg>
+        <span class="text-sm sm:text-base">My Estimates</span>
       <% end %>
 
                     <%= link_to loyalty_index_path, 
