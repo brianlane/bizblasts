@@ -112,7 +112,7 @@
           <% pricing_map_json = @duration_pricing_map.transform_keys(&:to_s).to_json %>
           <div class="mt-6"
                data-controller="rental-pricing"
-               data-rental-pricing-pricing-map-value="<%= raw(pricing_map_json) %>"
+               data-rental-pricing-pricing-map-value="<%= pricing_map_json %>"
                data-rental-pricing-deposit-per-unit-value="<%= @rental.security_deposit.to_f %>"
                data-rental-pricing-currency-value="USD">
             <%= form_with url: calendar_rental_path(@rental), method: :get, local: true, class: "space-y-4", id: "duration-form" do %>
