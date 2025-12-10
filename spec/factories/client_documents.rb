@@ -3,9 +3,12 @@
 FactoryBot.define do
   factory :client_document do
     association :business
-    association :tenant_customer
     document_type { 'waiver' }
     status { 'completed' }
+
+    after(:build) do |document|
+      document.tenant_customer ||= create(:tenant_customer, business: document.business)
+    end
     title { "#{document_type.titleize} ##{SecureRandom.hex(4)}" }
     deposit_amount { 0 }
     payment_required { false }

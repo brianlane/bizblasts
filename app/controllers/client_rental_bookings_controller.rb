@@ -37,6 +37,8 @@ class ClientRentalBookingsController < ApplicationController
   end
 
   def set_rental_booking
+    return if performed?
+
     @rental_booking = ActsAsTenant.without_tenant do
       RentalBooking.joins(:tenant_customer)
                    .where(tenant_customers: { email: current_user.email })
