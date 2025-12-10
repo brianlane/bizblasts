@@ -1896,42 +1896,43 @@ class StripeService
   # Handle business registration completion after successful Stripe payment
   def self.handle_business_registration_completion(session)
     Rails.logger.info "[REGISTRATION] Processing business registration completion for session #{session['id']}"
-    
+
     begin
       # Extract registration data from session metadata
       user_data = JSON.parse(session.dig('metadata', 'user_data'))
       business_data = JSON.parse(session.dig('metadata', 'business_data'))
-      
+      sidebar_items = JSON.parse(session.dig('metadata', 'sidebar_items') || '[]')
+
       Rails.logger.info "[REGISTRATION] Creating business: #{business_data['name']} (#{business_data['tier']})"
-      
+
       ActiveRecord::Base.transaction do
         # Create business first
         business = Business.create!(business_data)
         Rails.logger.info "[REGISTRATION] Created business ##{business.id}"
-        
+
         # Create user with business association
         user = User.create!(user_data.merge(
           business_id: business.id,
           role: :manager
         ))
         Rails.logger.info "[REGISTRATION] Created user ##{user.id} for business ##{business.id}"
-        
+
         # Update business with Stripe customer ID from the session
         if session['customer']
           business.update!(stripe_customer_id: session['customer'])
         end
-        
+
         # Create subscription record if this was a paid tier registration
         if session['subscription'] && business.tier.in?(['standard', 'premium'])
           create_subscription_record(business, session['subscription'])
         end
-        
+
         # Set up all the default records for the business
-        setup_business_defaults_from_webhook(business, user)
-        
+        setup_business_defaults_from_webhook(business, user, sidebar_items)
+
         Rails.logger.info "[REGISTRATION] Successfully completed business registration for #{business.name} (ID: #{business.id})"
       end
-      
+
     rescue JSON::ParserError => e
       Rails.logger.error "[REGISTRATION] Failed to parse registration data from session #{session['id']}: #{e.message}"
     rescue ActiveRecord::RecordInvalid => e
@@ -1944,7 +1945,7 @@ class StripeService
   end
 
   # Set up default records for a newly created business (called from webhook)
-  def self.setup_business_defaults_from_webhook(business, user)
+  def self.setup_business_defaults_from_webhook(business, user, sidebar_items = [])
     # Create staff member for the business owner
     business.staff_members.create!(
       user: user,
@@ -1954,10 +1955,13 @@ class StripeService
       active: true
     )
     Rails.logger.info "[REGISTRATION] Created staff member for user ##{user.id}"
-    
+
     # Create default location using business address
     create_default_location_from_webhook(business)
-    
+
+    # Create sidebar item preferences for the owner
+    create_sidebar_items_from_registration(user, sidebar_items)
+
     # Set up Stripe Connect account for paid tiers
     if business.tier.in?(['standard', 'premium'])
       begin
@@ -1968,7 +1972,7 @@ class StripeService
         # Don't fail the whole registration for this
       end
     end
-    
+
     Rails.logger.info "[REGISTRATION] Completed setup for business ##{business.id}"
   end
 
@@ -1997,6 +2001,38 @@ class StripeService
     Rails.logger.info "[REGISTRATION] Created default location for business ##{business.id}"
   rescue => e
     Rails.logger.error "[REGISTRATION] Failed to create default location for business ##{business.id}: #{e.message}"
+    # Don't fail the whole registration for this
+  end
+
+  # Create sidebar item preferences for a newly registered user (called from webhook)
+  def self.create_sidebar_items_from_registration(user, selected_items)
+    # If no specific items were selected (nil or empty), don't create any records
+    # The sidebar system will show all defaults when no UserSidebarItem records exist
+    return if selected_items.nil? || selected_items.empty?
+
+    # Get all default items (this returns the master list of 21 items)
+    all_items = [
+      'dashboard', 'bookings', 'estimates', 'website', 'website_builder',
+      'transactions', 'payments', 'staff', 'services', 'products',
+      'rentals', 'rental_bookings', 'shipping_methods', 'tax_rates',
+      'customers', 'referrals', 'loyalty', 'platform',
+      'promotions', 'customer_subscriptions', 'settings'
+    ]
+
+    # Create records for all items, marking visibility based on selection
+    all_items.each_with_index do |item_key, index|
+      is_visible = selected_items.include?(item_key)
+
+      user.user_sidebar_items.create!(
+        item_key: item_key,
+        position: index,
+        visible: is_visible
+      )
+    end
+
+    Rails.logger.info "[REGISTRATION] Created #{user.user_sidebar_items.count} sidebar items for user ##{user.id}"
+  rescue ActiveRecord::RecordInvalid => e
+    Rails.logger.error "[REGISTRATION] Failed to create sidebar items for user ##{user.id}: #{e.message}"
     # Don't fail the whole registration for this
   end
 
