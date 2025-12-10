@@ -35,6 +35,8 @@ module Client
     end
 
     def set_document
+      return if performed?
+
       @document = ActsAsTenant.without_tenant do
         ClientDocument
           .includes(:business)
