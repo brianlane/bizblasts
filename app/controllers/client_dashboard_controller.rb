@@ -1,4 +1,5 @@
 class ClientDashboardController < ApplicationController
+  helper ClientDocumentsHelper
   before_action :authenticate_user!
   before_action :ensure_client_user
   before_action :set_tenant_customer_ids
@@ -9,6 +10,15 @@ class ClientDashboardController < ApplicationController
     
     # Fetch upcoming appointments (next 7 days)
     @upcoming_appointments = fetch_upcoming_appointments.limit(5)
+
+    # Fetch upcoming rentals (next 30 days)
+    @upcoming_rental_bookings = fetch_upcoming_rental_bookings.limit(5)
+    
+    # Fetch recent estimates
+    @recent_estimates = fetch_recent_estimates.limit(5)
+
+    # Fetch recent client documents/waivers
+    @recent_documents = fetch_recent_client_documents.limit(5)
     
     # Fetch recent transactions/orders (last 30 days)
     @recent_transactions = fetch_recent_transactions.limit(5)
@@ -96,5 +106,33 @@ class ClientDashboardController < ApplicationController
       orders_this_month: Order.joins(:tenant_customer).where(tenant_customers: { id: @tenant_customer_ids }).where(created_at: 1.month.ago..Time.current).count,
       businesses_visited: Business.joins(:bookings).joins('JOIN tenant_customers ON bookings.tenant_customer_id = tenant_customers.id').where(tenant_customers: { id: @tenant_customer_ids }).distinct.count
     }
+  end
+
+  def fetch_upcoming_rental_bookings
+    ActsAsTenant.without_tenant do
+      RentalBooking.joins(:tenant_customer)
+                   .where(tenant_customers: { id: @tenant_customer_ids })
+                   .where('start_time >= ?', Time.current)
+                   .where.not(status: 'cancelled')
+                   .includes(:product, :business)
+                   .order(start_time: :asc)
+    end
+  end
+
+  def fetch_recent_estimates
+    ActsAsTenant.without_tenant do
+      Estimate.joins(:tenant_customer)
+              .where(tenant_customers: { id: @tenant_customer_ids })
+              .includes(:business)
+              .order(created_at: :desc)
+    end
+  end
+
+  def fetch_recent_client_documents
+    ActsAsTenant.without_tenant do
+      ClientDocument
+        .where(tenant_customer_id: @tenant_customer_ids)
+        .order(updated_at: :desc)
+    end
   end
 end 

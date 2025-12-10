@@ -170,6 +170,10 @@ application.register("signature-pad", SignaturePadController)
 import RentalDurationsController from "./controllers/rental_durations_controller"
 application.register("rental-durations", RentalDurationsController)
 
+// Rental pricing preview controller
+import RentalPricingController from "./controllers/rental_pricing_controller"
+application.register("rental-pricing", RentalPricingController)
+
 // Auto-discovery for additional controllers (compatible approach)
 // This will automatically discover and register any controllers not manually registered above
 function autoDiscoverControllers() {

@@ -1,0 +1,53 @@
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div>
+      <p class="text-sm uppercase tracking-wide text-gray-500">Signed waivers & documents</p>
+      <h1 class="text-3xl font-bold text-gray-900">My Documents</h1>
+      <p class="text-sm text-gray-500 mt-1">Download waivers, rental agreements, and any documents you’ve signed with our businesses.</p>
+    </div>
+    <%= link_to dashboard_path, class: "inline-flex items-center px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50" do %>
+      ← Back to Dashboard
+    <% end %>
+  </div>
+
+  <% if @documents.any? %>
+    <div class="bg-white rounded-2xl shadow overflow-hidden">
+      <div class="hidden sm:flex bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide px-6 py-3">
+        <div class="w-1/3">Document</div>
+        <div class="w-1/4">Business</div>
+        <div class="w-1/6">Status</div>
+        <div class="w-1/6">Updated</div>
+        <div class="w-1/6 text-right">Action</div>
+      </div>
+      <ul class="divide-y divide-gray-100">
+        <% @documents.each do |document| %>
+          <li class="px-4 sm:px-6 py-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div class="sm:w-1/3">
+              <p class="text-sm font-semibold text-gray-900"><%= document.title || document_type_label(document) %></p>
+              <p class="text-xs text-gray-500"><%= document_type_label(document) %></p>
+            </div>
+            <div class="sm:w-1/4 text-sm text-gray-600"><%= document.business.name %></div>
+            <div class="sm:w-1/6">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold <%= document_status_badge(document.status) %>">
+                <%= document.status.humanize %>
+              </span>
+            </div>
+            <div class="sm:w-1/6 text-sm text-gray-500">
+              <%= document.updated_at.strftime("%b %d, %Y") %>
+            </div>
+            <div class="sm:w-1/6 sm:text-right">
+              <%= link_to 'View', client_document_path(document),
+                    class: "inline-flex items-center px-3 py-1.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50" %>
+            </div>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  <% else %>
+    <div class="bg-white rounded-2xl shadow p-10 text-center text-gray-500">
+      <p>You don’t have any documents yet.</p>
+      <p class="text-sm mt-2">Signed waivers and agreements will appear here once you complete a booking or rental.</p>
+    </div>
+  <% end %>
+</div>
+

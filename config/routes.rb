@@ -717,6 +717,12 @@ Rails.application.routes.draw do
       patch 'cancel'
     end
   end
+  resources :client_rental_bookings, path: 'my-rentals', only: [:index, :show]
+
+  # Client documents (waivers, agreements)
+  namespace :client do
+    resources :documents, path: 'my-documents', only: [:index, :show]
+  end
 
   # New unified transactions view
   resources :transactions, only: [:index, :show]

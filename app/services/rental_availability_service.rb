@@ -146,7 +146,40 @@ class RentalAvailabilityService
         while current_time <= end_boundary
           slot_end = current_time + duration_mins.minutes
           if available?(rental: rental, start_time: current_time, end_time: slot_end, quantity: quantity)
-            slots << { start_time: current_time, end_time: slot_end }
+            pricing = rental.calculate_rental_price(current_time, slot_end)
+            available_quantity = rental.available_rental_quantity(current_time, slot_end)
+
+            if pricing
+              slots << {
+                start_time: current_time,
+                end_time: slot_end,
+                rate_type: pricing[:rate_type],
+                rate_quantity: pricing[:quantity],
+                base_total: pricing[:total].to_f,
+                requested_quantity: quantity,
+                subtotal: (pricing[:total].to_f * quantity),
+                deposit_amount: ((rental.security_deposit || 0).to_f * quantity),
+                available_quantity: available_quantity,
+                duration_label: rental.duration_in_words(duration_mins),
+                pricing_available: true
+              }
+            else
+              # Show slot without pricing - rental is available but pricing configuration is incomplete
+              Rails.logger.warn("[RentalAvailabilityService] Pricing unavailable for rental #{rental.id} at #{current_time}")
+              slots << {
+                start_time: current_time,
+                end_time: slot_end,
+                rate_type: nil,
+                rate_quantity: nil,
+                base_total: nil,
+                requested_quantity: quantity,
+                subtotal: nil,
+                deposit_amount: ((rental.security_deposit || 0).to_f * quantity),
+                available_quantity: available_quantity,
+                duration_label: rental.duration_in_words(duration_mins),
+                pricing_available: false
+              }
+            end
           end
           current_time += step_interval.minutes
         end

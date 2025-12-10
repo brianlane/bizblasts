@@ -32,6 +32,11 @@ module Public
         .where.not(id: @rental.id)
         .limit(4)
       @duration_options = @rental.effective_rental_durations
+      @selected_duration = normalize_duration_param(params[:duration])
+      @quantity = normalize_quantity_param(params[:quantity])
+      @duration_pricing_map = build_duration_pricing_map(@duration_options)
+      @pricing_preview = pricing_preview_for(@selected_duration)
+      @deposit_preview = deposit_preview_for(@quantity)
       
       # Get availability for next 30 days
       @availability_calendar = RentalAvailabilityService.availability_calendar(
@@ -57,9 +62,11 @@ module Public
 
     def calendar
       @duration_options = @rental.effective_rental_durations
-      @duration_minutes = params[:duration].to_i
-      @duration_minutes = @duration_options.first unless @duration_options.include?(@duration_minutes)
-      @quantity = params[:quantity].to_i.positive? ? params[:quantity].to_i : 1
+      @duration_minutes = normalize_duration_param(params[:duration])
+      @quantity = normalize_quantity_param(params[:quantity])
+      @duration_pricing_map = build_duration_pricing_map(@duration_options)
+      @pricing_preview = pricing_preview_for(@duration_minutes)
+      @deposit_preview = deposit_preview_for(@quantity)
 
       @date = params[:date].present? ? Date.parse(params[:date]) : Date.current
       @calendar_start_date = @date.beginning_of_month.beginning_of_week(:sunday)
@@ -86,9 +93,9 @@ module Public
     
     # GET /rentals/:id/book
     def book
-      @duration_minutes = params[:duration].to_i
-      @duration_minutes = @rental.effective_rental_durations.first unless @duration_minutes.positive?
-      @quantity = params[:quantity].to_i.positive? ? params[:quantity].to_i : 1
+      @duration_options = @rental.effective_rental_durations
+      @duration_minutes = normalize_duration_param(params[:duration])
+      @quantity = normalize_quantity_param(params[:quantity])
 
       @start_time = params[:start_time].present? ? Time.zone.parse(params[:start_time]) : nil
       unless @start_time
@@ -200,6 +207,38 @@ module Public
         data[date.to_s] = slots
       end
       data
+    end
+
+    def normalize_duration_param(raw_value)
+      value = raw_value.to_i
+      return @duration_options.first if value <= 0
+      @duration_options.include?(value) ? value : @duration_options.first
+    end
+
+    def normalize_quantity_param(raw_value)
+      qty = raw_value.to_i.positive? ? raw_value.to_i : 1
+      max_available = @rental.rental_quantity_available.presence || 1
+      qty.clamp(1, max_available)
+    end
+
+    def build_duration_pricing_map(durations)
+      durations.index_with do |minutes|
+        pricing = @rental.calculate_rental_price(Time.current, Time.current + minutes.minutes)
+        {
+          base_total: pricing&.dig(:total).to_f,
+          rate_type: pricing&.dig(:rate_type),
+          rate_quantity: pricing&.dig(:quantity),
+          label: @rental.duration_in_words(minutes)
+        }
+      end
+    end
+
+    def pricing_preview_for(duration_minutes)
+      @duration_pricing_map[duration_minutes] || {}
+    end
+
+    def deposit_preview_for(quantity)
+      (@rental.security_deposit || 0).to_d * quantity
     end
   end
 end
