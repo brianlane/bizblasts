@@ -16,10 +16,12 @@ class ClientRentalBookingsController < ApplicationController
         RentalBooking.none
       end
     else
-      RentalBooking.joins(:tenant_customer)
-                   .where(tenant_customers: { email: current_user.email })
-                   .includes(:product, :business, :location)
-                   .order(start_time: :desc)
+      ActsAsTenant.without_tenant do
+        RentalBooking.joins(:tenant_customer)
+                     .where(tenant_customers: { email: current_user.email })
+                     .includes(:product, :business, :location)
+                     .order(start_time: :desc)
+      end
     end
   end
 
@@ -35,10 +37,12 @@ class ClientRentalBookingsController < ApplicationController
   end
 
   def set_rental_booking
-    @rental_booking = RentalBooking.joins(:tenant_customer)
-                                   .where(tenant_customers: { email: current_user.email })
-                                   .includes(:product, :business, :location)
-                                   .find_by(id: params[:id])
+    @rental_booking = ActsAsTenant.without_tenant do
+      RentalBooking.joins(:tenant_customer)
+                   .where(tenant_customers: { email: current_user.email })
+                   .includes(:product, :business, :location)
+                   .find_by(id: params[:id])
+    end
     return if @rental_booking
 
     redirect_to client_rental_bookings_path, alert: "Rental booking not found."

@@ -109,12 +109,14 @@ class ClientDashboardController < ApplicationController
   end
 
   def fetch_upcoming_rental_bookings
-    RentalBooking.joins(:tenant_customer)
-                 .where(tenant_customers: { id: @tenant_customer_ids })
-                 .where('start_time >= ?', Time.current)
-                 .where.not(status: 'cancelled')
-                 .includes(:product, :business)
-                 .order(start_time: :asc)
+    ActsAsTenant.without_tenant do
+      RentalBooking.joins(:tenant_customer)
+                   .where(tenant_customers: { id: @tenant_customer_ids })
+                   .where('start_time >= ?', Time.current)
+                   .where.not(status: 'cancelled')
+                   .includes(:product, :business)
+                   .order(start_time: :asc)
+    end
   end
 
   def fetch_recent_estimates
