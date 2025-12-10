@@ -123,6 +123,7 @@ class ClientDashboardController < ApplicationController
     ActsAsTenant.without_tenant do
       Estimate.joins(:tenant_customer)
               .where(tenant_customers: { id: @tenant_customer_ids })
+              .includes(:business)
               .order(created_at: :desc)
     end
   end

@@ -26,7 +26,9 @@ module Client
     end
 
     def set_tenant_customer_ids
-      @tenant_customer_ids = TenantCustomer.where(email: current_user.email).pluck(:id)
+      @tenant_customer_ids = ActsAsTenant.without_tenant do
+        TenantCustomer.where(email: current_user.email).pluck(:id)
+      end
       if @tenant_customer_ids.empty?
         redirect_to dashboard_path, alert: 'No documents found for your account.' and return
       end
