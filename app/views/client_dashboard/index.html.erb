@@ -106,7 +106,7 @@
               class: "inline-flex items-center text-primary hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
       <% else %>
         <p class="text-gray-600 text-sm sm:text-base">No upcoming rentals yet.</p>
-        <%= link_to "Browse Rentals", rentals_path,
+        <%= link_to "Browse Businesses for Rentals", businesses_path,
               class: "inline-flex items-center text-primary hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
       <% end %>
     </div>
@@ -169,8 +169,8 @@
         <%= link_to "View All Estimates", client_estimates_path,
               class: "inline-flex items-center text-primary hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
       <% else %>
-        <p class="text-gray-600 text-sm sm:text-base">You don’t have any estimates yet.</p>
-        <%= link_to "Request an Estimate", tenant_estimate_page_path,
+        <p class="text-gray-600 text-sm sm:text-base">You don't have any estimates yet.</p>
+        <%= link_to "Find Businesses for Estimates", businesses_path,
               class: "inline-flex items-center text-primary hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
       <% end %>
     </div>

@@ -7,7 +7,7 @@
     </div>
     <div class="flex flex-wrap items-center gap-2">
       <%= link_to 'Back to Dashboard', dashboard_path, class: "inline-flex items-center px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50" %>
-      <%= link_to 'Browse Rentals', rentals_path, class: "inline-flex items-center px-4 py-2 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow hover:bg-blue-700" %>
+      <%= link_to 'Browse Businesses for Rentals', businesses_path, class: "inline-flex items-center px-4 py-2 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow hover:bg-blue-700" %>
     </div>
   </div>
 
@@ -40,8 +40,8 @@
     </div>
   <% else %>
     <div class="bg-white rounded-2xl shadow p-10 text-center text-gray-500">
-      <p>You don’t have any rental bookings yet.</p>
-      <%= link_to 'Find a rental to book', rentals_path,
+      <p>You don't have any rental bookings yet.</p>
+      <%= link_to 'Browse businesses for rentals', businesses_path,
             class: "mt-6 inline-flex items-center px-5 py-3 rounded-2xl bg-blue-600 text-white font-semibold shadow hover:bg-blue-700" %>
     </div>
   <% end %>
