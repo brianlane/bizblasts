@@ -303,7 +303,7 @@ class Business::RegistrationsController < Users::RegistrationsController
       record_policy_acceptances(resource, params[:policy_acceptances]) if params[:policy_acceptances]
 
       # Create sidebar item preferences for the owner
-      create_sidebar_items_for_user(resource, params[:sidebar_items])
+      create_sidebar_items_for_user(resource, params[:sidebar_items], params[:sidebar_customized])
 
       # Process platform referral code if provided
       if business_params[:platform_referral_code].present?
@@ -372,7 +372,8 @@ class Business::RegistrationsController < Users::RegistrationsController
           registration_type: 'business',
           user_data: user_params.to_json,
           business_data: business_params.to_json,
-          sidebar_items: (params[:sidebar_items] || []).to_json
+          sidebar_items: (params[:sidebar_items] || []).to_json,
+          sidebar_customized: params[:sidebar_customized] || "0"
         }
       })
       
@@ -469,10 +470,14 @@ class Business::RegistrationsController < Users::RegistrationsController
   end
 
   # Create sidebar item preferences for a newly registered user
-  def create_sidebar_items_for_user(user, selected_items)
-    # If no specific items were selected (nil or empty), don't create any records
+  def create_sidebar_items_for_user(user, selected_items, customized)
+    # If user didn't customize sidebar (didn't interact with the section), use defaults
     # The sidebar system will show all defaults when no UserSidebarItem records exist
-    return if selected_items.nil? || selected_items.empty?
+    return unless customized == "1"
+
+    # User explicitly customized their sidebar - create records for all items
+    # Even if selected_items is empty (user deselected all), we create records with visible: false
+    selected_items ||= []
 
     # Get all default items (this returns the master list of 21 items)
     all_items = [

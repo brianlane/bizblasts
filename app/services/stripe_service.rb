@@ -1902,6 +1902,7 @@ class StripeService
       user_data = JSON.parse(session.dig('metadata', 'user_data'))
       business_data = JSON.parse(session.dig('metadata', 'business_data'))
       sidebar_items = JSON.parse(session.dig('metadata', 'sidebar_items') || '[]')
+      sidebar_customized = session.dig('metadata', 'sidebar_customized') || "0"
 
       Rails.logger.info "[REGISTRATION] Creating business: #{business_data['name']} (#{business_data['tier']})"
 
@@ -1928,7 +1929,7 @@ class StripeService
         end
 
         # Set up all the default records for the business
-        setup_business_defaults_from_webhook(business, user, sidebar_items)
+        setup_business_defaults_from_webhook(business, user, sidebar_items, sidebar_customized)
 
         Rails.logger.info "[REGISTRATION] Successfully completed business registration for #{business.name} (ID: #{business.id})"
       end
@@ -1945,7 +1946,7 @@ class StripeService
   end
 
   # Set up default records for a newly created business (called from webhook)
-  def self.setup_business_defaults_from_webhook(business, user, sidebar_items = [])
+  def self.setup_business_defaults_from_webhook(business, user, sidebar_items = [], sidebar_customized = "0")
     # Create staff member for the business owner
     business.staff_members.create!(
       user: user,
@@ -1960,7 +1961,7 @@ class StripeService
     create_default_location_from_webhook(business)
 
     # Create sidebar item preferences for the owner
-    create_sidebar_items_from_registration(user, sidebar_items)
+    create_sidebar_items_from_registration(user, sidebar_items, sidebar_customized)
 
     # Set up Stripe Connect account for paid tiers
     if business.tier.in?(['standard', 'premium'])
@@ -2005,10 +2006,14 @@ class StripeService
   end
 
   # Create sidebar item preferences for a newly registered user (called from webhook)
-  def self.create_sidebar_items_from_registration(user, selected_items)
-    # If no specific items were selected (nil or empty), don't create any records
+  def self.create_sidebar_items_from_registration(user, selected_items, customized = "0")
+    # If user didn't customize sidebar (didn't interact with the section), use defaults
     # The sidebar system will show all defaults when no UserSidebarItem records exist
-    return if selected_items.nil? || selected_items.empty?
+    return unless customized == "1"
+
+    # User explicitly customized their sidebar - create records for all items
+    # Even if selected_items is empty (user deselected all), we create records with visible: false
+    selected_items ||= []
 
     # Get all default items (this returns the master list of 21 items)
     all_items = [
