@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_05_011000) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_11_164024) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -204,6 +204,12 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_05_011000) do
     t.bigint "tenant_customer_id"
     t.datetime "tip_reminder_sent_at"
     t.datetime "updated_at", null: false
+    t.string "video_meeting_host_url"
+    t.string "video_meeting_id"
+    t.string "video_meeting_password"
+    t.integer "video_meeting_provider", default: 0, null: false
+    t.integer "video_meeting_status", default: 0, null: false
+    t.string "video_meeting_url"
     t.index ["applied_promo_code"], name: "index_bookings_on_applied_promo_code"
     t.index ["business_id", "staff_member_id"], name: "index_bookings_on_business_and_staff_member"
     t.index ["business_id", "start_time"], name: "index_bookings_on_business_id_and_start_time"
@@ -224,6 +230,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_05_011000) do
     t.index ["status"], name: "index_bookings_on_status"
     t.index ["tenant_customer_id", "start_time"], name: "index_bookings_on_tenant_customer_id_and_start_time"
     t.index ["tenant_customer_id"], name: "index_bookings_on_tenant_customer_id"
+    t.index ["video_meeting_id"], name: "index_bookings_on_video_meeting_id"
+    t.index ["video_meeting_status"], name: "index_bookings_on_video_meeting_status"
   end
 
   create_table "businesses", force: :cascade do |t|
@@ -1476,6 +1484,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_05_011000) do
     t.boolean "tip_mailer_if_no_tip_received", default: true, null: false
     t.boolean "tips_enabled", default: false, null: false
     t.datetime "updated_at", null: false
+    t.boolean "video_enabled", default: false, null: false
+    t.integer "video_provider", default: 0, null: false
     t.index ["allow_customer_preferences"], name: "index_services_on_allow_customer_preferences"
     t.index ["allow_discounts"], name: "index_services_on_allow_discounts"
     t.index ["business_id", "position"], name: "index_services_on_business_id_and_position"
@@ -1484,6 +1494,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_05_011000) do
     t.index ["event_starts_at"], name: "index_services_on_event_starts_at_for_events", where: "(service_type = 2)"
     t.index ["name", "business_id"], name: "index_services_on_name_and_business_id", unique: true
     t.index ["tips_enabled"], name: "index_services_on_tips_enabled"
+    t.index ["video_enabled"], name: "index_services_on_video_enabled"
   end
 
   create_table "services_staff_members", force: :cascade do |t|
@@ -1950,6 +1961,26 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_05_011000) do
     t.index ["unsubscribe_token"], name: "index_users_on_unsubscribe_token", unique: true
   end
 
+  create_table "video_meeting_connections", force: :cascade do |t|
+    t.text "access_token"
+    t.boolean "active", default: true, null: false
+    t.bigint "business_id", null: false
+    t.datetime "connected_at"
+    t.datetime "created_at", null: false
+    t.datetime "last_used_at"
+    t.integer "provider", default: 0, null: false
+    t.text "refresh_token"
+    t.text "scopes"
+    t.bigint "staff_member_id", null: false
+    t.datetime "token_expires_at"
+    t.string "uid"
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_video_meeting_connections_on_active"
+    t.index ["business_id", "staff_member_id", "provider"], name: "idx_video_meeting_connections_unique", unique: true
+    t.index ["business_id"], name: "index_video_meeting_connections_on_business_id"
+    t.index ["staff_member_id"], name: "index_video_meeting_connections_on_staff_member_id"
+  end
+
   create_table "website_templates", force: :cascade do |t|
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
@@ -2161,5 +2192,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_05_011000) do
   add_foreign_key "user_sidebar_items", "users"
   add_foreign_key "users", "businesses"
   add_foreign_key "users", "staff_members"
+  add_foreign_key "video_meeting_connections", "businesses"
+  add_foreign_key "video_meeting_connections", "staff_members"
   add_foreign_key "website_themes", "businesses"
 end

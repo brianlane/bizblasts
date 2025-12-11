@@ -11,6 +11,7 @@ class Booking < ApplicationRecord
   after_create :sync_to_calendar_async
   after_update :handle_calendar_sync_on_update
   before_destroy :remove_from_calendar_async
+  after_save :create_video_meeting_async, if: :should_create_video_meeting?
   
   acts_as_tenant(:business)
   belongs_to :business, optional: true
@@ -40,6 +41,21 @@ class Booking < ApplicationRecord
     synced: 2,
     sync_failed: 3
   }, prefix: :calendar
+
+  # Video meeting provider types
+  enum :video_meeting_provider, {
+    video_none: 0,
+    video_zoom: 1,
+    video_google_meet: 2
+  }, prefix: :video
+
+  # Video meeting status enum
+  enum :video_meeting_status, {
+    video_not_created: 0,
+    video_pending: 1,
+    video_created: 2,
+    video_failed: 3
+  }, prefix: :video_meeting
 
   # Validations
   validates :quantity, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 1 }
@@ -136,7 +152,32 @@ class Booking < ApplicationRecord
     return false unless invoice
     invoice.payments.successful.where.not(status: :refunded).exists?
   end
-  
+
+  # Video meeting methods (public - called from views and mailers)
+  def has_video_meeting?
+    video_meeting_url.present? && video_meeting_video_created?
+  end
+
+  def video_meeting_provider_name
+    case video_meeting_provider
+    when 'video_zoom' then 'Zoom'
+    when 'video_google_meet' then 'Google Meet'
+    else nil
+    end
+  end
+
+  def video_meeting_required?
+    service&.video_meeting_enabled? && staff_member&.has_video_connection?(service_video_provider_key)
+  end
+
+  def service_video_provider_key
+    case service&.video_provider
+    when 'video_zoom' then :zoom
+    when 'video_google_meet' then :google_meet
+    else nil
+    end
+  end
+
   private
 
   def experience_service?
@@ -235,7 +276,7 @@ class Booking < ApplicationRecord
   
   def remove_from_calendar_async
     return unless calendar_event_mappings.any?
-    
+
     Calendar::DeleteBookingJob.perform_later(id, business_id)
   end
 
@@ -245,5 +286,20 @@ class Booking < ApplicationRecord
       # Updated to use new method that works for all service types
       schedule_tip_reminder
     end
+  end
+
+  # Video meeting callback methods (private - only called by after_save callback)
+  def should_create_video_meeting?
+    return false unless saved_change_to_status?
+    return false unless confirmed?
+    return false unless service&.video_meeting_enabled?
+    return false unless video_meeting_video_not_created?
+    true
+  end
+
+  def create_video_meeting_async
+    return unless video_meeting_required?
+    update_column(:video_meeting_status, :video_pending)
+    VideoMeeting::CreateMeetingJob.perform_later(id)
   end
 end

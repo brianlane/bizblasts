@@ -16,6 +16,19 @@ Notes: <%= @booking.notes %>
 Price: <%= number_to_currency(@booking.amount) %>
 <% end %>
 
+<% if @has_video_meeting %>
+VIDEO MEETING DETAILS
+=====================
+This is a virtual appointment via <%= @video_meeting_provider %>.
+
+Join URL: <%= @video_meeting_url %>
+<% if @video_meeting_password.present? %>
+Meeting Password: <%= @video_meeting_password %>
+<% end %>
+
+Please join the meeting a few minutes before your scheduled time.
+
+<% end %>
 <% policy = @business.booking_policy %>
 <% if policy&.has_customer_visible_policies? %>
 BOOKING POLICY:

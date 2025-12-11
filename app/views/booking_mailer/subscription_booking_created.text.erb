@@ -1,0 +1,47 @@
+SUBSCRIPTION BOOKING SCHEDULED - <%= @business.name %>
+
+Dear <%= @customer.full_name %>,
+
+Your recurring appointment has been scheduled as part of your subscription. Here are the details:
+
+Service: <%= @service.name %>
+Staff Member: <%= @staff_member&.name || 'To be assigned' %>
+Date: <%= @booking.local_start_time.strftime("%A, %B %d, %Y") %>
+Time: <%= @booking.local_start_time.strftime("%I:%M %p") %> - <%= @booking.local_end_time.strftime("%I:%M %p") %>
+Duration: <%= @booking.duration.to_i %> minutes
+<% if @subscription.present? %>
+Subscription: <%= @subscription.billing_cycle.humanize %>
+<% end %>
+
+<% if @has_video_meeting %>
+VIDEO MEETING DETAILS
+=====================
+This is a virtual appointment via <%= @video_meeting_provider %>.
+
+Join URL: <%= @video_meeting_url %>
+<% if @video_meeting_password.present? %>
+Meeting Password: <%= @video_meeting_password %>
+<% end %>
+
+Please join the meeting a few minutes before your scheduled time.
+
+<% end %>
+SUBSCRIPTION BENEFITS
+=====================
+As a subscriber, your appointments are automatically scheduled according to your preferences.
+You'll receive a reminder before each appointment.
+
+If you need to make any changes to this appointment or your subscription, please contact us or visit our website.
+
+<% if @business.phone.present? %>
+Phone: <%= @business.phone %>
+<% end %>
+<% if @business.email.present? %>
+Email: <%= @business.email %>
+<% end %>
+
+Thank you for being a valued subscriber!
+
+--
+This is an automated email, please do not reply directly to this message.
+© <%= Date.today.year %> <%= @business.name %>. All rights reserved.

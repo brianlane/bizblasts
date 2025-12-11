@@ -161,9 +161,13 @@ Rails.application.routes.draw do
   
   # Calendar OAuth callback (outside subdomain constraint for security)
   get '/oauth/calendar/:provider/callback', to: 'calendar_oauth#callback', as: :calendar_oauth_callback
-  
+
   # Google Business Profile OAuth callback (outside subdomain constraint)
   get '/oauth/google-business/callback', to: 'google_business_oauth#callback', as: :google_business_oauth_callback
+
+  # Video Meeting OAuth callbacks (outside subdomain constraint for security)
+  get '/oauth/video/zoom/callback', to: 'video_meeting_oauth#callback', defaults: { provider: 'zoom' }, as: :zoom_video_oauth_callback
+  get '/oauth/video/google-meet/callback', to: 'video_meeting_oauth#callback', defaults: { provider: 'google_meet' }, as: :google_meet_video_oauth_callback
   # Add routes for admin bookings availability before ActiveAdmin is initialized
   get '/admin/bookings-availability/slots', to: 'admin/booking_availability#available_slots', as: :available_slots_bookings
   get '/admin/bookings-availability/new', to: 'admin/booking_availability#new', as: :new_admin_booking_from_slots
@@ -424,6 +428,12 @@ Rails.application.routes.draw do
             delete 'calendar-integrations/:calendar_integration_id', action: :calendar_integration_destroy, as: :calendar_integration_destroy
             patch 'calendar-integrations/:calendar_integration_id/toggle-default', action: :calendar_integration_toggle_default, as: :calendar_integration_toggle_default
             post 'calendar-integrations/:calendar_integration_id/resync', action: :calendar_integration_resync, as: :calendar_integration_resync
+
+            # Video meeting integration routes
+            post 'video-integrations/connect', action: :video_integration_connect, as: :video_integration_connect
+            post 'video-integrations/link-from-calendar', action: :video_integration_link_from_calendar, as: :video_integration_link_from_calendar
+            delete 'video-integrations/:id', action: :video_integration_destroy, as: :video_integration_destroy
+            get 'video-integrations/:id/status', action: :video_integration_status, as: :video_integration_status
           end
         end
         resource :website_pages, only: [:edit, :update]

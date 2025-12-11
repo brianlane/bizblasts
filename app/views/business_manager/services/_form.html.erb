@@ -110,6 +110,96 @@
     <%= form.label :subscription_enabled, "Enable subscriptions", class: "ml-2 text-gray-700 text-sm font-bold" %>
   </div>
 
+  <!-- Video Meeting Settings Section -->
+  <div class="mb-8 border-t pt-6" data-controller="video-meeting-settings">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Video Meeting Settings</h3>
+    <p class="text-sm text-gray-600 mb-4">Enable automatic video meeting creation when this service is booked. Meetings will be created automatically and included in confirmation emails.</p>
+
+    <div class="mb-4">
+      <%= form.check_box :video_enabled,
+            class: "form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500",
+            id: "service_video_enabled",
+            data: { action: "change->video-meeting-settings#toggleProvider" } %>
+      <%= form.label :video_enabled, "Enable video meetings for this service", class: "ml-2 text-gray-700 text-sm font-bold" %>
+    </div>
+
+    <div id="video_provider_section" class="<%= service.video_enabled? ? '' : 'hidden' %> ml-6" data-video-meeting-settings-target="providerSection">
+      <div class="mb-4">
+        <%= form.label :video_provider, "Video Meeting Provider", class: "block text-gray-700 text-sm font-bold mb-2" %>
+        <% if @video_providers.present? %>
+          <div class="space-y-2">
+            <% @video_providers.each do |provider| %>
+              <div class="flex items-center">
+                <%= form.radio_button :video_provider, provider[:key],
+                      class: "form-radio h-4 w-4 text-blue-600 focus:ring-blue-500",
+                      id: "service_video_provider_#{provider[:key]}" %>
+                <%= form.label "video_provider_#{provider[:key]}", provider[:name], class: "ml-2 text-gray-700 text-sm" %>
+
+                <% # Check if any assigned staff members have this provider connected
+                   connected_staff = if provider[:key] == 'video_zoom'
+                     @video_meeting_connections.select { |c| c.provider == 'zoom' }.map { |c| c.staff_member }
+                   elsif provider[:key] == 'video_google_meet'
+                     @video_meeting_connections.select { |c| c.provider == 'google_meet' }.map { |c| c.staff_member }
+                   else
+                     []
+                   end
+                %>
+                <% if connected_staff.any? %>
+                  <span class="ml-2 text-xs text-green-600">
+                    (<%= connected_staff.map(&:name).join(', ') %> connected)
+                  </span>
+                <% else %>
+                  <span class="ml-2 text-xs text-amber-600">
+                    (No staff connected)
+                  </span>
+                <% end %>
+              </div>
+            <% end %>
+
+            <div class="flex items-center">
+              <%= form.radio_button :video_provider, 'video_none',
+                    class: "form-radio h-4 w-4 text-blue-600 focus:ring-blue-500",
+                    id: "service_video_provider_video_none" %>
+              <%= form.label :video_provider_video_none, "No provider (disable video)", class: "ml-2 text-gray-700 text-sm" %>
+            </div>
+          </div>
+        <% else %>
+          <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <p class="text-sm text-amber-800">
+              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+              No video meeting providers are configured. Contact your administrator to set up Zoom or Google Meet integration.
+            </p>
+          </div>
+        <% end %>
+      </div>
+
+      <% if @video_meeting_connections.blank? && @video_providers.present? %>
+        <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+          <p class="text-sm text-blue-800">
+            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <strong>Staff account connection required:</strong> Before video meetings can be created, staff members must connect their video meeting accounts.
+            <%= link_to "Go to Integrations Settings", business_manager_settings_integrations_path, class: "underline font-medium" %> to connect accounts.
+          </p>
+        </div>
+      <% end %>
+
+      <!-- Info box about how video meetings work -->
+      <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+        <h5 class="text-sm font-medium text-gray-800 mb-2">How video meetings work:</h5>
+        <ul class="text-sm text-gray-600 space-y-1">
+          <li>• When a customer books this service, a video meeting is automatically created</li>
+          <li>• The meeting link is included in the booking confirmation email</li>
+          <li>• The staff member assigned to the booking must have their video account connected</li>
+          <li>• Meetings are created using the assigned staff member's account</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
   <div class="mb-4">
     <h3 class="text-lg font-semibold mb-2">Assign Staff Members</h3>
     <%= form.collection_check_boxes :staff_member_ids, @current_business.staff_members.order(:name), :id, :name do |b|

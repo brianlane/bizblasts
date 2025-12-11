@@ -8,7 +8,13 @@ class BookingMailer < ApplicationMailer
     @customer = booking.tenant_customer
     @service = booking.service
     @staff_member = booking.staff_member
-    
+
+    # Video meeting data
+    @video_meeting_url = booking.video_meeting_url
+    @video_meeting_password = booking.video_meeting_password
+    @video_meeting_provider = booking.video_meeting_provider_name
+    @has_video_meeting = booking.has_video_meeting?
+
     mail(
       to: @customer.email,
       subject: "Booking Confirmation - #{@service.name}",
@@ -50,7 +56,13 @@ class BookingMailer < ApplicationMailer
     @business = booking.business
     @customer = booking.tenant_customer
     @time_before = time_before
-    
+
+    # Video meeting data
+    @video_meeting_url = booking.video_meeting_url
+    @video_meeting_password = booking.video_meeting_password
+    @video_meeting_provider = booking.video_meeting_provider_name
+    @has_video_meeting = booking.has_video_meeting?
+
     mail(
       to: @customer.email,
       subject: "Reminder: Your Upcoming Booking - #{@business.name}",
@@ -97,7 +109,13 @@ class BookingMailer < ApplicationMailer
     @service = booking.service
     @staff_member = booking.staff_member
     @subscription = booking.customer_subscription
-    
+
+    # Video meeting data
+    @video_meeting_url = booking.video_meeting_url
+    @video_meeting_password = booking.video_meeting_password
+    @video_meeting_provider = booking.video_meeting_provider_name
+    @has_video_meeting = booking.has_video_meeting?
+
     mail(
       to: @customer.email,
       subject: "Subscription Booking Scheduled - #{@service.name}",
