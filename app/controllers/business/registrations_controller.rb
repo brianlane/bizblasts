@@ -116,9 +116,10 @@ class Business::RegistrationsController < Users::RegistrationsController
   def configure_sign_up_params
     devise_parameter_sanitizer.permit(:sign_up, keys: [
       :first_name, :last_name, :bizblasts_notification_consent,
+      { sidebar_items: [] }, # Permit sidebar items array
       business_attributes: [
         :name, :industry, :phone, :email, :address, :city, :state, :zip,
-        :description, :tier, 
+        :description, :tier,
         :hostname, :subdomain, :host_type, :custom_domain_owned, :canonical_preference,
         :platform_referral_code # Permit platform referral code
       ],
@@ -297,10 +298,13 @@ class Business::RegistrationsController < Users::RegistrationsController
     if transaction_successful && resource.persisted?
       # Success path
       Rails.logger.info "[REGISTRATION] Transaction successful. Business ##{resource.business_id} created immediately."
-      
+
       # Record policy acceptances after successful creation
       record_policy_acceptances(resource, params[:policy_acceptances]) if params[:policy_acceptances]
-      
+
+      # Create sidebar item preferences for the owner
+      create_sidebar_items_for_user(resource, params[:sidebar_items], params[:sidebar_customized])
+
       # Process platform referral code if provided
       if business_params[:platform_referral_code].present?
         process_platform_referral_signup(@business, business_params[:platform_referral_code])
@@ -367,7 +371,9 @@ class Business::RegistrationsController < Users::RegistrationsController
         metadata: {
           registration_type: 'business',
           user_data: user_params.to_json,
-          business_data: business_params.to_json
+          business_data: business_params.to_json,
+          sidebar_items: (params[:sidebar_items] || []).to_json,
+          sidebar_customized: params[:sidebar_customized] || "0"
         }
       })
       
@@ -450,9 +456,9 @@ class Business::RegistrationsController < Users::RegistrationsController
   # Process platform referral code during business signup
   def process_platform_referral_signup(business, referral_code)
     return unless referral_code.present?
-    
+
     result = PlatformLoyaltyService.process_business_referral_signup(business, referral_code)
-    
+
     if result[:success]
       Rails.logger.info "[PLATFORM_REFERRAL] Processed platform referral signup: #{business.name} via #{referral_code}"
       Rails.logger.info "[PLATFORM_REFERRAL] #{result[:message]}"
@@ -461,5 +467,40 @@ class Business::RegistrationsController < Users::RegistrationsController
     end
   rescue => e
     Rails.logger.error "[PLATFORM_REFERRAL] Error processing platform referral signup: #{e.message}"
+  end
+
+  # Create sidebar item preferences for a newly registered user
+  def create_sidebar_items_for_user(user, selected_items, customized)
+    # If user didn't customize sidebar (didn't interact with the section), use defaults
+    # The sidebar system will show all defaults when no UserSidebarItem records exist
+    return unless customized == "1"
+
+    # User explicitly customized their sidebar - create records for all items
+    # Even if selected_items is empty (user deselected all), we create records with visible: false
+    selected_items ||= []
+
+    # Get all default items (this returns the master list of 21 items)
+    all_items = [
+      'dashboard', 'bookings', 'estimates', 'website', 'website_builder',
+      'transactions', 'payments', 'staff', 'services', 'products',
+      'rentals', 'rental_bookings', 'shipping_methods', 'tax_rates',
+      'customers', 'referrals', 'loyalty', 'platform',
+      'promotions', 'customer_subscriptions', 'settings'
+    ]
+
+    # Create records for all items, marking visibility based on selection
+    all_items.each_with_index do |item_key, index|
+      is_visible = selected_items.include?(item_key)
+
+      user.user_sidebar_items.create!(
+        item_key: item_key,
+        position: index,
+        visible: is_visible
+      )
+    end
+
+    Rails.logger.info "[REGISTRATION] Created #{user.user_sidebar_items.count} sidebar items for user ##{user.id}"
+  rescue ActiveRecord::RecordInvalid => e
+    Rails.logger.error "[REGISTRATION] Failed to create sidebar items for user ##{user.id}: #{e.message}"
   end
 end 

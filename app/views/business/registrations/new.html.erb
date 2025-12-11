@@ -302,6 +302,58 @@
         <% end %>
       </div>
 
+      <!-- Customize Your Dashboard Section (Collapsible) -->
+      <div class="border-t border-gray-200 pt-6 mt-6">
+        <div class="cursor-pointer" id="sidebar-section-toggle">
+          <h3 class="text-lg font-semibold text-dark mb-2 flex items-center justify-between">
+            <span class="flex items-center">
+              <svg class="h-6 w-6 text-primary mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path>
+              </svg>
+              Customize Your Dashboard
+              <span class="text-sm font-normal text-gray-500 ml-2">(Optional)</span>
+            </span>
+            <svg id="sidebar-section-chevron" class="h-5 w-5 text-gray-500 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </h3>
+        </div>
+        <p class="text-sm text-gray-600 mb-4">Choose which features appear in your sidebar. You can change this later in Settings.</p>
+
+        <div id="sidebar-selection-content" class="hidden">
+          <!-- Hidden field to track if user interacted with sidebar selection -->
+          <%= hidden_field_tag :sidebar_customized, "0", id: "sidebar_customized" %>
+
+          <!-- Select All / Deselect All Toggle -->
+          <div class="flex items-center mb-4 pb-3 border-b border-gray-100">
+            <button type="button" id="select-all-sidebar" class="text-sm text-primary hover:text-blue-700 font-medium mr-4 cursor-pointer">
+              Select All
+            </button>
+            <button type="button" id="deselect-all-sidebar" class="text-sm text-gray-600 hover:text-gray-800 font-medium cursor-pointer">
+              Deselect All
+            </button>
+          </div>
+
+          <!-- Sidebar Items Grid -->
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <% sidebar_registration_items.each do |item| %>
+              <div class="flex items-center">
+                <%= check_box_tag "sidebar_items[]", item[:key], true,
+                      id: "sidebar_item_#{item[:key]}",
+                      class: "sidebar-item-checkbox h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary" %>
+                <label for="sidebar_item_<%= item[:key] %>" class="ml-2 text-sm text-gray-700 cursor-pointer">
+                  <%= item[:label] %>
+                </label>
+              </div>
+            <% end %>
+          </div>
+
+          <p class="text-xs text-gray-500 mt-4">
+            Note: Some items may not appear if they require specific features or tier to be enabled.
+          </p>
+        </div>
+      </div>
+
       <!-- Legal Agreement Section -->
       <div class="border-t border-gray-200 pt-6">
         <h3 class="text-lg font-semibold text-dark mb-4 flex items-center">
@@ -735,4 +787,58 @@
   
   document.addEventListener('DOMContentLoaded', initializeRegistrationSubdomainChecker);
   document.addEventListener('turbo:load', initializeRegistrationSubdomainChecker);
+</script>
+
+<script type="text/javascript">
+  function initializeSidebarSelection() {
+    const sectionToggle = document.getElementById('sidebar-section-toggle');
+    const sectionContent = document.getElementById('sidebar-selection-content');
+    const chevron = document.getElementById('sidebar-section-chevron');
+    const selectAllBtn = document.getElementById('select-all-sidebar');
+    const deselectAllBtn = document.getElementById('deselect-all-sidebar');
+    const checkboxes = document.querySelectorAll('.sidebar-item-checkbox');
+    const sidebarCustomizedField = document.getElementById('sidebar_customized');
+
+    if (!sectionToggle || !sectionContent) return;
+
+    // Mark sidebar as customized when user interacts
+    function markAsCustomized() {
+      if (sidebarCustomizedField) {
+        sidebarCustomizedField.value = "1";
+      }
+    }
+
+    // Toggle section visibility
+    sectionToggle.addEventListener('click', function() {
+      sectionContent.classList.toggle('hidden');
+      chevron.classList.toggle('rotate-180');
+    });
+
+    // Track checkbox changes to mark as customized
+    checkboxes.forEach(cb => {
+      cb.addEventListener('change', markAsCustomized);
+    });
+
+    // Select All functionality
+    if (selectAllBtn) {
+      selectAllBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        markAsCustomized();
+        checkboxes.forEach(cb => cb.checked = true);
+      });
+    }
+
+    // Deselect All functionality
+    if (deselectAllBtn) {
+      deselectAllBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        markAsCustomized();
+        checkboxes.forEach(cb => cb.checked = false);
+      });
+    }
+  }
+
+  // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
+  document.addEventListener('DOMContentLoaded', initializeSidebarSelection);
+  document.addEventListener('turbo:load', initializeSidebarSelection);
 </script> 
