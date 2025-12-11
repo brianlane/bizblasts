@@ -66,9 +66,9 @@ class VideoMeetingOauthController < ApplicationController
 
   def build_redirect_uri(provider)
     scheme = request.ssl? ? 'https' : 'http'
-    host = Rails.application.config.main_domain
+    host = Rails.application.config.main_domain || request.host
     # Append port only if main_domain does NOT already include one
-    port_str = if host.include?(':') || request.port.nil? || [80, 443].include?(request.port)
+    port_str = if host&.include?(':') || request.port.nil? || [80, 443].include?(request.port)
                  ''
                else
                  ":#{request.port}"
@@ -198,7 +198,7 @@ class VideoMeetingOauthController < ApplicationController
 
         if business.present?
           # Redirect back to the business-appropriate host (subdomain or custom domain)
-          redirect_to TenantHost.url_for(business, request, '/manage/settings/integrations'), alert: message
+          redirect_to TenantHost.url_for(business, request, '/manage/settings/integrations'), alert: message, allow_other_host: true
           return
         end
       rescue => e
