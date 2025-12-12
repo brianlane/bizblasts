@@ -1,4 +1,5 @@
 <div class="space-y-4 sm:space-y-6">
+  <% sidebar_item_keys = current_user.sidebar_items_config.map(&:item_key) %>
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
     <div>
       <h1 class="text-2xl sm:text-3xl font-bold">Dashboard</h1>
@@ -12,59 +13,63 @@
   <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
 
     <!-- Recent Bookings (Last 7 Days) -->
-    <div id="recent-bookings-widget" class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
-      <h3 class="text-lg sm:text-xl font-semibold mb-4">Recent Bookings (Last 7 Days)</h3>
-      <% recent_bookings = @current_business.bookings.where(start_time: 7.days.ago..Time.current)
-        .where.not(status: :cancelled)
-        .order(start_time: :desc)
-        .limit(5) %>
-      <% if recent_bookings.present? %>
-        <div class="space-y-3">
-          <% recent_bookings.each do |booking| %>
-            <div class="py-3 border-b border-gray-100 last:border-b-0">
-              <div class="font-medium text-sm sm:text-base"><%= service_with_variant(booking) %></div>
-              <div class="text-sm text-gray-600">with <%= booking.tenant_customer&.full_name || 'Deleted Customer' %></div>
-              <div class="text-xs sm:text-sm text-gray-500 mt-1">
-                <%= booking.local_start_time.strftime("%a, %b %d, %Y at %I:%M %p") %>
+    <% if sidebar_item_keys.include?('bookings') %>
+      <div id="recent-bookings-widget" class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+        <h3 class="text-lg sm:text-xl font-semibold mb-4">Recent Bookings (Last 7 Days)</h3>
+        <% recent_bookings = @current_business.bookings.where(start_time: 7.days.ago..Time.current)
+          .where.not(status: :cancelled)
+          .order(start_time: :desc)
+          .limit(5) %>
+        <% if recent_bookings.present? %>
+          <div class="space-y-3">
+            <% recent_bookings.each do |booking| %>
+              <div class="py-3 border-b border-gray-100 last:border-b-0">
+                <div class="font-medium text-sm sm:text-base"><%= service_with_variant(booking) %></div>
+                <div class="text-sm text-gray-600">with <%= booking.tenant_customer&.full_name || 'Deleted Customer' %></div>
+                <div class="text-xs sm:text-sm text-gray-500 mt-1">
+                  <%= booking.local_start_time.strftime("%a, %b %d, %Y at %I:%M %p") %>
+                </div>
               </div>
-            </div>
-          <% end %>
-        </div>
-        <%= link_to "View All Bookings", business_manager_bookings_path, 
-              class: "inline-flex items-center text-blue-600 hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
-      <% else %>
-        <p class="text-gray-600 text-sm sm:text-base">No bookings in the last 7 days.</p>
-      <% end %>
-    </div>
+            <% end %>
+          </div>
+          <%= link_to "View All Bookings", business_manager_bookings_path,
+                class: "inline-flex items-center text-blue-600 hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
+        <% else %>
+          <p class="text-gray-600 text-sm sm:text-base">No bookings in the last 7 days.</p>
+        <% end %>
+      </div>
+    <% end %>
 
     <!-- Upcoming Appointments (Next 7 Days) -->
-    <div id="upcoming-appointments-widget" class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
-      <h3 class="text-lg sm:text-xl font-semibold mb-4">Upcoming Appointments (Next 7 Days)</h3>
-      <% upcoming_appointments = @current_business.bookings.where(start_time: Time.current..7.days.from_now)
-        .where.not(status: :cancelled)
-        .order(start_time: :asc)
-        .limit(5) %>
-      <% if upcoming_appointments.present? %>
-        <div class="space-y-3">
-          <% upcoming_appointments.each do |booking| %>
-            <div class="py-3 border-b border-gray-100 last:border-b-0">
-              <div class="font-medium text-sm sm:text-base"><%= service_with_variant(booking) %></div>
-              <div class="text-sm text-gray-600">with <%= booking.tenant_customer&.full_name || 'Deleted Customer' %></div>
-              <div class="text-xs sm:text-sm text-gray-500 mt-1">
-                <%= booking.local_start_time.strftime("%a, %b %d, %Y at %I:%M %p") %>
+    <% if sidebar_item_keys.include?('bookings') %>
+      <div id="upcoming-appointments-widget" class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+        <h3 class="text-lg sm:text-xl font-semibold mb-4">Upcoming Appointments (Next 7 Days)</h3>
+        <% upcoming_appointments = @current_business.bookings.where(start_time: Time.current..7.days.from_now)
+          .where.not(status: :cancelled)
+          .order(start_time: :asc)
+          .limit(5) %>
+        <% if upcoming_appointments.present? %>
+          <div class="space-y-3">
+            <% upcoming_appointments.each do |booking| %>
+              <div class="py-3 border-b border-gray-100 last:border-b-0">
+                <div class="font-medium text-sm sm:text-base"><%= service_with_variant(booking) %></div>
+                <div class="text-sm text-gray-600">with <%= booking.tenant_customer&.full_name || 'Deleted Customer' %></div>
+                <div class="text-xs sm:text-sm text-gray-500 mt-1">
+                  <%= booking.local_start_time.strftime("%a, %b %d, %Y at %I:%M %p") %>
+                </div>
               </div>
-            </div>
-          <% end %>
-        </div>
-        <%= link_to "View All Bookings", business_manager_bookings_path, 
-              class: "inline-flex items-center text-blue-600 hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
-      <% else %>
-        <p class="text-gray-600 text-sm sm:text-base">No upcoming appointments in the next 7 days.</p>
-      <% end %>
-    </div>
+            <% end %>
+          </div>
+          <%= link_to "View All Bookings", business_manager_bookings_path,
+                class: "inline-flex items-center text-blue-600 hover:text-blue-800 mt-4 text-sm sm:text-base font-medium transition-colors" %>
+        <% else %>
+          <p class="text-gray-600 text-sm sm:text-base">No upcoming appointments in the next 7 days.</p>
+        <% end %>
+      </div>
+    <% end %>
 
     <!-- Estimates Overview -->
-    <% if @current_business.show_estimate_page? %>
+    <% if @current_business.show_estimate_page? && sidebar_item_keys.include?('estimates') %>
     <div id="estimates-widget" class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
       <h3 class="text-lg sm:text-xl font-semibold mb-4">Estimates Overview</h3>
 
@@ -181,7 +186,7 @@
     <% end %>
 
     <!-- Rental Dashboard Widget -->
-    <% if @current_business.show_rentals_section? %>
+    <% if @current_business.show_rentals_section? && (sidebar_item_keys.include?('rentals') || sidebar_item_keys.include?('rental_bookings')) %>
     <div id="rentals-widget" class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
       <h3 class="text-lg sm:text-xl font-semibold mb-4">Rental Bookings</h3>
       
