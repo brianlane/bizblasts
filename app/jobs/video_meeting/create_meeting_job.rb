@@ -40,17 +40,27 @@ module VideoMeeting
       end
 
       ActsAsTenant.with_tenant(booking.business) do
-        coordinator = MeetingCoordinator.new(booking)
-        success = coordinator.create_meeting
+        # Use database row lock to prevent duplicate API calls if multiple jobs were enqueued.
+        # Only one job will proceed; others will see status has changed and exit.
+        booking.with_lock do
+          # Re-check status inside lock - another job may have already processed it
+          unless booking.video_meeting_video_pending?
+            Rails.logger.info("[CreateMeetingJob] Booking #{booking_id} status is #{booking.video_meeting_status} - skipping (already processed).")
+            return
+          end
 
-        if success
-          # Send follow-up email with the video meeting link
-          # This ensures customers get the link even though the confirmation email was sent before it was ready
-          send_video_meeting_notification(booking)
-        else
-          Rails.logger.error("[CreateMeetingJob] Failed to create meeting for booking #{booking_id}")
-          coordinator.errors.each do |error|
-            Rails.logger.error("  #{error.attribute}: #{error.message}")
+          coordinator = MeetingCoordinator.new(booking)
+          success = coordinator.create_meeting
+
+          if success
+            # Send follow-up email with the video meeting link
+            # This ensures customers get the link even though the confirmation email was sent before it was ready
+            send_video_meeting_notification(booking)
+          else
+            Rails.logger.error("[CreateMeetingJob] Failed to create meeting for booking #{booking_id}")
+            coordinator.errors.each do |error|
+              Rails.logger.error("  #{error.attribute}: #{error.message}")
+            end
           end
         end
       end

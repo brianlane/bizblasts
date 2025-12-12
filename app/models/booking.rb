@@ -300,8 +300,20 @@ class Booking < ApplicationRecord
   end
 
   def create_video_meeting_async
+    # Use atomic conditional update to prevent race conditions.
+    # Only one concurrent request will successfully update the status and enqueue the job.
+    eligible_statuses = [
+      Booking.video_meeting_statuses[:video_not_created],
+      Booking.video_meeting_statuses[:video_failed]
+    ]
+
+    rows_updated = Booking.where(id: id, video_meeting_status: eligible_statuses)
+                          .update_all(video_meeting_status: Booking.video_meeting_statuses[:video_pending])
+
+    # If no rows were updated, another request already started the process - skip to avoid duplicate jobs
+    return if rows_updated == 0
+
     if video_meeting_required?
-      update_column(:video_meeting_status, Booking.video_meeting_statuses[:video_pending])
       VideoMeeting::CreateMeetingJob.perform_later(id)
       return
     end

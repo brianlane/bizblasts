@@ -138,6 +138,9 @@ class BookingMailer < ApplicationMailer
     @service = booking.service
     @staff_member = booking.staff_member
 
+    # Guard clause: customer may have been deleted between job enqueue and email delivery
+    return if @customer.nil? || @customer.email.blank?
+
     @video_meeting_url = booking.video_meeting_url
     @video_meeting_password = booking.video_meeting_password
     @video_meeting_provider = booking.video_meeting_provider_name
