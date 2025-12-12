@@ -25,10 +25,23 @@ module VideoMeeting
           send_notifications: false
         )
 
-        connection.mark_used!
-
         # Extract Google Meet link from conference data
         meet_url = extract_meet_url(result)
+
+        if meet_url.blank?
+          add_error(:missing_meet_url, "Google did not return a Meet URL (missing conference data) for event #{result.id}")
+
+          # Best-effort cleanup to avoid orphaned calendar events with no usable conference link.
+          begin
+            calendar_service.delete_event('primary', result.id)
+          rescue StandardError => cleanup_error
+            Rails.logger.warn("[GoogleMeetService] Failed to cleanup event #{result.id}: #{cleanup_error.message}")
+          end
+
+          return nil
+        end
+
+        connection.mark_used!
 
         {
           meeting_id: result.id,

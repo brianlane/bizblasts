@@ -29,6 +29,16 @@ module VideoMeeting
       meeting_data = service.create_meeting(booking)
 
       if meeting_data
+        unless meeting_data[:meeting_id].present? && meeting_data[:join_url].present?
+          add_error(
+            :invalid_meeting_data,
+            "Provider returned invalid meeting data (meeting_id/join_url missing) for booking #{booking.id}"
+          )
+          handle_service_errors(service)
+          mark_booking_failed
+          return false
+        end
+
         update_booking_with_meeting(meeting_data)
         true
       else
