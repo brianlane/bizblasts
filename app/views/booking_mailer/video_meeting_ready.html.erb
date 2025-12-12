@@ -44,7 +44,7 @@
     <p>Your video meeting link for your upcoming appointment is now ready!</p>
 
     <div style="background-color: #f7f7f7; border-radius: 5px; padding: 20px; margin-bottom: 20px;">
-      <p><span style="font-weight: bold; color: #666;">Service:</span> <%= @service.name %></p>
+      <p><span style="font-weight: bold; color: #666;">Service:</span> <%= @service&.name || 'Appointment' %></p>
       <p><span style="font-weight: bold; color: #666;">Date:</span> <%= @booking.local_start_time.strftime("%A, %B %d, %Y") %></p>
       <p><span style="font-weight: bold; color: #666;">Time:</span> <%= @booking.local_start_time.strftime("%I:%M %p") %> - <%= @booking.local_end_time.strftime("%I:%M %p") %></p>
       <% if @staff_member %>
