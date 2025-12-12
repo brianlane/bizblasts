@@ -290,16 +290,28 @@ class Booking < ApplicationRecord
 
   # Video meeting callback methods (private - only called by after_save callback)
   def should_create_video_meeting?
-    return false unless saved_change_to_status?
+    # Trigger on confirmation OR when relevant assignment changes happen after confirmation
+    trigger = saved_change_to_status? || saved_change_to_staff_member_id? || saved_change_to_service_id?
+    return false unless trigger
     return false unless confirmed?
     return false unless service&.video_meeting_enabled?
-    return false unless video_meeting_video_not_created?
+    return false unless video_meeting_video_not_created? || video_meeting_video_failed?
     true
   end
 
   def create_video_meeting_async
-    return unless video_meeting_required?
-    update_column(:video_meeting_status, Booking.video_meeting_statuses[:video_pending])
-    VideoMeeting::CreateMeetingJob.perform_later(id)
+    if video_meeting_required?
+      update_column(:video_meeting_status, Booking.video_meeting_statuses[:video_pending])
+      VideoMeeting::CreateMeetingJob.perform_later(id)
+      return
+    end
+
+    # Don't silently skip: mark as failed so admins can see the problem.
+    provider = service_video_provider_key
+    Rails.logger.warn(
+      "[Booking] Video meeting not created for booking #{id}: staff_member_id=#{staff_member_id.inspect} " \
+      "provider=#{provider.inspect} (missing connection or staff member)."
+    )
+    update_column(:video_meeting_status, Booking.video_meeting_statuses[:video_failed])
   end
 end

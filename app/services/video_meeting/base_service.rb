@@ -30,19 +30,24 @@ module VideoMeeting
     protected
 
     def ensure_valid_token!
-      return true unless connection.needs_refresh?
-
-      oauth_handler = OauthHandler.new
-      success = oauth_handler.refresh_token(connection)
-
-      unless success
-        oauth_handler.errors.each do |error|
-          add_error(error.attribute, error.message)
+      # If the access token is expired, we must refresh or fail fast.
+      if connection.token_expired?
+        unless connection.refresh_token.present?
+          add_error(
+            :token_expired,
+            "Access token expired and no refresh token is available for #{connection.provider_name} connection (id=#{connection.id})"
+          )
+          return false
         end
-        return false
+
+        return refresh_access_token!
       end
 
-      connection.reload
+      # Proactively refresh tokens that are about to expire to reduce provider API failures.
+      if connection.token_expiring_soon? && connection.refresh_token.present?
+        return refresh_access_token!
+      end
+
       true
     end
 
@@ -75,6 +80,24 @@ module VideoMeeting
       add_error(:api_error, error.message)
       Rails.logger.error("[#{self.class.name}] API Error: #{error.message}")
       Rails.logger.error(error.backtrace.first(10).join("\n")) if error.backtrace
+    end
+
+    def refresh_access_token!
+      oauth_handler = OauthHandler.new
+      success = oauth_handler.refresh_token(connection)
+
+      unless success
+        oauth_handler.errors.each do |error|
+          add_error(error.attribute, error.message)
+        end
+        return false
+      end
+
+      connection.reload
+      true
+    rescue StandardError => e
+      add_error(:refresh_failed, "Unexpected error refreshing token: #{e.message}")
+      false
     end
   end
 end
