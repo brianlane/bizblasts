@@ -16,7 +16,17 @@ module VideoMeeting
 
       # Skip if meeting already created or not needed
       return if booking.video_meeting_video_created?
-      return unless booking.video_meeting_required?
+      unless booking.video_meeting_required?
+        # If the booking was marked pending when enqueued but prerequisites changed (e.g. connection removed),
+        # don't leave it stuck in pending forever.
+        if booking.video_meeting_video_pending?
+          Rails.logger.warn(
+            "[CreateMeetingJob] Booking #{booking_id} is no longer eligible for a video meeting (missing connection/staff). Marking failed."
+          )
+          booking.update_column(:video_meeting_status, Booking.video_meeting_statuses[:video_failed])
+        end
+        return
+      end
 
       ActsAsTenant.with_tenant(booking.business) do
         coordinator = MeetingCoordinator.new(booking)

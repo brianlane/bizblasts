@@ -144,8 +144,13 @@ module VideoMeeting
     end
 
     def refresh_zoom_token(connection)
-      client_id = zoom_client_id
-      client_secret = zoom_client_secret
+      client_id, client_secret = zoom_credentials
+
+      unless client_id.present? && client_secret.present?
+        add_error(:missing_credentials, "Zoom OAuth credentials not configured")
+        connection.deactivate!
+        return false
+      end
 
       uri = URI.parse('https://zoom.us/oauth/token')
       http = Net::HTTP.new(uri.host, uri.port)
@@ -375,19 +380,28 @@ module VideoMeeting
     end
 
     def zoom_client_id
-      if Rails.env.development? || Rails.env.test?
-        ENV['ZOOM_CLIENT_ID_DEV'] || ENV['ZOOM_CLIENT_ID']
-      else
-        ENV['ZOOM_CLIENT_ID']
-      end
+      zoom_credentials&.first
     end
 
     def zoom_client_secret
-      if Rails.env.development? || Rails.env.test?
-        ENV['ZOOM_CLIENT_SECRET_DEV'] || ENV['ZOOM_CLIENT_SECRET']
-      else
-        ENV['ZOOM_CLIENT_SECRET']
-      end
+      zoom_credentials&.last
+    end
+
+    # Select a consistent Zoom credential *pair*.
+    # Keep this in sync with UI "available providers" checks: prefer production credentials when both are present;
+    # otherwise, in development/test, allow *_DEV credentials when both are present.
+    def zoom_credentials
+      prod_id = ENV['ZOOM_CLIENT_ID']
+      prod_secret = ENV['ZOOM_CLIENT_SECRET']
+      return [prod_id, prod_secret] if prod_id.present? && prod_secret.present?
+
+      return nil unless Rails.env.development? || Rails.env.test?
+
+      dev_id = ENV['ZOOM_CLIENT_ID_DEV']
+      dev_secret = ENV['ZOOM_CLIENT_SECRET_DEV']
+      return [dev_id, dev_secret] if dev_id.present? && dev_secret.present?
+
+      nil
     end
 
     def add_error(type, message)
