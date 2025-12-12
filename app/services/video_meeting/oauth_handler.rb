@@ -174,11 +174,19 @@ module VideoMeeting
           return false
         end
 
-        connection.update!(
+        # Build update attributes - always update access_token and expiry
+        update_attrs = {
           access_token: token_data['access_token'],
-          refresh_token: token_data['refresh_token'],
           token_expires_at: Time.current + token_data['expires_in'].to_i.seconds
-        )
+        }
+
+        # Only update refresh_token if Zoom returns a new one (defensive pattern to avoid
+        # clearing the stored token if API response is missing the field)
+        if token_data['refresh_token'].present?
+          update_attrs[:refresh_token] = token_data['refresh_token']
+        end
+
+        connection.update!(update_attrs)
 
         true
       rescue => e
