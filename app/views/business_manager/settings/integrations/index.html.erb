@@ -347,14 +347,25 @@
                 </div>
               <% end %>
 
+              <%# Define button classes statically so Tailwind JIT can find them %>
+              <% video_button_classes = {
+                'zoom' => {
+                  desktop: 'cursor-pointer px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors',
+                  mobile: 'cursor-pointer w-full px-4 py-3 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 min-h-[44px]'
+                },
+                'google_meet' => {
+                  desktop: 'cursor-pointer px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors',
+                  mobile: 'cursor-pointer w-full px-4 py-3 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 min-h-[44px]'
+                }
+              } %>
               <% available_video_options = [] %>
               <% if @video_providers.include?('zoom') && !staff_member.zoom_connected? %>
-                <% available_video_options << { provider: 'zoom', name: 'Zoom', color: 'blue', link_from_calendar: false } %>
+                <% available_video_options << { provider: 'zoom', name: 'Zoom', link_from_calendar: false } %>
               <% end %>
               <% if @video_providers.include?('google_meet') && !staff_member.google_meet_connected? %>
                 <% # Check if they can link from existing Google Calendar %>
                 <% has_google_calendar = staff_member.google_calendar_connected? %>
-                <% available_video_options << { provider: 'google_meet', name: 'Google Meet', color: 'green', link_from_calendar: has_google_calendar } %>
+                <% available_video_options << { provider: 'google_meet', name: 'Google Meet', link_from_calendar: has_google_calendar } %>
               <% end %>
 
               <% if available_video_options.any? %>
@@ -382,7 +393,7 @@
                                       video_integration_connect_business_manager_settings_integrations_path,
                                       params: { provider: option[:provider], staff_member_id: staff_member.id },
                                       method: :post,
-                                      class: "cursor-pointer px-4 py-2 text-sm font-medium bg-#{option[:color]}-600 text-white rounded-lg hover:bg-#{option[:color]}-700 focus:ring-2 focus:ring-#{option[:color]}-500 focus:ring-offset-2 transition-colors",
+                                      class: video_button_classes[option[:provider]][:desktop],
                                       data: { turbo: false } %>
                       <% end %>
                     <% end %>
@@ -408,7 +419,7 @@
                                       video_integration_connect_business_manager_settings_integrations_path,
                                       params: { provider: option[:provider], staff_member_id: staff_member.id },
                                       method: :post,
-                                      class: "cursor-pointer w-full px-4 py-3 text-sm font-medium bg-#{option[:color]}-600 text-white rounded-lg hover:bg-#{option[:color]}-700 min-h-[44px]",
+                                      class: video_button_classes[option[:provider]][:mobile],
                                       data: { turbo: false } %>
                       <% end %>
                     <% end %>
