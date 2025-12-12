@@ -142,9 +142,12 @@ class BookingMailer < ApplicationMailer
     @video_meeting_password = booking.video_meeting_password
     @video_meeting_provider = booking.video_meeting_provider_name
 
+    # Use safe navigation in case service was deleted between meeting creation and email
+    service_name = @service&.name || 'Appointment'
+
     mail(
       to: @customer.email,
-      subject: "Your Video Meeting Link - #{@service.name}",
+      subject: "Your Video Meeting Link - #{service_name}",
       from: @business.email,
       reply_to: @business.email
     )

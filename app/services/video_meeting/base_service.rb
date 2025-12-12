@@ -76,10 +76,26 @@ module VideoMeeting
       Rails.logger.error("[#{self.class.name}] #{type}: #{message}")
     end
 
+    # Define exceptions that should be retried by the job layer
+    RETRYABLE_EXCEPTIONS = [
+      Net::ReadTimeout,
+      Net::OpenTimeout,
+      Faraday::TimeoutError,
+      Errno::ECONNRESET,
+      Errno::ECONNREFUSED,
+      Errno::ETIMEDOUT
+    ].freeze
+
     def handle_api_error(error)
       add_error(:api_error, error.message)
       Rails.logger.error("[#{self.class.name}] API Error: #{error.message}")
       Rails.logger.error(error.backtrace.first(10).join("\n")) if error.backtrace
+
+      # Re-raise retryable network errors so the job layer can retry them
+      # This allows CreateMeetingJob's retry_on declarations to work
+      if RETRYABLE_EXCEPTIONS.any? { |klass| error.is_a?(klass) }
+        raise error
+      end
     end
 
     def refresh_access_token!

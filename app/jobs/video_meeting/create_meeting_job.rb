@@ -5,8 +5,10 @@ module VideoMeeting
     queue_as :default
 
     # Retry on network errors with exponential backoff
+    # These must match the RETRYABLE_EXCEPTIONS in BaseService that are re-raised
     retry_on Net::ReadTimeout, Net::OpenTimeout, wait: :exponentially_longer, attempts: 3
     retry_on Faraday::TimeoutError, wait: :exponentially_longer, attempts: 3
+    retry_on Errno::ECONNRESET, Errno::ECONNREFUSED, Errno::ETIMEDOUT, wait: :exponentially_longer, attempts: 3
 
     # Don't retry if the booking was deleted
     discard_on ActiveRecord::RecordNotFound
