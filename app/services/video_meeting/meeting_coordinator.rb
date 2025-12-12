@@ -59,16 +59,26 @@ module VideoMeeting
       return true unless booking.has_video_meeting?
 
       connection = find_video_connection
-      return true unless connection # Can't delete without connection, consider it "deleted"
+      unless connection
+        # Can't delete via API without connection, but still clear local data
+        clear_booking_meeting_data
+        return true
+      end
 
       service = build_service_for_provider(connection)
-      return true unless service
+      unless service
+        # Can't delete via API without service, but still clear local data
+        clear_booking_meeting_data
+        return true
+      end
 
       success = service.delete_meeting(booking.video_meeting_id)
 
-      if success
-        clear_booking_meeting_data
-      else
+      # Always clear booking meeting data - even if API call fails,
+      # we don't want stale references to potentially deleted meetings
+      clear_booking_meeting_data
+
+      unless success
         handle_service_errors(service)
       end
 

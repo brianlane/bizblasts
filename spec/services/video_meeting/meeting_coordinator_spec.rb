@@ -283,6 +283,35 @@ RSpec.describe VideoMeeting::MeetingCoordinator do
         it 'returns true' do
           expect(coordinator.delete_meeting).to be true
         end
+
+        it 'still clears booking meeting data' do
+          coordinator.delete_meeting
+          booking.reload
+
+          expect(booking.video_meeting_id).to be_nil
+          expect(booking.video_meeting_url).to be_nil
+          expect(booking.video_video_none?).to be true
+          expect(booking.video_meeting_video_not_created?).to be true
+        end
+      end
+
+      context 'when API deletion fails' do
+        it 'still clears booking meeting data to avoid stale references' do
+          zoom_service = instance_double(VideoMeeting::ZoomService)
+          allow(VideoMeeting::ZoomService).to receive(:new).and_return(zoom_service)
+          allow(zoom_service).to receive(:delete_meeting).and_return(false)
+
+          errors = ActiveModel::Errors.new(zoom_service)
+          errors.add(:api_error, 'Meeting not found')
+          allow(zoom_service).to receive(:errors).and_return(errors)
+
+          coordinator.delete_meeting
+          booking.reload
+
+          expect(booking.video_meeting_id).to be_nil
+          expect(booking.video_meeting_url).to be_nil
+          expect(booking.video_video_none?).to be true
+        end
       end
     end
   end
