@@ -291,10 +291,19 @@ module VideoMeeting
       begin
         auth_client.refresh!
 
-        connection.update!(
+        # Build update attributes - always update access_token and expiry
+        update_attrs = {
           access_token: auth_client.access_token,
           token_expires_at: auth_client.expires_at
-        )
+        }
+
+        # Save new refresh_token if Google rotated it (Google doesn't always rotate refresh tokens,
+        # but when they do, we need to save the new one or subsequent refreshes will fail)
+        if auth_client.refresh_token.present?
+          update_attrs[:refresh_token] = auth_client.refresh_token
+        end
+
+        connection.update!(update_attrs)
 
         true
       rescue Signet::AuthorizationError => e

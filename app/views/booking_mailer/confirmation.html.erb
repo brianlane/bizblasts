@@ -103,6 +103,16 @@
           Please join the meeting a few minutes before your scheduled time.
         </p>
       </div>
+    <% elsif @video_meeting_pending %>
+      <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 3px;">
+        <h3 style="margin-top: 0; color: #d97706; font-size: 16px;">🎥 Video Meeting</h3>
+        <p style="margin: 10px 0; color: #374151;">
+          This is a virtual appointment. <strong>Your video meeting link is being generated</strong> and will be sent to you in a separate email shortly.
+        </p>
+        <p style="margin-top: 10px; font-size: 13px; color: #92400e;">
+          Please check your inbox in a few minutes for the meeting link.
+        </p>
+      </div>
     <% end %>
 
     <%# Include booking policy information %>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta content='text/html; charset=UTF-8' http-equiv='Content-Type' />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .business-name {
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+    }
+    .footer {
+      font-size: 14px;
+      color: #999;
+      text-align: center;
+      margin-top: 30px;
+      border-top: 1px solid #eee;
+      padding-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="business-name"><%= @business.name %></div>
+      <h1>Your Video Meeting Link</h1>
+    </div>
+
+    <p>Dear <%= @customer.full_name %>,</p>
+
+    <p>Your video meeting link for your upcoming appointment is now ready!</p>
+
+    <div style="background-color: #f7f7f7; border-radius: 5px; padding: 20px; margin-bottom: 20px;">
+      <p><span style="font-weight: bold; color: #666;">Service:</span> <%= @service.name %></p>
+      <p><span style="font-weight: bold; color: #666;">Date:</span> <%= @booking.local_start_time.strftime("%A, %B %d, %Y") %></p>
+      <p><span style="font-weight: bold; color: #666;">Time:</span> <%= @booking.local_start_time.strftime("%I:%M %p") %> - <%= @booking.local_end_time.strftime("%I:%M %p") %></p>
+      <% if @staff_member %>
+        <p><span style="font-weight: bold; color: #666;">Staff Member:</span> <%= @staff_member.name %></p>
+      <% end %>
+    </div>
+
+    <div style="background-color: #e8f4fd; border-left: 4px solid #6366f1; padding: 15px; margin: 20px 0; border-radius: 3px;">
+      <h3 style="margin-top: 0; color: #4f46e5; font-size: 16px;">Video Meeting Details</h3>
+      <p style="margin: 10px 0; color: #374151;">
+        Join your virtual appointment via <strong><%= @video_meeting_provider %></strong>.
+      </p>
+      <p style="margin: 10px 0;">
+        <span style="font-weight: bold; color: #666;">Join URL:</span><br>
+        <a href="<%= @video_meeting_url %>" style="color: #4f46e5; word-break: break-all;"><%= @video_meeting_url %></a>
+      </p>
+      <% if @video_meeting_password.present? %>
+        <p style="margin: 10px 0;">
+          <span style="font-weight: bold; color: #666;">Meeting Password:</span>
+          <span style="font-family: monospace; background-color: #e0e7ff; padding: 2px 8px; border-radius: 3px;"><%= @video_meeting_password %></span>
+        </p>
+      <% end %>
+      <div style="margin-top: 15px;">
+        <a href="<%= @video_meeting_url %>" style="display: inline-block; background-color: #6366f1; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+          Join Video Meeting
+        </a>
+      </div>
+      <p style="margin-top: 10px; font-size: 13px; color: #6b7280;">
+        Please join the meeting a few minutes before your scheduled time.
+      </p>
+    </div>
+
+    <% if @business.phone.present? %>
+      <p>Phone: <%= @business.phone %></p>
+    <% end %>
+
+    <% if @business.email.present? %>
+      <p>Email: <%= @business.email %></p>
+    <% end %>
+
+    <p>Thank you for choosing <%= @business.name %>. We look forward to seeing you!</p>
+
+    <div class="footer">
+      <p>This is an automated email, please do not reply directly to this message.</p>
+      <p>&copy; <%= Date.today.year %> <%= @business.name %>. All rights reserved.</p>
+    </div>
+  </div>
+  <%= render 'shared/email_footer' %>
+</body>
+</html>

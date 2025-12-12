@@ -16,6 +16,15 @@ module VideoMeeting
 
       # Skip if meeting already created or not needed
       return if booking.video_meeting_video_created?
+
+      # Skip if booking is no longer confirmed (e.g., was cancelled after job was enqueued)
+      unless booking.confirmed?
+        Rails.logger.info(
+          "[CreateMeetingJob] Booking #{booking_id} is no longer confirmed (status: #{booking.status}). Skipping video meeting creation."
+        )
+        return
+      end
+
       unless booking.video_meeting_required?
         # If the booking was marked pending when enqueued but prerequisites changed (e.g. connection removed),
         # don't leave it stuck in pending forever.
@@ -32,13 +41,29 @@ module VideoMeeting
         coordinator = MeetingCoordinator.new(booking)
         success = coordinator.create_meeting
 
-        unless success
+        if success
+          # Send follow-up email with the video meeting link
+          # This ensures customers get the link even though the confirmation email was sent before it was ready
+          send_video_meeting_notification(booking)
+        else
           Rails.logger.error("[CreateMeetingJob] Failed to create meeting for booking #{booking_id}")
           coordinator.errors.each do |error|
             Rails.logger.error("  #{error.attribute}: #{error.message}")
           end
         end
       end
+    end
+
+    private
+
+    def send_video_meeting_notification(booking)
+      return unless booking.tenant_customer&.email.present?
+
+      BookingMailer.video_meeting_ready(booking).deliver_later
+      Rails.logger.info("[CreateMeetingJob] Sent video meeting link email for booking #{booking.id}")
+    rescue => e
+      # Don't fail the job if email sending fails - the meeting is already created
+      Rails.logger.error("[CreateMeetingJob] Failed to send video meeting email for booking #{booking.id}: #{e.message}")
     end
   end
 end
