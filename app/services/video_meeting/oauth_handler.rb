@@ -279,6 +279,13 @@ module VideoMeeting
     def refresh_google_meet_token(connection)
       require 'googleauth'
 
+      # Validate credentials are configured before attempting to use them
+      unless GoogleOauthCredentials.configured?
+        add_error(:missing_credentials, "Google OAuth credentials not configured")
+        connection.deactivate!
+        return false
+      end
+
       credentials = GoogleOauthCredentials.credentials
 
       auth_client = Signet::OAuth2::Client.new(
