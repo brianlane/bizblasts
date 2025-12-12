@@ -47,6 +47,16 @@ FactoryBot.define do
         service.spots ||= service.max_bookings
       end
     end
+
+    trait :with_zoom do
+      video_enabled { true }
+      video_provider { :video_zoom }
+    end
+
+    trait :with_google_meet do
+      video_enabled { true }
+      video_provider { :video_google_meet }
+    end
     
     factory :service_with_staff_members do
       transient do

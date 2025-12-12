@@ -12,6 +12,7 @@ class Booking < ApplicationRecord
   after_update :handle_calendar_sync_on_update
   before_destroy :remove_from_calendar_async
   after_save :create_video_meeting_async, if: :should_create_video_meeting?
+  after_save :delete_video_meeting_async, if: :should_delete_video_meeting?
   
   acts_as_tenant(:business)
   belongs_to :business, optional: true
@@ -325,5 +326,17 @@ class Booking < ApplicationRecord
       "provider=#{provider.inspect} (missing connection or staff member)."
     )
     update_column(:video_meeting_status, Booking.video_meeting_statuses[:video_failed])
+  end
+
+  # Video meeting cleanup when booking is cancelled
+  def should_delete_video_meeting?
+    return false unless saved_change_to_status?
+    return false unless cancelled?
+    return false unless has_video_meeting?
+    true
+  end
+
+  def delete_video_meeting_async
+    VideoMeeting::DeleteMeetingJob.perform_later(id, business_id)
   end
 end

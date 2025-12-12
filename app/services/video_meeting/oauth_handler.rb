@@ -152,47 +152,56 @@ module VideoMeeting
         return false
       end
 
-      uri = URI.parse('https://zoom.us/oauth/token')
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true
-
-      request = Net::HTTP::Post.new(uri.path)
-      request['Authorization'] = "Basic #{Base64.strict_encode64("#{client_id}:#{client_secret}")}"
-      request['Content-Type'] = 'application/x-www-form-urlencoded'
-      request.body = URI.encode_www_form({
-        grant_type: 'refresh_token',
-        refresh_token: connection.refresh_token
-      })
-
-      begin
-        response = http.request(request)
-        token_data = JSON.parse(response.body)
-
-        if response.code != '200'
-          add_error(:refresh_failed, "Failed to refresh Zoom token: #{token_data['reason'] || token_data['error']}")
-          connection.deactivate!
-          return false
+      # Use database lock to prevent race conditions when multiple requests try to refresh simultaneously
+      connection.with_lock do
+        # Re-check if token still needs refresh (another request may have refreshed it)
+        unless connection.token_expired? || connection.token_expiring_soon?
+          Rails.logger.info("[OauthHandler] Zoom token already refreshed by another request")
+          return true
         end
 
-        # Build update attributes - always update access_token and expiry
-        update_attrs = {
-          access_token: token_data['access_token'],
-          token_expires_at: Time.current + token_data['expires_in'].to_i.seconds
-        }
+        uri = URI.parse('https://zoom.us/oauth/token')
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.use_ssl = true
 
-        # Only update refresh_token if Zoom returns a new one (defensive pattern to avoid
-        # clearing the stored token if API response is missing the field)
-        if token_data['refresh_token'].present?
-          update_attrs[:refresh_token] = token_data['refresh_token']
+        request = Net::HTTP::Post.new(uri.path)
+        request['Authorization'] = "Basic #{Base64.strict_encode64("#{client_id}:#{client_secret}")}"
+        request['Content-Type'] = 'application/x-www-form-urlencoded'
+        request.body = URI.encode_www_form({
+          grant_type: 'refresh_token',
+          refresh_token: connection.refresh_token
+        })
+
+        begin
+          response = http.request(request)
+          token_data = JSON.parse(response.body)
+
+          if response.code != '200'
+            add_error(:refresh_failed, "Failed to refresh Zoom token: #{token_data['reason'] || token_data['error']}")
+            connection.update!(active: false)
+            return false
+          end
+
+          # Build update attributes - always update access_token and expiry
+          update_attrs = {
+            access_token: token_data['access_token'],
+            token_expires_at: Time.current + token_data['expires_in'].to_i.seconds
+          }
+
+          # Only update refresh_token if Zoom returns a new one (defensive pattern to avoid
+          # clearing the stored token if API response is missing the field)
+          if token_data['refresh_token'].present?
+            update_attrs[:refresh_token] = token_data['refresh_token']
+          end
+
+          connection.update!(update_attrs)
+
+          true
+        rescue => e
+          add_error(:refresh_failed, "Failed to refresh Zoom token: #{e.message}")
+          connection.update!(active: false)
+          false
         end
-
-        connection.update!(update_attrs)
-
-        true
-      rescue => e
-        add_error(:refresh_failed, "Failed to refresh Zoom token: #{e.message}")
-        connection.deactivate!
-        false
       end
     end
 
@@ -294,37 +303,46 @@ module VideoMeeting
         return false
       end
 
-      credentials = GoogleOauthCredentials.credentials
-
-      auth_client = Signet::OAuth2::Client.new(
-        client_id: credentials[:client_id],
-        client_secret: credentials[:client_secret],
-        token_credential_uri: 'https://oauth2.googleapis.com/token',
-        refresh_token: connection.refresh_token
-      )
-
-      begin
-        auth_client.refresh!
-
-        # Build update attributes - always update access_token and expiry
-        update_attrs = {
-          access_token: auth_client.access_token,
-          token_expires_at: auth_client.expires_at
-        }
-
-        # Save new refresh_token if Google rotated it (Google doesn't always rotate refresh tokens,
-        # but when they do, we need to save the new one or subsequent refreshes will fail)
-        if auth_client.refresh_token.present?
-          update_attrs[:refresh_token] = auth_client.refresh_token
+      # Use database lock to prevent race conditions when multiple requests try to refresh simultaneously
+      connection.with_lock do
+        # Re-check if token still needs refresh (another request may have refreshed it)
+        unless connection.token_expired? || connection.token_expiring_soon?
+          Rails.logger.info("[OauthHandler] Google token already refreshed by another request")
+          return true
         end
 
-        connection.update!(update_attrs)
+        credentials = GoogleOauthCredentials.credentials
 
-        true
-      rescue Signet::AuthorizationError => e
-        add_error(:refresh_failed, "Failed to refresh Google token: #{e.message}")
-        connection.deactivate!
-        false
+        auth_client = Signet::OAuth2::Client.new(
+          client_id: credentials[:client_id],
+          client_secret: credentials[:client_secret],
+          token_credential_uri: 'https://oauth2.googleapis.com/token',
+          refresh_token: connection.refresh_token
+        )
+
+        begin
+          auth_client.refresh!
+
+          # Build update attributes - always update access_token and expiry
+          update_attrs = {
+            access_token: auth_client.access_token,
+            token_expires_at: auth_client.expires_at
+          }
+
+          # Save new refresh_token if Google rotated it (Google doesn't always rotate refresh tokens,
+          # but when they do, we need to save the new one or subsequent refreshes will fail)
+          if auth_client.refresh_token.present?
+            update_attrs[:refresh_token] = auth_client.refresh_token
+          end
+
+          connection.update!(update_attrs)
+
+          true
+        rescue Signet::AuthorizationError => e
+          add_error(:refresh_failed, "Failed to refresh Google token: #{e.message}")
+          connection.update!(active: false)
+          false
+        end
       end
     end
 

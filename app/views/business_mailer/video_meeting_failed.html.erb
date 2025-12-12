@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta content='text/html; charset=UTF-8' http-equiv='Content-Type' />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .alert-box {
+      background-color: #fef2f2;
+      border-left: 4px solid #ef4444;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 3px;
+    }
+    .booking-details {
+      background-color: #f7f7f7;
+      border-radius: 5px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .error-list {
+      background-color: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 5px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+    .error-list li {
+      color: #dc2626;
+      margin: 5px 0;
+    }
+    .action-button {
+      display: inline-block;
+      background-color: #6366f1;
+      color: white;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+    .footer {
+      font-size: 14px;
+      color: #999;
+      text-align: center;
+      margin-top: 30px;
+      border-top: 1px solid #eee;
+      padding-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="color: #dc2626;">Video Meeting Creation Failed</h1>
+    </div>
+
+    <div class="alert-box">
+      <p style="margin: 0; font-weight: bold;">Action Required</p>
+      <p style="margin: 10px 0 0 0;">A video meeting could not be automatically created for a booking. The customer has been notified of the booking, but no video meeting link was included.</p>
+    </div>
+
+    <div class="booking-details">
+      <h3 style="margin-top: 0;">Booking Details</h3>
+      <p><strong>Customer:</strong> <%= @customer&.full_name || 'Unknown' %></p>
+      <p><strong>Service:</strong> <%= @service&.name || 'Unknown' %></p>
+      <% if @staff_member %>
+        <p><strong>Staff Member:</strong> <%= @staff_member.name %></p>
+      <% end %>
+      <p><strong>Date:</strong> <%= @booking.local_start_time&.strftime("%A, %B %d, %Y") %></p>
+      <p><strong>Time:</strong> <%= @booking.local_start_time&.strftime("%I:%M %p") %> - <%= @booking.local_end_time&.strftime("%I:%M %p") %></p>
+      <p><strong>Booking ID:</strong> #<%= @booking.id %></p>
+    </div>
+
+    <% if @error_messages.present? %>
+      <div class="error-list">
+        <p style="margin-top: 0; font-weight: bold;">Error Details:</p>
+        <ul>
+          <% @error_messages.each do |error| %>
+            <li><%= error %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <h3>What You Can Do</h3>
+    <ol>
+      <li>Check that the staff member (<%= @staff_member&.name || 'assigned staff' %>) has a connected video meeting account in Settings > Integrations</li>
+      <li>Verify the video meeting provider (Zoom or Google Meet) is properly configured</li>
+      <li>Create a video meeting manually and share the link with the customer</li>
+    </ol>
+
+    <p style="margin-top: 20px;">
+      <a href="<%= tenant_url_for(@business, '/manage/settings/integrations') %>" class="action-button">
+        Check Integrations Settings
+      </a>
+    </p>
+
+    <div class="footer">
+      <p>This is an automated notification from <%= @business.name %>.</p>
+      <p>If you have questions, contact support at <%= @support_email %>.</p>
+    </div>
+  </div>
+  <%= render 'shared/email_footer' %>
+</body>
+</html>

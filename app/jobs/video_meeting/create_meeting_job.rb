@@ -58,9 +58,11 @@ module VideoMeeting
             send_video_meeting_notification(booking)
           else
             Rails.logger.error("[CreateMeetingJob] Failed to create meeting for booking #{booking_id}")
-            coordinator.errors.each do |error|
-              Rails.logger.error("  #{error.attribute}: #{error.message}")
-            end
+            error_messages = coordinator.errors.map { |e| "#{e.attribute}: #{e.message}" }
+            error_messages.each { |msg| Rails.logger.error("  #{msg}") }
+
+            # Notify business manager about the failure
+            send_failure_notification(booking, error_messages)
           end
         end
       end
@@ -76,6 +78,14 @@ module VideoMeeting
     rescue => e
       # Don't fail the job if email sending fails - the meeting is already created
       Rails.logger.error("[CreateMeetingJob] Failed to send video meeting email for booking #{booking.id}: #{e.message}")
+    end
+
+    def send_failure_notification(booking, error_messages)
+      BusinessMailer.video_meeting_failed(booking, error_messages).deliver_later
+      Rails.logger.info("[CreateMeetingJob] Sent failure notification for booking #{booking.id}")
+    rescue => e
+      # Don't fail the job if notification sending fails - we've already logged the error
+      Rails.logger.error("[CreateMeetingJob] Failed to send failure notification for booking #{booking.id}: #{e.message}")
     end
   end
 end
