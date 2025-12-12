@@ -254,7 +254,7 @@ class Booking < ApplicationRecord
     return unless calendar_sync_required?
     return if calendar_synced?
     
-    update_column(:calendar_event_status, :sync_pending)
+    update_column(:calendar_event_status, Booking.calendar_event_statuses[:sync_pending])
     Calendar::SyncBookingJob.perform_later(id)
   end
   
@@ -268,7 +268,7 @@ class Booking < ApplicationRecord
       if cancelled? || business_deleted?
         remove_from_calendar_async
       else
-        update_column(:calendar_event_status, :sync_pending) unless calendar_sync_pending?
+        update_column(:calendar_event_status, Booking.calendar_event_statuses[:sync_pending]) unless calendar_sync_pending?
         Calendar::SyncBookingJob.perform_later(id)
       end
     end
@@ -299,7 +299,7 @@ class Booking < ApplicationRecord
 
   def create_video_meeting_async
     return unless video_meeting_required?
-    update_column(:video_meeting_status, :video_pending)
+    update_column(:video_meeting_status, Booking.video_meeting_statuses[:video_pending])
     VideoMeeting::CreateMeetingJob.perform_later(id)
   end
 end
