@@ -177,6 +177,7 @@ class Business < ApplicationRecord
   has_many :tenant_customers
   has_many :services, dependent: :destroy
   has_many :staff_members
+  has_many :video_meeting_connections, dependent: :destroy
   has_many :bookings  # Orphaned, not deleted
   has_many :invoices  # Orphaned, not deleted
   has_many :payments  # Orphaned, not deleted

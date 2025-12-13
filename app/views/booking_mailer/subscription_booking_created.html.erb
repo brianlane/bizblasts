@@ -40,14 +40,15 @@
       border-top: 1px solid #eee;
       padding-top: 15px;
     }
-    .button {
+    .subscription-badge {
       display: inline-block;
-      background-color: #4CAF50;
+      background-color: #10b981;
       color: white;
-      padding: 10px 20px;
-      text-decoration: none;
-      border-radius: 5px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
       font-weight: bold;
+      margin-left: 10px;
     }
   </style>
 </head>
@@ -55,26 +56,22 @@
   <div class="container">
     <div class="header">
       <div class="business-name"><%= @business.name %></div>
-      <h1>Booking Confirmation</h1>
+      <h1>Subscription Booking Scheduled <span class="subscription-badge">Recurring</span></h1>
     </div>
-    
+
     <p>Dear <%= @customer.full_name %>,</p>
-    
-    <p>Thank you for booking with us. Your appointment has been confirmed with the following details:</p>
-    
+
+    <p>Your recurring appointment has been scheduled as part of your subscription. Here are the details:</p>
+
     <div class="booking-details">
-      <p><span class="detail-label">Service:</span> <%= @booking.service_name %></p>
-      <p><span class="detail-label">Staff Member:</span> <%= @booking.staff_member_name %></p>
-              <p><span class="detail-label">Date:</span> <%= @booking.local_start_time.strftime("%A, %B %d, %Y") %></p>
-        <p><span class="detail-label">Time:</span> <%= @booking.local_start_time.strftime("%I:%M %p") %> - <%= @booking.local_end_time.strftime("%I:%M %p") %></p>
+      <p><span class="detail-label">Service:</span> <%= @service.name %></p>
+      <p><span class="detail-label">Staff Member:</span> <%= @staff_member&.name || 'To be assigned' %></p>
+      <p><span class="detail-label">Date:</span> <%= @booking.local_start_time.strftime("%A, %B %d, %Y") %></p>
+      <p><span class="detail-label">Time:</span> <%= @booking.local_start_time.strftime("%I:%M %p") %> - <%= @booking.local_end_time.strftime("%I:%M %p") %></p>
       <p><span class="detail-label">Duration:</span> <%= @booking.duration.to_i %> minutes</p>
-      
-      <% if @booking.notes.present? %>
-        <p><span class="detail-label">Notes:</span> <%= @booking.notes %></p>
-      <% end %>
-      
-      <% if @booking.amount.present? %>
-        <p><span class="detail-label">Price:</span> <%= number_to_currency(@booking.amount) %></p>
+
+      <% if @subscription.present? %>
+        <p><span class="detail-label">Subscription:</span> <%= @subscription.billing_cycle.humanize %></p>
       <% end %>
     </div>
 
@@ -103,53 +100,28 @@
           Please join the meeting a few minutes before your scheduled time.
         </p>
       </div>
-    <% elsif @video_meeting_pending %>
-      <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 3px;">
-        <h3 style="margin-top: 0; color: #d97706; font-size: 16px;">🎥 Video Meeting</h3>
-        <p style="margin: 10px 0; color: #374151;">
-          This is a virtual appointment. <strong>Your video meeting link is being generated</strong> and will be sent to you in a separate email shortly.
-        </p>
-        <p style="margin-top: 10px; font-size: 13px; color: #92400e;">
-          Please check your inbox in a few minutes for the meeting link.
-        </p>
-      </div>
     <% end %>
 
-    <%# Include booking policy information %>
-    <% policy = @business.booking_policy %>
-    <% if policy&.has_customer_visible_policies? %>
-      <div style="background-color: #e7f3ff; border-left: 4px solid #2196F3; padding: 15px; margin: 20px 0; border-radius: 3px;">
-        <h3 style="margin-top: 0; color: #1976D2; font-size: 16px;">📋 Booking Policy</h3>
-        <ul style="margin: 10px 0; padding-left: 20px;">
-          <% policy.policy_summary_for_customers.each do |policy_text| %>
-            <li style="margin-bottom: 5px; color: #1565C0;"><%= policy_text %></li>
-          <% end %>
-        </ul>
-        <% if policy.cancellation_example_for_customers %>
-          <div style="background-color: #f0f8ff; padding: 10px; border-radius: 3px; margin-top: 10px;">
-            <p style="margin: 0; font-size: 14px; color: #0d47a1;">
-              <strong>Example:</strong> <%= policy.cancellation_example_for_customers %>
-            </p>
-          </div>
-        <% end %>
-        <p style="margin-bottom: 0; font-size: 14px; color: #1976D2;">
-          💙 We understand that plans can change. If you have questions about our policy, please don't hesitate to contact us.
-        </p>
-      </div>
-    <% end %>
-    
-    <p>If you need to make any changes to your booking, please contact us or visit our website.</p>
-    
+    <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 3px;">
+      <h3 style="margin-top: 0; color: #059669; font-size: 16px;">📅 Subscription Benefits</h3>
+      <p style="margin: 10px 0; color: #065f46;">
+        As a subscriber, your appointments are automatically scheduled according to your preferences.
+        You'll receive a reminder before each appointment.
+      </p>
+    </div>
+
+    <p>If you need to make any changes to this appointment or your subscription, please contact us or visit our website.</p>
+
     <% if @business.phone.present? %>
       <p>Phone: <%= @business.phone %></p>
     <% end %>
-    
+
     <% if @business.email.present? %>
       <p>Email: <%= @business.email %></p>
     <% end %>
-    
-    <p>Thank you for choosing <%= @business.name %>. We look forward to seeing you!</p>
-    
+
+    <p>Thank you for being a valued subscriber!</p>
+
     <div class="footer">
       <p>This is an automated email, please do not reply directly to this message.</p>
       <p>&copy; <%= Date.today.year %> <%= @business.name %>. All rights reserved.</p>
@@ -157,4 +129,4 @@
   </div>
   <%= render 'shared/email_footer' %>
 </body>
-</html> 
+</html>

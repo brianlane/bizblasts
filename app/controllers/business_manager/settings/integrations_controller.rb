@@ -8,11 +8,13 @@ module BusinessManager
 
       # GET /manage/settings/integrations
       def index
-        # Show integrations overview including Google Business Reviews and Calendar Integrations
-        @staff_members = current_business.staff_members.active.includes(:calendar_connections, :user)
+        # Show integrations overview including Google Business Reviews, Calendar, and Video Meeting Integrations
+        @staff_members = current_business.staff_members.active.includes(:calendar_connections, :video_meeting_connections, :user)
         @calendar_connections = current_business.calendar_connections.includes(:staff_member).active
+        @video_meeting_connections = current_business.video_meeting_connections.includes(:staff_member).active
         @sync_statistics = calculate_sync_statistics
         @providers = available_providers
+        @video_providers = available_video_providers
         
         # SECURITY FIX (CWE-598): Read OAuth flash messages from session instead of URL parameters
         # This prevents sensitive data from being exposed in browser history, server logs,
@@ -575,9 +577,130 @@ module BusinessManager
       def calendar_integration_import_availability
         # Import availability for all staff with calendar connections
         Calendar::BatchSyncJob.perform_later(current_business.id, { 'action' => 'import_all_availability' })
-        
+
         redirect_to business_manager_settings_integrations_path,
                     notice: "Availability import initiated for all connected calendars"
+      end
+
+      # Video Meeting Integration Actions
+
+      # POST /manage/settings/integrations/video-integrations/connect
+      def video_integration_connect
+        provider = params[:provider]
+        staff_member_id = params[:staff_member_id]
+
+        unless %w[zoom google_meet].include?(provider)
+          redirect_to business_manager_settings_integrations_path,
+                      alert: "Unsupported video meeting provider: #{provider}"
+          return
+        end
+
+        staff_member = current_business.staff_members.find(staff_member_id)
+
+        # Check if connection already exists
+        existing_connection = staff_member.video_meeting_connections
+                                         .where(provider: provider)
+                                         .active
+                                         .first
+
+        if existing_connection
+          provider_name = existing_connection.provider_name
+          redirect_to business_manager_settings_integrations_path,
+                      alert: "#{provider_name} is already connected for #{staff_member.name}"
+          return
+        end
+
+        # OAuth flow
+        oauth_handler = VideoMeeting::OauthHandler.new
+        redirect_uri = build_video_oauth_redirect_uri(provider)
+
+        auth_url = oauth_handler.authorization_url(
+          provider,
+          current_business.id,
+          staff_member.id,
+          redirect_uri
+        )
+
+        if auth_url
+          redirect_to auth_url, allow_other_host: true
+        else
+          error_message = oauth_handler.errors.full_messages.join(', ')
+          redirect_to business_manager_settings_integrations_path,
+                      alert: "Failed to initiate video meeting connection: #{error_message}"
+        end
+      end
+
+      # DELETE /manage/settings/integrations/video-integrations/:id
+      def video_integration_destroy
+        @video_connection = current_business.video_meeting_connections.find(params[:id])
+        provider_name = @video_connection.provider_name
+        staff_name = @video_connection.staff_member.name
+
+        @video_connection.destroy
+
+        redirect_to business_manager_settings_integrations_path,
+                    notice: "#{provider_name} video meeting connection removed for #{staff_name}"
+      end
+
+      # GET /manage/settings/integrations/video-integrations/:id/status
+      def video_integration_status
+        @video_connection = current_business.video_meeting_connections.find(params[:id])
+
+        render json: {
+          id: @video_connection.id,
+          provider: @video_connection.provider,
+          provider_name: @video_connection.provider_name,
+          active: @video_connection.active?,
+          connected_at: @video_connection.connected_at,
+          last_used_at: @video_connection.last_used_at,
+          token_valid: !@video_connection.token_expired?,
+          staff_member: {
+            id: @video_connection.staff_member.id,
+            name: @video_connection.staff_member.name
+          }
+        }
+      end
+
+      # POST /manage/settings/integrations/video-integrations/link-from-calendar
+      # Creates a Google Meet connection from an existing Google Calendar connection
+      # This allows reusing the same Google account without a separate OAuth flow
+      def video_integration_link_from_calendar
+        staff_member_id = params[:staff_member_id]
+        staff_member = current_business.staff_members.find(staff_member_id)
+
+        # Find existing Google Calendar connection
+        calendar_connection = staff_member.calendar_connections
+                                         .where(provider: 'google')
+                                         .active
+                                         .first
+
+        unless calendar_connection
+          redirect_to business_manager_settings_integrations_path,
+                      alert: "No Google Calendar connection found for #{staff_member.name}. Please connect Google Calendar first or use a separate Google Meet connection."
+          return
+        end
+
+        # Check if Google Meet is already connected
+        existing_meet = staff_member.video_meeting_connections
+                                   .where(provider: :google_meet)
+                                   .active
+                                   .first
+
+        if existing_meet
+          redirect_to business_manager_settings_integrations_path,
+                      alert: "Google Meet is already connected for #{staff_member.name}"
+          return
+        end
+
+        begin
+          VideoMeetingConnection.create_from_calendar_connection!(calendar_connection)
+          redirect_to business_manager_settings_integrations_path,
+                      notice: "Google Meet connected for #{staff_member.name} using existing Google Calendar account"
+        rescue => e
+          Rails.logger.error("[VideoIntegration] Failed to link from calendar: #{e.message}")
+          redirect_to business_manager_settings_integrations_path,
+                      alert: "Failed to connect Google Meet: #{e.message}"
+        end
       end
 
       private
@@ -626,6 +749,43 @@ module BusinessManager
       
       def caldav_connection_params
         params.require(:calendar_connection).permit(:staff_member_id, :caldav_username, :caldav_password, :caldav_url, :caldav_provider)
+      end
+
+      def available_video_providers
+        providers = []
+
+        # Zoom - check if credentials are configured
+        if ENV['ZOOM_CLIENT_ID'].present? && ENV['ZOOM_CLIENT_SECRET'].present?
+          providers << 'zoom'
+        elsif Rails.env.development? || Rails.env.test?
+          # Also check dev credentials
+          if ENV['ZOOM_CLIENT_ID_DEV'].present? && ENV['ZOOM_CLIENT_SECRET_DEV'].present?
+            providers << 'zoom'
+          end
+        end
+
+        # Google Meet - uses same OAuth as Google Calendar
+        providers << 'google_meet' if GoogleOauthCredentials.configured?
+
+        providers
+      end
+
+      def build_video_oauth_redirect_uri(provider)
+        scheme = request.ssl? ? 'https' : 'http'
+        host = Rails.application.config.main_domain || request.host
+        port_str = if host&.include?(':') || request.port.nil? || [80, 443].include?(request.port)
+                     ''
+                   else
+                     ":#{request.port}"
+                   end
+
+        provider_path = case provider.to_s
+                        when 'zoom' then 'zoom'
+                        when 'google_meet' then 'google-meet'
+                        else provider
+                        end
+
+        "#{scheme}://#{host}#{port_str}/oauth/video/#{provider_path}/callback"
       end
 
       def calculate_sync_statistics

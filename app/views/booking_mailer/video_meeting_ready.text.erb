@@ -1,0 +1,38 @@
+YOUR VIDEO MEETING LINK - <%= @business.name %>
+
+Dear <%= @customer.full_name %>,
+
+Your video meeting link for your upcoming appointment is now ready!
+
+APPOINTMENT DETAILS
+===================
+Service: <%= @service&.name || 'Appointment' %>
+Date: <%= @booking.local_start_time.strftime("%A, %B %d, %Y") %>
+Time: <%= @booking.local_start_time.strftime("%I:%M %p") %> - <%= @booking.local_end_time.strftime("%I:%M %p") %>
+<% if @staff_member %>
+Staff Member: <%= @staff_member.name %>
+<% end %>
+
+VIDEO MEETING DETAILS
+=====================
+Join your virtual appointment via <%= @video_meeting_provider %>.
+
+Join URL: <%= @video_meeting_url %>
+<% if @video_meeting_password.present? %>
+Meeting Password: <%= @video_meeting_password %>
+<% end %>
+
+Please join the meeting a few minutes before your scheduled time.
+
+<% if @business.phone.present? %>
+Phone: <%= @business.phone %>
+<% end %>
+<% if @business.email.present? %>
+Email: <%= @business.email %>
+<% end %>
+
+Thank you for choosing <%= @business.name %>. We look forward to seeing you!
+
+--
+This is an automated email, please do not reply directly to this message.
+(c) <%= Date.today.year %> <%= @business.name %>. All rights reserved.

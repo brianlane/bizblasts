@@ -17,6 +17,7 @@ class StaffMember < ApplicationRecord
   has_many :services_staff_members, dependent: :destroy
   has_many :services, through: :services_staff_members
   has_many :calendar_connections, dependent: :destroy
+  has_many :video_meeting_connections, dependent: :destroy
   belongs_to :default_calendar_connection, class_name: 'CalendarConnection', optional: true
 
   # --------------------------------------------------------------------------
@@ -221,11 +222,46 @@ class StaffMember < ApplicationRecord
   def calendar_sync_success_rate(since: 30.days.ago)
     total = total_bookings_requiring_sync_count(since: since)
     return 0 if total.zero?
-    
+
     synced = synced_bookings_count(since: since)
     (synced.to_f / total * 100).round(1)
   end
-  
+
+  # Video meeting integration methods
+  def has_video_meeting_integrations?
+    video_meeting_connections.active.any?
+  end
+
+  def zoom_connected?
+    video_meeting_connections.zoom_connections.active.exists?
+  end
+
+  def google_meet_connected?
+    video_meeting_connections.google_meet_connections.active.exists?
+  end
+
+  def has_video_connection?(provider)
+    return false if provider.nil?
+    video_meeting_connections.active.exists?(provider: provider)
+  end
+
+  def video_connection_for(provider)
+    return nil if provider.nil?
+    video_meeting_connections.active.find_by(provider: provider)
+  end
+
+  def active_video_meeting_connections
+    video_meeting_connections.active
+  end
+
+  def video_meeting_status_summary
+    connections = active_video_meeting_connections
+    return 'No video integrations' if connections.empty?
+
+    providers = connections.map(&:provider_name).join(', ')
+    "Connected: #{providers}"
+  end
+
   private
 
   # --------------------------------------------------------------------------

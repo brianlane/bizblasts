@@ -42,6 +42,10 @@ class Service < ApplicationRecord
 
   # Define service types
   enum :service_type, { standard: 0, experience: 1, event: 2 }
+
+  # Video meeting provider types
+  enum :video_provider, { video_none: 0, video_zoom: 1, video_google_meet: 2 }, prefix: :video
+
   # Service-specific availability configuration
   before_validation :assign_event_schedule, if: :should_assign_event_schedule?
   before_validation :process_service_availability
@@ -364,6 +368,23 @@ class Service < ApplicationRecord
     return unless duration.present?
 
     event_starts_at + duration.to_i.minutes
+  end
+
+  # Video meeting methods
+  def video_meeting_enabled?
+    video_enabled? && !video_video_none?
+  end
+
+  def video_provider_name
+    case video_provider
+    when 'video_zoom' then 'Zoom'
+    when 'video_google_meet' then 'Google Meet'
+    else nil
+    end
+  end
+
+  def requires_video_connection?
+    video_meeting_enabled?
   end
 
   # Position management methods

@@ -8,7 +8,15 @@ class BookingMailer < ApplicationMailer
     @customer = booking.tenant_customer
     @service = booking.service
     @staff_member = booking.staff_member
-    
+
+    # Video meeting data
+    @video_meeting_url = booking.video_meeting_url
+    @video_meeting_password = booking.video_meeting_password
+    @video_meeting_provider = booking.video_meeting_provider_name
+    @has_video_meeting = booking.has_video_meeting?
+    # Check if video meeting is expected but still being created
+    @video_meeting_pending = booking.video_meeting_video_pending? && booking.service&.video_meeting_enabled?
+
     mail(
       to: @customer.email,
       subject: "Booking Confirmation - #{@service.name}",
@@ -50,7 +58,15 @@ class BookingMailer < ApplicationMailer
     @business = booking.business
     @customer = booking.tenant_customer
     @time_before = time_before
-    
+
+    # Video meeting data
+    @video_meeting_url = booking.video_meeting_url
+    @video_meeting_password = booking.video_meeting_password
+    @video_meeting_provider = booking.video_meeting_provider_name
+    @has_video_meeting = booking.has_video_meeting?
+    # Check if video meeting is expected but still being created (rare for reminders, but possible)
+    @video_meeting_pending = booking.video_meeting_video_pending? && booking.service&.video_meeting_enabled?
+
     mail(
       to: @customer.email,
       subject: "Reminder: Your Upcoming Booking - #{@business.name}",
@@ -97,10 +113,44 @@ class BookingMailer < ApplicationMailer
     @service = booking.service
     @staff_member = booking.staff_member
     @subscription = booking.customer_subscription
-    
+
+    # Video meeting data
+    @video_meeting_url = booking.video_meeting_url
+    @video_meeting_password = booking.video_meeting_password
+    @video_meeting_provider = booking.video_meeting_provider_name
+    @has_video_meeting = booking.has_video_meeting?
+    # Check if video meeting is expected but still being created
+    @video_meeting_pending = booking.video_meeting_video_pending? && booking.service&.video_meeting_enabled?
+
     mail(
       to: @customer.email,
       subject: "Subscription Booking Scheduled - #{@service.name}",
+      from: @business.email,
+      reply_to: @business.email
+    )
+  end
+
+  # Send video meeting link after it's been created (follow-up to confirmation)
+  def video_meeting_ready(booking)
+    @booking = booking
+    @business = booking.business
+    @customer = booking.tenant_customer
+    @service = booking.service
+    @staff_member = booking.staff_member
+
+    # Guard clause: customer may have been deleted between job enqueue and email delivery
+    return if @customer.nil? || @customer.email.blank?
+
+    @video_meeting_url = booking.video_meeting_url
+    @video_meeting_password = booking.video_meeting_password
+    @video_meeting_provider = booking.video_meeting_provider_name
+
+    # Use safe navigation in case service was deleted between meeting creation and email
+    service_name = @service&.name || 'Appointment'
+
+    mail(
+      to: @customer.email,
+      subject: "Your Video Meeting Link - #{service_name}",
       from: @business.email,
       reply_to: @business.email
     )

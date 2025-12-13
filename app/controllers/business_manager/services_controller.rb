@@ -22,6 +22,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
   # GET /business_manager/services/new
   def new
     @service = current_business.services.new
+    set_video_meeting_data
     # authorize @service
   end
 
@@ -41,6 +42,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
         format.json { render json: { service: @service.as_json(only: [:id, :name, :description, :price, :duration]) }, status: :created }
       end
     else
+      set_video_meeting_data
       respond_to do |format|
         format.html { render :new, status: :unprocessable_content }
         format.json { render json: { error: @service.errors.full_messages.join(', ') }, status: :unprocessable_entity }
@@ -51,6 +53,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
   # GET /business_manager/services/:id/edit
   def edit
     # @service is set by before_action
+    set_video_meeting_data
     # authorize @service # Add Pundit authorization later
   end
 
@@ -67,6 +70,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       
       redirect_to business_manager_services_path, notice: 'Service was successfully updated.'
     else
+      set_video_meeting_data
       render :edit, status: :unprocessable_content
     end
   end
@@ -258,6 +262,8 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       :subscription_rebooking_preference,
       :allow_customer_preferences,
       :allow_discounts,
+      :video_enabled, # Allow video meeting setting
+      :video_provider, # Allow video provider selection
       :position, # Allow position updates
       :enforce_service_availability, # Allow enforcement setting
       :created_from_estimate_id, # Allow tracking which estimate created this service
@@ -440,6 +446,34 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
     logger.error(e.backtrace.join("\n"))
     # Don't fail the whole service save
     flash[:notice] = "Service saved successfully, but availability settings could not be processed."
+  end
+
+  # Set video meeting data for form display
+  def set_video_meeting_data
+    @video_meeting_connections = current_business.video_meeting_connections.includes(:staff_member).active
+    @video_providers = available_video_providers
+  end
+
+  # Return list of available video providers based on configured credentials
+  def available_video_providers
+    providers = []
+
+    # Zoom - check if credentials are configured
+    if ENV['ZOOM_CLIENT_ID'].present? && ENV['ZOOM_CLIENT_SECRET'].present?
+      providers << { key: 'video_zoom', name: 'Zoom' }
+    elsif Rails.env.development? || Rails.env.test?
+      # Also check dev credentials
+      if ENV['ZOOM_CLIENT_ID_DEV'].present? && ENV['ZOOM_CLIENT_SECRET_DEV'].present?
+        providers << { key: 'video_zoom', name: 'Zoom' }
+      end
+    end
+
+    # Google Meet - uses same OAuth as Google Calendar
+    if GoogleOauthCredentials.configured?
+      providers << { key: 'video_google_meet', name: 'Google Meet' }
+    end
+
+    providers
   end
 
 end

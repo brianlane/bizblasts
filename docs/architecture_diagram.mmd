@@ -1,0 +1,50 @@
+%% BizBlasts - High-level Architecture Diagram
+%% Renderable Mermaid source; PDF generated from this
+
+flowchart TB
+
+%% User traffic
+U1[Business Owner - Admin] -->|HTTPS| CF[Cloudflare - trusted proxy]
+U2[Customer - Client] -->|HTTPS| CF
+U3[Staff Member] -->|HTTPS| CF
+CF --> RENDER[Render - hosting and SSL termination]
+RENDER -->|HTTPS| WEB[Rails controllers and views - Hotwire Turbo]
+
+%% WebSockets
+U1 <-->|WSS /cable| CABLE[ActionCable async - /cable]
+U2 <-->|WSS /cable| CABLE
+U3 <-->|WSS /cable| CABLE
+
+%% Core app wiring
+WEB --> AUTH[Auth - Devise, JWT, passwordless]
+WEB --> TENANT[Multi tenancy - acts as tenant]
+WEB --> ADMIN[ActiveAdmin]
+WEB --> STORAGE[ActiveStorage]
+WEB --> CACHE[SolidCache]
+WEB --> JOBS[ActiveJob]
+
+%% Stripe webhooks and background processing
+STRIPE -->|Webhooks| STRIPE_WEBHOOK[Stripe webhooks controller -> StripeWebhookJob]
+STRIPE_WEBHOOK --> JOBS
+JOBS --> SQ[SolidQueue - workers and recurring tasks]
+
+%% Datastores
+TENANT --> PG_PRIMARY[Postgres - primary DB]
+WEB --> PG_PRIMARY
+ADMIN --> PG_PRIMARY
+
+SQ --> PG_QUEUE[Postgres - queue DB]
+JOBS --> PG_QUEUE
+
+CACHE --> PG_CACHE[Postgres - cache DB]
+
+%% Integrations
+STORAGE --> S3[AWS S3]
+
+NOTIFY[NotificationService] --> RESEND[Resend - email]
+NOTIFY --> TWILIO[Twilio - SMS]
+
+PAY[StripeService] --> STRIPE[Stripe API]
+
+CAL[Calendar and video meetings] --> GOOGLE[Google Calendar and Meet API]
+CAL --> MS[Microsoft Graph API]

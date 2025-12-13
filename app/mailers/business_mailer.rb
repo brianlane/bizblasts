@@ -408,6 +408,43 @@ class BusinessMailer < ApplicationMailer
     return nil
   end
 
+  # Send notification to business when video meeting creation fails
+  def video_meeting_failed(booking, error_messages = [])
+    @booking = booking
+    @business = booking.business
+
+    # Handle case where business might be nil or deleted
+    return unless @business.present?
+
+    @customer = booking.tenant_customer
+    @service = booking.service
+    @staff_member = booking.staff_member
+    @error_messages = error_messages
+    @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
+
+    # Get business manager
+    business_user = @business.users.where(role: [:manager]).first
+    return unless business_user.present?
+
+    # Check for valid email
+    return if business_user.email.blank? || !business_user.email.match?(URI::MailTo::EMAIL_REGEXP)
+
+    # Check if the manager can receive system emails
+    return unless business_user.can_receive_email?(:system)
+
+    # Set unsubscribe token for the business user
+    set_unsubscribe_token(business_user)
+
+    mail(
+      to: business_user.email,
+      subject: "Video Meeting Failed: #{@service&.name || 'Booking'} - #{@customer&.full_name || 'Customer'}",
+      reply_to: @support_email
+    )
+  rescue ActiveRecord::RecordNotFound => e
+    Rails.logger.error "[BusinessMailer] Business not found for video meeting failed notification: #{e.message}"
+    return nil
+  end
+
   private
 
   def notification_enabled?(user, notification_type)
