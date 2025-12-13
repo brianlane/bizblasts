@@ -4,6 +4,17 @@ module VideoMeeting
   class MeetingCoordinator
     include ActiveModel::Validations
 
+    # Network errors that should be retried by the job layer
+    # These must stay in sync with CreateMeetingJob's retry_on declarations
+    RETRYABLE_EXCEPTIONS = [
+      Net::ReadTimeout,
+      Net::OpenTimeout,
+      Faraday::TimeoutError,
+      Errno::ECONNRESET,
+      Errno::ECONNREFUSED,
+      Errno::ETIMEDOUT
+    ].freeze
+
     attr_reader :errors, :booking
 
     def initialize(booking)
@@ -46,7 +57,12 @@ module VideoMeeting
         mark_booking_failed
         false
       end
+    rescue *RETRYABLE_EXCEPTIONS => e
+      # Let retryable network errors propagate to the job layer for retry
+      Rails.logger.warn("[MeetingCoordinator] Retryable error (will be retried by job): #{e.class} - #{e.message}")
+      raise
     rescue StandardError => e
+      # Non-retryable errors should mark the booking as failed
       add_error(:unexpected_error, "Unexpected error creating meeting: #{e.message}")
       Rails.logger.error("[MeetingCoordinator] Unexpected error: #{e.message}")
       Rails.logger.error(e.backtrace.first(10).join("\n"))

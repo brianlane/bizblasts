@@ -369,8 +369,9 @@ module VideoMeeting
       begin
         state_data = Rails.application.message_verifier(:video_meeting_oauth).verify(state)
 
-        # Check if state is not too old (15 minutes max)
-        if Time.current.to_i - state_data['timestamp'] > 15.minutes
+        # Check if timestamp exists and is not too old (15 minutes max)
+        timestamp = state_data['timestamp']
+        unless timestamp.present? && (Time.current.to_i - timestamp.to_i) <= 15.minutes.to_i
           add_error(:expired_state, "OAuth state expired")
           return nil
         end
