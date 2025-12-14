@@ -4,6 +4,9 @@ module Quickbooks
   class ExportInvoicesJob < ApplicationJob
     queue_as :default
 
+    # Don't retry on these errors - they indicate unrecoverable issues
+    discard_on ActiveRecord::RecordNotFound
+
     def perform(export_run_id)
       export_run = ActsAsTenant.without_tenant { QuickbooksExportRun.find(export_run_id) }
       business = export_run.business
@@ -62,13 +65,13 @@ module Quickbooks
       Rails.logger.error("[Quickbooks::ExportInvoicesJob] Failed: #{e.class}: #{e.message}")
       Rails.logger.error(e.backtrace.first(10).join("\n"))
 
+      # Mark the export run as failed but don't re-raise to avoid double-failure tracking
+      # on job retries. The failure is already logged and recorded in the export_run.
       begin
         export_run&.fail!(error_report: { errors: [{ type: 'exception', message: e.message, class: e.class.name }] })
       rescue
         nil
       end
-
-      raise
     end
   end
 end

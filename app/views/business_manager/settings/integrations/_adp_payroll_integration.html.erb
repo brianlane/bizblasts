@@ -1,0 +1,241 @@
+<%# ADP Payroll Export Integration Partial %>
+<div class="border border-gray-200 rounded-xl overflow-hidden">
+  <div class="px-5 py-4 bg-gradient-to-r from-emerald-50 to-emerald-100 border-b border-gray-200">
+    <h3 class="text-base font-semibold text-gray-900 flex items-center">
+      <svg class="w-5 h-5 mr-2 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m2 8H7a2 2 0 01-2-2V6a2 2 0 012-2h6l4 4v10a2 2 0 01-2 2z"/>
+      </svg>
+      ADP Payroll Export (CSV)
+    </h3>
+    <p class="text-sm text-gray-700 mt-1">Generate payroll hours by staff member for a date range and download as CSV.</p>
+  </div>
+
+  <div class="p-5 space-y-6">
+    <!-- Config -->
+    <%= form_with model: adp_payroll_config, url: adp_payroll_config_update_business_manager_settings_integrations_path, method: :patch, local: true do |f| %>
+      <div class="flex items-center justify-between">
+        <div>
+          <h4 class="text-sm font-medium text-gray-900">Settings</h4>
+          <p class="text-xs text-gray-600 mt-1">Controls rounding, included booking statuses, and default pay code.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <%= f.check_box :active, class: "h-4 w-4 text-emerald-600 rounded" %>
+          <%= f.label :active, "Enabled", class: "text-sm text-gray-700" %>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+        <div>
+          <%= f.label :rounding_minutes, "Rounding (minutes)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.number_field :rounding_minutes, min: 1, step: 1, class: "w-full border rounded px-3 py-2" %>
+        </div>
+        <div class="flex items-center gap-2 mt-6 sm:mt-0">
+          <%= f.check_box :round_total_hours, class: "h-4 w-4 text-emerald-600 rounded" %>
+          <%= f.label :round_total_hours, "Round total hours", class: "text-sm text-gray-700" %>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+        <div>
+          <%= label_tag "adp_payroll_export_config_config_default_pay_code", "Default pay code", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= text_field_tag "adp_payroll_export_config[config][default_pay_code]", adp_payroll_config.default_pay_code, id: "adp_payroll_export_config_config_default_pay_code", class: "w-full border rounded px-3 py-2" %>
+        </div>
+        <div>
+          <%= label_tag "adp_payroll_export_config_config_timezone", "Timezone", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= text_field_tag "adp_payroll_export_config[config][timezone]", adp_payroll_config.timezone, id: "adp_payroll_export_config_config_timezone", class: "w-full border rounded px-3 py-2" %>
+          <p class="mt-1 text-xs text-gray-500">Defaults to business timezone if blank.</p>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <div class="text-sm font-medium text-gray-700 mb-2">Included booking statuses</div>
+        <% statuses = %w[confirmed completed] %>
+        <div class="flex flex-wrap gap-4">
+          <% statuses.each do |st| %>
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox"
+                     name="adp_payroll_export_config[config][included_booking_statuses][]"
+                     value="<%= st %>"
+                     <%= 'checked' if adp_payroll_config.included_booking_statuses.include?(st) %>
+                     class="h-4 w-4 text-emerald-600 rounded" />
+              <span><%= st.humanize %></span>
+            </label>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <%= f.submit "Save Payroll Settings", class: "cursor-pointer px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800" %>
+      </div>
+    <% end %>
+
+    <!-- Export -->
+    <div class="border-t border-gray-200 pt-5">
+      <h4 class="text-sm font-medium text-gray-900">Generate export</h4>
+      <p class="text-xs text-gray-600 mt-1">Bookings are converted into hours per staff per day.</p>
+
+      <!-- Preview -->
+      <%= form_with url: business_manager_settings_integrations_path, method: :get, local: true do %>
+        <%= hidden_field_tag :adp_preview, '1' %>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          <div>
+            <%= label_tag :adp_range_start, "Preview start date", class: "block text-sm font-medium text-gray-700 mb-1" %>
+            <%= date_field_tag :adp_range_start, (params[:adp_range_start].presence || Date.current.beginning_of_week.iso8601), class: "w-full border rounded px-3 py-2" %>
+          </div>
+          <div>
+            <%= label_tag :adp_range_end, "Preview end date", class: "block text-sm font-medium text-gray-700 mb-1" %>
+            <%= date_field_tag :adp_range_end, (params[:adp_range_end].presence || Date.current.end_of_week.iso8601), class: "w-full border rounded px-3 py-2" %>
+          </div>
+        </div>
+
+        <div class="mt-4 flex flex-col sm:flex-row gap-3">
+          <%= submit_tag "Preview Hours", class: "cursor-pointer px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800" %>
+          <%= link_to "Clear Preview", business_manager_settings_integrations_path, class: "inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200" %>
+        </div>
+      <% end %>
+
+      <% if adp_preview_summary.present? %>
+        <div class="mt-5 bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <h5 class="text-sm font-semibold text-gray-900">Payroll preview</h5>
+                <p class="text-xs text-gray-600">
+                  <%= adp_preview_summary[:range_start] %> → <%= adp_preview_summary[:range_end] %>
+                  · <%= adp_preview_summary[:row_count] %> rows
+                  · total hours: <%= adp_preview_grand_total %>
+                </p>
+              </div>
+              <div class="text-xs text-gray-600">
+                Rounding: <%= adp_payroll_config.round_total_hours ? "nearest #{adp_payroll_config.round_to_minutes} min" : "none" %>
+                · Statuses: <%= adp_payroll_config.included_booking_statuses.map(&:humanize).join(', ') %>
+              </div>
+            </div>
+          </div>
+
+          <% if adp_preview_errors.any? %>
+            <div class="px-4 py-3 bg-yellow-50 border-b border-yellow-200">
+              <p class="text-sm font-medium text-yellow-900">Warnings</p>
+              <ul class="mt-1 text-sm text-yellow-800 list-disc list-inside">
+                <% adp_preview_errors.group_by { |e| e[:type] }.each do |type, group| %>
+                  <% if type == 'missing_employee_id' %>
+                    <li><%= group.size %> booking(s) skipped because staff member is missing ADP Employee ID.</li>
+                  <% else %>
+                    <li><%= type %>: <%= group.size %></li>
+                  <% end %>
+                <% end %>
+              </ul>
+            </div>
+          <% end %>
+
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead>
+                <tr class="text-left text-gray-600">
+                  <th class="px-4 py-2">Employee</th>
+                  <th class="px-4 py-2">Employee ID</th>
+                  <th class="px-4 py-2">Date</th>
+                  <th class="px-4 py-2">Pay code</th>
+                  <th class="px-4 py-2">Hours</th>
+                  <th class="px-4 py-2">Dept</th>
+                  <th class="px-4 py-2">Job</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <% if adp_preview_rows.any? %>
+                  <% adp_preview_rows.each do |row| %>
+                    <tr>
+                      <td class="px-4 py-2 text-gray-900"><%= row[:staff_member_names].join(', ') %></td>
+                      <td class="px-4 py-2 font-mono text-gray-800"><%= row[:employee_id] %></td>
+                      <td class="px-4 py-2 text-gray-800"><%= row[:work_date] %></td>
+                      <td class="px-4 py-2 text-gray-800"><%= row[:pay_code] %></td>
+                      <td class="px-4 py-2 text-gray-900 font-medium"><%= format('%.2f', row[:hours]) %></td>
+                      <td class="px-4 py-2 text-gray-700"><%= row[:department_code] %></td>
+                      <td class="px-4 py-2 text-gray-700"><%= row[:job_code] %></td>
+                    </tr>
+                  <% end %>
+                  <tr class="bg-gray-50">
+                    <td class="px-4 py-2 font-semibold text-gray-900" colspan="4">Total</td>
+                    <td class="px-4 py-2 font-semibold text-gray-900"><%= format('%.2f', adp_preview_grand_total) %></td>
+                    <td class="px-4 py-2" colspan="2"></td>
+                  </tr>
+                <% else %>
+                  <tr>
+                    <td class="px-4 py-3 text-gray-600" colspan="7">No rows for this range (check statuses, dates, and staff mappings).</td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% end %>
+
+      <%= form_with url: adp_payroll_export_create_business_manager_settings_integrations_path, method: :post, local: true do |f| %>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          <div>
+            <%= label_tag :range_start, "Start date", class: "block text-sm font-medium text-gray-700 mb-1" %>
+            <%= date_field_tag :range_start, Date.current.beginning_of_week.iso8601, class: "w-full border rounded px-3 py-2" %>
+          </div>
+          <div>
+            <%= label_tag :range_end, "End date", class: "block text-sm font-medium text-gray-700 mb-1" %>
+            <%= date_field_tag :range_end, Date.current.end_of_week.iso8601, class: "w-full border rounded px-3 py-2" %>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <%= submit_tag "Generate Export", class: "cursor-pointer px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-black" %>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Recent exports -->
+    <div class="border-t border-gray-200 pt-5">
+      <h4 class="text-sm font-medium text-gray-900">Recent exports</h4>
+      <% if adp_payroll_export_runs.any? %>
+        <div class="mt-3 overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="text-left text-gray-600">
+                <th class="py-2 pr-4">Created</th>
+                <th class="py-2 pr-4">Range</th>
+                <th class="py-2 pr-4">Status</th>
+                <th class="py-2">Download</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <% adp_payroll_export_runs.each do |run| %>
+                <tr>
+                  <td class="py-2 pr-4 whitespace-nowrap"><%= run.created_at.strftime('%b %d, %Y %H:%M') %></td>
+                  <td class="py-2 pr-4 whitespace-nowrap"><%= run.range_start %> → <%= run.range_end %></td>
+                  <td class="py-2 pr-4">
+                    <% badge = case run.status
+                              when 'succeeded' then 'bg-green-100 text-green-800'
+                              when 'failed' then 'bg-red-100 text-red-800'
+                              when 'running' then 'bg-yellow-100 text-yellow-800'
+                              else 'bg-gray-100 text-gray-800'
+                              end %>
+                    <span class="px-2 py-1 rounded-full text-xs font-medium <%= badge %>"><%= run.status.humanize %></span>
+                  </td>
+                  <td class="py-2">
+                    <% if run.succeeded? %>
+                      <%= link_to "CSV", adp_payroll_export_download_business_manager_settings_integrations_path(id: run.id), class: "text-emerald-700 hover:underline" %>
+                    <% else %>
+                      <span class="text-gray-400">—</span>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <p class="text-sm text-gray-600 mt-2">No payroll exports yet.</p>
+      <% end %>
+    </div>
+
+    <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-sm text-emerald-900">
+      <p class="font-medium">Staff mapping</p>
+      <p class="mt-1">Set each staff member's ADP Employee ID and pay code in <%= link_to "Staff Members", business_manager_staff_members_path, class: "underline" %>.</p>
+    </div>
+  </div>
+</div>

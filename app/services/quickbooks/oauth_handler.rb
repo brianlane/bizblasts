@@ -95,6 +95,7 @@ module Quickbooks
       return false if connection.refresh_token.blank?
 
       connection.with_lock do
+        connection.reload
         return true unless connection.token_expired?
 
         token_data = exchange_refresh_token(refresh_token: connection.refresh_token)

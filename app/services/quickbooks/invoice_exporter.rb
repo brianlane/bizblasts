@@ -84,7 +84,7 @@ module Quickbooks
     end
 
     def ensure_customer_id!(client, tenant_customer)
-      strategy = @connection.config.fetch('customer_strategy', 'per_customer').to_s
+      strategy = (@connection.config || {}).fetch('customer_strategy', 'per_customer').to_s
       if strategy == 'single'
         return ensure_default_customer_id!(client)
       end
@@ -120,16 +120,16 @@ module Quickbooks
     end
 
     def ensure_default_item_id!(client)
-      existing = @connection.config['default_sales_item_id'].to_s
+      existing = (@connection.config || {})['default_sales_item_id'].to_s
       return existing if existing.present?
 
-      income_account_id = @connection.config['income_account_id'].to_s
+      income_account_id = (@connection.config || {})['income_account_id'].to_s
       if income_account_id.blank?
         income_account_id = find_income_account_id!(client)
         @connection.update!(config: @connection.config.merge('income_account_id' => income_account_id))
       end
 
-      item_name = @connection.config['default_sales_item_name'].to_s.presence || DEFAULT_ITEM_NAME
+      item_name = (@connection.config || {})['default_sales_item_name'].to_s.presence || DEFAULT_ITEM_NAME
       payload = {
         Name: item_name,
         Type: 'Service',
@@ -145,7 +145,7 @@ module Quickbooks
     rescue Quickbooks::RequestError => e
       # If item already exists with that name, try to look it up.
       begin
-        item_name = @connection.config['default_sales_item_name'].to_s.presence || DEFAULT_ITEM_NAME
+        item_name = (@connection.config || {})['default_sales_item_name'].to_s.presence || DEFAULT_ITEM_NAME
         found = client.query("select Id, Name from Item where Name = '#{escape_qbo_string(item_name)}' maxresults 1")
         item_id = found.dig('QueryResponse', 'Item', 0, 'Id')
         raise e if item_id.blank?
@@ -158,7 +158,7 @@ module Quickbooks
     end
 
     def ensure_default_customer_id!(client)
-      existing = @connection.config['default_customer_id'].to_s
+      existing = (@connection.config || {})['default_customer_id'].to_s
       return existing if existing.present?
 
       payload = { DisplayName: DEFAULT_CUSTOMER_NAME }
@@ -334,13 +334,15 @@ module Quickbooks
     end
 
     def update_existing_invoices?
-      @connection.config.fetch('update_existing_invoices', false) == true || @connection.config.fetch('update_existing_invoices', 'false').to_s == '1'
+      config = @connection.config || {}
+      config.fetch('update_existing_invoices', false) == true || config.fetch('update_existing_invoices', 'false').to_s == '1'
     end
 
     def escape_qbo_string(str)
-      # QBO query language uses SQL-style quoting: escape apostrophes by doubling them.
-      # Example: O'Brien -> O''Brien
-      str.to_s.gsub("'", "''")
+      # QBO query language uses SQL-style quoting: escape apostrophes by doubling them
+      # and backslashes by doubling them.
+      # Example: O'Brien -> O''Brien, path\name -> path\\name
+      str.to_s.gsub('\\', '\\\\').gsub("'", "''")
     end
 
     def build_invoice_payload(invoice:, customer_id:, item_id:)
