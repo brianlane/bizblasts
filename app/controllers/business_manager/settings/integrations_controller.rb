@@ -15,6 +15,45 @@ module BusinessManager
         @sync_statistics = calculate_sync_statistics
         @providers = available_providers
         @video_providers = available_video_providers
+
+        # Accounting + Payroll integrations
+        @quickbooks_connection = current_business.quickbooks_connection
+        @quickbooks_export_runs = current_business.quickbooks_export_runs.order(created_at: :desc).limit(10)
+        @adp_payroll_config = current_business.adp_payroll_export_config || current_business.build_adp_payroll_export_config
+        @adp_payroll_export_runs = current_business.adp_payroll_export_runs.order(created_at: :desc).limit(10)
+
+        # ADP payroll preview (optional UI)
+        @adp_preview_rows = []
+        @adp_preview_summary = nil
+        @adp_preview_errors = []
+        @adp_preview_totals_by_employee = {}
+        @adp_preview_grand_total = 0.0
+
+        if params[:adp_preview] == '1' && params[:adp_range_start].present? && params[:adp_range_end].present?
+          begin
+            range_start = Date.iso8601(params[:adp_range_start].to_s)
+            range_end = Date.iso8601(params[:adp_range_end].to_s)
+
+            builder = Payroll::AdpPreviewBuilder.new(business: current_business, config: @adp_payroll_config)
+            rows, summary, report = builder.build(range_start: range_start, range_end: range_end)
+
+            @adp_preview_rows = rows
+            @adp_preview_summary = summary
+            @adp_preview_errors = Array(report[:errors])
+
+            totals = Hash.new(0.0)
+            rows.each do |r|
+              totals[r[:employee_id]] += r[:hours].to_f
+            end
+            @adp_preview_totals_by_employee = totals
+            @adp_preview_grand_total = totals.values.sum.round(2)
+          rescue Date::Error
+            flash.now[:alert] = 'Invalid preview date range. Please use YYYY-MM-DD.'
+          rescue => e
+            Rails.logger.error("[IntegrationsController] ADP preview error: #{e.message}")
+            flash.now[:alert] = 'Failed to generate payroll preview. Please try again.'
+          end
+        end
         
         # SECURITY FIX (CWE-598): Read OAuth flash messages from session instead of URL parameters
         # This prevents sensitive data from being exposed in browser history, server logs,
@@ -388,6 +427,129 @@ module BusinessManager
                     alert: 'Failed to start OAuth process. Please try again.'
       end
 
+      # ----------------------------------------------------------------------
+      # QuickBooks Online Integration Actions
+      # ----------------------------------------------------------------------
+
+      # GET /manage/settings/integrations/quickbooks/oauth/authorize
+      def quickbooks_oauth_authorize
+        unless QuickbooksOauthCredentials.configured?
+          redirect_to business_manager_settings_integrations_path,
+                      alert: 'QuickBooks OAuth not configured. Please contact support.'
+          return
+        end
+
+        oauth_handler = Quickbooks::OauthHandler.new
+        redirect_uri = quickbooks_oauth_callback_url
+
+        auth_url = oauth_handler.authorization_url(current_business.id, redirect_uri)
+
+        if auth_url
+          redirect_to auth_url, allow_other_host: true
+        else
+          redirect_to business_manager_settings_integrations_path,
+                      alert: oauth_handler.errors.full_messages.to_sentence.presence || 'Failed to start QuickBooks connection.'
+        end
+      rescue => e
+        Rails.logger.error "[QuickBooksOAuth] Authorization error: #{e.message}"
+        redirect_to business_manager_settings_integrations_path,
+                    alert: 'Failed to start QuickBooks OAuth process. Please try again.'
+      end
+
+      # DELETE /manage/settings/integrations/quickbooks/disconnect
+      def quickbooks_disconnect
+        connection = current_business.quickbooks_connection
+
+        if connection
+          connection.destroy
+          redirect_to business_manager_settings_integrations_path, notice: 'QuickBooks disconnected.'
+        else
+          redirect_to business_manager_settings_integrations_path, alert: 'No QuickBooks connection found.'
+        end
+      end
+
+      # POST /manage/settings/integrations/quickbooks/exports/invoices
+      def quickbooks_export_invoices
+        connection = current_business.quickbooks_connection
+        unless connection&.active?
+          redirect_to business_manager_settings_integrations_path, alert: 'QuickBooks is not connected.'
+          return
+        end
+
+        range_start = Date.iso8601(params[:range_start].to_s)
+        range_end = Date.iso8601(params[:range_end].to_s)
+        statuses = Array(params[:invoice_statuses].presence || %w[paid]).map(&:to_s)
+
+        export_run = current_business.quickbooks_export_runs.create!(
+          user: current_user,
+          status: :queued,
+          export_type: 'invoices',
+          filters: {
+            range_start: range_start.iso8601,
+            range_end: range_end.iso8601,
+            invoice_statuses: statuses,
+            export_payments: params[:export_payments] == '1'
+          }
+        )
+
+        Quickbooks::ExportInvoicesJob.perform_later(export_run.id)
+
+        redirect_to business_manager_settings_integrations_path, notice: 'QuickBooks invoice export started.'
+      rescue Date::Error
+        redirect_to business_manager_settings_integrations_path, alert: 'Invalid date range. Please use YYYY-MM-DD.'
+      rescue ActiveRecord::RecordInvalid => e
+        redirect_to business_manager_settings_integrations_path, alert: e.record.errors.full_messages.to_sentence
+      end
+
+      # PATCH /manage/settings/integrations/quickbooks/config
+      def quickbooks_config_update
+        connection = current_business.quickbooks_connection
+        unless connection&.active?
+          redirect_to business_manager_settings_integrations_path, alert: 'QuickBooks is not connected.'
+          return
+        end
+
+        incoming = quickbooks_config_params.to_h
+
+        # Ensure checkbox values can be turned OFF: when unchecked Rails may not send it unless
+        # a hidden field is present. We also defensively treat missing as false.
+        update_existing = params.dig(:quickbooks, :update_existing_invoices).to_s == '1'
+
+        new_config = connection.config.merge(incoming).merge(
+          'update_existing_invoices' => update_existing
+        )
+
+        connection.update!(config: new_config)
+
+        redirect_to business_manager_settings_integrations_path, notice: 'QuickBooks settings updated.'
+      rescue ActiveRecord::RecordInvalid => e
+        redirect_to business_manager_settings_integrations_path, alert: e.record.errors.full_messages.to_sentence
+      end
+
+      # POST /manage/settings/integrations/quickbooks/exports/:id/retry
+      def quickbooks_export_retry_failed
+        prior = current_business.quickbooks_export_runs.find(params[:id])
+
+        failures = Array(prior.error_report['failures'])
+        invoice_ids = failures.map { |f| f['invoice_id'] || f[:invoice_id] }.compact
+
+        if invoice_ids.empty?
+          redirect_to business_manager_settings_integrations_path, alert: 'No failed invoices to retry.'
+          return
+        end
+
+        export_run = current_business.quickbooks_export_runs.create!(
+          user: current_user,
+          status: :queued,
+          export_type: 'invoices',
+          filters: prior.filters.merge('invoice_ids' => invoice_ids)
+        )
+
+        Quickbooks::ExportInvoicesJob.perform_later(export_run.id)
+
+        redirect_to business_manager_settings_integrations_path, notice: 'Retry started for failed invoices.'
+      end
+
 
       # Calendar Integration Actions
       
@@ -703,6 +865,58 @@ module BusinessManager
         end
       end
 
+      # ----------------------------------------------------------------------
+      # Payroll Export (ADP) Actions
+      # ----------------------------------------------------------------------
+
+      # PATCH /manage/settings/integrations/adp-payroll/config
+      def adp_payroll_config_update
+        config = current_business.adp_payroll_export_config || current_business.build_adp_payroll_export_config
+
+        if config.update(adp_payroll_config_params)
+          redirect_to business_manager_settings_integrations_path, notice: 'Payroll export settings updated.'
+        else
+          redirect_to business_manager_settings_integrations_path, alert: config.errors.full_messages.to_sentence
+        end
+      end
+
+      # POST /manage/settings/integrations/adp-payroll/exports
+      def adp_payroll_export_create
+        range_start = Date.iso8601(params[:range_start].to_s)
+        range_end = Date.iso8601(params[:range_end].to_s)
+
+        export_run = current_business.adp_payroll_export_runs.create!(
+          user: current_user,
+          status: :queued,
+          range_start: range_start,
+          range_end: range_end,
+          options: {
+            requested_at: Time.current.iso8601
+          }
+        )
+
+        Payroll::GenerateAdpExportJob.perform_later(export_run.id)
+
+        redirect_to business_manager_settings_integrations_path, notice: 'Payroll export started. It will be ready for download shortly.'
+      rescue Date::Error
+        redirect_to business_manager_settings_integrations_path, alert: 'Invalid date range. Please use YYYY-MM-DD.'
+      rescue ActiveRecord::RecordInvalid => e
+        redirect_to business_manager_settings_integrations_path, alert: e.record.errors.full_messages.to_sentence
+      end
+
+      # GET /manage/settings/integrations/adp-payroll/exports/:id/download
+      def adp_payroll_export_download
+        export_run = current_business.adp_payroll_export_runs.find(params[:id])
+
+        unless export_run.succeeded? && export_run.csv_data.present?
+          redirect_to business_manager_settings_integrations_path, alert: 'Export is not ready yet. Please try again in a moment.'
+          return
+        end
+
+        filename = "adp-payroll-export-#{export_run.range_start}-to-#{export_run.range_end}.csv"
+        send_data export_run.csv_data, filename: filename, type: 'text/csv'
+      end
+
       private
 
       def set_business
@@ -726,6 +940,17 @@ module BusinessManager
                      ":#{request.port}"
                    end
         "#{scheme}://#{host}#{port_str}/oauth/google-business/callback"
+      end
+
+      def quickbooks_oauth_callback_url
+        scheme = request.ssl? ? 'https' : 'http'
+        host = Rails.application.config.main_domain.presence || request.host
+        port_str = if host&.include?(':') || request.port.nil? || [80, 443].include?(request.port)
+                     ''
+                   else
+                     ":#{request.port}"
+                   end
+        "#{scheme}://#{host}#{port_str}/oauth/quickbooks/callback"
       end
 
       def available_providers
@@ -797,6 +1022,24 @@ module BusinessManager
       
       def calendar_connection_params
         params.require(:calendar_connection).permit(:provider, :staff_member_id)
+      end
+
+      def adp_payroll_config_params
+        params.require(:adp_payroll_export_config).permit(
+          :active,
+          :rounding_minutes,
+          :round_total_hours,
+          config: [:default_pay_code, :timezone, { included_booking_statuses: [] }]
+        )
+      end
+
+      def quickbooks_config_params
+        params.require(:quickbooks).permit(
+          :income_account_id,
+          :default_sales_item_name,
+          :customer_strategy,
+          :update_existing_invoices
+        )
       end
 
       # SECURITY: Strict URL validation for Place ID extraction

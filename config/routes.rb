@@ -168,6 +168,9 @@ Rails.application.routes.draw do
   # Video Meeting OAuth callbacks (outside subdomain constraint for security)
   get '/oauth/video/zoom/callback', to: 'video_meeting_oauth#callback', defaults: { provider: 'zoom' }, as: :zoom_video_oauth_callback
   get '/oauth/video/google-meet/callback', to: 'video_meeting_oauth#callback', defaults: { provider: 'google_meet' }, as: :google_meet_video_oauth_callback
+
+  # QuickBooks OAuth callback (outside subdomain constraint for security)
+  get '/oauth/quickbooks/callback', to: 'quickbooks_oauth#callback', as: :quickbooks_oauth_callback
   # Add routes for admin bookings availability before ActiveAdmin is initialized
   get '/admin/bookings-availability/slots', to: 'admin/booking_availability#available_slots', as: :available_slots_bookings
   get '/admin/bookings-availability/new', to: 'admin/booking_availability#new', as: :new_admin_booking_from_slots
@@ -434,6 +437,18 @@ Rails.application.routes.draw do
             post 'video-integrations/link-from-calendar', action: :video_integration_link_from_calendar, as: :video_integration_link_from_calendar
             delete 'video-integrations/:id', action: :video_integration_destroy, as: :video_integration_destroy
             get 'video-integrations/:id/status', action: :video_integration_status, as: :video_integration_status
+
+            # ADP Payroll export routes
+            patch 'adp-payroll/config', action: :adp_payroll_config_update, as: :adp_payroll_config_update
+            post 'adp-payroll/exports', action: :adp_payroll_export_create, as: :adp_payroll_export_create
+            get 'adp-payroll/exports/:id/download', action: :adp_payroll_export_download, as: :adp_payroll_export_download
+
+            # QuickBooks Online routes
+            get 'quickbooks/oauth/authorize', action: :quickbooks_oauth_authorize, as: :quickbooks_oauth_authorize
+            delete 'quickbooks/disconnect', action: :quickbooks_disconnect, as: :quickbooks_disconnect
+            post 'quickbooks/exports/invoices', action: :quickbooks_export_invoices, as: :quickbooks_export_invoices
+            patch 'quickbooks/config', action: :quickbooks_config_update, as: :quickbooks_config_update
+            post 'quickbooks/exports/:id/retry', action: :quickbooks_export_retry_failed, as: :quickbooks_export_retry_failed
           end
         end
         resource :website_pages, only: [:edit, :update]

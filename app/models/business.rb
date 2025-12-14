@@ -237,6 +237,14 @@ class Business < ApplicationRecord
   
   # Calendar integration associations
   has_many :calendar_connections, dependent: :destroy
+
+  # Payroll exports (ADP CSV)
+  has_one :adp_payroll_export_config, dependent: :destroy
+  has_many :adp_payroll_export_runs, dependent: :destroy
+
+  # Accounting exports (QuickBooks Online)
+  has_one :quickbooks_connection, dependent: :destroy
+  has_many :quickbooks_export_runs, dependent: :destroy
   
   # Website customization associations
   has_many :website_themes, dependent: :destroy

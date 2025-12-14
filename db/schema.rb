@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_12_161046) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_14_100050) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -88,6 +88,38 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_12_161046) do
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_admin_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_admin_users_on_reset_password_token", unique: true
+  end
+
+  create_table "adp_payroll_export_configs", force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.bigint "business_id", null: false
+    t.jsonb "config", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.boolean "round_total_hours", default: true, null: false
+    t.integer "rounding_minutes", default: 15, null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_adp_payroll_export_configs_on_active"
+    t.index ["business_id"], name: "index_adp_payroll_export_configs_on_business_id", unique: true
+  end
+
+  create_table "adp_payroll_export_runs", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.datetime "created_at", null: false
+    t.text "csv_data"
+    t.jsonb "error_report", default: {}, null: false
+    t.datetime "finished_at"
+    t.jsonb "options", default: {}, null: false
+    t.date "range_end", null: false
+    t.date "range_start", null: false
+    t.datetime "started_at"
+    t.integer "status", default: 0, null: false
+    t.jsonb "summary", default: {}, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.index ["business_id", "created_at"], name: "index_adp_payroll_export_runs_on_business_id_and_created_at"
+    t.index ["business_id"], name: "index_adp_payroll_export_runs_on_business_id"
+    t.index ["status"], name: "index_adp_payroll_export_runs_on_status"
+    t.index ["user_id"], name: "index_adp_payroll_export_runs_on_user_id"
   end
 
   create_table "auth_tokens", force: :cascade do |t|
@@ -774,6 +806,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_12_161046) do
     t.bigint "order_id"
     t.decimal "original_amount", precision: 10, scale: 2
     t.bigint "promotion_id"
+    t.integer "quickbooks_export_status", default: 0, null: false
+    t.datetime "quickbooks_exported_at"
+    t.string "quickbooks_invoice_id"
     t.boolean "review_request_suppressed", default: false, null: false
     t.bigint "shipping_method_id"
     t.integer "status", default: 0
@@ -790,6 +825,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_12_161046) do
     t.index ["invoice_number"], name: "index_invoices_on_invoice_number"
     t.index ["order_id"], name: "index_invoices_on_order_id"
     t.index ["promotion_id"], name: "index_invoices_on_promotion_id"
+    t.index ["quickbooks_invoice_id"], name: "index_invoices_on_quickbooks_invoice_id"
     t.index ["shipping_method_id"], name: "index_invoices_on_shipping_method_id"
     t.index ["status"], name: "index_invoices_on_status"
     t.index ["tax_rate_id"], name: "index_invoices_on_tax_rate_id"
@@ -976,7 +1012,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_12_161046) do
     t.index ["tenant_customer_id", "created_at"], name: "index_orders_on_tenant_customer_id_and_created_at"
     t.index ["tenant_customer_id"], name: "index_orders_on_tenant_customer_id"
     t.index ["tip_amount"], name: "index_orders_on_tip_amount"
-    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying::text, 'paid'::character varying::text, 'cancelled'::character varying::text, 'shipped'::character varying::text, 'refunded'::character varying::text, 'processing'::character varying::text, 'completed'::character varying::text, 'business_deleted'::character varying::text])", name: "status_enum_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying, 'paid'::character varying, 'cancelled'::character varying, 'shipped'::character varying, 'refunded'::character varying, 'processing'::character varying, 'completed'::character varying, 'business_deleted'::character varying]::text[])", name: "status_enum_check"
   end
 
   create_table "page_sections", force: :cascade do |t|
@@ -1053,6 +1089,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_12_161046) do
     t.datetime "paid_at"
     t.string "payment_method", default: "card"
     t.decimal "platform_fee_amount", precision: 10, scale: 2, null: false
+    t.string "quickbooks_payment_id"
     t.text "refund_reason"
     t.decimal "refunded_amount", precision: 10, scale: 2, default: "0.0"
     t.integer "status", default: 0
@@ -1071,6 +1108,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_12_161046) do
     t.index ["business_id"], name: "index_payments_on_business_id"
     t.index ["invoice_id"], name: "index_payments_on_invoice_id"
     t.index ["order_id"], name: "index_payments_on_order_id"
+    t.index ["quickbooks_payment_id"], name: "index_payments_on_quickbooks_payment_id"
     t.index ["stripe_charge_id"], name: "index_payments_on_stripe_charge_id"
     t.index ["stripe_payment_intent_id"], name: "index_payments_on_stripe_payment_intent_id", unique: true, where: "(stripe_payment_intent_id IS NOT NULL)"
     t.index ["tenant_customer_id"], name: "index_payments_on_tenant_customer_id"
@@ -1199,11 +1237,13 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_12_161046) do
     t.jsonb "options"
     t.decimal "price_modifier", precision: 10, scale: 2
     t.bigint "product_id", null: false
+    t.string "quickbooks_item_id"
     t.integer "reserved_quantity"
     t.string "sku"
     t.integer "stock_quantity", default: 0, null: false
     t.datetime "updated_at", null: false
     t.index ["product_id"], name: "index_product_variants_on_product_id"
+    t.index ["quickbooks_item_id"], name: "index_product_variants_on_quickbooks_item_id"
   end
 
   create_table "products", force: :cascade do |t|
@@ -1313,6 +1353,45 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_12_161046) do
     t.index ["public_dates"], name: "index_promotions_on_public_dates"
   end
 
+  create_table "quickbooks_connections", force: :cascade do |t|
+    t.text "access_token"
+    t.boolean "active", default: true, null: false
+    t.bigint "business_id", null: false
+    t.jsonb "config", default: {}, null: false
+    t.datetime "connected_at"
+    t.datetime "created_at", null: false
+    t.string "environment", default: "production", null: false
+    t.datetime "last_synced_at"
+    t.datetime "last_used_at"
+    t.string "realm_id", null: false
+    t.text "refresh_token"
+    t.datetime "refresh_token_expires_at"
+    t.text "scopes"
+    t.datetime "token_expires_at"
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_quickbooks_connections_on_active"
+    t.index ["business_id"], name: "index_quickbooks_connections_on_business_id", unique: true
+    t.index ["realm_id"], name: "index_quickbooks_connections_on_realm_id"
+  end
+
+  create_table "quickbooks_export_runs", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.datetime "created_at", null: false
+    t.jsonb "error_report", default: {}, null: false
+    t.string "export_type", default: "invoices", null: false
+    t.jsonb "filters", default: {}, null: false
+    t.datetime "finished_at"
+    t.datetime "started_at"
+    t.integer "status", default: 0, null: false
+    t.jsonb "summary", default: {}, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.index ["business_id", "created_at"], name: "index_quickbooks_export_runs_on_business_id_and_created_at"
+    t.index ["business_id"], name: "index_quickbooks_export_runs_on_business_id"
+    t.index ["status"], name: "index_quickbooks_export_runs_on_status"
+    t.index ["user_id"], name: "index_quickbooks_export_runs_on_user_id"
+  end
+
   create_table "referral_programs", force: :cascade do |t|
     t.boolean "active", default: true, null: false
     t.bigint "business_id", null: false
@@ -1396,7 +1475,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_12_161046) do
     t.index ["business_id", "status"], name: "index_rental_bookings_on_business_id_and_status"
     t.index ["business_id"], name: "index_rental_bookings_on_business_id"
     t.index ["deposit_authorization_id"], name: "index_rental_bookings_on_deposit_authorization_id"
-    t.index ["end_time"], name: "index_rental_bookings_on_end_time_for_overdue", where: "((status)::text = ANY (ARRAY[('checked_out'::character varying)::text, ('overdue'::character varying)::text]))"
+    t.index ["end_time"], name: "index_rental_bookings_on_end_time_for_overdue", where: "((status)::text = ANY ((ARRAY['checked_out'::character varying, 'overdue'::character varying])::text[]))"
     t.index ["guest_access_token"], name: "index_rental_bookings_on_guest_access_token", unique: true
     t.index ["location_id"], name: "index_rental_bookings_on_location_id"
     t.index ["product_id", "start_time", "end_time"], name: "idx_on_product_id_start_time_end_time_f527c29028"
@@ -1475,6 +1554,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_12_161046) do
     t.string "name", null: false
     t.integer "position", default: 0
     t.decimal "price", precision: 10, scale: 2, null: false
+    t.string "quickbooks_item_id"
     t.integer "service_type"
     t.integer "spots"
     t.string "subscription_billing_cycle", default: "monthly"
@@ -1493,6 +1573,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_12_161046) do
     t.index ["created_from_estimate_id"], name: "index_services_on_created_from_estimate_id"
     t.index ["event_starts_at"], name: "index_services_on_event_starts_at_for_events", where: "(service_type = 2)"
     t.index ["name", "business_id"], name: "index_services_on_name_and_business_id", unique: true
+    t.index ["quickbooks_item_id"], name: "index_services_on_quickbooks_item_id"
     t.index ["tips_enabled"], name: "index_services_on_tips_enabled"
     t.index ["video_enabled"], name: "index_services_on_video_enabled"
   end
@@ -1728,6 +1809,10 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_12_161046) do
 
   create_table "staff_members", force: :cascade do |t|
     t.boolean "active", default: true
+    t.string "adp_department_code"
+    t.string "adp_employee_id"
+    t.string "adp_job_code"
+    t.string "adp_pay_code"
     t.jsonb "availability"
     t.text "bio"
     t.bigint "business_id", null: false
@@ -1743,6 +1828,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_12_161046) do
     t.string "timezone", default: "UTC"
     t.datetime "updated_at", null: false
     t.bigint "user_id"
+    t.index ["adp_employee_id"], name: "index_staff_members_on_adp_employee_id"
     t.index ["business_id"], name: "index_staff_members_on_business_id"
     t.index ["default_calendar_connection_id"], name: "index_staff_members_on_default_calendar_connection_id"
     t.index ["user_id"], name: "index_staff_members_on_user_id"
@@ -1843,6 +1929,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_12_161046) do
     t.boolean "phone_marketing_opt_out", default: false, null: false
     t.boolean "phone_opt_in", default: false, null: false
     t.datetime "phone_opt_in_at"
+    t.string "quickbooks_customer_id"
     t.jsonb "sms_opted_out_businesses", default: []
     t.string "stripe_customer_id"
     t.string "unsubscribe_token"
@@ -1854,6 +1941,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_12_161046) do
     t.index ["business_id", "phone"], name: "index_tenant_customers_on_business_phone_for_users", unique: true, where: "(user_id IS NOT NULL)"
     t.index ["business_id"], name: "index_tenant_customers_on_business_id"
     t.index ["email", "business_id"], name: "index_tenant_customers_on_email_and_business_id", unique: true
+    t.index ["quickbooks_customer_id"], name: "index_tenant_customers_on_quickbooks_customer_id"
     t.index ["sms_opted_out_businesses"], name: "index_tenant_customers_on_sms_opted_out_businesses", using: :gin
     t.index ["stripe_customer_id"], name: "index_tenant_customers_on_stripe_customer_id", unique: true
     t.index ["unsubscribe_token"], name: "index_tenant_customers_on_unsubscribe_token", unique: true
@@ -2017,6 +2105,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_12_161046) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "adp_payroll_export_configs", "businesses"
+  add_foreign_key "adp_payroll_export_runs", "businesses"
+  add_foreign_key "adp_payroll_export_runs", "users"
   add_foreign_key "auth_tokens", "users"
   add_foreign_key "authentication_bridges", "users"
   add_foreign_key "booking_policies", "businesses", on_delete: :cascade
@@ -2134,6 +2225,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_12_161046) do
   add_foreign_key "promotion_services", "promotions", on_delete: :cascade
   add_foreign_key "promotion_services", "services", on_delete: :cascade
   add_foreign_key "promotions", "businesses", on_delete: :cascade
+  add_foreign_key "quickbooks_connections", "businesses"
+  add_foreign_key "quickbooks_export_runs", "businesses"
+  add_foreign_key "quickbooks_export_runs", "users"
   add_foreign_key "referral_programs", "businesses", on_delete: :cascade
   add_foreign_key "referrals", "bookings", column: "qualifying_booking_id"
   add_foreign_key "referrals", "businesses", on_delete: :cascade

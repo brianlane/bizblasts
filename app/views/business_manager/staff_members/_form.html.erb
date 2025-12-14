@@ -231,6 +231,45 @@
         </div>
       </div>
 
+      <!-- Payroll Export Fields (ADP) -->
+      <div class="bg-gray-50 p-4 rounded-lg border">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h4 class="text-sm font-medium text-gray-900">Payroll Export (ADP)</h4>
+            <p class="text-xs text-gray-600 mt-1">Used for ADP payroll CSV exports. Leave blank if not exporting payroll.</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          <div>
+            <%= f.label :adp_employee_id, "ADP Employee ID", class: "block text-gray-700 text-xs font-bold mb-2" %>
+            <%= f.text_field :adp_employee_id, placeholder: "e.g., 123456",
+                  class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+          </div>
+
+          <div>
+            <%= f.label :adp_pay_code, "Default Pay Code", class: "block text-gray-700 text-xs font-bold mb-2" %>
+            <%= f.text_field :adp_pay_code, placeholder: "REG",
+                  class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+            <p class="mt-1 text-xs text-gray-500">Fallbacks to business payroll config (default: REG).</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          <div>
+            <%= f.label :adp_department_code, "Department Code (optional)", class: "block text-gray-700 text-xs font-bold mb-2" %>
+            <%= f.text_field :adp_department_code, placeholder: "e.g., 100",
+                  class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+          </div>
+
+          <div>
+            <%= f.label :adp_job_code, "Job Code (optional)", class: "block text-gray-700 text-xs font-bold mb-2" %>
+            <%= f.text_field :adp_job_code, placeholder: "e.g., TECH",
+                  class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+          </div>
+        </div>
+      </div>
+
       <div>
         <%= f.label :bio, class: "block text-gray-700 text-sm font-bold mb-2" %>
         <%= f.text_area :bio, rows: 4, placeholder: "Tell customers about this staff member's experience and expertise...",

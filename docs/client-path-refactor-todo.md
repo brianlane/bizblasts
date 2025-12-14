@@ -576,3 +576,108 @@ Ensure these remain separate and correctly scoped:
   - [ ] Since no backwards compatibility, users may notice URL changes
   - [ ] Prepare explanation if users report "broken bookmarks"
   - [ ] Update any user-facing documentation with new URLs
+
+---
+
+## Review Notes: Potential Holes / Issues + “Is this worth doing?”
+
+This section captures concerns and improvements discovered during review of this plan.
+
+### High-Risk / Easy-to-Miss Issues
+
+#### 1) Devise under `/client/*` vs “all `/client` requires auth”
+
+If the app uses `config.x.auth_required_paths` (or similar middleware logic) to enforce authentication for the `/client` prefix, then moving Devise routes under `/client` can create **redirect loops**:
+
+- `/client/sign_in` is itself under `/client` → app requires auth → redirects to sign-in → loop
+
+**Mitigation options:**
+
+- **Allowlist Devise endpoints** under `/client` so they remain reachable unauthenticated (e.g. `/client/sign_in`, `/client/sign_out`, `/client/sign_up`, `/client/password/*`, `/client/confirmation/*`, `/client/unlock/*` depending on enabled Devise modules).
+- Or keep Devise routes on `/users/*` and redirect users into `/client/*` after login.
+
+Also verify non-HTML formats (Turbo, JSON) don’t accidentally get forced into the same loop.
+
+#### 2) Stored-location / return-to values can send users to legacy URLs
+
+Even with “no backwards compatibility,” Devise’s `stored_location_for(resource)` (or custom redirect logic) can route users to whatever URL they last tried to access. If that stored location is a legacy path like `/dashboard`, they can hit **404 immediately after login**.
+
+**Mitigation:**
+
+- Normalize stored locations: map legacy client URLs to new equivalents (e.g. `/dashboard` → `/client/dashboard`, `/settings` → `/client/settings`), or ignore legacy stored locations and fall back to `/client/dashboard`.
+
+#### 3) `subscription_loyalty` route shape: `resources` likely mismatches usage
+
+The mapping implies a single, non-ID-based “my loyalty” area:
+
+- `/subscription_loyalty`
+- `/subscription_loyalty/tier_progress`
+- `/subscription_loyalty/milestones`
+
+But the proposed routes use `resources :subscription_loyalty` + `:show` + `member` actions, which implies IDs and helpers like `client_subscription_loyalty_path(:id)`.
+
+**Mitigation:**
+
+- If it is a single “my loyalty” dashboard, prefer **`resource :subscription_loyalty` (singular)** or explicit `get` routes with `controller: :subscription_loyalty`.
+- Re-check existing controller/actions before locking the route structure.
+
+#### 4) CSRF: skipping `verify_authenticity_token` based on JSON format is risky
+
+`skip_before_action :verify_authenticity_token, if: -> { request.format.json? }` can be a security footgun when session cookies are used, because browsers can still send requests that look like JSON.
+
+**Mitigation:**
+
+- Only disable CSRF in controllers that are intentionally API-style and use a deliberate auth strategy (token auth, or `protect_from_forgery with: :null_session` in the appropriate place), not just based on format.
+
+#### 5) Pundit verification hooks can break Devise + “render-only” pages
+
+Adding `after_action :verify_authorized` / `verify_policy_scoped` in `Client::BaseController` can cause widespread failures unless every action calls `authorize` / `policy_scope`. It also tends to conflict with Devise controllers.
+
+**Mitigation:**
+
+- Make these verifications **opt-in** per controller, or add clear `skip_after_action` exceptions for Devise and any “static render” actions.
+
+#### 6) Prefix matching pitfalls
+
+Ensure “protect `/client`” checks are boundary-aware so `/client` does not match `/clientele`, etc. Also confirm handling for `/client` vs `/client/`.
+
+#### 7) Domain constraints are stated but may not be enforced
+
+Notes claim:
+
+- `/client/*` only works on main domain
+- `/manage/*` routes only work on business subdomain/custom domain
+
+Make sure `routes.rb` or request constraints actually enforce this; otherwise you can wind up with confusing (or unsafe) cross-domain availability.
+
+#### 8) Rollout ordering: “routes first” can break navigation
+
+This plan says “no backwards compatibility” and suggests deploying route changes first. If views/mailers/jobs still generate old links, this creates a window of widespread 404s.
+
+**Mitigation:**
+
+- Prefer an **atomic deploy** (routes + helpers + views + mailers/jobs) OR
+- Ship link/helper updates first, then remove old routes in a follow-up deploy (even if you never add redirects).
+
+### Benefit Assessment: Is there real value in doing this whole plan?
+
+Yes, if the goal is “path-prefix = role boundary,” there are real benefits:
+
+- **Security/authorization simplicity:** collapsing many protected paths down to **3 prefixes** (`/client`, `/manage`, `/admin`) reduces “forgot to protect a route” risk.
+- **Clarity:** a predictable URL structure makes it obvious what is client vs manager vs admin vs public, and makes it harder to confuse “public booking form” vs “client personal data.”
+- **Auditing/monitoring:** wrong-namespace access becomes easier to detect and log consistently.
+- **Future maintenance:** new client pages inherit protection by location, reducing ongoing overhead.
+
+When it may not be worth it:
+
+- If the app already relies on strong controller/policy enforcement and `auth_required_paths` is not a meaningful control, then this becomes a **high-churn refactor** with limited payoff.
+- If “no backwards compatibility” materially impacts users (bookmarks, emailed links, stored redirect targets), the **support/UX cost** may outweigh the engineering benefit unless the current approach is already painful.
+
+### Suggested Plan Tweaks (Recommended)
+
+- Add a specific task: **decide Devise path strategy** (under `/client` with allowlist vs keep `/users/*`).
+- Add a specific task: **normalize stored locations** so legacy paths don’t redirect users to 404 after login.
+- Add a specific task: **confirm actual route shape** for loyalty (singular vs ID-based) and update the proposed routes accordingly.
+- Replace JSON-format CSRF skipping with a **deliberate API pattern** (or explicitly document why skipping is safe in this app).
+- Make Pundit verification hooks **opt-in or carefully excluded** for Devise/static pages.
+- Update deployment strategy to avoid “routes first” breaking navigation during rollout.
