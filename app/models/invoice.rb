@@ -32,6 +32,12 @@ class Invoice < ApplicationRecord
     cancelled: 4,
     business_deleted: 5
   }
+
+  enum :quickbooks_export_status, {
+    not_exported: 0,
+    exported: 1,
+    export_failed: 2
+  }, prefix: :quickbooks_export
   
   scope :unpaid, -> { where(status: [:pending, :overdue]) }
   scope :due_soon, -> { unpaid.where('due_date BETWEEN ? AND ?', Time.current, 7.days.from_now) }

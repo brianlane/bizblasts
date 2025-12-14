@@ -278,6 +278,10 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
       :active,
       :bio,
       :notes,
+      :adp_employee_id,
+      :adp_pay_code,
+      :adp_department_code,
+      :adp_job_code,
       :user_role,
       service_ids: [],
       user_attributes: [:id, :first_name, :last_name, :email, :password, :password_confirmation]

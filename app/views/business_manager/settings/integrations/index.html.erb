@@ -476,99 +476,436 @@
     </div>
     
     <div class="p-6">
-      <!-- Coming Soon Section -->
-      <div class="text-center py-8">
-        <div class="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center shadow-lg ring-1 ring-[#1A5F7A]/40 mb-4" style="background: linear-gradient(135deg, #1A5F7A 0%, #0f3e4d 100%);">
-          <!-- Sleek, bold, exotic icon: stylized spark + integration nodes -->
-          <svg class="w-9 h-9 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- Central spark -->
-            <path d="M12 2l1.8 3.9L18 7.2l-3.2 2.6.9 4.2L12 12.7 8.3 14l.9-4.2L6 7.2l4.2-1.3L12 2z" fill="currentColor" opacity="0.9"/>
-            <!-- Orbit/nodes -->
-            <path d="M4.5 12a7.5 7.5 0 0015 0 7.5 7.5 0 00-15 0z" stroke="currentColor" stroke-width="1.5" opacity="0.35"/>
-            <circle cx="5.5" cy="12" r="1.2" fill="currentColor"/>
-            <circle cx="18.5" cy="12" r="1.2" fill="currentColor"/>
-            <circle cx="12" cy="18.5" r="1.2" fill="currentColor"/>
-          </svg>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- ADP Payroll Export -->
+        <div class="border border-gray-200 rounded-xl overflow-hidden">
+          <div class="px-5 py-4 bg-gradient-to-r from-emerald-50 to-emerald-100 border-b border-gray-200">
+            <h3 class="text-base font-semibold text-gray-900 flex items-center">
+              <svg class="w-5 h-5 mr-2 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m2 8H7a2 2 0 01-2-2V6a2 2 0 012-2h6l4 4v10a2 2 0 01-2 2z"/>
+              </svg>
+              ADP Payroll Export (CSV)
+            </h3>
+            <p class="text-sm text-gray-700 mt-1">Generate payroll hours by staff member for a date range and download as CSV.</p>
+          </div>
+
+          <div class="p-5 space-y-6">
+            <!-- Config -->
+            <%= form_with model: @adp_payroll_config, url: adp_payroll_config_update_business_manager_settings_integrations_path, method: :patch, local: true do |f| %>
+              <div class="flex items-center justify-between">
+                <div>
+                  <h4 class="text-sm font-medium text-gray-900">Settings</h4>
+                  <p class="text-xs text-gray-600 mt-1">Controls rounding, included booking statuses, and default pay code.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <%= f.check_box :active, class: "h-4 w-4 text-emerald-600 rounded" %>
+                  <%= f.label :active, "Enabled", class: "text-sm text-gray-700" %>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <%= f.label :rounding_minutes, "Rounding (minutes)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+                  <%= f.number_field :rounding_minutes, min: 1, step: 1, class: "w-full border rounded px-3 py-2" %>
+                </div>
+                <div class="flex items-center gap-2 mt-6 sm:mt-0">
+                  <%= f.check_box :round_total_hours, class: "h-4 w-4 text-emerald-600 rounded" %>
+                  <%= f.label :round_total_hours, "Round total hours", class: "text-sm text-gray-700" %>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <%= label_tag "adp_payroll_export_config_config_default_pay_code", "Default pay code", class: "block text-sm font-medium text-gray-700 mb-1" %>
+                  <%= text_field_tag "adp_payroll_export_config[config][default_pay_code]", @adp_payroll_config.default_pay_code, id: "adp_payroll_export_config_config_default_pay_code", class: "w-full border rounded px-3 py-2" %>
+                </div>
+                <div>
+                  <%= label_tag "adp_payroll_export_config_config_timezone", "Timezone", class: "block text-sm font-medium text-gray-700 mb-1" %>
+                  <%= text_field_tag "adp_payroll_export_config[config][timezone]", @adp_payroll_config.timezone, id: "adp_payroll_export_config_config_timezone", class: "w-full border rounded px-3 py-2" %>
+                  <p class="mt-1 text-xs text-gray-500">Defaults to business timezone if blank.</p>
+                </div>
+              </div>
+
+              <div class="mt-4">
+                <div class="text-sm font-medium text-gray-700 mb-2">Included booking statuses</div>
+                <% statuses = %w[confirmed completed] %>
+                <div class="flex flex-wrap gap-4">
+                  <% statuses.each do |st| %>
+                    <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                      <input type="checkbox"
+                             name="adp_payroll_export_config[config][included_booking_statuses][]"
+                             value="<%= st %>"
+                             <%= 'checked' if @adp_payroll_config.included_booking_statuses.include?(st) %>
+                             class="h-4 w-4 text-emerald-600 rounded" />
+                      <span><%= st.humanize %></span>
+                    </label>
+                  <% end %>
+                </div>
+              </div>
+
+              <div class="mt-4">
+                <%= f.submit "Save Payroll Settings", class: "cursor-pointer px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800" %>
+              </div>
+            <% end %>
+
+            <!-- Export -->
+            <div class="border-t border-gray-200 pt-5">
+              <h4 class="text-sm font-medium text-gray-900">Generate export</h4>
+              <p class="text-xs text-gray-600 mt-1">Bookings are converted into hours per staff per day.</p>
+
+              <!-- Preview -->
+              <%= form_with url: business_manager_settings_integrations_path, method: :get, local: true do %>
+                <%= hidden_field_tag :adp_preview, '1' %>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <%= label_tag :adp_range_start, "Preview start date", class: "block text-sm font-medium text-gray-700 mb-1" %>
+                    <%= date_field_tag :adp_range_start, (params[:adp_range_start].presence || Date.current.beginning_of_week.iso8601), class: "w-full border rounded px-3 py-2" %>
+                  </div>
+                  <div>
+                    <%= label_tag :adp_range_end, "Preview end date", class: "block text-sm font-medium text-gray-700 mb-1" %>
+                    <%= date_field_tag :adp_range_end, (params[:adp_range_end].presence || Date.current.end_of_week.iso8601), class: "w-full border rounded px-3 py-2" %>
+                  </div>
+                </div>
+
+                <div class="mt-4 flex flex-col sm:flex-row gap-3">
+                  <%= submit_tag "Preview Hours", class: "cursor-pointer px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800" %>
+                  <%= link_to "Clear Preview", business_manager_settings_integrations_path, class: "inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200" %>
+                </div>
+              <% end %>
+
+              <% if @adp_preview_summary.present? %>
+                <div class="mt-5 bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div>
+                        <h5 class="text-sm font-semibold text-gray-900">Payroll preview</h5>
+                        <p class="text-xs text-gray-600">
+                          <%= @adp_preview_summary[:range_start] %> → <%= @adp_preview_summary[:range_end] %>
+                          · <%= @adp_preview_summary[:row_count] %> rows
+                          · total hours: <%= @adp_preview_grand_total %>
+                        </p>
+                      </div>
+                      <div class="text-xs text-gray-600">
+                        Rounding: <%= @adp_payroll_config.round_total_hours ? "nearest #{@adp_payroll_config.round_to_minutes} min" : "none" %>
+                        · Statuses: <%= @adp_payroll_config.included_booking_statuses.map(&:humanize).join(', ') %>
+                      </div>
+                    </div>
+                  </div>
+
+                  <% if @adp_preview_errors.any? %>
+                    <div class="px-4 py-3 bg-yellow-50 border-b border-yellow-200">
+                      <p class="text-sm font-medium text-yellow-900">Warnings</p>
+                      <ul class="mt-1 text-sm text-yellow-800 list-disc list-inside">
+                        <% @adp_preview_errors.group_by { |e| e[:type] }.each do |type, group| %>
+                          <% if type == 'missing_employee_id' %>
+                            <li><%= group.size %> booking(s) skipped because staff member is missing ADP Employee ID.</li>
+                          <% else %>
+                            <li><%= type %>: <%= group.size %></li>
+                          <% end %>
+                        <% end %>
+                      </ul>
+                    </div>
+                  <% end %>
+
+                  <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                      <thead>
+                        <tr class="text-left text-gray-600">
+                          <th class="px-4 py-2">Employee</th>
+                          <th class="px-4 py-2">Employee ID</th>
+                          <th class="px-4 py-2">Date</th>
+                          <th class="px-4 py-2">Pay code</th>
+                          <th class="px-4 py-2">Hours</th>
+                          <th class="px-4 py-2">Dept</th>
+                          <th class="px-4 py-2">Job</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-gray-200">
+                        <% if @adp_preview_rows.any? %>
+                          <% @adp_preview_rows.each do |row| %>
+                            <tr>
+                              <td class="px-4 py-2 text-gray-900"><%= row[:staff_member_names].join(', ') %></td>
+                              <td class="px-4 py-2 font-mono text-gray-800"><%= row[:employee_id] %></td>
+                              <td class="px-4 py-2 text-gray-800"><%= row[:work_date] %></td>
+                              <td class="px-4 py-2 text-gray-800"><%= row[:pay_code] %></td>
+                              <td class="px-4 py-2 text-gray-900 font-medium"><%= format('%.2f', row[:hours]) %></td>
+                              <td class="px-4 py-2 text-gray-700"><%= row[:department_code] %></td>
+                              <td class="px-4 py-2 text-gray-700"><%= row[:job_code] %></td>
+                            </tr>
+                          <% end %>
+                          <tr class="bg-gray-50">
+                            <td class="px-4 py-2 font-semibold text-gray-900" colspan="4">Total</td>
+                            <td class="px-4 py-2 font-semibold text-gray-900"><%= format('%.2f', @adp_preview_grand_total) %></td>
+                            <td class="px-4 py-2" colspan="2"></td>
+                          </tr>
+                        <% else %>
+                          <tr>
+                            <td class="px-4 py-3 text-gray-600" colspan="7">No rows for this range (check statuses, dates, and staff mappings).</td>
+                          </tr>
+                        <% end %>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              <% end %>
+
+              <%= form_with url: adp_payroll_export_create_business_manager_settings_integrations_path, method: :post, local: true do |f| %>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <%= label_tag :range_start, "Start date", class: "block text-sm font-medium text-gray-700 mb-1" %>
+                    <%= date_field_tag :range_start, Date.current.beginning_of_week.iso8601, class: "w-full border rounded px-3 py-2" %>
+                  </div>
+                  <div>
+                    <%= label_tag :range_end, "End date", class: "block text-sm font-medium text-gray-700 mb-1" %>
+                    <%= date_field_tag :range_end, Date.current.end_of_week.iso8601, class: "w-full border rounded px-3 py-2" %>
+                  </div>
+                </div>
+
+                <div class="mt-4">
+                  <%= submit_tag "Generate Export", class: "cursor-pointer px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-black" %>
+                </div>
+              <% end %>
+            </div>
+
+            <!-- Recent exports -->
+            <div class="border-t border-gray-200 pt-5">
+              <h4 class="text-sm font-medium text-gray-900">Recent exports</h4>
+              <% if @adp_payroll_export_runs.any? %>
+                <div class="mt-3 overflow-x-auto">
+                  <table class="min-w-full text-sm">
+                    <thead>
+                      <tr class="text-left text-gray-600">
+                        <th class="py-2 pr-4">Created</th>
+                        <th class="py-2 pr-4">Range</th>
+                        <th class="py-2 pr-4">Status</th>
+                        <th class="py-2">Download</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                      <% @adp_payroll_export_runs.each do |run| %>
+                        <tr>
+                          <td class="py-2 pr-4 whitespace-nowrap"><%= run.created_at.strftime('%b %d, %Y %H:%M') %></td>
+                          <td class="py-2 pr-4 whitespace-nowrap"><%= run.range_start %> → <%= run.range_end %></td>
+                          <td class="py-2 pr-4">
+                            <% badge = case run.status
+                                      when 'succeeded' then 'bg-green-100 text-green-800'
+                                      when 'failed' then 'bg-red-100 text-red-800'
+                                      when 'running' then 'bg-yellow-100 text-yellow-800'
+                                      else 'bg-gray-100 text-gray-800'
+                                      end %>
+                            <span class="px-2 py-1 rounded-full text-xs font-medium <%= badge %>"><%= run.status.humanize %></span>
+                          </td>
+                          <td class="py-2">
+                            <% if run.succeeded? %>
+                              <%= link_to "CSV", adp_payroll_export_download_business_manager_settings_integrations_path(id: run.id), class: "text-emerald-700 hover:underline" %>
+                            <% else %>
+                              <span class="text-gray-400">—</span>
+                            <% end %>
+                          </td>
+                        </tr>
+                      <% end %>
+                    </tbody>
+                  </table>
+                </div>
+              <% else %>
+                <p class="text-sm text-gray-600 mt-2">No payroll exports yet.</p>
+              <% end %>
+            </div>
+
+            <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-sm text-emerald-900">
+              <p class="font-medium">Staff mapping</p>
+              <p class="mt-1">Set each staff member’s ADP Employee ID and pay code in <%= link_to "Staff Members", business_manager_staff_members_path, class: "underline" %>.</p>
+            </div>
+          </div>
         </div>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">More Integrations Coming Soon</h3>
-        <p class="text-gray-600 mb-6">We're working on additional integrations to help grow your business:</p>
-        
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
-          <!-- Email Marketing Preview -->
-          <div class="p-4 border border-gray-200 rounded-lg bg-gray-50">
-            <div class="w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-3" style="background-color: rgba(87, 197, 182, 0.15);">
-              <svg class="w-5 h-5" style="color: #57C5B6;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-              </svg>
-            </div>
-            <h4 class="font-medium text-gray-900 text-sm">Email Marketing</h4>
-            <p class="text-xs text-gray-600 mt-1">Mailchimp, Constant Contact</p>
-            <span class="inline-block mt-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">Coming Soon</span>
-          </div>
 
-          <!-- Social Media Preview -->
-          <div class="p-4 border border-gray-200 rounded-lg bg-gray-50">
-            <div class="w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-3" style="background-color: rgba(87, 197, 182, 0.15);">
-              <!-- Social network/share icon -->
-              <svg class="w-6 h-6" style="color: #57C5B6;" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="16" cy="5" r="3" stroke="currentColor" stroke-width="2"/>
-                <circle cx="6" cy="11" r="3" stroke="currentColor" stroke-width="2"/>
-                <circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="2"/>
-                <path d="M8.3 9.7 L12.8 7.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                <path d="M8.5 12.9 L15.0 17.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-            </div>
-            <h4 class="font-medium text-gray-900 text-sm">Social Media</h4>
-            <p class="text-xs text-gray-600 mt-1">Facebook, Instagram posting</p>
-            <span class="inline-block mt-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">Coming Soon</span>
-          </div>
-
-          <!-- Accounting Integration Preview -->
-          <div class="p-4 border border-gray-200 rounded-lg bg-gray-50">
-            <div class="w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-3" style="background-color: rgba(87, 197, 182, 0.15);">
-              <svg class="w-5 h-5" style="color: #57C5B6;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <!-- QuickBooks Online (placeholder until connected below) -->
+        <div class="border border-gray-200 rounded-xl overflow-hidden">
+          <div class="px-5 py-4 bg-gradient-to-r from-sky-50 to-sky-100 border-b border-gray-200">
+            <h3 class="text-base font-semibold text-gray-900 flex items-center">
+              <svg class="w-5 h-5 mr-2 text-sky-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
               </svg>
-            </div>
-            <h4 class="font-medium text-gray-900 text-sm">Accounting</h4>
-            <p class="text-xs text-gray-600 mt-1">QuickBooks, Xero sync</p>
-            <span class="inline-block mt-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">Coming Soon</span>
+              QuickBooks Online
+            </h3>
+            <p class="text-sm text-gray-700 mt-1">Connect QuickBooks to export invoices and accounting data.</p>
           </div>
+          <div class="p-5">
+            <% if @quickbooks_connection&.active? %>
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <div class="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-800 text-xs font-medium">Connected</div>
+                  <p class="text-sm text-gray-800 mt-3">
+                    <span class="font-medium">Realm ID:</span>
+                    <span class="font-mono"><%= @quickbooks_connection.realm_id %></span>
+                  </p>
+                  <% if @quickbooks_connection.connected_at %>
+                    <p class="text-sm text-gray-600 mt-1">Connected: <%= @quickbooks_connection.connected_at.strftime('%b %d, %Y') %></p>
+                  <% end %>
+                </div>
+                <div class="flex-shrink-0">
+                  <%= button_to "Disconnect",
+                                quickbooks_disconnect_business_manager_settings_integrations_path,
+                                method: :delete,
+                                class: "cursor-pointer px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700",
+                                data: { turbo_confirm: "Disconnect QuickBooks? Exports will stop working until reconnected." } %>
+                </div>
+              </div>
 
-          <!-- Inventory Integration Preview -->
-          <div class="p-4 border border-gray-200 rounded-lg bg-gray-50">
-            <div class="w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-3" style="background-color: rgba(87, 197, 182, 0.15);">
-              <svg class="w-5 h-5" style="color: #57C5B6;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-              </svg>
-            </div>
-            <h4 class="font-medium text-gray-900 text-sm">Inventory</h4>
-            <p class="text-xs text-gray-600 mt-1">Stock management systems</p>
-            <span class="inline-block mt-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">Coming Soon</span>
-          </div>
+              <div class="mt-6 border-t border-gray-200 pt-5">
+                <h4 class="text-sm font-medium text-gray-900">Settings</h4>
+                <p class="text-xs text-gray-600 mt-1">These control how exports are created in QuickBooks.</p>
 
-          <!-- Analytics Integration Preview -->
-          <div class="p-4 border border-gray-200 rounded-lg bg-gray-50">
-            <div class="w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-3" style="background-color: rgba(87, 197, 182, 0.15);">
-              <svg class="w-5 h-5" style="color: #57C5B6;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-              </svg>
-            </div>
-            <h4 class="font-medium text-gray-900 text-sm">Analytics</h4>
-            <p class="text-xs text-gray-600 mt-1">Google Analytics, tracking</p>
-            <span class="inline-block mt-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">Coming Soon</span>
-          </div>
-        </div>
-        
-        <div class="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg max-w-2xl mx-auto">
-          <div class="flex items-start">
-            <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <div class="ml-3 text-sm">
-              <p class="text-blue-800 font-medium">Need a specific integration?</p>
-              <p class="text-blue-700 mt-1">Let us know what services you'd like to connect with your business. We're actively working on expanding our integration ecosystem.</p>
-            </div>
+                <%= form_with url: quickbooks_config_update_business_manager_settings_integrations_path, method: :patch, local: true do |f| %>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <%= label_tag "quickbooks_income_account_id", "Income account ID (optional)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+                      <%= text_field_tag "quickbooks[income_account_id]", @quickbooks_connection.config['income_account_id'], id: "quickbooks_income_account_id", class: "w-full border rounded px-3 py-2" %>
+                      <p class="mt-1 text-xs text-gray-500">If blank, we auto-pick the first Income account.</p>
+                    </div>
+                    <div>
+                      <%= label_tag "quickbooks_default_sales_item_name", "Default item name", class: "block text-sm font-medium text-gray-700 mb-1" %>
+                      <%= text_field_tag "quickbooks[default_sales_item_name]", (@quickbooks_connection.config['default_sales_item_name'].presence || 'BizBlasts Sales'), id: "quickbooks_default_sales_item_name", class: "w-full border rounded px-3 py-2" %>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <%= label_tag "quickbooks_customer_strategy", "Customer strategy", class: "block text-sm font-medium text-gray-700 mb-1" %>
+                      <%= select_tag "quickbooks[customer_strategy]",
+                                     options_for_select([['One customer per BizBlasts customer', 'per_customer'], ['Single customer for all sales', 'single']], @quickbooks_connection.config.fetch('customer_strategy', 'per_customer')),
+                                     id: "quickbooks_customer_strategy",
+                                     class: "w-full border rounded px-3 py-2" %>
+                    </div>
+                    <div class="flex items-center gap-2 mt-6 sm:mt-0">
+                      <%= check_box_tag "quickbooks[update_existing_invoices]", "1", (@quickbooks_connection.config['update_existing_invoices'] == true), class: "h-4 w-4 text-sky-700 rounded" %>
+                      <%= label_tag "quickbooks_update_existing_invoices", "Update existing invoices (idempotent)", class: "text-sm text-gray-700" %>
+                    </div>
+                  </div>
+
+                  <div class="mt-4">
+                    <%= submit_tag "Save QuickBooks Settings", class: "cursor-pointer px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-black" %>
+                  </div>
+                <% end %>
+              </div>
+
+              <div class="mt-6 border-t border-gray-200 pt-5">
+                <h4 class="text-sm font-medium text-gray-900">Export invoices</h4>
+                <p class="text-xs text-gray-600 mt-1">Exports invoices (and optionally payments) to QuickBooks. Uses DocNumber for idempotency.</p>
+
+                <%= form_with url: quickbooks_export_invoices_business_manager_settings_integrations_path, method: :post, local: true do |f| %>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <%= label_tag :range_start, "Start date", class: "block text-sm font-medium text-gray-700 mb-1" %>
+                      <%= date_field_tag :range_start, 7.days.ago.to_date.iso8601, class: "w-full border rounded px-3 py-2" %>
+                    </div>
+                    <div>
+                      <%= label_tag :range_end, "End date", class: "block text-sm font-medium text-gray-700 mb-1" %>
+                      <%= date_field_tag :range_end, Date.current.iso8601, class: "w-full border rounded px-3 py-2" %>
+                    </div>
+                  </div>
+
+                  <div class="mt-4">
+                    <div class="text-sm font-medium text-gray-700 mb-2">Invoice statuses</div>
+                    <div class="flex flex-wrap gap-4">
+                      <% %w[paid pending].each do |st| %>
+                        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                          <input type="checkbox" name="invoice_statuses[]" value="<%= st %>" <%= 'checked' if st == 'paid' %> class="h-4 w-4 text-sky-700 rounded" />
+                          <span><%= st.humanize %></span>
+                        </label>
+                      <% end %>
+                    </div>
+                  </div>
+
+                  <div class="mt-4">
+                    <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                      <%= check_box_tag :export_payments, "1", true, class: "h-4 w-4 text-sky-700 rounded" %>
+                      <span>Also export payments for paid invoices</span>
+                    </label>
+                  </div>
+
+                  <div class="mt-4">
+                    <%= submit_tag "Start Export", class: "cursor-pointer px-4 py-2 bg-sky-700 text-white rounded-lg hover:bg-sky-800" %>
+                  </div>
+                <% end %>
+              </div>
+
+              <div class="mt-6 border-t border-gray-200 pt-5">
+                <h4 class="text-sm font-medium text-gray-900">Recent exports</h4>
+                <% if @quickbooks_export_runs.any? %>
+                  <div class="mt-3 overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                      <thead>
+                        <tr class="text-left text-gray-600">
+                          <th class="py-2 pr-4">Created</th>
+                          <th class="py-2 pr-4">Range</th>
+                          <th class="py-2 pr-4">Status</th>
+                          <th class="py-2">Result</th>
+                          <th class="py-2 pl-4">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-gray-200">
+                        <% @quickbooks_export_runs.each do |run| %>
+                          <tr>
+                            <td class="py-2 pr-4 whitespace-nowrap"><%= run.created_at.strftime('%b %d, %Y %H:%M') %></td>
+                            <td class="py-2 pr-4 whitespace-nowrap">
+                              <%= run.filters['range_start'] %> → <%= run.filters['range_end'] %>
+                            </td>
+                            <td class="py-2 pr-4">
+                              <% badge = case run.status
+                                        when 'succeeded' then 'bg-green-100 text-green-800'
+                                        when 'partial' then 'bg-yellow-100 text-yellow-800'
+                                        when 'failed' then 'bg-red-100 text-red-800'
+                                        when 'running' then 'bg-blue-100 text-blue-800'
+                                        else 'bg-gray-100 text-gray-800'
+                                        end %>
+                              <span class="px-2 py-1 rounded-full text-xs font-medium <%= badge %>"><%= run.status.humanize %></span>
+                            </td>
+                            <td class="py-2">
+                              <% if run.summary.present? && run.summary['exported'] %>
+                                <span class="text-gray-700"><%= run.summary['exported'] %> exported</span>
+                                <% if run.summary['failed'].to_i > 0 %>
+                                  <span class="text-red-700">, <%= run.summary['failed'] %> failed</span>
+                                <% end %>
+                                <% if run.summary['payments_exported'].to_i > 0 || run.summary['payments_failed'].to_i > 0 %>
+                                  <span class="text-gray-700"> · payments: <%= run.summary['payments_exported'].to_i %> ok</span>
+                                  <% if run.summary['payments_failed'].to_i > 0 %>
+                                    <span class="text-red-700">, <%= run.summary['payments_failed'].to_i %> failed</span>
+                                  <% end %>
+                                <% end %>
+                              <% else %>
+                                <span class="text-gray-400">—</span>
+                              <% end %>
+                            </td>
+                            <td class="py-2 pl-4">
+                              <% if run.error_report.present? && run.error_report['failures'].present? %>
+                                <%= button_to "Retry failed",
+                                              quickbooks_export_retry_failed_business_manager_settings_integrations_path(id: run.id),
+                                              method: :post,
+                                              class: "cursor-pointer px-3 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700" %>
+                              <% else %>
+                                <span class="text-gray-400 text-xs">—</span>
+                              <% end %>
+                            </td>
+                          </tr>
+                        <% end %>
+                      </tbody>
+                    </table>
+                  </div>
+                <% else %>
+                  <p class="text-sm text-gray-600 mt-2">No QuickBooks exports yet.</p>
+                <% end %>
+              </div>
+            <% else %>
+              <p class="text-sm text-gray-700">Not connected.</p>
+              <div class="mt-4">
+                <%= link_to "Connect QuickBooks",
+                            quickbooks_oauth_authorize_business_manager_settings_integrations_path,
+                            class: "inline-flex items-center justify-center px-4 py-2 bg-sky-700 text-white rounded-lg hover:bg-sky-800",
+                            data: { turbo: false } %>
+              </div>
+              <p class="text-xs text-gray-500 mt-3">If this button fails, QuickBooks OAuth credentials may not be configured.</p>
+            <% end %>
           </div>
         </div>
       </div>
