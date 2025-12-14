@@ -509,7 +509,16 @@ module BusinessManager
           return
         end
 
-        new_config = connection.config.merge(quickbooks_config_params.to_h)
+        incoming = quickbooks_config_params.to_h
+
+        # Ensure checkbox values can be turned OFF: when unchecked Rails may not send it unless
+        # a hidden field is present. We also defensively treat missing as false.
+        update_existing = params.dig(:quickbooks, :update_existing_invoices).to_s == '1'
+
+        new_config = connection.config.merge(incoming).merge(
+          'update_existing_invoices' => update_existing
+        )
+
         connection.update!(config: new_config)
 
         redirect_to business_manager_settings_integrations_path, notice: 'QuickBooks settings updated.'

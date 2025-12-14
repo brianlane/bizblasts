@@ -27,7 +27,8 @@ module Payroll
                           .includes(:staff_member)
 
       errors = []
-      rows_by_key = Hash.new { |h, k| h[k] = { hours: 0.0, sample_booking_ids: [] } }
+      # Store raw hours first; rounding is applied AFTER aggregation to avoid under/over-counting.
+      rows_by_key = Hash.new { |h, k| h[k] = { raw_hours: 0.0, sample_booking_ids: [] } }
 
       bookings.find_each do |booking|
         staff = booking.staff_member
@@ -58,18 +59,12 @@ module Payroll
         raw_hours = (raw_seconds / 3600.0)
         next if raw_hours <= 0
 
-        rounded_hours = if @config.round_total_hours
-          round_hours(raw_hours, @config.round_to_minutes)
-        else
-          raw_hours
-        end
-
         pay_code = staff.adp_pay_code.to_s.strip.presence || @config.default_pay_code
         dept = staff.adp_department_code.to_s.strip.presence
         job = staff.adp_job_code.to_s.strip.presence
 
         key = [employee_id, work_date.iso8601, pay_code, dept, job]
-        rows_by_key[key][:hours] += rounded_hours
+        rows_by_key[key][:raw_hours] += raw_hours
         rows_by_key[key][:sample_booking_ids] << booking.id
       end
 
@@ -78,7 +73,9 @@ module Payroll
 
         rows_by_key.sort_by { |(emp, date, code, dept, job), _| [emp, date, code, dept.to_s, job.to_s] }.each do |key, agg|
           emp, date, code, dept, job = key
-          csv << [emp, date, code, format('%.2f', agg[:hours]), dept, job]
+          total = agg[:raw_hours]
+          total = round_hours(total, @config.round_to_minutes) if @config.round_total_hours
+          csv << [emp, date, code, format('%.2f', total), dept, job]
         end
       end
 

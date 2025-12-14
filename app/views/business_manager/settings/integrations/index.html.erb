@@ -778,6 +778,7 @@
                                      class: "w-full border rounded px-3 py-2" %>
                     </div>
                     <div class="flex items-center gap-2 mt-6 sm:mt-0">
+                      <%= hidden_field_tag "quickbooks[update_existing_invoices]", "0" %>
                       <%= check_box_tag "quickbooks[update_existing_invoices]", "1", (@quickbooks_connection.config['update_existing_invoices'] == true), class: "h-4 w-4 text-sky-700 rounded" %>
                       <%= label_tag "quickbooks_update_existing_invoices", "Update existing invoices (idempotent)", class: "text-sm text-gray-700" %>
                     </div>

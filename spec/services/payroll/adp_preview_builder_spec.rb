@@ -50,4 +50,19 @@ RSpec.describe Payroll::AdpPreviewBuilder do
     expect(report[:errors].length).to eq(1)
     expect(report[:errors].first[:type]).to eq('missing_employee_id')
   end
+
+  it 'rounds after aggregation (prevents undercounting)' do
+    staff = create(:staff_member, business: business, adp_employee_id: 'E123', adp_pay_code: 'REG')
+    create(:booking, :completed, business: business, staff_member: staff, start_time: Time.utc(2025, 12, 1, 10, 0), end_time: Time.utc(2025, 12, 1, 10, 7))
+    create(:booking, :completed, business: business, staff_member: staff, start_time: Time.utc(2025, 12, 1, 11, 0), end_time: Time.utc(2025, 12, 1, 11, 7))
+
+    rows, summary, report = described_class.new(business: business, config: config).build(
+      range_start: Date.new(2025, 12, 1),
+      range_end: Date.new(2025, 12, 1)
+    )
+
+    expect(report[:errors]).to be_empty
+    expect(summary[:row_count]).to eq(1)
+    expect(rows.first[:hours]).to eq(0.25)
+  end
 end

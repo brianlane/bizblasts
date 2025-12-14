@@ -101,6 +101,20 @@ RSpec.describe "BusinessManager::Settings::Integrations", type: :request do
       expect(cfg['customer_strategy']).to eq('single')
     end
 
+    it "allows update_existing_invoices to be turned off" do
+      # Turn it on
+      patch quickbooks_config_update_business_manager_settings_integrations_path, params: {
+        quickbooks: { update_existing_invoices: '1' }
+      }
+      expect(business.reload.quickbooks_connection.config['update_existing_invoices']).to eq(true)
+
+      # Turn it off (checkbox unchecked; hidden field posts '0')
+      patch quickbooks_config_update_business_manager_settings_integrations_path, params: {
+        quickbooks: { update_existing_invoices: '0' }
+      }
+      expect(business.reload.quickbooks_connection.config['update_existing_invoices']).to eq(false)
+    end
+
     it "enqueues QuickBooks invoice export job" do
       expect {
         post quickbooks_export_invoices_business_manager_settings_integrations_path, params: {

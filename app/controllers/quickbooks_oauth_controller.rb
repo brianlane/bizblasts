@@ -23,7 +23,7 @@ class QuickbooksOauthController < ApplicationController
     end
 
     scheme = request.ssl? ? 'https' : 'http'
-    host = Rails.application.config.main_domain || request.host
+    host = Rails.application.config.main_domain.presence || request.host
     port_str = if host&.include?(':') || request.port.nil? || [80, 443].include?(request.port)
                  ''
                else

@@ -19,7 +19,8 @@ module Payroll
                           .includes(:staff_member)
 
       errors = []
-      rows_by_key = Hash.new { |h, k| h[k] = { hours: 0.0, booking_ids: [], staff_member_ids: [], staff_member_names: [] } }
+      # Store raw hours first; rounding is applied AFTER aggregation to avoid under/over-counting.
+      rows_by_key = Hash.new { |h, k| h[k] = { raw_hours: 0.0, booking_ids: [], staff_member_ids: [], staff_member_names: [] } }
 
       bookings.find_each do |booking|
         staff = booking.staff_member
@@ -48,18 +49,12 @@ module Payroll
         raw_hours = (raw_seconds / 3600.0)
         next if raw_hours <= 0
 
-        hours = if @config.round_total_hours
-          round_hours(raw_hours, @config.round_to_minutes)
-        else
-          raw_hours
-        end
-
         pay_code = staff.adp_pay_code.to_s.strip.presence || @config.default_pay_code
         dept = staff.adp_department_code.to_s.strip.presence
         job = staff.adp_job_code.to_s.strip.presence
 
         key = [employee_id, work_date.iso8601, pay_code, dept, job]
-        rows_by_key[key][:hours] += hours
+        rows_by_key[key][:raw_hours] += raw_hours
         rows_by_key[key][:booking_ids] << booking.id
         rows_by_key[key][:staff_member_ids] << staff.id
         rows_by_key[key][:staff_member_names] << staff.name
@@ -67,11 +62,13 @@ module Payroll
 
       rows = rows_by_key.sort_by { |(emp, date, code, dept, job), _| [emp, date, code, dept.to_s, job.to_s] }.map do |key, agg|
         emp, date, code, dept, job = key
+        total = agg[:raw_hours]
+        total = round_hours(total, @config.round_to_minutes) if @config.round_total_hours
         {
           employee_id: emp,
           work_date: date,
           pay_code: code,
-          hours: agg[:hours].round(2),
+          hours: total.round(2),
           department_code: dept,
           job_code: job,
           staff_member_ids: agg[:staff_member_ids].uniq,

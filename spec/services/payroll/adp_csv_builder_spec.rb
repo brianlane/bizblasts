@@ -60,4 +60,20 @@ RSpec.describe Payroll::AdpCsvBuilder do
 
     expect(csv).to include('E123,2025-12-01,REG,1.00')
   end
+
+  it 'rounds after aggregation (prevents undercounting)' do
+    staff = create(:staff_member, business: business, adp_employee_id: 'E123', adp_pay_code: 'REG')
+    # Two separate 7-minute bookings:
+    # - If you round each first: 0.00 + 0.00 = 0.00
+    # - If you round after sum: 0.2333.. rounds to 0.25 (15-min increments)
+    create(:booking, :completed, business: business, staff_member: staff, start_time: Time.utc(2025, 12, 1, 10, 0), end_time: Time.utc(2025, 12, 1, 10, 7))
+    create(:booking, :completed, business: business, staff_member: staff, start_time: Time.utc(2025, 12, 1, 11, 0), end_time: Time.utc(2025, 12, 1, 11, 7))
+
+    csv, _summary, _report = described_class.new(business: business, config: config).build(
+      range_start: Date.new(2025, 12, 1),
+      range_end: Date.new(2025, 12, 1)
+    )
+
+    expect(csv).to include('E123,2025-12-01,REG,0.25')
+  end
 end
