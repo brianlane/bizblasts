@@ -6,21 +6,15 @@ RSpec.describe Quickbooks::ExportInvoicesJob, type: :job do
   let(:business) { create(:business) }
   let(:user) { create(:user, :manager, business: business) }
 
-  before do
-    ActsAsTenant.current_tenant = business
-  end
-
-  after do
-    ActsAsTenant.current_tenant = nil
-  end
-
   it 'marks export_run failed when no connection' do
+    ActsAsTenant.current_tenant = business
     run = business.quickbooks_export_runs.create!(
       user: user,
       status: :queued,
       export_type: 'invoices',
       filters: { range_start: Date.current.iso8601, range_end: Date.current.iso8601, invoice_statuses: ['paid'] }
     )
+    ActsAsTenant.current_tenant = nil
 
     described_class.perform_now(run.id)
 
@@ -29,6 +23,7 @@ RSpec.describe Quickbooks::ExportInvoicesJob, type: :job do
   end
 
   it 'respects invoice_ids filter when present' do
+    ActsAsTenant.current_tenant = business
     connection = business.create_quickbooks_connection!(realm_id: '123', access_token: 'x', refresh_token: 'y', active: true, config: {})
 
     inv1 = create(:invoice, :paid, business: business)
@@ -45,6 +40,7 @@ RSpec.describe Quickbooks::ExportInvoicesJob, type: :job do
         invoice_ids: [inv2.id]
       }
     )
+    ActsAsTenant.current_tenant = nil
 
     exporter = instance_double(Quickbooks::InvoiceExporter)
     expect(Quickbooks::InvoiceExporter).to receive(:new).and_return(exporter)

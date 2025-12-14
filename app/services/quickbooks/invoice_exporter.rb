@@ -338,7 +338,9 @@ module Quickbooks
     end
 
     def escape_qbo_string(str)
-      str.to_s.gsub("'", "\\\\'")
+      # QBO query language uses SQL-style quoting: escape apostrophes by doubling them.
+      # Example: O'Brien -> O''Brien
+      str.to_s.gsub("'", "''")
     end
 
     def build_invoice_payload(invoice:, customer_id:, item_id:)

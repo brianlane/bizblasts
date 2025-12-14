@@ -10,9 +10,8 @@ module Quickbooks
 
     attr_reader :errors
 
-    AUTHORIZE_URL = 'https://appcenter.intuit.com/connect/oauth2'
-    TOKEN_HOST = 'oauth.platform.intuit.com'
-    TOKEN_PATH = '/oauth2/v1/tokens/bearer'
+    DEFAULT_AUTHORIZE_URL = Quickbooks::IntuitDiscovery::DEFAULT_ENDPOINTS.fetch('authorization_endpoint')
+    DEFAULT_TOKEN_URL = Quickbooks::IntuitDiscovery::DEFAULT_ENDPOINTS.fetch('token_endpoint')
 
     # Minimal scopes for accounting APIs.
     DEFAULT_SCOPE = 'com.intuit.quickbooks.accounting'.freeze
@@ -28,6 +27,7 @@ module Quickbooks
       end
 
       state = generate_state(business_id)
+      endpoints = Quickbooks::IntuitDiscovery.endpoints
 
       params = {
         client_id: QuickbooksOauthCredentials.client_id,
@@ -37,7 +37,7 @@ module Quickbooks
         state: state
       }
 
-      "#{AUTHORIZE_URL}?" + URI.encode_www_form(params)
+      "#{endpoints.fetch('authorization_endpoint', DEFAULT_AUTHORIZE_URL)}?" + URI.encode_www_form(params)
     end
 
     def handle_callback(code:, state:, realm_id:, redirect_uri:)
@@ -143,7 +143,11 @@ module Quickbooks
     end
 
     def post_token(form)
-      uri = URI::HTTPS.build(host: TOKEN_HOST, path: TOKEN_PATH)
+      endpoints = Quickbooks::IntuitDiscovery.endpoints
+      token_url = endpoints.fetch('token_endpoint', DEFAULT_TOKEN_URL)
+      uri = URI.parse(token_url)
+      raise "Invalid token endpoint (must be https): #{token_url}" unless uri.is_a?(URI::HTTPS)
+
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = true
 

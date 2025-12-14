@@ -13,9 +13,13 @@ module Payroll
       tz = @config.timezone
       statuses = @config.included_booking_statuses
 
+      zone = ActiveSupport::TimeZone[tz].presence || Time.zone
+      range_start_utc = zone.parse(range_start.to_s).beginning_of_day.utc
+      range_end_utc = zone.parse(range_end.to_s).end_of_day.utc
+
       bookings = @business.bookings
                           .where(status: statuses)
-                          .where(start_time: range_start.beginning_of_day..range_end.end_of_day)
+                          .where(start_time: range_start_utc..range_end_utc)
                           .includes(:staff_member)
 
       errors = []

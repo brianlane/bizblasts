@@ -10,6 +10,7 @@ RSpec.describe Quickbooks::OauthHandler do
     allow(QuickbooksOauthCredentials).to receive(:client_id).and_return('client-id')
     allow(QuickbooksOauthCredentials).to receive(:client_secret).and_return('client-secret')
     allow(QuickbooksOauthCredentials).to receive(:environment).and_return('development')
+    allow(Quickbooks::IntuitDiscovery).to receive(:endpoints).and_return(Quickbooks::IntuitDiscovery::DEFAULT_ENDPOINTS)
   end
 
   it 'generates an authorization url with signed state' do

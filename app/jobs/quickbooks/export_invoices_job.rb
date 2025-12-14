@@ -5,16 +5,21 @@ module Quickbooks
     queue_as :default
 
     def perform(export_run_id)
-      export_run = QuickbooksExportRun.find(export_run_id)
+      export_run = ActsAsTenant.without_tenant { QuickbooksExportRun.find(export_run_id) }
       business = export_run.business
 
       connection = business.quickbooks_connection
       unless connection&.active?
-        export_run.fail!(error_report: { errors: [{ type: 'missing_connection', message: 'QuickBooks is not connected.' }] })
+        ActsAsTenant.with_tenant(business) do
+          QuickbooksExportRun.find(export_run_id).fail!(
+            error_report: { errors: [{ type: 'missing_connection', message: 'QuickBooks is not connected.' }] }
+          )
+        end
         return
       end
 
       ActsAsTenant.with_tenant(business) do
+        export_run = QuickbooksExportRun.find(export_run_id)
         export_run.start!
 
         range_start = Date.iso8601(export_run.filters.fetch('range_start'))

@@ -5,10 +5,11 @@ module Payroll
     queue_as :default
 
     def perform(export_run_id)
-      export_run = AdpPayrollExportRun.find(export_run_id)
+      export_run = ActsAsTenant.without_tenant { AdpPayrollExportRun.find(export_run_id) }
       business = export_run.business
 
       ActsAsTenant.with_tenant(business) do
+        export_run = AdpPayrollExportRun.find(export_run_id)
         export_run.start!
 
         config = business.adp_payroll_export_config || AdpPayrollExportConfig.create!(business: business)

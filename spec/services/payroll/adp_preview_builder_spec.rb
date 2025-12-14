@@ -65,4 +65,20 @@ RSpec.describe Payroll::AdpPreviewBuilder do
     expect(summary[:row_count]).to eq(1)
     expect(rows.first[:hours]).to eq(0.25)
   end
+
+  it 'filters bookings by configured timezone day boundaries' do
+    config.update!(config: config.config.merge('timezone' => 'America/Los_Angeles'))
+
+    staff = create(:staff_member, business: business, adp_employee_id: 'E123', adp_pay_code: 'REG')
+    create(:booking, :completed, business: business, staff_member: staff, start_time: Time.utc(2025, 12, 1, 7, 30), end_time: Time.utc(2025, 12, 1, 8, 30))
+
+    rows, summary, report = described_class.new(business: business, config: config).build(
+      range_start: Date.new(2025, 12, 1),
+      range_end: Date.new(2025, 12, 1)
+    )
+
+    expect(report[:errors]).to be_empty
+    expect(summary[:row_count]).to eq(0)
+    expect(rows).to be_empty
+  end
 end

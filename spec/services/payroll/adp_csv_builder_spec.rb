@@ -76,4 +76,23 @@ RSpec.describe Payroll::AdpCsvBuilder do
 
     expect(csv).to include('E123,2025-12-01,REG,0.25')
   end
+
+  it 'filters bookings by configured timezone day boundaries' do
+    # America/Los_Angeles is UTC-8 in December.
+    config.update!(config: config.config.merge('timezone' => 'America/Los_Angeles'))
+
+    staff = create(:staff_member, business: business, adp_employee_id: 'E123', adp_pay_code: 'REG')
+
+    # 2025-12-01 07:30 UTC == 2025-11-30 23:30 in Los Angeles -> should NOT be included for 2025-12-01.
+    create(:booking, :completed, business: business, staff_member: staff, start_time: Time.utc(2025, 12, 1, 7, 30), end_time: Time.utc(2025, 12, 1, 8, 30))
+
+    csv, summary, _report = described_class.new(business: business, config: config).build(
+      range_start: Date.new(2025, 12, 1),
+      range_end: Date.new(2025, 12, 1)
+    )
+
+    expect(summary[:row_count]).to eq(0)
+    expect(csv).to include('employee_id,work_date,pay_code,hours,department_code,job_code')
+    expect(csv).not_to include('E123,2025-12-01')
+  end
 end
