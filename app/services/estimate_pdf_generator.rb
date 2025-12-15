@@ -46,7 +46,6 @@ class EstimatePdfGenerator
     add_line_items(pdf)
     add_totals(pdf)
     add_payment_terms(pdf) if @estimate.required_deposit.present? && @estimate.required_deposit > 0
-    add_signature_section(pdf)
     add_footer(pdf)
   end
 
@@ -56,8 +55,8 @@ class EstimatePdfGenerator
       pdf.text @business.name, style: :bold, color: BRAND_PRIMARY
     end
 
-    # Business contact info (smaller, light gray)
-    pdf.move_down 5
+    # Business contact info (smaller, light gray) - with more space after company name
+    pdf.move_down 12
     pdf.font_size(9) do
       contact_lines = []
       contact_lines << @business.address if @business.address.present?
@@ -85,13 +84,13 @@ class EstimatePdfGenerator
       align: :right,
       color: BRAND_PRIMARY
 
-    pdf.move_down 30
+    pdf.move_down 45
 
     # Horizontal line
     pdf.stroke_color BRAND_PRIMARY
     pdf.line_width 2
     pdf.stroke_horizontal_line 0, pdf.bounds.width
-    pdf.move_down 20
+    pdf.move_down 25
   end
 
   def add_estimate_info(pdf)
@@ -310,67 +309,6 @@ class EstimatePdfGenerator
     end
   end
 
-  def add_signature_section(pdf)
-    pdf.move_down 30
-
-    pdf.font_size(11) do
-      pdf.text "AUTHORIZATION", style: :bold, color: BRAND_PRIMARY
-    end
-    pdf.move_down 5
-
-    # Draw accent line
-    pdf.stroke_color BRAND_SECONDARY
-    pdf.line_width 1
-    pdf.stroke_horizontal_line 0, 120
-    pdf.move_down 8
-
-    disclaimer = "By signing below, I agree to the terms of this estimate and authorize "
-    disclaimer += "#{@business.name} to proceed with the work described above."
-
-    pdf.font_size(9) do
-      pdf.text disclaimer, color: TEXT_DARK, align: :justify
-    end
-    pdf.move_down 15
-
-    if @estimate.signed? && @estimate.signature_data.present?
-      # Render signature image
-      begin
-        signature_image = decode_signature_data(@estimate.signature_data)
-        if signature_image
-          pdf.image signature_image, width: 200, height: 60
-        else
-          pdf.text "[Signature on file]", size: 10, style: :italic, color: TEXT_LIGHT
-        end
-      rescue => e
-        Rails.logger.error "Failed to render signature: #{e.message}"
-        pdf.text "[Signature on file]", size: 10, style: :italic, color: TEXT_LIGHT
-      end
-
-      pdf.move_down 5
-      pdf.font_size(9) do
-        pdf.text "Signed by: #{@estimate.signature_name}", color: TEXT_DARK
-        pdf.text "Date: #{@estimate.signed_at.strftime('%B %d, %Y at %I:%M %p')}", color: TEXT_LIGHT
-      end
-    else
-      # Signature line for unsigned estimates
-      pdf.move_down 30
-      pdf.stroke_color TEXT_LIGHT
-      pdf.line_width 0.5
-      pdf.stroke_horizontal_line 0, 250
-      pdf.move_down 5
-      pdf.font_size(9) do
-        pdf.text "Customer Signature", color: TEXT_LIGHT
-      end
-
-      pdf.move_down 15
-      pdf.stroke_horizontal_line 0, 150
-      pdf.move_down 5
-      pdf.font_size(9) do
-        pdf.text "Date", color: TEXT_LIGHT
-      end
-    end
-  end
-
   def add_footer(pdf)
     pdf.move_down 30
 
@@ -406,24 +344,6 @@ class EstimatePdfGenerator
 
   def format_currency(amount)
     "$#{'%.2f' % amount.to_f}"
-  end
-
-  def decode_signature_data(data)
-    return nil unless data.present?
-
-    # Signature data is base64 encoded PNG
-    # Format: "data:image/png;base64,iVBORw0KG..."
-    if data.start_with?('data:image')
-      base64_data = data.split(',')[1]
-      decoded = Base64.decode64(base64_data)
-      StringIO.new(decoded)
-    else
-      decoded = Base64.decode64(data)
-      StringIO.new(decoded)
-    end
-  rescue => e
-    Rails.logger.error "Failed to decode signature: #{e.message}"
-    nil
   end
 end
 

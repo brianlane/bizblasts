@@ -1,34 +1,285 @@
 <% content_for :title, 'Estimates' %>
 
-<div class="container mx-auto px-4 py-6">
-  <h1 class="text-2xl font-bold mb-4">Estimates</h1>
-  <%= link_to 'New Estimate', new_business_manager_estimate_path, class: 'px-4 py-2 bg-blue-500 text-white rounded mb-4 inline-block' %>
-  <table class="min-w-full mt-4">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Customer</th>
-        <th>Status</th>
-        <th>Total</th>
-        <th>Created</th>
-        <th>Actions</th>
+<div class="container mx-auto px-4 py-4 sm:py-8">
+  <!-- Header -->
+  <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
+    <div class="bg-gradient-to-r from-teal-600 to-teal-700 px-4 py-6 sm:px-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 class="text-xl sm:text-2xl font-bold text-white">
+            Estimates
+          </h1>
+          <p class="text-teal-100 mt-1 text-sm">
+            Create and manage customer estimates and quotes
+          </p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <%= link_to business_manager_dashboard_path,
+                class: "inline-flex items-center justify-center px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 text-sm font-medium rounded-lg text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-teal-600 transition-all duration-200" do %>
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Back to Dashboard
+          <% end %>
+          <%= link_to new_business_manager_estimate_path,
+                class: "inline-flex items-center justify-center px-4 py-2 bg-white text-teal-600 hover:bg-teal-50 font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-teal-600 shadow-sm" do %>
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            New Estimate
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="bg-gray-50/50">
+      <% if @estimates.any? %>
+        <!-- Mobile Cards (hidden on desktop) -->
+        <div class="lg:hidden p-4 space-y-4">
+          <% @estimates.each do |estimate| %>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden">
+              <div class="p-5">
+                <div class="flex items-start justify-between mb-4">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-3 mb-3">
+                      <div class="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                        #<%= estimate.id %>
+                      </div>
+                      <div>
+                        <h3 class="text-base font-semibold text-gray-900">
+                          <%= link_to estimate.estimate_number || "##{estimate.id}", business_manager_estimate_path(estimate), class: "text-teal-600 hover:text-teal-800 transition-colors" %>
+                        </h3>
+                        <%= render_estimate_status_badge(estimate) %>
+                      </div>
+                    </div>
+                    
+                    <div class="space-y-2">
+                      <div class="flex items-center text-sm text-gray-600">
+                        <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                        <%= estimate.tenant_customer&.full_name || "#{estimate.first_name} #{estimate.last_name}".strip.presence || 'No customer' %>
+                      </div>
+                      <div class="flex items-center text-sm text-gray-600">
+                        <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="font-semibold text-gray-900"><%= number_to_currency(estimate.total) %></span>
+                      </div>
+                      <div class="flex items-center text-sm text-gray-500">
+                        <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <%= estimate.created_at.strftime('%b %d, %Y') %>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="flex items-center gap-2 pt-3 border-t border-gray-100">
+                  <%= link_to business_manager_estimate_path(estimate),
+                        class: "flex-1 inline-flex items-center justify-center px-3 py-2 bg-teal-50 border border-teal-200 text-sm font-medium rounded-lg text-teal-700 hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-all duration-200" do %>
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                    View
+                  <% end %>
+                  <%= link_to edit_business_manager_estimate_path(estimate),
+                        class: "flex-1 inline-flex items-center justify-center px-3 py-2 bg-amber-50 border border-amber-200 text-sm font-medium rounded-lg text-amber-700 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all duration-200" do %>
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                    Edit
+                  <% end %>
+                  <%= button_to business_manager_estimate_path(estimate),
+                        method: :delete,
+                        data: { turbo_confirm: "Are you sure you want to delete estimate #{estimate.estimate_number || "##{estimate.id}"}?" },
+                        class: "inline-flex items-center justify-center px-3 py-2 bg-red-50 border border-red-200 text-sm font-medium rounded-lg text-red-700 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-200" do %>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Desktop Table (hidden on mobile) -->
+        <div class="hidden lg:block bg-white">
+          <table class="w-full">
+            <thead class="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+              <tr>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Estimate</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Customer</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Total</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Created</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
       </tr>
     </thead>
-    <tbody>
+            <tbody class="bg-white divide-y divide-gray-200">
       <% @estimates.each do |estimate| %>
-        <tr>
-          <td><%= estimate.id %></td>
-          <td><%= estimate.tenant_customer&.full_name || "#{estimate.first_name} #{estimate.last_name}" %></td>
-          <td><%= estimate.status %></td>
-          <td><%= number_to_currency(estimate.total) %></td>
-          <td><%= l(estimate.created_at, format: :short) %></td>
-          <td>
-            <%= link_to 'Show', business_manager_estimate_path(estimate), class: 'text-blue-500' %>
-            <%= link_to 'Edit', edit_business_manager_estimate_path(estimate), class: 'text-green-500 ml-2' %>
-            <%= link_to 'Delete', business_manager_estimate_path(estimate), data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: 'text-red-500 ml-2' %>
+                <tr class="hover:bg-teal-50/30 transition-colors duration-200">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                      <div class="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center text-white font-semibold text-xs mr-3">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <div class="text-sm font-semibold text-gray-900">
+                          <%= link_to estimate.estimate_number || "##{estimate.id}", business_manager_estimate_path(estimate), class: "text-teal-600 hover:text-teal-800 transition-colors" %>
+                        </div>
+                        <% if estimate.estimate_messages.any? %>
+                          <span class="inline-flex items-center text-xs text-blue-600">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                            </svg>
+                            <%= pluralize(estimate.estimate_messages.count, 'message') %>
+                          </span>
+                        <% end %>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                      <% customer_name = estimate.tenant_customer&.full_name || "#{estimate.first_name} #{estimate.last_name}".strip.presence %>
+                      <% if customer_name.present? %>
+                        <div class="w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center text-white font-semibold text-xs mr-3">
+                          <%= customer_name.first.upcase %>
+                        </div>
+                        <div>
+                          <div class="text-sm font-medium text-gray-900"><%= customer_name %></div>
+                          <div class="text-xs text-gray-500"><%= estimate.customer_email || estimate.tenant_customer&.email %></div>
+                        </div>
+                      <% else %>
+                        <span class="text-sm text-gray-400">No customer</span>
+                      <% end %>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <%= render_estimate_status_badge(estimate) %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="text-sm font-semibold text-gray-900"><%= number_to_currency(estimate.total) %></span>
+                    <% if estimate.required_deposit.present? && estimate.required_deposit > 0 %>
+                      <div class="text-xs text-gray-500">Deposit: <%= number_to_currency(estimate.required_deposit) %></div>
+                    <% end %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <div><%= estimate.created_at.strftime('%b %d, %Y') %></div>
+                    <div class="text-xs text-gray-400"><%= estimate.created_at.strftime('%I:%M %p') %></div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div class="flex items-center gap-2">
+                      <%= link_to business_manager_estimate_path(estimate),
+                            class: "inline-flex items-center px-3 py-1.5 bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 transition-colors font-medium text-xs" do %>
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        View
+                      <% end %>
+                      <%= link_to edit_business_manager_estimate_path(estimate),
+                            class: "inline-flex items-center px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors font-medium text-xs" do %>
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        Edit
+                      <% end %>
+                      <%= button_to business_manager_estimate_path(estimate),
+                            method: :delete,
+                            data: { turbo_confirm: "Are you sure you want to delete estimate #{estimate.estimate_number || "##{estimate.id}"}?" },
+                            class: "inline-flex items-center px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium text-xs" do %>
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                      <% end %>
+                    </div>
           </td>
         </tr>
       <% end %>
     </tbody>
   </table>
 </div> 
+        
+        <!-- Pagination -->
+        <% if respond_to?(:paginate) && @estimates.respond_to?(:current_page) %>
+          <div class="px-4 py-4 sm:px-6 border-t border-gray-200 bg-white">
+            <%= paginate @estimates %>
+          </div>
+        <% end %>
+      <% else %>
+        <!-- Empty State -->
+        <div class="text-center py-16 px-4">
+          <div class="max-w-md mx-auto">
+            <div class="w-20 h-20 bg-gradient-to-br from-teal-100 to-teal-200 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg class="w-10 h-10 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">No estimates yet</h3>
+            <p class="text-gray-600 mb-8">Get started by creating your first estimate to send to customers for approval.</p>
+            <%= link_to new_business_manager_estimate_path,
+                  class: "inline-flex items-center px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white font-medium rounded-lg hover:from-teal-700 hover:to-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl" do %>
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+              </svg>
+              Create Your First Estimate
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Information Section -->
+  <div class="mt-8">
+    <div class="bg-gradient-to-br from-teal-50 to-cyan-50 border border-teal-200 rounded-xl overflow-hidden shadow-sm">
+      <div class="px-6 py-6">
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h2 class="text-lg font-semibold text-gray-900 mb-3">
+              Estimate Workflow
+            </h2>
+            <div class="space-y-3 text-sm text-gray-700">
+              <div class="flex items-start gap-3">
+                <div class="w-5 h-5 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span class="text-xs font-bold text-gray-600">1</span>
+                </div>
+                <p><strong>Draft</strong> – Create and edit your estimate with line items, services, and pricing.</p>
+              </div>
+              <div class="flex items-start gap-3">
+                <div class="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span class="text-xs font-bold text-blue-600">2</span>
+                </div>
+                <p><strong>Sent</strong> – Email the estimate to your customer for review.</p>
+              </div>
+              <div class="flex items-start gap-3">
+                <div class="w-5 h-5 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span class="text-xs font-bold text-yellow-600">3</span>
+                </div>
+                <p><strong>Viewed</strong> – Customer has opened and reviewed the estimate.</p>
+              </div>
+              <div class="flex items-start gap-3">
+                <div class="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span class="text-xs font-bold text-green-600">4</span>
+                </div>
+                <p><strong>Approved</strong> – Customer signs and pays the deposit to confirm.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

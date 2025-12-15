@@ -202,7 +202,7 @@
                         <% end %>
                         <div class="relative flex space-x-3">
                           <div>
-                            <span class="h-8 w-8 rounded-full <%= transaction.transaction_type == 'processed' ? 'bg-green-500' : transaction.transaction_type == 'skipped' ? 'bg-yellow-500' : 'bg-blue-500' %> flex items-center justify-center ring-8 ring-white">
+                            <span class="h-8 w-8 rounded-full <%= transaction.transaction_type == 'processed' ? 'bg-success' : transaction.transaction_type == 'skipped' ? 'bg-yellow-500' : 'bg-primary' %> flex items-center justify-center ring-8 ring-white">
                               <% case transaction.transaction_type %>
                               <% when 'processed' %>
                                 <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

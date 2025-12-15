@@ -51,14 +51,31 @@ class EstimateMailer < ApplicationMailer
   end
 
   # Notifies business of requested changes
-  def request_changes_notification(estimate, message)
+  # @param estimate [Estimate] the estimate
+  # @param estimate_message [EstimateMessage] the saved message record (or string for backwards compatibility)
+  def request_changes_notification(estimate, estimate_message)
     @estimate = estimate
     @business = estimate.business
-    @message = message
+
+    # Support both EstimateMessage objects and plain strings for backwards compatibility
+    if estimate_message.is_a?(EstimateMessage)
+      @message = estimate_message.message
+      @sender_name = estimate_message.sender_name
+      @sender_email = estimate_message.sender_email
+    else
+      @message = estimate_message.to_s
+      @sender_name = estimate.customer_full_name || estimate.tenant_customer&.full_name
+      @sender_email = estimate.customer_email || estimate.tenant_customer&.email
+    end
 
     # Get manager emails
     manager_emails = @business.users.where(role: :manager).pluck(:email)
     return mail(to: nil, subject: "Skip") if manager_emails.empty?
+
+    # Attach PDF if available
+    if @estimate.pdf.attached?
+      attachments["#{@estimate.estimate_number || 'Estimate'}.pdf"] = @estimate.pdf.download
+    end
 
     mail(
       to: manager_emails,

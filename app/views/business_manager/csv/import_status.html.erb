@@ -1,0 +1,123 @@
+<%# app/views/business_manager/csv/import_status.html.erb %>
+<div class="container mx-auto px-4 py-4 sm:py-8">
+  <div class="max-w-2xl mx-auto">
+    <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100"
+         data-controller="import-progress"
+         data-import-progress-url-value="<%= import_status_business_manager_csv_index_path(id: @import_run.id, format: :json) %>"
+         data-import-progress-finished-value="<%= @import_run.finished_at.present? %>">
+
+      <div class="bg-gradient-to-r from-primary to-secondary px-4 py-6 sm:px-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-white">
+              Import Progress: <%= @import_run.import_type.humanize.titleize %>
+            </h1>
+            <p class="text-white/80 mt-1 text-sm"><%= @import_run.original_filename %></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-6">
+        <!-- Status Badge -->
+        <div class="mb-6 flex items-center justify-between">
+          <span class="text-sm text-gray-600">Status</span>
+          <% badge_class = case @import_run.status
+             when 'succeeded' then 'bg-green-100 text-green-800 border-green-200'
+             when 'partial' then 'bg-yellow-100 text-yellow-800 border-yellow-200'
+             when 'failed' then 'bg-red-100 text-red-800 border-red-200'
+             when 'running' then 'bg-blue-100 text-blue-800 border-primary/30'
+             else 'bg-gray-100 text-gray-800 border-gray-200'
+             end %>
+          <span class="px-3 py-1 rounded-full text-sm font-medium border <%= badge_class %>"
+                data-import-progress-target="status">
+            <%= @import_run.status.humanize %>
+          </span>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="mb-6">
+          <div class="flex justify-between text-sm text-gray-600 mb-2">
+            <span>Progress</span>
+            <span data-import-progress-target="percentage"><%= @import_run.progress_percentage %>%</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+            <div class="bg-primary h-3 rounded-full transition-all duration-300"
+                 style="width: <%= @import_run.progress_percentage %>%"
+                 data-import-progress-target="bar"></div>
+          </div>
+          <div class="text-sm text-gray-500 mt-2">
+            <span data-import-progress-target="processed"><%= @import_run.processed_rows %></span>
+            of
+            <span data-import-progress-target="total"><%= @import_run.total_rows %></span>
+            rows processed
+          </div>
+        </div>
+
+        <!-- Results Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+            <div class="text-2xl font-bold text-green-700" data-import-progress-target="created">
+              <%= @import_run.created_count %>
+            </div>
+            <div class="text-sm text-success">Created</div>
+          </div>
+          <div class="bg-light border border-primary/30 rounded-lg p-4 text-center">
+            <div class="text-2xl font-bold text-primary" data-import-progress-target="updated">
+              <%= @import_run.updated_count %>
+            </div>
+            <div class="text-sm text-primary">Updated</div>
+          </div>
+          <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+            <div class="text-2xl font-bold text-gray-700" data-import-progress-target="skipped">
+              <%= @import_run.skipped_count %>
+            </div>
+            <div class="text-sm text-gray-600">Skipped</div>
+          </div>
+          <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+            <div class="text-2xl font-bold text-red-700" data-import-progress-target="errors">
+              <%= @import_run.error_count %>
+            </div>
+            <div class="text-sm text-red-600">Errors</div>
+          </div>
+        </div>
+
+        <!-- Error Link -->
+        <% if @import_run.error_count > 0 %>
+          <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div class="flex items-center">
+              <svg class="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+              </svg>
+              <span class="text-sm text-red-800">
+                <%= @import_run.error_count %> error<%= @import_run.error_count == 1 ? '' : 's' %> occurred during import.
+              </span>
+              <%= link_to "View details", import_errors_business_manager_csv_index_path(id: @import_run.id),
+                    class: "ml-auto text-sm font-medium text-red-600 hover:text-red-800 underline" %>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+          <%= link_to business_manager_csv_index_path,
+                class: "inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium" do %>
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Back to CSV Import/Export
+          <% end %>
+
+          <% if @import_run.finished_at.present? %>
+            <%= link_to import_form_business_manager_csv_index_path(type: @import_run.import_type),
+                  class: "inline-flex items-center px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary transition-colors font-medium" do %>
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+              </svg>
+              Import Another File
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -176,7 +176,10 @@ RSpec.describe "Public::Estimates", type: :request do
     it "sends a change request notification" do
       expect {
         post request_changes_public_estimate_path(token: estimate.token), params: { changes_request: "Please adjust the pricing" }
-      }.to have_enqueued_job(ActionMailer::MailDeliveryJob).with('EstimateMailer', 'request_changes_notification', 'deliver_now', hash_including(args: [estimate, "Please adjust the pricing"]))
+      }.to have_enqueued_job(ActionMailer::MailDeliveryJob).with('EstimateMailer', 'request_changes_notification', 'deliver_now', anything)
+
+      # Verify the EstimateMessage was created with correct content
+      expect(estimate.estimate_messages.last.message).to eq("Please adjust the pricing")
     end
 
     it "redirects with success message" do
@@ -188,7 +191,10 @@ RSpec.describe "Public::Estimates", type: :request do
     it "uses default message when none provided" do
       expect {
         post request_changes_public_estimate_path(token: estimate.token)
-      }.to have_enqueued_job(ActionMailer::MailDeliveryJob).with('EstimateMailer', 'request_changes_notification', 'deliver_now', hash_including(args: [estimate, "Customer has requested changes, please review."]))
+      }.to have_enqueued_job(ActionMailer::MailDeliveryJob).with('EstimateMailer', 'request_changes_notification', 'deliver_now', anything)
+
+      # Verify the EstimateMessage was created with default message
+      expect(estimate.estimate_messages.last.message).to eq("Customer has requested changes, please review.")
     end
   end
 end 

@@ -25,7 +25,7 @@
     <div>
       <%= form.label :name, class: "block text-sm font-medium text-gray-700 mb-2" %>
       <%= form.text_field :name, 
-            class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors", 
+            class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors", 
             placeholder: "e.g., Standard Shipping, Express Delivery",
             required: true %>
       <p class="mt-2 text-sm text-gray-600">
@@ -43,7 +43,7 @@
         <%= form.number_field :cost, 
               step: '0.01', 
               min: 0, 
-              class: "w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors", 
+              class: "w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors", 
               placeholder: "0.00",
               required: true %>
       </div>
@@ -57,7 +57,7 @@
       <div class="flex items-start">
         <div class="flex items-center h-5">
           <%= form.check_box :active, 
-                class: "h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2" %>
+                class: "h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary focus:ring-2" %>
         </div>
         <div class="ml-3">
           <%= form.label :active, "Active (visible to customers)", 
@@ -74,9 +74,9 @@
   <!-- Form Actions -->
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 border-t border-gray-200">
     <div class="flex flex-col sm:flex-row gap-3">
-      <%= form.submit class: "cursor-pointer inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors" %>
+      <%= form.submit class: "cursor-pointer inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary hover:bg-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors" %>
       <%= link_to business_manager_shipping_methods_path, 
-            class: "inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors" do %>
+            class: "inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors" do %>
         Cancel
       <% end %>
     </div>

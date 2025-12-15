@@ -39,7 +39,7 @@
          data-field-type="item-type"
          data-dropdown-selected-value-value="<%= item_type %>">
       <button type="button"
-              class="w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              class="w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm"
               data-dropdown-target="button"
               data-action="click->dropdown#toggle">
         <span class="rich-dropdown-text block truncate text-gray-900"><%= selected_item_type_label %></span>
@@ -52,7 +52,7 @@
       <div class="absolute z-20 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-sm ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
            data-dropdown-target="menu">
         <% item_type_options.each do |opt| %>
-          <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+          <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-light transition-colors"
                data-item-id="<%= opt[:value] %>"
                data-item-text="<%= opt[:label] %>"
                data-dropdown-target="option"
@@ -76,7 +76,7 @@
            data-field-type="service"
            data-dropdown-selected-value-value="<%= item.object.service_id.to_s %>">
         <button type="button"
-                class="w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                class="w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm"
                 data-dropdown-target="button"
                 data-action="click->dropdown#toggle">
           <span class="rich-dropdown-text block truncate text-gray-900"><%= selected_service&.name || '-- Select Service --' %></span>
@@ -88,7 +88,7 @@
         </button>
         <div class="absolute z-20 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-sm ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
              data-dropdown-target="menu">
-          <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+          <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-light transition-colors"
                data-item-id=""
                data-item-text="-- Select Service --"
                data-dropdown-target="option"
@@ -96,7 +96,7 @@
             -- Select Service --
           </div>
           <% (@services || []).each do |service| %>
-            <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+            <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-light transition-colors"
                  data-item-id="<%= service.id %>"
                  data-item-text="<%= service.name %>"
                  data-price="<%= service.price %>"
@@ -105,7 +105,7 @@
                  data-action="click->dropdown#select">
               <div class="flex items-center justify-between">
                 <span><%= service.name %></span>
-                <span class="text-xs font-medium text-blue-600"><%= number_to_currency(service.price) %></span>
+                <span class="text-xs font-medium text-primary"><%= number_to_currency(service.price) %></span>
               </div>
             </div>
           <% end %>
@@ -122,7 +122,7 @@
            data-field-type="product"
            data-dropdown-selected-value-value="<%= item.object.product_id.to_s %>">
         <button type="button"
-                class="w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                class="w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm"
                 data-dropdown-target="button"
                 data-action="click->dropdown#toggle">
           <span class="rich-dropdown-text block truncate text-gray-900"><%= selected_product&.name || '-- Select Product --' %></span>
@@ -134,7 +134,7 @@
         </button>
         <div class="absolute z-20 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-sm ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
              data-dropdown-target="menu">
-          <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+          <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-light transition-colors"
                data-item-id=""
                data-item-text="-- Select Product --"
                data-dropdown-target="option"
@@ -142,7 +142,7 @@
             -- Select Product --
           </div>
           <% (@products || []).each do |product| %>
-            <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+            <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-light transition-colors"
                  data-item-id="<%= product.id %>"
                  data-item-text="<%= product.name %>"
                  data-price="<%= product.price %>"
@@ -151,7 +151,7 @@
                  data-action="click->dropdown#select">
               <div class="flex items-center justify-between">
                 <span><%= product.name %></span>
-                <span class="text-xs font-medium text-blue-600"><%= number_to_currency(product.price) %></span>
+                <span class="text-xs font-medium text-primary"><%= number_to_currency(product.price) %></span>
               </div>
             </div>
           <% end %>
@@ -167,14 +167,14 @@
         <div>
           <label class="block text-xs text-gray-500">Hours</label>
           <%= item.number_field :hours, step: 0.5, min: 0,
-            class: 'block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm',
+            class: 'block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary text-sm',
             placeholder: 'Hours',
             data: { action: 'input->estimate-line-items#calculateLaborTotal' } %>
         </div>
         <div>
           <label class="block text-xs text-gray-500">Rate/Hr</label>
           <%= item.number_field :hourly_rate, step: 0.01, min: 0,
-            class: 'block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm',
+            class: 'block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary text-sm',
             placeholder: '$/hr',
             data: { action: 'input->estimate-line-items#calculateLaborTotal' } %>
         </div>
@@ -185,7 +185,7 @@
   <!-- Description -->
   <td class="px-4 py-3">
     <%= item.text_field :description,
-      class: 'block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm',
+      class: 'block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm',
       placeholder: 'Description',
       data: { action: 'input->estimate-line-items#inputChanged' } %>
   </td>
@@ -194,7 +194,7 @@
   <td class="px-4 py-3">
     <div data-field-type="standard" class="<%= item.object.item_type == 'labor' ? 'hidden' : '' %>">
       <%= item.number_field :qty, min: 1, value: item.object.qty || 1,
-        class: 'block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm',
+        class: 'block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm',
         placeholder: '1',
         data: { action: 'input->estimate-line-items#inputChanged' } %>
     </div>
@@ -204,7 +204,7 @@
   <td class="px-4 py-3">
     <div data-field-type="standard" class="<%= item.object.item_type == 'labor' ? 'hidden' : '' %>">
       <%= item.number_field :cost_rate, step: 0.01, min: 0,
-        class: 'block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm',
+        class: 'block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm',
         placeholder: '0.00',
         data: { action: 'input->estimate-line-items#inputChanged' } %>
     </div>
@@ -213,7 +213,7 @@
   <!-- Tax Rate -->
   <td class="px-4 py-3">
     <%= item.number_field :tax_rate, step: 0.01, min: 0, value: item.object.tax_rate || 0,
-      class: 'block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm',
+      class: 'block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm',
       placeholder: '0',
       data: { action: 'input->estimate-line-items#inputChanged' } %>
   </td>
@@ -222,7 +222,7 @@
   <td class="px-4 py-3 text-center">
     <label class="inline-flex items-center">
       <%= item.check_box :optional,
-        class: 'h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500',
+        class: 'h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary',
         data: { action: 'change->estimate-line-items#inputChanged' } %>
     </label>
   </td>
@@ -256,7 +256,7 @@
     <div data-save-type="service" class="flex items-start space-x-4 <%= item_type != 'labor' ? 'hidden' : '' %>">
       <label class="inline-flex items-center mt-1">
         <%= check_box_tag "#{item.object_name}[save_as_service]", '1', save_as_service_checked,
-          class: 'h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500',
+          class: 'h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary',
           data: { action: 'change->estimate-line-items#toggleSaveForFuture' } %>
         <span class="ml-2 text-sm font-medium text-gray-700">Save as Service</span>
       </label>
@@ -269,7 +269,7 @@
                  data-controller="dropdown"
                  data-dropdown-selected-value-value="<%= service_type_value %>">
               <button type="button"
-                      class="w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      class="w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm"
                       data-dropdown-target="button"
                       data-action="click->dropdown#toggle">
                 <span class="rich-dropdown-text block truncate text-gray-900"><%= service_type_label %></span>
@@ -282,7 +282,7 @@
               <div class="absolute z-30 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-sm ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
                    data-dropdown-target="menu">
                 <% service_type_options.each do |opt| %>
-                  <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+                  <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-light transition-colors"
                        data-item-id="<%= opt[:value] %>"
                        data-item-text="<%= opt[:label] %>"
                        data-dropdown-target="option"
@@ -300,7 +300,7 @@
           <div>
             <label class="block text-xs font-medium text-gray-600">Service Name *</label>
             <%= text_field_tag "#{item.object_name}[service_name]", item.object.try(:service_name),
-              class: 'block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm',
+              class: 'block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary text-sm',
               placeholder: 'Enter service name' %>
           </div>
         </div>
@@ -314,7 +314,7 @@
     <div data-save-type="product" class="flex items-start space-x-4 <%= item_type != 'part' ? 'hidden' : '' %>">
       <label class="inline-flex items-center mt-1">
         <%= check_box_tag "#{item.object_name}[save_as_product]", '1', save_as_product_checked,
-          class: 'h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500',
+          class: 'h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary',
           data: { action: 'change->estimate-line-items#toggleSaveForFuture' } %>
         <span class="ml-2 text-sm font-medium text-gray-700">Save as Product</span>
       </label>
@@ -327,7 +327,7 @@
                  data-controller="dropdown"
                  data-dropdown-selected-value-value="<%= product_type_value %>">
               <button type="button"
-                      class="w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      class="w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm"
                       data-dropdown-target="button"
                       data-action="click->dropdown#toggle">
                 <span class="rich-dropdown-text block truncate text-gray-900"><%= product_type_label %></span>
@@ -340,7 +340,7 @@
               <div class="absolute z-30 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-sm ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
                    data-dropdown-target="menu">
                 <% product_type_options.each do |opt| %>
-                  <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+                  <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-light transition-colors"
                        data-item-id="<%= opt[:value] %>"
                        data-item-text="<%= opt[:label] %>"
                        data-dropdown-target="option"
@@ -358,7 +358,7 @@
           <div>
             <label class="block text-xs font-medium text-gray-600">Product Name *</label>
             <%= text_field_tag "#{item.object_name}[product_name]", item.object.try(:product_name),
-              class: 'block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm',
+              class: 'block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary text-sm',
               placeholder: 'Enter product name' %>
           </div>
         </div>

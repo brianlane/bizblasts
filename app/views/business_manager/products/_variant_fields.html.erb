@@ -14,19 +14,19 @@
     <div>
       <%= form.label :name, 'Variant Name', class: "block text-gray-700 text-sm font-bold mb-2" %>
       <%= form.text_field :name, required: true, placeholder: "e.g., Large, Red", 
-            class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+            class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" %>
     </div>
     
     <div>
       <%= form.label :sku, 'SKU', class: "block text-gray-700 text-sm font-bold mb-2" %>
       <%= form.text_field :sku, placeholder: "Stock Keeping Unit", 
-            class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+            class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" %>
     </div>
     
     <div>
       <%= form.label :price_modifier, 'Price Modifier ($)', class: "block text-gray-700 text-sm font-bold mb-2" %>
       <%= form.number_field :price_modifier, step: "0.01", inputmode: "decimal", placeholder: "0.00", 
-            class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500", data: { disable_wheel: true } %>
+            class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary", data: { disable_wheel: true } %>
       <p class="mt-1 text-xs text-gray-500">Positive for upcharge, negative for discount</p>
     </div>
     
@@ -34,7 +34,7 @@
       <% if current_business.requires_stock_tracking? %>
         <%= form.label :stock_quantity, 'Stock Quantity', class: "block text-gray-700 text-sm font-bold mb-2" %>
         <%= form.number_field :stock_quantity, required: true, min: 0, inputmode: "numeric", placeholder: "0",
-              class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+              class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" %>
       <% else %>
         <label class="block text-gray-700 text-sm font-bold mb-2">Stock Status</label>
         <div class="bg-green-50 border border-green-200 rounded-lg p-3">

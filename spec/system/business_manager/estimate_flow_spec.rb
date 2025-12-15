@@ -43,8 +43,9 @@ RSpec.describe "Estimate flow", type: :system do
     expect(page).to have_content("$50.00") # Subtotal
     expect(page).to have_content("Draft") # Initial status
 
-    # Send the estimate
-    click_on "Send to Customer"
+    # Send the estimate - find the form containing "send_to_customer" and click its submit button
+    form = find("form[action*='send_to_customer']")
+    form.find('button[type="submit"], input[type="submit"]').click
     expect(page).to have_content("Estimate sent to customer")
     expect(page).to have_content("Sent") # Status updated
   end

@@ -48,17 +48,17 @@
           </svg>
           <span class="font-medium">Payment Successful!</span>
         </div>
-        <p class="text-sm text-green-600 mt-1 text-center">Payment received. This page will refresh automatically.</p>
+        <p class="text-sm text-success mt-1 text-center">Payment received. This page will refresh automatically.</p>
       </div>
     </div>
     
     <!-- Action Buttons -->
     <div class="mt-6 flex gap-4">
       <%= link_to 'View Order Details', business_manager_order_path(@order), 
-                  class: "flex-1 text-center px-4 py-2 border border-blue-300 text-blue-700 rounded-md hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" %>
+                  class: "flex-1 text-center px-4 py-2 border border-blue-300 text-primary rounded-md hover:bg-light focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2" %>
       
       <%= link_to 'Create Another Payment', new_business_manager_payment_path, 
-                  class: "flex-1 text-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2" %>
+                  class: "flex-1 text-center px-4 py-2 bg-success hover:bg-success text-white rounded-md focus:outline-none focus:ring-2 focus:ring-success focus:ring-offset-2" %>
       
       <%= link_to 'Back to Payments', business_manager_payments_path, 
                   class: "flex-1 text-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2" %>

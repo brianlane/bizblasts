@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class BusinessManager::EstimatesController < BusinessManager::BaseController
-  before_action :set_estimate, only: [:show, :edit, :update, :destroy, :send_to_customer, :download_pdf, :duplicate, :versions, :restore_version]
+  before_action :set_estimate, only: [:show, :edit, :update, :destroy, :send_to_customer, :resend_to_customer, :download_pdf, :duplicate, :versions, :restore_version]
   before_action :load_customers, only: [:new, :edit, :create, :update]
   before_action :load_services_and_products, only: [:new, :edit, :create, :update]
 
@@ -104,6 +104,15 @@ class BusinessManager::EstimatesController < BusinessManager::BaseController
     else
       redirect_to business_manager_estimate_path(@estimate), alert: 'Could not send estimate.'
     end
+  end
+
+  def resend_to_customer
+    # Regenerate PDF to ensure it's up to date
+    EstimatePdfGenerator.new(@estimate).generate
+
+    # Send email without changing status (keep current status like 'sent' or 'viewed')
+    EstimateMailer.send_estimate(@estimate).deliver_later
+    redirect_to business_manager_estimate_path(@estimate), notice: 'Estimate resent to customer successfully.'
   end
 
   def download_pdf

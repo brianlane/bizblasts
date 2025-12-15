@@ -6,10 +6,10 @@
 <div class="mt-6 border-t pt-6">
   <div class="flex justify-center items-center gap-4">
     <%= link_to 'Show', business_manager_service_path(@service), 
-          class: "inline-flex items-center px-4 py-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors font-medium" %>
+          class: "inline-flex items-center px-4 py-2 text-primary hover:text-primary hover:bg-light rounded-md transition-colors font-medium" %>
     <span class="text-gray-400">|</span>
     <%= link_to 'Back', business_manager_services_path, 
-          class: "inline-flex items-center px-4 py-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors font-medium" %>
+          class: "inline-flex items-center px-4 py-2 text-primary hover:text-primary hover:bg-light rounded-md transition-colors font-medium" %>
     <span class="text-gray-400">|</span>
     <%= button_to 'Delete Service', business_manager_service_path(@service), 
           method: :delete,

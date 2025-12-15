@@ -19,11 +19,11 @@
                   class: "bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors",
                   target: "_blank" %>
       <%= link_to "Edit", edit_business_manager_website_theme_path(@theme), 
-                  class: "bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors" %>
+                  class: "bg-primary hover:bg-primary text-white px-4 py-2 rounded-lg transition-colors" %>
       <% unless @theme.active? %>
         <%= link_to "Activate", business_manager_website_theme_path(@theme, action: :activate), 
                     method: :patch,
-                    class: "bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors",
+                    class: "bg-success hover:bg-success text-white px-4 py-2 rounded-lg transition-colors",
                     data: { confirm: "Activate this theme?" } %>
       <% end %>
     </div>

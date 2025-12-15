@@ -21,7 +21,7 @@
                   class: "bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors",
                   target: "_blank" %>
       <%= link_to "Create Page", new_business_manager_website_page_path, 
-                  class: "bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors cursor-pointer" %>
+                  class: "bg-primary hover:bg-primary text-white px-4 py-2 rounded-lg transition-colors cursor-pointer" %>
     </div>
   </div>
 
@@ -29,7 +29,7 @@
   <div class="bg-white border border-gray-200 rounded-lg p-1">
     <nav class="flex space-x-1">
       <%= link_to business_manager_website_pages_path, 
-                  class: "px-4 py-2 rounded-md text-sm font-medium transition-colors bg-blue-500 text-white" do %>
+                  class: "px-4 py-2 rounded-md text-sm font-medium transition-colors bg-primary text-white" do %>
         <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
         </svg>
@@ -61,10 +61,10 @@
     <div class="bg-white border border-gray-200 rounded-lg p-4">
       <div class="flex items-center justify-between">
         <div>
-          <div class="text-2xl font-bold text-blue-600"><%= @pages.count %></div>
+          <div class="text-2xl font-bold text-primary"><%= @pages.count %></div>
           <div class="text-sm text-gray-600">Total Pages</div>
         </div>
-        <div class="text-blue-500">
+        <div class="text-primary">
           <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
             <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
           </svg>
@@ -74,10 +74,10 @@
     <div class="bg-white border border-gray-200 rounded-lg p-4">
       <div class="flex items-center justify-between">
         <div>
-          <div class="text-2xl font-bold text-green-600"><%= @pages.published.count %></div>
+          <div class="text-2xl font-bold text-success"><%= @pages.published.count %></div>
           <div class="text-sm text-gray-600">Published</div>
         </div>
-        <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+        <div class="w-3 h-3 bg-success rounded-full"></div>
       </div>
     </div>
     <div class="bg-white border border-gray-200 rounded-lg p-4">
@@ -140,7 +140,7 @@
               <% when 'high' %>
                 <span class="bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-medium">⚡ High</span>
               <% when 'medium' %>
-                <span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">📌 Medium</span>
+                <span class="bg-primary text-white text-xs px-2 py-1 rounded-full">📌 Medium</span>
               <% end %>
             </div>
           <% end %>
@@ -160,7 +160,7 @@
               <div class="flex space-x-1 mt-3">
                 <% page.page_sections.limit(5).each do |section| %>
                   <div class="w-5 h-3 bg-blue-200 rounded-sm border border-blue-300 flex items-center justify-center">
-                    <span class="text-[5px] text-blue-600 font-bold">
+                    <span class="text-[5px] text-primary font-bold">
                       <%= section.section_type.first.upcase %>
                     </span>
                   </div>
@@ -184,7 +184,7 @@
           <!-- Clear Action Buttons -->
           <div class="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button onclick="window.location.href='<%= business_manager_website_page_path(page) %>'"
-                    class="bg-blue-500 hover:bg-blue-600 text-white rounded p-1 text-xs cursor-pointer" title="Edit Page">
+                    class="bg-primary hover:bg-primary text-white rounded p-1 text-xs cursor-pointer" title="Edit Page">
               ✏️
             </button>
             <button onclick="window.location.href='<%= public_page_url(page) %>'"
@@ -226,7 +226,7 @@
               <span class="ml-2"><%= page.title %></span>
               
               <% if page.show_in_menu? %>
-                <span class="ml-2 text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">Menu</span>
+                <span class="ml-2 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">Menu</span>
               <% end %>
               
               <% if page.page_type == 'home' %>
@@ -254,7 +254,7 @@
             </div>
             <div class="text-center p-2 bg-gray-50 rounded">
               <% if page.performance_score.present? %>
-                <div class="font-semibold <%= page.performance_rating == 'excellent' ? 'text-green-600' : page.performance_rating == 'good' ? 'text-blue-600' : page.performance_rating == 'fair' ? 'text-yellow-600' : 'text-red-600' %>">
+                <div class="font-semibold <%= page.performance_rating == 'excellent' ? 'text-success' : page.performance_rating == 'good' ? 'text-primary' : page.performance_rating == 'fair' ? 'text-yellow-600' : 'text-red-600' %>">
                   <%= page.performance_score.to_i %>%
                 </div>
                 <div class="text-gray-600">Score</div>
@@ -270,9 +270,9 @@
             <!-- Primary Actions Row -->
             <div class="grid grid-cols-2 gap-2">
               <%= link_to "✏️ Edit Page", business_manager_website_page_path(page), 
-                          class: "text-center bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm transition-colors font-medium" %>
+                          class: "text-center bg-primary hover:bg-primary text-white px-3 py-2 rounded text-sm transition-colors font-medium" %>
               <%= link_to "🔧 Sections", business_manager_website_page_sections_path(page), 
-                          class: "text-center bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded text-sm transition-colors font-medium" %>
+                          class: "text-center bg-success hover:bg-success text-white px-3 py-2 rounded text-sm transition-colors font-medium" %>
             </div>
             
             <!-- Secondary Actions Row -->
@@ -302,11 +302,11 @@
               <div class="flex items-center space-x-2">
                 <%= link_to "📋 Duplicate", duplicate_business_manager_website_page_path(page), 
                            method: :post,
-                           class: "text-blue-600 hover:text-blue-800 text-xs" %>
+                           class: "text-primary hover:text-secondary text-xs" %>
                 <% unless page.published? %>
                   <%= link_to "🚀 Publish", publish_business_manager_website_page_path(page), 
                              method: :patch,
-                             class: "text-green-600 hover:text-green-800 text-xs" %>
+                             class: "text-success hover:text-success text-xs" %>
                 <% end %>
                 <%= link_to "⚙️ Settings", edit_business_manager_website_page_path(page), 
                            class: "text-gray-600 hover:text-gray-800 text-xs" %>
@@ -316,7 +316,7 @@
               <div class="flex items-center space-x-1">
                 <% if page.page_sections.any? %>
                   <% page.page_sections.limit(3).each do |section| %>
-                    <span class="text-blue-500" title="<%= section.section_type.humanize %>">
+                    <span class="text-primary" title="<%= section.section_type.humanize %>">
                       <% case section.section_type %>
                       <% when 'header' %>
                         📰
@@ -345,11 +345,11 @@
 
     <!-- Enhanced Add New Page Card -->
     <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-dashed border-blue-300 rounded-lg hover:border-blue-400 hover:from-blue-100 hover:to-indigo-100 transition-all duration-200">
-      <%= link_to new_business_manager_website_page_path, class: "flex flex-col items-center justify-center h-full min-h-[280px] text-blue-600 hover:text-blue-700" do %>
+      <%= link_to new_business_manager_website_page_path, class: "flex flex-col items-center justify-center h-full min-h-[280px] text-primary hover:text-primary" do %>
         <div class="text-5xl mb-3">✨</div>
         <div class="text-lg font-semibold mb-1">Create New Page</div>
-        <div class="text-sm text-blue-500 text-center px-4">Add a custom page to your website<br>Choose from templates or start from scratch</div>
-        <div class="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors">
+        <div class="text-sm text-primary text-center px-4">Add a custom page to your website<br>Choose from templates or start from scratch</div>
+        <div class="mt-3 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary transition-colors">
           Get Started
         </div>
       <% end %>

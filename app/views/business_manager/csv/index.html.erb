@@ -1,0 +1,197 @@
+<%# app/views/business_manager/csv/index.html.erb %>
+<div class="container mx-auto px-4 py-4 sm:py-8">
+  <!-- Header -->
+  <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
+    <div class="bg-gradient-to-r from-emerald-600 to-emerald-700 px-4 py-6 sm:px-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 class="text-xl sm:text-2xl font-bold text-white">CSV Import/Export</h1>
+          <p class="text-emerald-100 mt-1 text-sm">Import and export your business data in CSV format</p>
+        </div>
+        <%= link_to business_manager_dashboard_path,
+              class: "inline-flex items-center justify-center px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 text-sm font-medium rounded-lg text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-emerald-600 transition-all duration-200" do %>
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+          Back to Dashboard
+        <% end %>
+      </div>
+    </div>
+
+    <div class="p-6">
+      <!-- Export Section -->
+      <div class="mb-8">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <svg class="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+          Export Data
+        </h2>
+        <p class="text-gray-600 text-sm mb-4">Download your business data as CSV files.</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <% CsvImportRun::IMPORT_TYPES.each do |type| %>
+            <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 hover:bg-white transition-colors">
+              <h3 class="font-medium text-gray-900 capitalize mb-3"><%= type.humanize.titleize %></h3>
+                <%= link_to export_business_manager_csv_index_path(type: type, format: :csv),
+                    class: "w-full inline-flex items-center justify-center px-3 py-2 bg-emerald-100 text-emerald-700 rounded-lg text-sm font-medium hover:bg-emerald-200 transition-colors" do %>
+                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                  </svg>
+                  Export
+                <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Import Section -->
+      <% if policy(:csv).import? %>
+        <div class="mb-8">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+            </svg>
+            Import Data
+          </h2>
+          <p class="text-gray-600 text-sm mb-4">Upload CSV files to import or update records. Download a template first to see the expected format.</p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <% CsvImportRun::IMPORT_TYPES.each do |type| %>
+              <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 hover:bg-white transition-colors">
+                <h3 class="font-medium text-gray-900 capitalize mb-3"><%= type.humanize.titleize %></h3>
+                <div class="flex gap-2">
+                <%= link_to import_form_business_manager_csv_index_path(type: type),
+                        class: "flex-1 inline-flex items-center justify-center px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors" do %>
+                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                  </svg>
+                  Import
+                <% end %>
+                  <%= link_to template_business_manager_csv_index_path(type: type, format: :csv),
+                        class: "inline-flex items-center justify-center px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors",
+                        title: "Download template" do %>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <!-- Recent Imports -->
+      <% if @import_runs.any? %>
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Recent Imports
+          </h2>
+
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead>
+                <tr class="text-left text-gray-600 border-b border-gray-200">
+                  <th class="py-3 pr-4 font-semibold">Date</th>
+                  <th class="py-3 pr-4 font-semibold">Type</th>
+                  <th class="py-3 pr-4 font-semibold">File</th>
+                  <th class="py-3 pr-4 font-semibold">Status</th>
+                  <th class="py-3 font-semibold">Result</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <% @import_runs.each do |run| %>
+                  <tr class="hover:bg-gray-50">
+                    <td class="py-3 pr-4 text-gray-900"><%= run.created_at.strftime('%b %d, %Y %H:%M') %></td>
+                    <td class="py-3 pr-4 capitalize text-gray-900"><%= run.import_type.humanize %></td>
+                    <td class="py-3 pr-4 text-gray-600 truncate max-w-xs"><%= run.original_filename %></td>
+                    <td class="py-3 pr-4">
+                      <% badge_class = case run.status
+                         when 'succeeded' then 'bg-green-100 text-green-800 border-green-200'
+                         when 'partial' then 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                         when 'failed' then 'bg-red-100 text-red-800 border-red-200'
+                         when 'running' then 'bg-blue-100 text-blue-800 border-blue-200'
+                         else 'bg-gray-100 text-gray-800 border-gray-200'
+                         end %>
+                      <span class="px-2 py-1 rounded-full text-xs font-medium border <%= badge_class %>">
+                        <%= run.status.humanize %>
+                      </span>
+                    </td>
+                    <td class="py-3">
+                      <% if run.succeeded? || run.partial? %>
+                        <span class="text-gray-900">
+                          <span class="text-green-600 font-medium"><%= run.created_count %></span> created,
+                          <span class="text-blue-600 font-medium"><%= run.updated_count %></span> updated
+                        </span>
+                        <% if run.error_count > 0 %>
+                          <span class="text-gray-500">,</span>
+                          <%= link_to "#{run.error_count} errors", import_errors_business_manager_csv_index_path(id: run.id), class: "text-red-600 underline hover:no-underline" %>
+                        <% end %>
+                      <% elsif run.running? %>
+                        <%= link_to "View progress", import_status_business_manager_csv_index_path(id: run.id), class: "text-blue-600 underline hover:no-underline" %>
+                      <% elsif run.failed? %>
+                        <%= link_to "View errors", import_errors_business_manager_csv_index_path(id: run.id), class: "text-red-600 underline hover:no-underline" %>
+                      <% else %>
+                        <span class="text-gray-500">Queued</span>
+                      <% end %>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Information Section -->
+  <div class="mt-8">
+    <div class="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl overflow-hidden shadow-sm">
+      <div class="px-6 py-6">
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h2 class="text-lg font-semibold text-gray-900 mb-3">
+              CSV Import/Export Tips
+            </h2>
+            <div class="space-y-3 text-sm text-gray-700">
+              <div class="flex items-start gap-3">
+                <div class="w-5 h-5 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg class="w-3 h-3 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                </div>
+                <p><strong>Download a template</strong> before importing to ensure your CSV file has the correct column headers and format.</p>
+              </div>
+              <div class="flex items-start gap-3">
+                <div class="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg class="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                </div>
+                <p><strong>Imports update existing records</strong> when a match is found (by email for customers, by name for products/services).</p>
+              </div>
+              <div class="flex items-start gap-3">
+                <div class="w-5 h-5 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg class="w-3 h-3 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                </div>
+                <p><strong>Large imports run in the background</strong> so you can continue working while they process. Check the status anytime.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

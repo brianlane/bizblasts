@@ -46,7 +46,7 @@
       <% if @order.invoice.present? %>
         <div class="p-4 grid grid-cols-3 gap-4">
           <dt class="font-medium text-gray-600">Invoice</dt>
-          <dd class="col-span-2"><%= link_to @order.invoice.invoice_number, business_manager_invoice_path(@order.invoice), class: 'text-blue-600 hover:text-blue-800' %></dd>
+          <dd class="col-span-2"><%= link_to @order.invoice.invoice_number, business_manager_invoice_path(@order.invoice), class: 'text-primary hover:text-secondary' %></dd>
         </div>
       <% end %>
     </dl>
@@ -174,7 +174,7 @@
   <% end %>
 
   <div class="flex justify-between items-center mt-6">
-    <%= link_to 'Back to Business Orders', business_manager_orders_path, class: "text-blue-600 hover:text-blue-800" %>
+    <%= link_to 'Back to Business Orders', business_manager_orders_path, class: "text-primary hover:text-secondary" %>
     <%= render partial: 'shared/refund_button', locals: { record: @order, refund_path: refund_business_manager_order_path(@order) } %>
   </div>
   <%# Add links for actions like 'Mark as Shipped', 'Cancel Order', 'Print Invoice' if applicable %> 

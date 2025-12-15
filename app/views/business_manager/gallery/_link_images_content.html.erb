@@ -7,7 +7,7 @@
       <h4 class="text-base font-medium text-gray-900 mb-3">Service Images</h4>
       <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <% available_images[:services].each do |image| %>
-          <div class="relative group border border-gray-200 rounded-lg overflow-hidden hover:border-blue-500 transition">
+          <div class="relative group border border-gray-200 rounded-lg overflow-hidden hover:border-primary transition">
             <img src="<%= image[:thumbnail_url] %>"
                  alt="<%= image[:source_name] %>"
                  class="w-full h-32 object-cover">
@@ -47,7 +47,7 @@
       <h4 class="text-base font-medium text-gray-900 mb-3">Product Images</h4>
       <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <% available_images[:products].each do |image| %>
-          <div class="relative group border border-gray-200 rounded-lg overflow-hidden hover:border-blue-500 transition">
+          <div class="relative group border border-gray-200 rounded-lg overflow-hidden hover:border-primary transition">
             <img src="<%= image[:thumbnail_url] %>"
                  alt="<%= image[:source_name] %>"
                  class="w-full h-32 object-cover">

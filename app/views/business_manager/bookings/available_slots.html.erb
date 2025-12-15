@@ -25,7 +25,7 @@
     <!-- Service Details -->
     <div class="border-t border-gray-200 px-4 py-4 sm:px-6">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+        <div class="bg-light border border-primary/30 rounded-lg p-3">
           <h3 class="text-sm font-medium text-blue-900">Service</h3>
           <p class="text-lg font-semibold text-blue-800"><%= @service.name %></p>
         </div>
@@ -48,7 +48,7 @@
               staff_member_id: @staff_member.id, 
               date: @start_date - 7.days
             ), 
-              class: "inline-flex items-center justify-center px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 font-medium rounded-lg transition-colors" do %>
+              class: "inline-flex items-center justify-center px-4 py-2 bg-light hover:bg-light text-primary font-medium rounded-lg transition-colors" do %>
           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
           </svg>
@@ -66,7 +66,7 @@
               staff_member_id: @staff_member.id, 
               date: @end_date + 1.day
             ), 
-              class: "inline-flex items-center justify-center px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 font-medium rounded-lg transition-colors" do %>
+              class: "inline-flex items-center justify-center px-4 py-2 bg-light hover:bg-light text-primary font-medium rounded-lg transition-colors" do %>
           Next Week
           <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -107,7 +107,7 @@
                 <% if @calendar_data[date.to_s]&.any? %>
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <% @calendar_data[date.to_s].each do |slot| %>
-                      <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 hover:bg-blue-100 transition-colors slot-item"
+                      <div class="bg-light border border-primary/30 rounded-lg p-3 hover:bg-light transition-colors slot-item"
                            data-slot-date="<%= date.to_s %>"
                            data-slot-start="<%= slot[:start_time].iso8601 %>">
                         <div class="flex items-center justify-between">
@@ -115,11 +115,11 @@
                             <div class="text-sm font-medium text-blue-900">
                               <%= slot[:start_time].strftime('%l:%M %p').strip %>
                             </div>
-                            <div class="text-xs text-blue-700">
+                            <div class="text-xs text-primary">
                               <%= slot[:duration] %> min duration
                             </div>
                           </div>
-                          <div class="text-xs text-blue-600">
+                          <div class="text-xs text-primary">
                             Ends <%= slot[:end_time].strftime('%l:%M %p').strip %>
                           </div>
                         </div>
@@ -171,11 +171,11 @@
                     <div class="p-2 space-y-1 max-h-[200px] overflow-y-auto">
                       <% if @calendar_data[date.to_s]&.any? %>
                         <% @calendar_data[date.to_s].each do |slot| %>
-                          <div class="bg-blue-100 hover:bg-blue-200 text-blue-800 text-xs px-2 py-1.5 rounded transition-colors cursor-pointer">
+                          <div class="bg-blue-100 hover:bg-secondary/20 text-blue-800 text-xs px-2 py-1.5 rounded transition-colors cursor-pointer">
                             <div class="font-medium">
                               <%= slot[:start_time].strftime('%l:%M %p').strip %>
                             </div>
-                            <div class="text-blue-600 text-xs">
+                            <div class="text-primary text-xs">
                               <%= slot[:duration] %>min
                             </div>
                           </div>
@@ -203,11 +203,11 @@
               total_hours = @calendar_data.values.flatten.sum { |slot| @service.duration } / 60.0
             %>
             <div class="text-center">
-              <div class="text-2xl font-bold text-blue-600"><%= total_slots %></div>
+              <div class="text-2xl font-bold text-primary"><%= total_slots %></div>
               <div class="text-sm text-gray-600">Total Available Slots</div>
             </div>
             <div class="text-center">
-              <div class="text-2xl font-bold text-green-600"><%= available_days %></div>
+              <div class="text-2xl font-bold text-success"><%= available_days %></div>
               <div class="text-sm text-gray-600">Days with Availability</div>
             </div>
             <div class="text-center">
@@ -220,7 +220,7 @@
         <!-- Action Buttons -->
         <div class="mt-6 flex flex-col sm:flex-row gap-3">
           <%= link_to manage_availability_business_manager_staff_member_path(@staff_member), 
-                class: "inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors" do %>
+                class: "inline-flex items-center justify-center px-6 py-3 bg-primary hover:bg-primary text-white font-medium rounded-lg transition-colors" do %>
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
             </svg>
@@ -311,7 +311,7 @@ function initializeAvailableSlotsPage() {
     });
     
     // Update summary stats
-    const totalSlotsElement = document.querySelector('.text-2xl.font-bold.text-blue-600');
+    const totalSlotsElement = document.querySelector('.text-2xl.font-bold.text-primary');
     if (totalSlotsElement) {
       const visibleSlots = document.querySelectorAll('.slot-item:not([style*="display: none"])');
       const newTotal = visibleSlots.length;

@@ -17,15 +17,15 @@
 
       <% if is_converting %>
         <!-- Conversion In Progress Banner -->
-        <div class="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="mb-4 bg-light border border-primary/30 rounded-lg p-4">
           <div class="flex items-center">
-            <svg class="animate-spin h-5 w-5 text-blue-600 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <svg class="animate-spin h-5 w-5 text-primary mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
             <div>
               <p class="text-sm font-medium text-blue-900">Converting video to MP4...</p>
-              <p class="text-xs text-blue-700 mt-1">
+              <p class="text-xs text-primary mt-1">
                 Your <%= video_info[:content_type]&.include?('quicktime') ? 'MOV' : 'video' %> file is being converted to MP4 for better browser compatibility. 
                 <strong>Refresh the page</strong> in a moment to see the converted video.
               </p>
@@ -85,7 +85,7 @@
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Video Title (Optional)</label>
                   <%= f.text_field :video_title, value: video_info[:title],
-                                  class: "w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500",
+                                  class: "w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary",
                                   placeholder: "e.g., Welcome Video" %>
                 </div>
 
@@ -95,7 +95,7 @@
                     <label class="flex items-center">
                       <%= f.radio_button :video_display_location, 'hero',
                                         checked: business.video_display_location_hero?,
-                                        class: "rounded-full border-gray-300 text-blue-600 focus:ring-blue-500" %>
+                                        class: "rounded-full border-gray-300 text-primary focus:ring-primary" %>
                       <span class="ml-2 text-sm text-gray-700">
                         Hero Section Only
                         <span class="text-gray-500 text-xs block">Auto-plays as background video</span>
@@ -105,7 +105,7 @@
                     <label class="flex items-center">
                       <%= f.radio_button :video_display_location, 'gallery',
                                         checked: business.video_display_location_gallery?,
-                                        class: "rounded-full border-gray-300 text-blue-600 focus:ring-blue-500" %>
+                                        class: "rounded-full border-gray-300 text-primary focus:ring-primary" %>
                       <span class="ml-2 text-sm text-gray-700">
                         Gallery Section Only
                         <span class="text-gray-500 text-xs block">Shows with play controls in gallery</span>
@@ -115,7 +115,7 @@
                     <label class="flex items-center">
                       <%= f.radio_button :video_display_location, 'both',
                                         checked: business.video_display_location_both?,
-                                        class: "rounded-full border-gray-300 text-blue-600 focus:ring-blue-500" %>
+                                        class: "rounded-full border-gray-300 text-primary focus:ring-primary" %>
                       <span class="ml-2 text-sm text-gray-700">
                         Both Locations
                         <span class="text-gray-500 text-xs block">Hero background + gallery section</span>
@@ -125,11 +125,11 @@
                 </div>
 
                 <% if business.video_display_location_hero? || business.video_display_location_both? %>
-                  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div class="bg-light border border-primary/30 rounded-lg p-4">
                     <label class="flex items-start">
                       <%= f.check_box :video_autoplay_hero,
                                      checked: business.video_autoplay_hero?,
-                                     class: "rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-0.5" %>
+                                     class: "rounded border-gray-300 text-primary focus:ring-primary mt-0.5" %>
                       <span class="ml-2">
                         <span class="text-sm font-medium text-gray-900">Autoplay in Hero</span>
                         <span class="text-xs text-gray-600 block mt-1">
@@ -176,7 +176,7 @@
       </div>
     <% else %>
       <!-- Upload Video Form -->
-      <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 hover:border-blue-500 transition">
+      <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 hover:border-primary transition">
         <%= form_with url: business_manager_gallery_video_path, method: :post,
                      data: { turbo: true }, multipart: true do |f| %>
           <div class="text-center mb-6">
@@ -199,7 +199,7 @@
                        class="hidden"
                        onchange="updateFileName(this)">
                 <label for="video_file_input"
-                       class="inline-flex items-center justify-center px-6 py-2.5 bg-white text-gray-700 font-medium rounded-lg border-2 border-gray-300 hover:border-primary hover:bg-blue-50 transition-colors shadow-sm cursor-pointer">
+                       class="inline-flex items-center justify-center px-6 py-2.5 bg-white text-gray-700 font-medium rounded-lg border-2 border-gray-300 hover:border-primary hover:bg-light transition-colors shadow-sm cursor-pointer">
                   <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                   </svg>
@@ -226,9 +226,9 @@
             </script>
 
             <!-- Format Compatibility Info -->
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div class="bg-light border border-primary/30 rounded-lg p-3">
               <div class="flex items-start">
-                <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 text-primary mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
                 <div class="flex-1">
@@ -245,7 +245,7 @@
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Video Title (Optional)</label>
               <%= f.text_field :video_title,
-                              class: "w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500",
+                              class: "w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary",
                               placeholder: "e.g., Welcome to Our Business" %>
             </div>
 
@@ -254,19 +254,19 @@
               <div class="space-y-2">
                 <label class="flex items-center">
                   <%= f.radio_button :video_display_location, 'hero', checked: true,
-                                    class: "rounded-full border-gray-300 text-blue-600 focus:ring-blue-500" %>
+                                    class: "rounded-full border-gray-300 text-primary focus:ring-primary" %>
                   <span class="ml-2 text-sm text-gray-700">Hero Section (Autoplay Background)</span>
                 </label>
 
                 <label class="flex items-center">
                   <%= f.radio_button :video_display_location, 'gallery',
-                                    class: "rounded-full border-gray-300 text-blue-600 focus:ring-blue-500" %>
+                                    class: "rounded-full border-gray-300 text-primary focus:ring-primary" %>
                   <span class="ml-2 text-sm text-gray-700">Gallery Section (With Controls)</span>
                 </label>
 
                 <label class="flex items-center">
                   <%= f.radio_button :video_display_location, 'both',
-                                    class: "rounded-full border-gray-300 text-blue-600 focus:ring-blue-500" %>
+                                    class: "rounded-full border-gray-300 text-primary focus:ring-primary" %>
                   <span class="ml-2 text-sm text-gray-700">Both Locations</span>
                 </label>
               </div>
@@ -281,7 +281,7 @@
     <% end %>
 
     <!-- Video Tips -->
-    <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+    <div class="mt-6 bg-light border border-primary/30 rounded-lg p-4">
       <h4 class="text-sm font-medium text-blue-900 mb-2">💡 Video Tips</h4>
       <ul class="text-sm text-blue-800 space-y-1">
         <li>• <strong>MP4 format recommended</strong> - MOV files are auto-converted to MP4</li>

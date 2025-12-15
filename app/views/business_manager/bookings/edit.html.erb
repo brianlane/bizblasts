@@ -16,7 +16,7 @@
     <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
       <h1 class="text-xl font-bold">Edit Booking #<%= @booking.id %></h1>
       <div class="flex space-x-4">
-        <%= link_to business_manager_booking_path(@booking), class: "text-blue-600 hover:text-blue-800" do %>
+        <%= link_to business_manager_booking_path(@booking), class: "text-primary hover:text-secondary" do %>
           ← Back to Booking
         <% end %>
       </div>
@@ -58,7 +58,7 @@
             <% max_allowed_quantity = [@booking.service.max_bookings.to_i, @booking.quantity.to_i].max %>
             <%# Also consider remaining spots for new bookings/increases %>
             <% remaining_spots = @booking.service.spots.to_i + @booking.quantity.to_i %>
-            <%= f.number_field :quantity, min: 1, max: remaining_spots, class: "shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md", id: 'booking_quantity' %>
+            <%= f.number_field :quantity, min: 1, max: remaining_spots, class: "shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md", id: 'booking_quantity' %>
             <p class="mt-2 text-sm text-gray-500">
               Min: <%= @booking.service.min_bookings %>, Max: <%= @booking.service.max_bookings %>, Current Spots Remaining: <%= @booking.service.spots || 0 %>
             </p>
@@ -71,7 +71,7 @@
         <!-- Notes Field - Editable -->
         <div class="mb-6">
           <%= f.label :notes, "Booking Notes", class: "block text-sm font-medium text-gray-700 mb-2" %>
-          <%= f.text_area :notes, rows: 5, class: "shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md", placeholder: "Enter notes about this booking..." %>
+          <%= f.text_area :notes, rows: 5, class: "shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md", placeholder: "Enter notes about this booking..." %>
           <p class="mt-2 text-sm text-gray-500">
             These notes are internal and will not be visible to the customer.
           </p>
@@ -108,14 +108,14 @@
                             <%= addon_form.number_field :quantity, 
                                   min: 0, 
                                   max: current_item_stock, 
-                                  class: "shadow-sm focus:ring-blue-500 focus:border-blue-500 w-16 sm:text-sm border-gray-300 rounded-md" %>
+                                  class: "shadow-sm focus:ring-primary focus:border-primary w-16 sm:text-sm border-gray-300 rounded-md" %>
                             <% if variant.product.show_stock_to_customers? %>
                               <span class="text-xs text-gray-500 ml-2">(Available: <%= current_item_stock %>)</span>
                             <% end %>
                           </div>
                           
                           <div class="flex items-center">
-                            <%= addon_form.check_box :_destroy, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+                            <%= addon_form.check_box :_destroy, class: "h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" %>
                             <%= addon_form.label :_destroy, "Remove", class: "ml-2 text-sm text-gray-700" %>
                           </div>
                         </div>
@@ -146,7 +146,7 @@
                                     min: 0,
                                     max: variant.stock_quantity,
                                     value: 0,
-                                    class: "shadow-sm focus:ring-blue-500 focus:border-blue-500 w-16 sm:text-sm border-gray-300 rounded-md addon-quantity-input" %>
+                                    class: "shadow-sm focus:ring-primary focus:border-primary w-16 sm:text-sm border-gray-300 rounded-md addon-quantity-input" %>
                               <% if variant.product.show_stock_to_customers? %>
                                 <span class="text-xs text-gray-500 ml-2">(Available: <%= variant.stock_quantity %>)</span>
                               <% end %>
@@ -172,9 +172,9 @@
         </div>
 
         <div class="flex justify-end space-x-3">
-          <%= link_to "Cancel", business_manager_booking_path(@booking), class: "inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+          <%= link_to "Cancel", business_manager_booking_path(@booking), class: "inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary" %>
           
-          <%= f.submit "Update Booking", class: "inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+          <%= f.submit "Update Booking", class: "inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary hover:bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary" %>
         </div>
       <% end %>
     </div>

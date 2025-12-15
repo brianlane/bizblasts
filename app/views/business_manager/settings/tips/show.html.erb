@@ -23,7 +23,7 @@
                   <% @tip_configuration.tip_percentage_options.each_with_index do |percentage, index| %>
                     <%= config_form.number_field "default_tip_percentages][#{index}", 
                         value: percentage, 
-                        class: "w-20 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500",
+                        class: "w-20 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary",
                         min: 0, max: 100, step: 1 %>
                     <span class="flex items-center text-gray-500">%</span>
                   <% end %>
@@ -33,7 +33,7 @@
 
               <!-- Custom Tip Option -->
               <div class="flex items-center">
-                <%= config_form.check_box :custom_tip_enabled, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+                <%= config_form.check_box :custom_tip_enabled, class: "h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" %>
                 <%= config_form.label :custom_tip_enabled, "Allow custom tip amounts", class: "ml-2 text-sm text-gray-700" %>
               </div>
 
@@ -41,7 +41,7 @@
               <div>
                 <%= config_form.label :tip_message, "Custom tip message (optional)", class: "block text-sm font-medium text-gray-700" %>
                 <%= config_form.text_area :tip_message, 
-                    class: "mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500",
+                    class: "mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary",
                     rows: 3,
                     placeholder: "Thank you for your business! Tips are greatly appreciated." %>
               </div>
@@ -54,7 +54,7 @@
           <h3 class="text-lg font-medium text-gray-900 mb-4">Tip Reminder Settings</h3>
           <div class="space-y-4">
             <div class="flex items-center">
-              <%= form.check_box :tip_mailer_if_no_tip_received, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+              <%= form.check_box :tip_mailer_if_no_tip_received, class: "h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" %>
               <%= form.label :tip_mailer_if_no_tip_received, "Send tip reminder if no tip received on initial payment", class: "ml-2 text-sm text-gray-700" %>
             </div>
             <p class="text-xs text-gray-500 ml-6">When enabled, customers will receive an email reminder to tip after service completion if they didn't tip during the initial payment. This applies to all services with tips enabled.</p>
@@ -73,7 +73,7 @@
                 </div>
                 <div class="flex items-center">
                   <%= check_box_tag "products[#{product.id}][tips_enabled]", "1", product.tips_enabled?, 
-                      class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+                      class: "h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" %>
                   <%= label_tag "products[#{product.id}][tips_enabled]", "Enable tips", class: "ml-2 text-sm text-gray-700" %>
                 </div>
               </div>
@@ -95,18 +95,18 @@
                     <span class="font-medium text-gray-900"><%= service.name %></span>
                     <span class="text-sm text-gray-500 ml-2">$<%= service.price %></span>
                     <% if service.service_type.present? %>
-                      <span class="text-xs text-blue-600 ml-2 px-2 py-1 bg-blue-100 rounded-full"><%= service.service_type.humanize %></span>
+                      <span class="text-xs text-primary ml-2 px-2 py-1 bg-blue-100 rounded-full"><%= service.service_type.humanize %></span>
                     <% end %>
                   </div>
                   <div class="flex items-center">
                     <%= check_box_tag "services[#{service.id}][tips_enabled]", "1", service.tips_enabled?, 
-                        class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+                        class: "h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" %>
                     <%= label_tag "services[#{service.id}][tips_enabled]", "Enable tips", class: "ml-2 text-sm text-gray-700" %>
                   </div>
                 </div>
                 <div class="flex items-center ml-4" style="<%= 'display: none;' unless service.tips_enabled? %>">
                   <%= check_box_tag "services[#{service.id}][tip_mailer_if_no_tip_received]", "1", service.tip_mailer_if_no_tip_received?, 
-                      class: "h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+                      class: "h-3 w-3 text-primary focus:ring-primary border-gray-300 rounded" %>
                   <%= label_tag "services[#{service.id}][tip_mailer_if_no_tip_received]", "Send tip reminder if no tip received", class: "ml-2 text-xs text-gray-600" %>
                 </div>
               </div>
@@ -118,7 +118,7 @@
         </div>
 
         <!-- Information Panel -->
-        <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+        <div class="bg-light border border-primary/30 rounded-md p-4">
           <div class="flex">
             <div class="flex-shrink-0">
               <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -127,7 +127,7 @@
             </div>
             <div class="ml-3">
               <h3 class="text-sm font-medium text-blue-800">Important Information</h3>
-              <div class="mt-2 text-sm text-blue-700">
+              <div class="mt-2 text-sm text-primary">
                 <ul class="list-disc pl-5 space-y-1">
                   <li><strong>All Services:</strong> Tips can now be added during initial payment or separately after service completion</li>
                   <li><strong>Products:</strong> Tips can be added during checkout</li>
@@ -145,7 +145,7 @@
         </div>
 
         <div class="flex justify-end">
-          <%= form.submit "Save Settings", class: "cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" %>
+          <%= form.submit "Save Settings", class: "cursor-pointer bg-primary hover:bg-primary text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2" %>
         </div>
       <% end %>
     </div>

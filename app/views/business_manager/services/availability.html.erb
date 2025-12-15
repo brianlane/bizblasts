@@ -14,7 +14,7 @@
           Configure when "<%= @service.name %>" is available - Week of <%= @start_date.strftime("%b %d, %Y") %>
         </p>
         <div class="flex flex-col sm:flex-row gap-2">
-          <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div class="mt-3 p-3 bg-light border border-primary/30 rounded-lg">
             <p class="text-sm text-blue-800">
               <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -31,7 +31,7 @@
     <div class="border-t border-gray-200 px-4 py-4 sm:px-6">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <%= link_to manage_availability_business_manager_service_path(@service, date: @start_date - 7.days), 
-              class: "inline-flex items-center justify-center px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 font-medium rounded-lg transition-colors" do %>
+              class: "inline-flex items-center justify-center px-4 py-2 bg-light hover:bg-light text-primary font-medium rounded-lg transition-colors" do %>
           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
           </svg>
@@ -45,7 +45,7 @@
         </div>
         
         <%= link_to manage_availability_business_manager_service_path(@service, date: @end_date + 1.day), 
-              class: "inline-flex items-center justify-center px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 font-medium rounded-lg transition-colors" do %>
+              class: "inline-flex items-center justify-center px-4 py-2 bg-light hover:bg-light text-primary font-medium rounded-lg transition-colors" do %>
           Next Week
           <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -120,7 +120,7 @@
                                id="full_day_<%= day %>" 
                                name="full_day[<%= day %>]"
                                value="1"
-                               class="full-day-checkbox w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2" 
+                               class="full-day-checkbox w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary focus:ring-2" 
                                data-day="<%= day %>"
                                data-action="change->service-availability#toggleFullDay"
                                <%= 'checked' if @service.availability&.dig(day)&.any? { |slot| slot['start'] == '00:00' && slot['end'] == '23:59' } %> />
@@ -149,7 +149,7 @@
                               <input type="time"
                                      name="service[availability][<%= day %>][<%= index %>][start]"
                                      value="<%= slot['start'] || '09:00' %>"
-                                     class="time-input flex-1 min-w-[105px] max-w-[135px] px-2 py-2 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                     class="time-input flex-1 min-w-[105px] max-w-[135px] px-2 py-2 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
                                      placeholder="09:00"
                                      data-action="change->service-availability#validateTimeSlot"
                                      data-service-availability-target="startTimeInput" />
@@ -159,7 +159,7 @@
                               <input type="time"
                                      name="service[availability][<%= day %>][<%= index %>][end]"
                                      value="<%= slot['end'] || '17:00' %>"
-                                     class="time-input flex-1 min-w-[105px] max-w-[135px] px-2 py-2 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                     class="time-input flex-1 min-w-[105px] max-w-[135px] px-2 py-2 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
                                      placeholder="17:00"
                                      data-action="change->service-availability#validateTimeSlot"
                                      data-service-availability-target="endTimeInput" />
@@ -179,7 +179,7 @@
                     </div>
                     
                     <button type="button" 
-                            class="add-slot-btn mt-3 w-full px-3 py-2 border-2 border-dashed border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-600 rounded-md transition-colors cursor-pointer"
+                            class="add-slot-btn mt-3 w-full px-3 py-2 border-2 border-dashed border-gray-300 text-gray-600 hover:border-blue-400 hover:text-primary rounded-md transition-colors cursor-pointer"
                             data-day="<%= day %>"
                             data-action="click->service-availability#addTimeSlot">
                       <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -200,7 +200,7 @@
                            id="only_current_week"
                            name="service[only_current_week]"
                            value="1"
-                           class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2" />
+                           class="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary focus:ring-2" />
                   </div>
                   <div class="ml-3">
                     <label for="only_current_week" class="text-sm font-medium text-gray-900">
@@ -214,7 +214,7 @@
               <!-- Submit Button -->
               <div class="pt-4">
                 <%= f.submit "Save Availability", 
-                      class: "w-full bg-primary text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer",
+                      class: "w-full bg-primary text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer",
                       data: { "service-availability-target": "submitButton" } %>
               </div>
             <% end %>
@@ -345,10 +345,10 @@
   <div class="mt-6 border-t pt-6">
     <div class="flex justify-center items-center gap-4">
       <%= link_to 'Edit Service', edit_business_manager_service_path(@service), 
-            class: "inline-flex items-center px-4 py-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors font-medium" %>
+            class: "inline-flex items-center px-4 py-2 text-primary hover:text-primary hover:bg-light rounded-md transition-colors font-medium" %>
       <span class="text-gray-400">|</span>
       <%= link_to 'Back to Services', business_manager_services_path, 
-            class: "inline-flex items-center px-4 py-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors font-medium" %>
+            class: "inline-flex items-center px-4 py-2 text-primary hover:text-primary hover:bg-light rounded-md transition-colors font-medium" %>
     </div>
   </div>
 </div>

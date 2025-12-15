@@ -67,13 +67,13 @@
             
             <div>
               <dt class="text-sm font-medium text-gray-500">Monthly Price</dt>
-              <dd class="mt-1 text-lg font-semibold text-green-600">
+              <dd class="mt-1 text-lg font-semibold text-success">
                 <%= number_to_currency(@customer_subscription.subscription_price) %>
                 <% if @customer_subscription.discount_amount > 0 %>
                   <span class="text-sm text-gray-500 line-through ml-2">
                     <%= number_to_currency(@customer_subscription.original_price) %>
                   </span>
-                  <span class="text-sm text-green-600 ml-1">
+                  <span class="text-sm text-success ml-1">
                     (Save <%= number_to_currency(@customer_subscription.discount_amount) %>)
                   </span>
                 <% end %>
@@ -137,7 +137,7 @@
                 <dt class="text-sm font-medium text-gray-500">Product Name</dt>
                 <dd class="mt-1 text-sm text-gray-900">
                   <%= link_to product.name, business_manager_product_path(product), 
-                        class: "text-blue-600 hover:text-blue-800" %>
+                        class: "text-primary hover:text-secondary" %>
                 </dd>
               </div>
               
@@ -171,7 +171,7 @@
                 <dt class="text-sm font-medium text-gray-500">Service Name</dt>
                 <dd class="mt-1 text-sm text-gray-900">
                   <%= link_to service.name, business_manager_service_path(service), 
-                        class: "text-blue-600 hover:text-blue-800" %>
+                        class: "text-primary hover:text-secondary" %>
                 </dd>
               </div>
               
@@ -221,7 +221,7 @@
               <p class="mt-1 max-w-2xl text-sm text-gray-500">Last 10 subscription transactions</p>
             </div>
             <%= link_to billing_history_business_manager_customer_subscription_path(@customer_subscription), 
-                  class: "text-blue-600 hover:text-blue-800 text-sm font-medium" do %>
+                  class: "text-primary hover:text-secondary text-sm font-medium" do %>
               View Full History →
             <% end %>
           </div>
@@ -296,7 +296,7 @@
               <dt class="text-sm font-medium text-gray-500">Name</dt>
               <dd class="mt-1 text-sm text-gray-900">
                 <%= link_to customer.full_name, business_manager_customer_path(customer), 
-                      class: "text-blue-600 hover:text-blue-800" %>
+                      class: "text-primary hover:text-secondary" %>
               </dd>
             </div>
             
@@ -304,7 +304,7 @@
               <dt class="text-sm font-medium text-gray-500">Email</dt>
               <dd class="mt-1 text-sm text-gray-900">
                 <%= mail_to customer.email, customer.email, 
-                      class: "text-blue-600 hover:text-blue-800" %>
+                      class: "text-primary hover:text-secondary" %>
               </dd>
             </div>
             
@@ -313,7 +313,7 @@
                 <dt class="text-sm font-medium text-gray-500">Phone</dt>
                 <dd class="mt-1 text-sm text-gray-900">
                   <%= link_to customer.phone, "tel:#{customer.phone}", 
-                        class: "text-blue-600 hover:text-blue-800" %>
+                        class: "text-primary hover:text-secondary" %>
                 </dd>
               </div>
             <% end %>

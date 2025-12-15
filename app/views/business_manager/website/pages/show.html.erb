@@ -26,13 +26,13 @@
         <!-- Action Buttons -->
         <div class="flex items-stretch gap-1.5 sm:gap-3 sm:flex-shrink-0">
           <%= link_to "Edit Page", edit_business_manager_website_page_path(@page), 
-              class: "flex-1 sm:flex-none inline-flex items-center justify-center px-2.5 py-2 sm:px-4 bg-secondary hover:bg-teal-600 text-white text-xs sm:text-sm font-medium rounded-md sm:rounded-lg transition-colors duration-200 shadow-sm" %>
+              class: "flex-1 sm:flex-none inline-flex items-center justify-center px-2.5 py-2 sm:px-4 bg-secondary hover:bg-secondary text-white text-xs sm:text-sm font-medium rounded-md sm:rounded-lg transition-colors duration-200 shadow-sm" %>
           <%= link_to "Edit Sections", business_manager_website_page_sections_path(@page), 
-              class: "flex-1 sm:flex-none inline-flex items-center justify-center px-2.5 py-2 sm:px-4 bg-secondary hover:bg-teal-600 text-white text-xs sm:text-sm font-medium rounded-md sm:rounded-lg transition-colors duration-200 shadow-sm" %>
+              class: "flex-1 sm:flex-none inline-flex items-center justify-center px-2.5 py-2 sm:px-4 bg-secondary hover:bg-secondary text-white text-xs sm:text-sm font-medium rounded-md sm:rounded-lg transition-colors duration-200 shadow-sm" %>
           <%= link_to "Back", business_manager_website_pages_path, 
               class: "sm:hidden inline-flex items-center justify-center px-2.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-md transition-colors duration-200" %>
           <%= link_to "Back to Pages", business_manager_website_pages_path, 
-              class: "hidden sm:inline-flex items-center justify-center px-4 py-2 bg-secondary hover:bg-teal-600 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm" %>
+              class: "hidden sm:inline-flex items-center justify-center px-4 py-2 bg-secondary hover:bg-secondary text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm" %>
         </div>
       </div>
     </div>
@@ -98,7 +98,7 @@
                      <div class="mt-1">
                        <%= link_to public_page_url(@page), 
                            target: "_blank", 
-                           class: "text-lg font-mono text-primary hover:text-blue-700 transition-colors duration-200 underline decoration-2 underline-offset-2" do %>
+                           class: "text-lg font-mono text-primary hover:text-primary transition-colors duration-200 underline decoration-2 underline-offset-2" do %>
                          /<%= @page.slug %>
                        <% end %>
                      </div>
@@ -106,7 +106,7 @@
                    <div class="text-secondary ml-3">
                      <%= link_to public_page_url(@page), 
                          target: "_blank", 
-                         class: "hover:text-teal-600 transition-colors duration-200" do %>
+                         class: "hover:text-secondary transition-colors duration-200" do %>
                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
                        </svg>
@@ -140,7 +140,7 @@
                 </svg>
                 Page Sections
               </h2>
-              <span class="bg-white bg-opacity-20 text-teal-600 px-3 py-1 rounded-full text-sm font-medium">
+              <span class="bg-white bg-opacity-20 text-secondary px-3 py-1 rounded-full text-sm font-medium">
                 <%= pluralize(@page.page_sections.count, 'section') %>
               </span>
             </div>
@@ -187,7 +187,7 @@
                 <h3 class="text-lg font-medium text-gray-900 mb-2">No sections added yet</h3>
                 <p class="text-gray-500 mb-4">Start building your page by adding sections</p>
                 <%= link_to "Add Sections", business_manager_website_page_sections_path(@page), 
-                    class: "inline-flex items-center px-4 py-2 bg-secondary hover:bg-teal-600 text-white font-medium rounded-lg transition-colors duration-200" %>
+                    class: "inline-flex items-center px-4 py-2 bg-secondary hover:bg-secondary text-white font-medium rounded-lg transition-colors duration-200" %>
               </div>
             <% end %>
           </div>
@@ -195,10 +195,10 @@
 
         <!-- Homepage Special Notice -->
         <% if @page.page_type == 'home' %>
-          <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
+          <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-primary/30 rounded-xl p-6">
             <div class="flex items-start space-x-3">
               <div class="flex-shrink-0">
-                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
                 </svg>
               </div>
@@ -253,7 +253,7 @@
               </div>
               <div class="flex items-center justify-between">
                 <span class="text-sm font-medium text-gray-500">Active Sections</span>
-                <span class="text-2xl font-bold text-green-600"><%= @page.page_sections.where(active: true).count %></span>
+                <span class="text-2xl font-bold text-success"><%= @page.page_sections.where(active: true).count %></span>
               </div>
               <div class="flex items-center justify-between">
                 <span class="text-sm font-medium text-gray-500">Last Updated</span>

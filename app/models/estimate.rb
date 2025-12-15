@@ -8,6 +8,7 @@ class Estimate < ApplicationRecord
 
   has_many :estimate_items, dependent: :destroy
   has_many :estimate_versions, dependent: :destroy
+  has_many :estimate_messages, dependent: :destroy
 
   has_one_attached :pdf # Generated PDF attachment
   has_one :client_document, as: :documentable, dependent: :destroy
@@ -35,6 +36,9 @@ class Estimate < ApplicationRecord
     cancelled: 5,
     pending_payment: 6
   }
+
+  # Set default status to draft for new records
+  after_initialize :set_default_status, if: :new_record?
 
   validates :first_name, :last_name, :email, :phone, :address, :city, :state, :zip,
             presence: true, if: -> { tenant_customer_id.blank? }
@@ -306,6 +310,10 @@ class Estimate < ApplicationRecord
 
   def set_valid_for_days_default
     self.valid_for_days = 30 if valid_for_days.blank?
+  end
+
+  def set_default_status
+    self.status ||= :draft
   end
 
   # Assign sequential positions to items that don't have proper positions

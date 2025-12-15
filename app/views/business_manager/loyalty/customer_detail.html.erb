@@ -109,7 +109,7 @@
             <div class="px-4 py-5 sm:p-6">
               <div class="flex items-center">
                 <div class="flex-shrink-0">
-                  <div class="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
+                  <div class="w-8 h-8 bg-success rounded-md flex items-center justify-center">
                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
                     </svg>
@@ -129,7 +129,7 @@
             <div class="px-4 py-5 sm:p-6">
               <div class="flex items-center">
                 <div class="flex-shrink-0">
-                  <div class="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+                  <div class="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                     </svg>
@@ -181,7 +181,7 @@
                         <h3 class="text-sm font-medium text-gray-900"><%= option[:description] %></h3>
                         <p class="text-sm text-gray-500"><%= option[:points] %> points required</p>
                       </div>
-                      <div class="text-lg font-medium text-green-600">
+                      <div class="text-lg font-medium text-success">
                         $<%= option[:discount_amount] %>
                       </div>
                     </div>
@@ -206,7 +206,7 @@
                       <div class="flex-shrink-0">
                         <% if transaction.earned? %>
                           <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                             </svg>
                           </div>
@@ -228,7 +228,7 @@
                       </div>
                     </div>
                     <div class="text-sm font-medium">
-                      <span class="<%= transaction.earned? ? 'text-green-600' : 'text-red-600' %>">
+                      <span class="<%= transaction.earned? ? 'text-success' : 'text-red-600' %>">
                         <%= transaction.earned? ? '+' : '' %><%= transaction.points_amount %> points
                       </span>
                     </div>

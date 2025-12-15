@@ -9,10 +9,16 @@
 
   <div class="space-y-1.5">
     <%= form.label :document_type, class: "block text-sm font-medium text-gray-700" %>
-    <%= form.select :document_type,
-                    options_for_select(DocumentTemplate::DOCUMENT_TYPES, @template.document_type),
-                    {},
-                    class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+    <div class="mt-1">
+      <%= render 'shared/rich_dropdown',
+            collection: DocumentTemplate::DOCUMENT_TYPES.map { |label, value| OpenStruct.new(id: value, name: label) },
+            field_name: 'document_template[document_type]',
+            selected_value: @template.document_type,
+            prompt_text: 'Select document type',
+            value_method: :id,
+            text_method: :name,
+            dropdown_id: 'document_template_type_dropdown' %>
+    </div>
     <p class="text-xs text-gray-500">Determines where this template shows up in client-facing flows.</p>
   </div>
 

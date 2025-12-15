@@ -20,7 +20,7 @@
     <div class="border-t border-gray-200 px-4 py-3 sm:px-6 bg-gray-50">
       <div class="flex flex-wrap gap-2">
         <%= link_to business_manager_rental_bookings_path, 
-              class: "px-3 py-1.5 rounded-full text-sm font-medium #{params[:status].blank? ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}" do %>
+              class: "px-3 py-1.5 rounded-full text-sm font-medium #{params[:status].blank? ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}" do %>
           All
         <% end %>
         <%= link_to business_manager_rental_bookings_path(status: 'pending_deposit'), 
@@ -28,7 +28,7 @@
           Pending Deposit <span class="ml-1 text-xs">(<%= @pending_count %>)</span>
         <% end %>
         <%= link_to business_manager_rental_bookings_path(status: 'deposit_paid'), 
-              class: "px-3 py-1.5 rounded-full text-sm font-medium #{params[:status] == 'deposit_paid' ? 'bg-blue-500 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}" do %>
+              class: "px-3 py-1.5 rounded-full text-sm font-medium #{params[:status] == 'deposit_paid' ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}" do %>
           Ready for Pickup
         <% end %>
         <%= link_to business_manager_rental_bookings_path(status: 'checked_out'), 
@@ -44,9 +44,9 @@
 
     <!-- Quick Stats -->
     <div class="border-t border-gray-200 px-4 py-3 sm:px-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div class="text-center p-3 bg-blue-50 rounded-lg">
-        <div class="text-2xl font-bold text-blue-600"><%= @active_count %></div>
-        <div class="text-xs text-blue-500">Active Rentals</div>
+      <div class="text-center p-3 bg-light rounded-lg">
+        <div class="text-2xl font-bold text-primary"><%= @active_count %></div>
+        <div class="text-xs text-primary">Active Rentals</div>
       </div>
       <div class="text-center p-3 bg-yellow-50 rounded-lg">
         <div class="text-2xl font-bold text-yellow-600"><%= @today_pickups_count %></div>
@@ -72,7 +72,7 @@
                   <div class="flex items-start justify-between">
                     <div>
                       <%= link_to booking.rental_name, business_manager_rental_booking_path(booking), 
-                            class: "text-lg font-semibold text-blue-600 hover:text-blue-800" %>
+                            class: "text-lg font-semibold text-primary hover:text-secondary" %>
                       <div class="text-sm text-gray-500 mt-1">
                         Booking #<%= booking.booking_number %>
                       </div>
@@ -112,7 +112,7 @@
                     </div>
                     <div>
                       <span class="text-gray-500">Total:</span>
-                      <div class="font-medium text-green-600"><%= number_to_currency(booking.total_amount) %></div>
+                      <div class="font-medium text-success"><%= number_to_currency(booking.total_amount) %></div>
                     </div>
                   </div>
                   

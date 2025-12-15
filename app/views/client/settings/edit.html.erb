@@ -238,7 +238,7 @@
                 <h3 class="text-sm font-medium text-gray-900"><%= customer.business.name %></h3>
                 <p class="text-xs text-gray-500">
                   <% if customer.phone_opt_in? && !customer.opted_out_from_business?(customer.business) %>
-                    <span class="text-green-600">✓ Subscribed to SMS</span>
+                    <span class="text-success">✓ Subscribed to SMS</span>
                   <% elsif customer.opted_out_from_business?(customer.business) %>
                     <span class="text-red-600">✗ Opted out from this business</span>
                   <% else %>

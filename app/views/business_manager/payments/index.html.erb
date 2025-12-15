@@ -8,15 +8,22 @@
         <p class="text-gray-600 mt-1">View and manage all payment transactions</p>
       </div>
       
+      <div class="flex space-x-3">
+        <%= link_to business_manager_csv_index_path,
+              class: "inline-flex items-center px-4 py-2 border border-emerald-300 text-sm font-medium rounded-md text-emerald-700 bg-white hover:bg-emerald-50 transition-colors" do %>
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+          </svg>
+          Import/Export
+        <% end %>
       <% if @current_business.stripe_account_id.present? %>
-        <div class="flex space-x-3">
           <%= link_to "View in Stripe Dashboard", 
                 stripe_dashboard_payments_url, 
                 target: "_blank",
                 rel: "noopener",
                 class: "inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors" %>
+        <% end %>
         </div>
-      <% end %>
     </div>
   </div>
 </div>
