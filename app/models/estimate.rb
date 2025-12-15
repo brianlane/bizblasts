@@ -8,6 +8,7 @@ class Estimate < ApplicationRecord
 
   has_many :estimate_items, dependent: :destroy
   has_many :estimate_versions, dependent: :destroy
+  has_many :estimate_messages, dependent: :destroy
 
   has_one_attached :pdf # Generated PDF attachment
   has_one :client_document, as: :documentable, dependent: :destroy

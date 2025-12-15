@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_14_100050) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_15_221119) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -503,6 +503,31 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_14_100050) do
     t.index ["tenant_customer_id"], name: "index_client_documents_on_tenant_customer_id"
   end
 
+  create_table "csv_import_runs", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "created_count", default: 0
+    t.integer "error_count", default: 0
+    t.jsonb "error_report", default: {}, null: false
+    t.datetime "finished_at"
+    t.string "import_type", null: false
+    t.string "original_filename"
+    t.integer "processed_rows", default: 0
+    t.integer "skipped_count", default: 0
+    t.datetime "started_at"
+    t.integer "status", default: 0, null: false
+    t.jsonb "summary", default: {}, null: false
+    t.integer "total_rows", default: 0
+    t.datetime "updated_at", null: false
+    t.integer "updated_count", default: 0
+    t.bigint "user_id"
+    t.index ["business_id", "created_at"], name: "index_csv_import_runs_on_business_id_and_created_at"
+    t.index ["business_id"], name: "index_csv_import_runs_on_business_id"
+    t.index ["import_type"], name: "index_csv_import_runs_on_import_type"
+    t.index ["status"], name: "index_csv_import_runs_on_status"
+    t.index ["user_id"], name: "index_csv_import_runs_on_user_id"
+  end
+
   create_table "customer_subscriptions", force: :cascade do |t|
     t.boolean "allow_customer_preferences", default: true, null: false
     t.integer "billing_day_of_month", null: false
@@ -636,6 +661,20 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_14_100050) do
     t.index ["product_id"], name: "index_estimate_items_on_product_id"
     t.index ["product_variant_id"], name: "index_estimate_items_on_product_variant_id"
     t.index ["service_id"], name: "index_estimate_items_on_service_id"
+  end
+
+  create_table "estimate_messages", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.datetime "created_at", null: false
+    t.bigint "estimate_id", null: false
+    t.text "message", null: false
+    t.string "sender_email"
+    t.string "sender_name"
+    t.string "sender_type", null: false
+    t.datetime "updated_at", null: false
+    t.index ["business_id"], name: "index_estimate_messages_on_business_id"
+    t.index ["estimate_id", "created_at"], name: "index_estimate_messages_on_estimate_id_and_created_at"
+    t.index ["estimate_id"], name: "index_estimate_messages_on_estimate_id"
   end
 
   create_table "estimate_versions", force: :cascade do |t|
@@ -2061,6 +2100,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_14_100050) do
   add_foreign_key "client_documents", "document_templates"
   add_foreign_key "client_documents", "invoices"
   add_foreign_key "client_documents", "tenant_customers"
+  add_foreign_key "csv_import_runs", "businesses"
+  add_foreign_key "csv_import_runs", "users"
   add_foreign_key "customer_subscriptions", "businesses", on_delete: :cascade
   add_foreign_key "customer_subscriptions", "product_variants"
   add_foreign_key "customer_subscriptions", "products"
@@ -2078,6 +2119,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_14_100050) do
   add_foreign_key "estimate_items", "product_variants"
   add_foreign_key "estimate_items", "products"
   add_foreign_key "estimate_items", "services"
+  add_foreign_key "estimate_messages", "businesses"
+  add_foreign_key "estimate_messages", "estimates"
   add_foreign_key "estimate_versions", "estimates"
   add_foreign_key "estimates", "bookings"
   add_foreign_key "estimates", "businesses"

@@ -234,7 +234,10 @@ class Business < ApplicationRecord
   # Accounting exports (QuickBooks Online)
   has_one :quickbooks_connection, dependent: :destroy
   has_many :quickbooks_export_runs, dependent: :destroy
-  
+
+  # CSV Import/Export
+  has_many :csv_import_runs, dependent: :destroy
+
   # Website customization associations
   has_many :website_themes, dependent: :destroy
   has_one :active_website_theme, -> { where(active: true) }, class_name: 'WebsiteTheme'

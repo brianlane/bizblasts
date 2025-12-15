@@ -74,8 +74,9 @@ class Public::EstimatesController < ApplicationController
   end
 
   def request_changes
-    message = params.fetch(:changes_request, "Customer has requested changes, please review.")
+    message_text = params.fetch(:changes_request, "Customer has requested changes, please review.")
 
+    estimate_message = nil
     success = ActiveRecord::Base.transaction do
       @estimate.lock!
 
@@ -83,11 +84,20 @@ class Public::EstimatesController < ApplicationController
         raise ActiveRecord::Rollback
       end
 
+      # Save the message to the database
+      estimate_message = @estimate.estimate_messages.create!(
+        business: @estimate.business,
+        sender_type: 'customer',
+        sender_name: @estimate.customer_full_name || @estimate.tenant_customer&.full_name,
+        sender_email: @estimate.customer_email || @estimate.tenant_customer&.email,
+        message: message_text
+      )
+
       true
     end
 
     if success
-      EstimateMailer.request_changes_notification(@estimate, message).deliver_later
+      EstimateMailer.request_changes_notification(@estimate, estimate_message).deliver_later
       redirect_to public_estimate_path(token: @estimate.token),
         notice: 'Your change request has been sent.'
     else

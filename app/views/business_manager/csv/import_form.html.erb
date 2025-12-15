@@ -1,0 +1,126 @@
+<%# app/views/business_manager/csv/import_form.html.erb %>
+<div class="container mx-auto px-4 py-4 sm:py-8">
+  <div class="max-w-2xl mx-auto">
+    <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
+      <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-6 sm:px-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-white">
+              Import <%= @import_type.humanize.titleize %>
+            </h1>
+            <p class="text-blue-100 mt-1 text-sm">Upload a CSV file to import data</p>
+          </div>
+          <%= link_to business_manager_csv_index_path,
+                class: "inline-flex items-center justify-center px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 text-sm font-medium rounded-lg text-white hover:bg-white/20 transition-all duration-200" do %>
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Back
+          <% end %>
+        </div>
+      </div>
+
+      <div class="p-6">
+        <%= form_with url: import_business_manager_csv_index_path(type: @import_type),
+                      method: :post,
+                      multipart: true,
+                      local: true,
+                      class: "space-y-6" do |f| %>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">CSV File</label>
+            <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-400 transition-colors">
+              <div class="space-y-1 text-center">
+                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                  <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div class="flex text-sm text-gray-600">
+                  <label class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                    <span>Upload a file</span>
+                    <%= file_field_tag :file,
+                          accept: '.csv,text/csv',
+                          class: "sr-only",
+                          onchange: "document.getElementById('file-name').textContent = this.files[0].name" %>
+                  </label>
+                  <p class="pl-1">or drag and drop</p>
+                </div>
+                <p class="text-xs text-gray-500" id="file-name">CSV file up to 10MB</p>
+              </div>
+            </div>
+            <p class="mt-2 text-sm text-gray-500">
+              Max file size: 10MB. Max rows: 10,000.
+              <%= link_to "Download template", template_business_manager_csv_index_path(type: @import_type, format: :csv), class: "text-blue-600 hover:text-blue-800 underline" %>
+            </p>
+          </div>
+
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <div class="ml-3">
+                <h3 class="text-sm font-medium text-blue-800">Import Mode: Create & Update</h3>
+                <div class="mt-2 text-sm text-blue-700">
+                  <p>
+                    Records will be matched by
+                    <strong><%= case @import_type
+                      when 'customers' then 'email address'
+                      when 'products', 'services' then 'name'
+                      when 'invoices' then 'invoice number'
+                      when 'orders' then 'order number'
+                      else 'unique identifier'
+                      end %></strong>.
+                    Existing records will be updated, new records will be created.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-4 pt-4 border-t border-gray-200">
+            <%= link_to "Cancel", business_manager_csv_index_path,
+                  class: "px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium" %>
+            <%= submit_tag "Start Import",
+                  class: "px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium cursor-pointer" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Recent Imports for this type -->
+    <% if @recent_imports.any? %>
+      <div class="mt-8 bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h2 class="text-lg font-semibold text-gray-900">Recent <%= @import_type.humanize %> Imports</h2>
+        </div>
+        <div class="divide-y divide-gray-200">
+          <% @recent_imports.each do |run| %>
+            <div class="px-6 py-4 flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-900"><%= run.original_filename %></p>
+                <p class="text-sm text-gray-500"><%= run.created_at.strftime('%b %d, %Y at %H:%M') %></p>
+              </div>
+              <div class="flex items-center gap-3">
+                <% badge_class = case run.status
+                   when 'succeeded' then 'bg-green-100 text-green-800 border-green-200'
+                   when 'partial' then 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                   when 'failed' then 'bg-red-100 text-red-800 border-red-200'
+                   when 'running' then 'bg-blue-100 text-blue-800 border-blue-200'
+                   else 'bg-gray-100 text-gray-800 border-gray-200'
+                   end %>
+                <span class="px-2 py-1 rounded-full text-xs font-medium border <%= badge_class %>">
+                  <%= run.status.humanize %>
+                </span>
+                <% if run.running? %>
+                  <%= link_to "View", import_status_business_manager_csv_index_path(id: run.id), class: "text-blue-600 hover:text-blue-800 text-sm font-medium" %>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>

@@ -1,5 +1,18 @@
-<p>A change has been requested for Estimate ##<%= @estimate.id %>.</p>
-<p>Customer: <%= @estimate.tenant_customer&.full_name || @estimate.first_name %></p>
-<p>Message:</p>
-<p><%= simple_format(@message) %></p>
-<p>You can view the estimate here: <%= link_to 'View Estimate', business_manager_estimate_url(@estimate, host: "#{@estimate.business.subdomain}.#{Rails.application.config.main_domain}") %></p> 
+<p>A change has been requested for Estimate <%= @estimate.estimate_number || "##{@estimate.id}" %>.</p>
+
+<p><strong>Customer:</strong> <%= @sender_name || @estimate.tenant_customer&.full_name || @estimate.first_name %><br>
+<% if @sender_email.present? %>
+<strong>Email:</strong> <%= @sender_email %><br>
+<% end %>
+</p>
+
+<p><strong>Message:</strong></p>
+<blockquote style="border-left: 3px solid #ccc; padding-left: 15px; margin: 10px 0; color: #555;">
+  <%= simple_format(@message) %>
+</blockquote>
+
+<% if @estimate.pdf.attached? %>
+<p><em>The current estimate PDF is attached for your reference.</em></p>
+<% end %>
+
+<p>You can view the estimate here: <%= link_to 'View Estimate', business_manager_estimate_url(@estimate, host: "#{@estimate.business.subdomain}.#{Rails.application.config.main_domain}") %></p>

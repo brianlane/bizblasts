@@ -174,6 +174,10 @@ application.register("rental-durations", RentalDurationsController)
 import RentalPricingController from "./controllers/rental_pricing_controller"
 application.register("rental-pricing", RentalPricingController)
 
+// CSV Import progress controller
+import ImportProgressController from "./controllers/import_progress_controller"
+application.register("import-progress", ImportProgressController)
+
 // Auto-discovery for additional controllers (compatible approach)
 // This will automatically discover and register any controllers not manually registered above
 function autoDiscoverControllers() {
@@ -190,7 +194,8 @@ function autoDiscoverControllers() {
       'navbar', 'dropdown', 'customer-dropdown', 'product-variants', 'service-form', 'sortable', 'hello',
       'service-variants', 'dropdown-updater', 'service-availability', 'google-business-search', 'qr-payment',
       'place-id-lookup', 'enhanced-layout-selector', 'photo-upload', 'gallery-manager', 'gallery-lightbox', 'gallery-carousel',
-      'hero-video', 'date-picker', 'dynamic-line-items', 'estimate-line-items', 'signature-pad', 'rental-durations'
+      'hero-video', 'date-picker', 'dynamic-line-items', 'estimate-line-items', 'signature-pad', 'rental-durations',
+      'rental-pricing', 'import-progress'
     ]);
     
     // Dynamically import and register each controller

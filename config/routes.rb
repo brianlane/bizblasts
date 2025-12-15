@@ -332,6 +332,7 @@ Rails.application.routes.draw do
       resources :estimates do
         member do
           patch :send_to_customer
+          patch :resend_to_customer
           get :download_pdf
           post :duplicate
           get :versions
@@ -343,6 +344,18 @@ Rails.application.routes.draw do
       resources :transactions, only: [:index, :show] do
         collection do
           get :download_csv
+        end
+      end
+
+      # CSV Import/Export
+      resources :csv, only: [:index] do
+        collection do
+          get 'export/:type', action: :export, as: :export
+          get 'template/:type', action: :template, as: :template
+          get 'import/:type', action: :import_form, as: :import_form
+          post 'import/:type', action: :import, as: :import
+          get 'import/:id/status', action: :import_status, as: :import_status
+          get 'import/:id/errors', action: :import_errors, as: :import_errors
         end
       end
 

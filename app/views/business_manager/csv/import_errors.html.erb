@@ -1,0 +1,101 @@
+<%# app/views/business_manager/csv/import_errors.html.erb %>
+<div class="container mx-auto px-4 py-4 sm:py-8">
+  <div class="max-w-4xl mx-auto">
+    <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
+      <div class="bg-gradient-to-r from-red-600 to-red-700 px-4 py-6 sm:px-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-white">
+              Import Errors
+            </h1>
+            <p class="text-red-100 mt-1 text-sm">
+              <%= @import_run.import_type.humanize.titleize %> - <%= @import_run.original_filename %>
+            </p>
+          </div>
+          <%= link_to import_status_business_manager_csv_index_path(id: @import_run.id),
+                class: "inline-flex items-center justify-center px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 text-sm font-medium rounded-lg text-white hover:bg-white/20 transition-all duration-200" do %>
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Back to Status
+          <% end %>
+        </div>
+      </div>
+
+      <div class="p-6">
+        <% if @errors.any? %>
+          <!-- Summary -->
+          <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div class="flex items-center">
+              <svg class="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+              </svg>
+              <span class="text-sm font-medium text-red-800">
+                <%= @errors.count %> error<%= @errors.count == 1 ? '' : 's' %> found
+              </span>
+            </div>
+          </div>
+
+          <!-- Errors Table -->
+          <div class="overflow-x-auto">
+            <table class="min-w-full">
+              <thead>
+                <tr class="text-left text-gray-600 border-b border-gray-200">
+                  <th class="py-3 pr-4 font-semibold text-sm w-24">Row</th>
+                  <th class="py-3 font-semibold text-sm">Error Message</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <% @errors.each do |error| %>
+                  <tr class="hover:bg-gray-50">
+                    <td class="py-3 pr-4">
+                      <% if error['row'].to_i > 0 %>
+                        <span class="inline-flex items-center px-2 py-1 rounded bg-gray-100 text-gray-700 text-sm font-mono">
+                          Row <%= error['row'] %>
+                        </span>
+                      <% else %>
+                        <span class="inline-flex items-center px-2 py-1 rounded bg-yellow-100 text-yellow-700 text-sm">
+                          File
+                        </span>
+                      <% end %>
+                    </td>
+                    <td class="py-3 text-sm text-gray-900">
+                      <%= error['message'] %>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% else %>
+          <div class="text-center py-12">
+            <svg class="mx-auto h-12 w-12 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No errors</h3>
+            <p class="mt-1 text-sm text-gray-500">The import completed without any errors.</p>
+          </div>
+        <% end %>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-between pt-6 mt-6 border-t border-gray-200">
+          <%= link_to business_manager_csv_index_path,
+                class: "inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium" do %>
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Back to CSV Import/Export
+          <% end %>
+
+          <%= link_to import_form_business_manager_csv_index_path(type: @import_run.import_type),
+                class: "inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium" do %>
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            Try Again
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

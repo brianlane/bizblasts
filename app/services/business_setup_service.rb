@@ -145,6 +145,30 @@ class BusinessSetupService
       }
     end
 
+    # 10. Explore document templates (SUGGESTION)
+    unless has_visited_document_templates?
+      items << {
+        key: :explore_document_templates,
+        text: "Create professional invoices, receipts, and contracts with document templates",
+        action: "View Templates",
+        url: business_manager_document_templates_path,
+        priority: :low,
+        essential: false
+      }
+    end
+
+    # 11. Explore CSV import/export (SUGGESTION)
+    unless has_visited_csv_import_export?
+      items << {
+        key: :explore_csv_import_export,
+        text: "Import existing data or export records using CSV files",
+        action: "Import/Export",
+        url: business_manager_csv_index_path,
+        priority: :low,
+        essential: false
+      }
+    end
+
     items
   end
 
@@ -222,5 +246,17 @@ class BusinessSetupService
 
   def has_referral_program_enabled?
     business.referral_program_enabled?
+  end
+
+  def has_visited_document_templates?
+    # Always show this suggestion until user dismisses it
+    # Users can dismiss via setup_reminder_dismissals
+    false
+  end
+
+  def has_visited_csv_import_export?
+    # Always show this suggestion until user dismisses it
+    # Users can dismiss via setup_reminder_dismissals
+    false
   end
 end 
