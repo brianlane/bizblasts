@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Newsletter Subscriptions Edge Cases', type: :request do
-  let(:business) { create(:business, :with_subdomain, tier: 'premium') }
+  let(:business) { create(:business, :with_subdomain) }
 
   before do
     ActsAsTenant.with_tenant(business) do

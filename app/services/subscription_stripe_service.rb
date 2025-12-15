@@ -360,18 +360,10 @@ class SubscriptionStripeService
     end
   end
 
-  # Calculate platform fee in cents based on business tier
-  def calculate_platform_fee_cents(amount_cents)
-    rate = case business.tier
-           when 'premium' then 0.03
-           else 0.05
-           end
-    (amount_cents * rate).round
-  end
-
-  # Get application fee percentage for Stripe subscriptions
+  # Get application fee percentage for Stripe subscriptions.
+  # BizBlasts uses a single platform fee for all businesses.
   def get_application_fee_percent
-    business.tier == 'premium' ? 3.0 : 5.0
+    BizBlasts::PLATFORM_FEE_PERCENTAGE
   end
 end 
  

@@ -188,10 +188,6 @@ class CnameSetupService
   def validate_business_eligibility!
     validate_business_exists!
 
-    unless @business.premium_tier?
-      raise InvalidBusinessError, 'Custom domains are only available for Premium tier businesses'
-    end
-
     unless @business.host_type_custom_domain?
       raise InvalidBusinessError, 'Business must be configured for custom domain hosting'
     end
@@ -207,10 +203,6 @@ class CnameSetupService
 
   def validate_business_for_restart!
     validate_business_exists!
-
-    unless @business.premium_tier?
-      raise InvalidBusinessError, 'Custom domains are only available for Premium tier businesses'
-    end
 
     unless ['cname_pending', 'cname_monitoring', 'cname_timeout'].include?(@business.status)
       raise InvalidBusinessError, 'Domain monitoring can only be restarted from pending, monitoring, or timeout status'
@@ -339,7 +331,6 @@ class CnameSetupService
 
   def can_restart_monitoring?
     ['cname_pending', 'cname_monitoring', 'cname_timeout'].include?(@business.status) &&
-    @business.premium_tier? &&
     @business.host_type_custom_domain?
   end
 

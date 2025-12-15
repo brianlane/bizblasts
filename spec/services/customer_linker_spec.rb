@@ -289,7 +289,7 @@ RSpec.describe CustomerLinker do
 
   describe 'production SMS duplicate scenario' do
     context 'when business has SMS enabled' do
-      before { business.update!(sms_enabled: true, tier: 'premium') }
+      before { business.update!(sms_enabled: true) }
 
       context 'when user has multiple duplicate customers with different phone formats and SMS opt-in status' do
         let(:user) { create(:user, :client, email: 'user@example.com', phone: '6026866672') }

@@ -7,7 +7,7 @@ RSpec.describe 'XSS Protection Integration', type: :request do
   # supplement them with focused unit checks for the sanitizers themselves.
 
   describe 'CSS injection protection in template preview' do
-    let(:business) { create(:business, tier: :premium, host_type: 'subdomain') }
+    let(:business) { create(:business, host_type: 'subdomain') }
     let(:user) { create(:user, role: :manager, business: business) }
     let(:template) { create(:website_template) }
 
@@ -63,7 +63,7 @@ RSpec.describe 'XSS Protection Integration', type: :request do
 
   describe 'URL injection protection in transactions view' do
     let(:business) do
-      create(:business, :standard_tier, hostname: 'testbiz', subdomain: 'testbiz', host_type: 'subdomain')
+      create(:business, hostname: 'testbiz', subdomain: 'testbiz', host_type: 'subdomain')
     end
     let(:user) { create(:user, role: :client, business: business, email: 'client@example.com') }
 
@@ -104,7 +104,6 @@ RSpec.describe 'XSS Protection Integration', type: :request do
       let(:malicious_business) do
         build(:business,
           host_type: 'subdomain',
-          tier: 'premium',
           hostname: '<script>alert("xss")</script>',
           subdomain: '<script>alert("xss")</script>'
         ).tap { |biz| biz.save(validate: false) }
@@ -135,7 +134,7 @@ RSpec.describe 'XSS Protection Integration', type: :request do
   end
 
   describe 'WebsiteTheme CSS variable generation' do
-    let(:business) { create(:business, tier: :premium) }
+    let(:business) { create(:business) }
     let(:theme) do
       create(:website_theme,
         business: business,

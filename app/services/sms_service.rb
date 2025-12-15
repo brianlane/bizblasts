@@ -9,13 +9,13 @@ class SmsService
       return { success: false, error: "SMS feature disabled" }
     end
     
-    # Check business tier restrictions
+    # Check business SMS enablement
     business_id = options[:business_id]
     if business_id
       business = Business.find_by(id: business_id)
       if business && !business.can_send_sms?
-        SecureLogger.warn "[SMS_SERVICE] Business #{business_id} (tier: #{business.tier}) cannot send SMS - tier restriction"
-        return { success: false, error: "Business tier does not support SMS" }
+        SecureLogger.warn "[SMS_SERVICE] Business #{business_id} cannot send SMS"
+        return { success: false, error: "Business cannot send SMS" }
       end
     end
     

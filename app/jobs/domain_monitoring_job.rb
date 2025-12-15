@@ -104,9 +104,6 @@ class DomainMonitoringJob < ApplicationJob
     # Must not have exceeded max attempts
     return false if business.cname_check_attempts >= 12
 
-    # Must be premium tier
-    return false unless business.premium_tier?
-
     # Must be custom domain type
     return false unless business.host_type_custom_domain?
 

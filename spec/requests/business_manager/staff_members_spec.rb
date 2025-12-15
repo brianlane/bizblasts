@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe "Business Manager StaffMembers", type: :request do
-  let!(:business) { create(:business, :premium_tier) }
+  let!(:business) { create(:business) }
   let!(:manager) { create(:user, :manager, business: business) }
   let!(:staff_user) { create(:user, :staff, business: business) }
   let!(:staff_member) { create(:staff_member, business: business, user: staff_user) }

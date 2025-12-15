@@ -116,9 +116,6 @@
       font-weight: bold;
       text-transform: uppercase;
     }
-    .tier-free { background: #d4edda; color: #155724; }
-    .tier-starter { background: #cce5ff; color: #004085; }
-    .tier-premium { background: #f8d7da; color: #721c24; }
 
     /* Email client specific overrides */
     a[x-apple-data-detectors] {
@@ -150,12 +147,12 @@
         <span class="info-label">Industry:</span>
         <span class="info-value"><%= @business.industry.humanize %></span>
       </div>
-      <div class="info-row">
-        <span class="info-label">Tier:</span>
-        <span class="info-value">
-          <span class="status-badge tier-<%= @business.tier %>"><%= @business.tier.humanize %></span>
-        </span>
-      </div>
+        <div class="info-row">
+          <span class="info-label">Pricing:</span>
+          <span class="info-value">
+            <span class="status-badge" style="background:#d4edda;color:#155724;">$0/month + 1% platform fee</span>
+          </span>
+        </div>
       <div class="info-row">
         <span class="info-label">Domain Setup:</span>
         <span class="info-value">

@@ -5,7 +5,6 @@ require 'rails_helper'
 RSpec.describe StripeService, type: :service do
   let(:business) do
     create(:business,
-      tier: 'premium',
       stripe_account_id: 'acct_test123',
       rental_deposit_preauth_enabled: true
     )

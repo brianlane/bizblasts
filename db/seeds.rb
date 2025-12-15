@@ -49,7 +49,6 @@ unless Business.column_names.include?('status')
 end
 
 puts "--- DEBUG: Business.industries: #{Business.industries.inspect}"
-puts "--- DEBUG: Business.tiers: #{Business.tiers.inspect}"
 puts "--- DEBUG: Business.host_types: #{Business.host_types.inspect}"
 puts "--- DEBUG: Business.column_names: #{Business.column_names.inspect}"
 puts "--- DEBUG: businesses table columns: #{ActiveRecord::Base.connection.columns(:businesses).map { |c| [c.name, c.sql_type] }.inspect}"
@@ -70,7 +69,6 @@ if default_business.nil?
   default_business.state = 'CA'
   default_business.zip = '12345'
   default_business.description = 'The default business for system operations.'
-  default_business.tier = :free
   default_business.active = true
   # Save without validations to bypass industry inclusion
   default_business.save!(validate: false)

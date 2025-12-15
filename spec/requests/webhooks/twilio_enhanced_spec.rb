@@ -12,7 +12,7 @@ RSpec.describe 'Enhanced Twilio Webhooks', type: :request do
       }
     end
 
-    let!(:business) { create(:business, sms_enabled: true, tier: 'standard') }
+    let!(:business) { create(:business, sms_enabled: true) }
 
     before do
       # Skip signature verification for tests

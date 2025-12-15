@@ -5,7 +5,6 @@ export default class extends Controller {
   static targets = ["vueMount", "searchInput", "industryFilter", "templateGrid", "filterTabs", "emptyState", "previewModal", "previewFrame"]
   static values = { 
     businessId: String,
-    businessTier: String,
     businessIndustry: String,
     templatesUrl: String
   }
@@ -181,12 +180,10 @@ export default class extends Controller {
           return template.can_use
         },
         getTemplateBadgeClass(template) {
-          if (template.requires_premium) return 'badge-premium'
           if (template.template_type === 'universal') return 'badge-universal'
           return 'badge-industry'
         },
         getTemplateBadgeText(template) {
-          if (template.requires_premium) return 'Premium'
           if (template.template_type === 'universal') return 'Universal'
           return 'Industry'
         }

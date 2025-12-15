@@ -13,7 +13,6 @@ ActiveAdmin.register_page "Websites" do
         column :name
         column :hostname
         column :host_type
-        column :tier
         column :industry
         column :active
         column "URL" do |business|

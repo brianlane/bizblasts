@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe 'RentalBooking Deposit Preauthorization', type: :model do
-  let(:business) { create(:business, tier: 'premium', rental_deposit_preauth_enabled: true) }
+  let(:business) { create(:business, rental_deposit_preauth_enabled: true) }
   let(:product) { create(:product, :rental, business: business, security_deposit: 100.00) }
   let(:customer) { create(:tenant_customer, business: business) }
 

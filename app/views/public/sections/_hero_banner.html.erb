@@ -4,11 +4,11 @@
 <% if theme == 'dark_showcase' %>
   <% reviews_data = current_business&.google_place_id.present? ? GoogleReviewsService.fetch(current_business) : nil %>
   <% premium_label = if current_business&.industry.present?
-                       "Premium #{current_business.industry.to_s.humanize}"
+                       "Professional #{current_business.industry.to_s.humanize}"
                      elsif section.content_data&.dig('tagline').present?
                        section.content_data['tagline']
                      else
-                       'Premium Experience'
+                       'Professional Experience'
                      end %>
   <% accent_enabled = current_business&.website_layout_enhanced? %>
       <div class="hero-banner-section relative overflow-hidden bg-black text-white">

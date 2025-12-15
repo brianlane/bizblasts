@@ -167,7 +167,6 @@ RSpec.describe Public::ReferralController, type: :controller do
         custom_business = create(:business, 
                                 hostname: 'example.com', 
                                 host_type: 'custom_domain',
-                                tier: 'premium',
                                 status: 'cname_active',
                                 render_domain_added: true,
                                 domain_health_verified: true)

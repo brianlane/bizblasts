@@ -14,24 +14,9 @@ class WebsiteTemplate < ApplicationRecord
   
   scope :active, -> { where(active: true) }
   scope :for_industry, ->(industry) { where(industry: [industry, 'universal']) }
-  scope :premium_only, -> { where(requires_premium: true) }
-  scope :available_for_tier, ->(tier) do
-    case tier
-    when 'free'
-      none # Free tier has no access to templates
-    when 'standard'
-      where(requires_premium: false)
-    when 'premium'
-      all
-    else
-      none
-    end
-  end
   
   def can_be_used_by?(business)
-    return false unless business.standard_tier? || business.premium_tier?
-    return false if requires_premium? && !business.premium_tier?
-    
+    return false unless business
     industry == 'universal' || industry == business.industry
   end
   

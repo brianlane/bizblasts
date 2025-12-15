@@ -9,7 +9,6 @@ class Page < ApplicationRecord
   validates :title, presence: true
   validates :slug, presence: true, uniqueness: { scope: :business_id }
   validates :meta_description, length: { maximum: 160 }, allow_blank: true
-  validate :customization_allowed_for_tier
   
   enum :page_type, {
     home: 0,
@@ -26,7 +25,6 @@ class Page < ApplicationRecord
   
   scope :published, -> { where(status: :published) }
   scope :menu_items, -> { where(show_in_menu: true).order(:menu_order) }
-  scope :customizable, -> { joins(:business).where(businesses: { tier: ['standard', 'premium'] }) }
   scope :by_priority, -> { order(priority: :desc, updated_at: :desc) }
   scope :popular, -> { where('view_count > 0').order(view_count: :desc) }
   scope :recent, -> { order(updated_at: :desc) }
@@ -57,7 +55,7 @@ class Page < ApplicationRecord
   end
   
   def can_be_customized?
-    business&.standard_tier? || business&.premium_tier?
+    true
   end
   
   def has_custom_sections?
@@ -100,22 +98,6 @@ class Page < ApplicationRecord
   end
   
   private
-  
-  def customization_allowed_for_tier
-    return if business.nil?
-
-    if business.free_tier?
-      return if business.website_layout_enhanced?
-      return unless has_custom_sections?
-
-      errors.add(:base, "Advanced website customization requires Standard or Premium tier")
-      return
-    end
-
-    unless business.standard_tier? || business.premium_tier?
-      errors.add(:base, "Advanced website customization requires Standard or Premium tier")
-    end
-  end
   
   # Auto-generate a unique slug from the title if none provided.
   # Mirrors the behaviour used by BlogPost so website pages can be

@@ -16,7 +16,6 @@ RSpec.describe 'Business User Redirection', type: :system, js: true do
   let!(:business) { create(:business, 
     name: 'Test Business',
     industry: 'other',
-    tier: 'free',
     host_type: 'subdomain'
   ) }
 

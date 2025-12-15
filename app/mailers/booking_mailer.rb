@@ -80,17 +80,6 @@ class BookingMailer < ApplicationMailer
     @business = booking.business
     @customer = booking.tenant_customer
     @invoice = booking.invoice
-    @tier = @business.tier
-    
-    # Tier-specific messaging
-    @tier_benefits = case @tier
-    when 'standard'
-      "As a valued customer of our Standard tier business, you have extended payment windows."
-    when 'premium'
-      "As a valued customer of our Premium tier business, you enjoy flexible payment options."
-    else
-      ""
-    end
     
     subject = if @booking.service.experience?
       "Payment Required: Experience Booking - #{@business.name}"

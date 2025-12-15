@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Invoice from <%= @business.name %></title>
   <% if @include_analytics %>
-  <!-- Email tracking for premium tier businesses -->
+  <!-- Email tracking (enabled by configuration) -->
   <style type="text/css">
     .email-analytics { display: none; }
   </style>
@@ -201,7 +201,7 @@
   </div>
 
   <% if @include_analytics %>
-  <!-- Email tracking pixel for premium tier businesses -->
+  <!-- Email tracking pixel (enabled by configuration) -->
   <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" width="1" height="1" class="email-analytics" alt="">
   <% end %>
 

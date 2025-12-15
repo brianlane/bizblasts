@@ -232,8 +232,6 @@ Rails.application.routes.draw do
 
     get '/business/sign_up', to: 'business/registrations#new', as: :new_business_registration
     post '/business', to: 'business/registrations#create', as: :business_registration
-    get '/business/registration/success', to: 'business/registrations#registration_success', as: :business_registration_success
-    get '/business/registration/cancelled', to: 'business/registrations#registration_cancelled', as: :business_registration_cancelled
 
     get '/users/edit', to: 'users/registrations#edit', as: :edit_user_registration
     patch '/users', to: 'users/registrations#update', as: :user_registration
@@ -394,14 +392,6 @@ Rails.application.routes.draw do
         resources :teams, only: [:index, :new, :create, :destroy]
         resource :booking_policy, only: [:show, :edit, :update]
         resources :locations
-
-        # Subscription & Billing (Module 7)
-        get 'subscription', to: 'subscriptions#show', as: :subscription
-        post 'subscription/checkout', to: 'subscriptions#create_checkout_session', as: :subscription_checkout
-        post 'subscription/portal', to: 'subscriptions#customer_portal_session', as: :subscription_portal
-        post 'subscription/downgrade', to: 'subscriptions#downgrade', as: :subscription_downgrade
-        # Stripe webhook endpoint - scoped under /manage/settings/stripe_events
-        post 'stripe_events', to: 'subscriptions#webhook'
 
         # Integrations (Module 9)
         resources :integrations, only: [:index] do

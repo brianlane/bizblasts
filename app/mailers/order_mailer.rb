@@ -7,8 +7,7 @@ class OrderMailer < ApplicationMailer
     @invoice = order.invoice
     @payment = @invoice&.payments&.successful&.last
     
-    # Add tier-specific features for premium businesses
-    @include_analytics = @business.tier == 'premium'
+    @include_analytics = true
     
     mail(
       to: @customer.email,
@@ -17,18 +16,15 @@ class OrderMailer < ApplicationMailer
     )
   end
   
-  # Send order status update emails (standard+ tier only)
+  # Send order status update emails
   def order_status_update(order, previous_status)
-    return unless order.business.tier.in?(['standard', 'premium'])
-    
     @order = order
     @business = order.business
     @customer = order.tenant_customer
     @previous_status = previous_status
     @current_status = order.status
     
-    # Add tier-specific features for premium businesses
-    @include_analytics = @business.tier == 'premium'
+    @include_analytics = true
     
     subject_text = case @current_status
                    when 'shipped' then "Your Order Has Shipped"
@@ -45,18 +41,15 @@ class OrderMailer < ApplicationMailer
     )
   end
   
-  # Send refund confirmation (standard+ tier only)
+  # Send refund confirmation
   def refund_confirmation(order, payment)
-    return unless order.business.tier.in?(['standard', 'premium'])
-    
     @order = order
     @business = order.business
     @customer = order.tenant_customer
     @payment = payment
     @refund_amount = payment.refunded_amount || payment.amount
     
-    # Add tier-specific features for premium businesses
-    @include_analytics = @business.tier == 'premium'
+    @include_analytics = true
     
     mail(
       to: @customer.email,

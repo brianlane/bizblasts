@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe SubscriptionStripeService, type: :service do
-  let(:business) { create(:business, :standard_tier, stripe_account_id: 'acct_test123') }
+  let(:business) { create(:business, stripe_account_id: 'acct_test123') }
   let(:tenant_customer) { create(:tenant_customer, business: business, stripe_customer_id: 'cus_test123') }
   let(:service_model) { create(:service, business: business, price: 75.00, subscription_enabled: true) }
   let(:customer_subscription) do
@@ -64,7 +64,7 @@ RSpec.describe SubscriptionStripeService, type: :service do
       expect(Stripe::Subscription).to receive(:create).with(
         hash_including(
           customer: 'cus_test123',
-          application_fee_percent: 5.0, # 5% for standard tier business
+          application_fee_percent: BizBlasts::PLATFORM_FEE_PERCENTAGE,
           metadata: hash_including(
             customer_subscription_id: customer_subscription.id,
             business_id: business.id,
@@ -96,17 +96,8 @@ RSpec.describe SubscriptionStripeService, type: :service do
       expect(result).to be false
     end
 
-    it 'calculates platform fee based on business tier' do
-      premium_business = create(:business, tier: 'premium', stripe_account_id: 'acct_premium123')
-      premium_tenant_customer = create(:tenant_customer, business: premium_business)
-      premium_subscription = create(:customer_subscription, business: premium_business, tenant_customer: premium_tenant_customer, subscription_price: 75.0)
-      premium_service = SubscriptionStripeService.new(premium_subscription)
-      
-      # Premium tier: 3% of $75 = $2.25 = 225 cents
-      expect(premium_service.send(:calculate_platform_fee_cents, 7500)).to eq(225)
-      
-      # Standard tier: 5% of $75 = $3.75 = 375 cents  
-      expect(service_instance.send(:calculate_platform_fee_cents, 7500)).to eq(375)
+    it 'uses the 1% platform fee for subscriptions' do
+      expect(service_instance.send(:get_application_fee_percent)).to eq(BizBlasts::PLATFORM_FEE_PERCENTAGE)
     end
 
     it 'creates Stripe customer if needed' do

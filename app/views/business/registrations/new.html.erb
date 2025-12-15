@@ -143,111 +143,22 @@
                     class: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors resize-none" %>
             </div>
 
-            <!-- Platform Referral Code Field -->
-            <div class="md:col-span-2">
-              <%= business_f.label :platform_referral_code, "Referral Code (Optional)", class: "block text-sm font-medium text-dark mb-2" %>
-              <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
-                  </svg>
-                </div>
-                <%= business_f.text_field :platform_referral_code, 
-                      placeholder: "Enter referral code from another business",
-                      class: "w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" %>
-              </div>
-              <p class="text-xs text-gray-500 mt-1">Have a referral code from another BizBlasts business? Enter it here!</p>
-            </div>
           </div>
 
-          <!-- Plan Selection Section -->
+          <!-- Simple pricing (no tiers) -->
           <div class="mt-8">
-            <%= business_f.label :tier, "Choose Your Monthly Plan", class: "block text-lg font-semibold text-dark mb-6" %>
-            <%= business_f.hidden_field :tier, value: 'free', id: "selected_tier" %>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 subscription-plans">
-              <!-- Free Plan -->
-              <div class="subscription-plan bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-primary transition-all cursor-pointer flex flex-col h-full" data-tier="free">
-                <div class="text-center flex flex-col h-full">
-                  <h3 class="text-xl font-bold text-dark mb-2">Free Plan</h3>
-                  <div class="text-3xl font-bold text-primary mb-4">$0<span class="text-sm text-gray-500">/month</span></div>
-                  <div class="space-y-2 text-left text-sm text-gray-600 mb-6 flex-grow">
-                    <p class="flex items-center"><span class="text-primary mr-2">✓</span>Basic features</p>
-                    <p class="flex items-center"><span class="text-primary mr-2">✓</span>BizBlasts subdomain</p>
-                    <p class="flex items-center"><span class="text-warning mr-2">•</span>5% payment fee</p>
-                    <p class="flex items-center"><span class="text-primary mr-2">✓</span>Essential tools</p>
-                  </div>
-                  <button type="button" class="plan-select-btn w-full bg-primary hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors mt-auto cursor-pointer" data-tier="free">
-                    Select Free
-                  </button>
-                </div>
-              </div>
-              
-              <!-- Standard Plan -->
-              <div class="subscription-plan bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-primary transition-all cursor-pointer flex flex-col h-full" data-tier="standard">
-                <div class="text-center flex flex-col h-full">
-                  <h3 class="text-xl font-bold text-dark mb-2">Standard Plan</h3>
-                  <div class="text-3xl font-bold text-primary mb-4">$9.99<span class="text-sm text-gray-500">/month</span></div>
-                  <div class="space-y-2 text-left text-sm text-gray-600 mb-6 flex-grow">
-                    <p class="flex items-center"><span class="text-primary mr-2">✓</span>Text Reminders</p>
-                    <p class="flex items-center"><span class="text-primary mr-2">✓</span>Customizable pages</p>
-                    <p class="flex items-center"><span class="text-primary mr-2">✓</span>Calendar Integrations</p>
-                    <p class="flex items-center"><span class="text-primary mr-2">✓</span>Advanced tools</p>
-                  </div>
-                  <button type="button" class="plan-select-btn w-full bg-primary hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors mt-auto cursor-pointer" data-tier="standard">
-                    Select Standard
-                  </button>
-                </div>
-              </div>
-              
-              <!-- Premium Plan -->
-              <div class="subscription-plan bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-primary transition-all cursor-pointer flex flex-col h-full" data-tier="premium">
-                <div class="text-center flex flex-col h-full">
-                  <h3 class="text-xl font-bold text-dark mb-2">Premium Plan</h3>
-                  <div class="text-3xl font-bold text-primary mb-4">$29.99<span class="text-sm text-gray-500">/month</span></div>
-                  <div class="space-y-2 text-left text-sm text-gray-600 mb-6 flex-grow">
-                    <p class="flex items-center"><span class="text-primary mr-2">✓</span>All features</p>
-                    <p class="flex items-center"><span class="text-primary mr-2">✓</span>Lower fees</p>
-                    <p class="flex items-center"><span class="text-primary mr-2">✓</span>Multi-location support</p>
-                    <p class="flex items-center"><span class="text-primary mr-2">✓</span>Remove BizBlasts branding</p>
-                    <p class="flex items-center"><span class="text-primary mr-2">★</span>Custom domain</p>
-                  </div>
-                  <button type="button" class="plan-select-btn w-full bg-primary hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors mt-auto cursor-pointer" data-tier="premium">
-                    Select Premium
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Plan Descriptions -->
-            <div id="tier-descriptions" class="mt-6 text-sm text-gray-600">
-              <div data-tier="free" class="p-4 bg-blue-50 border border-blue-200 rounded-lg" style="display: none;">
-                <p><strong class="text-primary">Free:</strong> Basic features, BizBlasts subdomain required (your-biz.bizblasts.com).</p>
-              </div>
-              <div data-tier="standard" class="p-4 bg-blue-50 border border-blue-200 rounded-lg" style="display: none;">
-                <p><strong class="text-primary">Standard:</strong> More features, customizable pages, and much more, BizBlasts subdomain required (your-biz.bizblasts.com).</p>
-              </div>
-              <div data-tier="premium" class="p-4 bg-blue-50 border border-blue-200 rounded-lg" style="display: none;">
-                <p><strong class="text-primary">Premium:</strong> All features, SEO, lower fees, and much more, plus your own custom domain!</p>
-                <div class="mt-3 p-3 bg-light border-l-4 border-primary rounded-r">
-                  <p class="text-primary font-medium">💰 Domain Coverage Included:</p>
-                  <ul class="text-xs mt-1 space-y-1">
-                    <li>• BizBlasts covers up to $20/year for new domain registration</li>
-                    <li>• Auto-renewal setup: We pay domain costs every year up to $20</li>
-                    <li>• Domains over $20/year: You obtain your own domain</li>
-                    <li>• If you already own your domain, you handle domain costs</li>
-                    <li>• Our team manages all technical setup and verification</li>
-                  </ul>
-                </div>
-              </div>
+            <div class="p-5 bg-blue-50 border border-blue-200 rounded-xl">
+              <h3 class="text-lg font-semibold text-dark mb-2">Simple, Transparent Pricing</h3>
+              <ul class="text-sm text-gray-700 space-y-1">
+                <li><span class="text-primary font-semibold">$0/month</span> to use BizBlasts</li>
+                <li><span class="text-primary font-semibold">1% platform fee</span> on transactions you process through BizBlasts</li>
+                <li><span class="text-gray-700 font-semibold">+ Stripe processing fees</span> (charged by Stripe)</li>
+              </ul>
             </div>
           </div>
 
           <!-- Host Type Handling -->
           <%= business_f.hidden_field :host_type, value: 'subdomain', id: 'host_type_input' %>
-
-          <!-- Selected Tier Handling -->
-          <!-- Tier field is already defined above in the plan selection section -->
 
           <!-- Subdomain field for all tiers -->
           <div class="mt-6">
@@ -256,8 +167,8 @@
             <p class="text-xs text-gray-500 mt-1">Will appear as your-biz.bizblasts.com</p>
           </div>
 
-          <!-- Premium Domain Options (additional custom domain option) -->
-          <div id="premium-domain-inputs" class="mt-6" style="display:none;">
+          <!-- Custom domain (optional) -->
+          <div class="mt-6">
             <div id="reg_custom_group">
               <%= business_f.label :hostname, "Custom Domain (Optional)", class: "block text-sm font-medium text-dark mb-1" %>
               <%= business_f.text_field :hostname, placeholder: "yourdomain.com", class: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" %>
@@ -289,12 +200,12 @@
           </div>
 
           <!-- Custom Domain Ownership Checkbox -->
-          <div id="premium-domain-ownership" class="mt-4" style="display:none;">
+          <div class="mt-4">
             <div class="flex items-start">
               <%= business_f.check_box :custom_domain_owned, { class: "mt-1 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary" }, "1", "0" %>
               <label for="user_business_attributes_custom_domain_owned" class="ml-3 text-sm text-gray-700">
                 Already have my own domain
-                <br><span class="text-xs text-gray-500">If left unchecked, BizBlasts will help you get a custom domain</span>
+                <br><span class="text-xs text-gray-500">If left unchecked, you can still connect a domain you purchase separately later</span>
               </label>
             </div>
           </div>
@@ -447,113 +358,29 @@
 </div>
 
 <script type="text/javascript">
-  function initializeBusinessRegistrationPlanSelection() {
-    const selectedTierInput = document.getElementById('selected_tier');
-    const tierDescriptionDiv = document.getElementById('tier-descriptions');
-    const planSelectButtons = document.querySelectorAll('.plan-select-btn');
-    const subscriptionPlans = document.querySelectorAll('.subscription-plan');
-    const domainInputsWrapper = document.getElementById('premium-domain-inputs');
-    const domainOwnershipDiv = document.getElementById('premium-domain-ownership');
+  function initializeBusinessRegistrationHostType() {
     const hostTypeHidden = document.getElementById('host_type_input');
+    const subdomainField = document.querySelector('input[name*="[subdomain]"]');
+    const customDomainField = document.querySelector('input[name*="[hostname]"]');
 
-    function selectPlan(tier) {
-      // Update hidden field
-      if (selectedTierInput) {
-        selectedTierInput.value = tier;
-      }
-      
-      // Update visual selection - Reset all plans first
-      subscriptionPlans.forEach(plan => {
-        plan.classList.remove('border-primary', 'bg-blue-50');
-        plan.classList.add('border-gray-200');
-        const btn = plan.querySelector('.plan-select-btn');
-        
-        // Reset to original button styling based on tier
-        const planTier = plan.dataset.tier;
-        btn.classList.remove('bg-primary', 'border-primary');
-        
-        // All plans now use the same blue styling
-        btn.className = 'plan-select-btn w-full bg-primary hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors';
-        
-        if (planTier === 'free') {
-          btn.textContent = 'Select Free';
-        } else if (planTier === 'standard') {
-          btn.textContent = 'Select Standard';
-        } else if (planTier === 'premium') {
-          btn.textContent = 'Select Premium';
-        }
-      });
-      
-      // Apply selected state to chosen plan - ALL use primary (blue) color
-      const selectedPlan = document.querySelector(`[data-tier="${tier}"]`);
-      if (selectedPlan) {
-        selectedPlan.classList.remove('border-gray-200');
-        selectedPlan.classList.add('border-primary', 'bg-blue-50');
-        const selectedBtn = selectedPlan.querySelector('.plan-select-btn');
-        selectedBtn.textContent = '✓ Selected';
-        selectedBtn.className = 'plan-select-btn w-full bg-primary text-white font-medium py-3 px-4 rounded-lg transition-colors';
-      }
-      
-      toggleFields(tier);
+    if (!hostTypeHidden) return;
 
-      // Premium extra ui
-      if (tier === 'premium') {
-        domainInputsWrapper.style.display = 'grid';
-        domainOwnershipDiv.style.display = 'block';
-        hostTypeHidden.value = 'subdomain'; // Default to subdomain
+    function recomputeHostType() {
+      const hasCustomDomain = customDomainField && customDomainField.value && customDomainField.value.trim().length > 0;
+      const hasSubdomain = subdomainField && subdomainField.value && subdomainField.value.trim().length > 0;
+
+      if (hasCustomDomain) {
+        hostTypeHidden.value = 'custom_domain';
+      } else if (hasSubdomain) {
+        hostTypeHidden.value = 'subdomain';
       } else {
-        domainInputsWrapper.style.display = 'none';
-        domainOwnershipDiv.style.display = 'none';
         hostTypeHidden.value = 'subdomain';
       }
     }
 
-    function toggleFields(selectedTier) {
-      if (!tierDescriptionDiv) return;
-      
-      // Hide all descriptions first
-      tierDescriptionDiv.querySelectorAll('[data-tier]').forEach(p => p.style.display = 'none');
-
-      // Show description for selected tier
-      const desc = tierDescriptionDiv.querySelector(`[data-tier="${selectedTier}"]`);
-      if (desc) desc.style.display = 'block';
-
-      // Toggle premium domain inputs
-      if (selectedTier === 'premium') {
-        domainInputsWrapper.style.display = 'grid';
-        domainOwnershipDiv.style.display = 'block';
-        hostTypeHidden.value = 'subdomain'; // Default to subdomain for premium
-      } else {
-        domainInputsWrapper.style.display = 'none';
-        domainOwnershipDiv.style.display = 'none';
-        hostTypeHidden.value = 'subdomain'; // Ensure it's subdomain for free/standard
-      }
-    }
-
-    // Handle custom domain field changes to set host_type
-    const customDomainField = document.querySelector('input[name*="[hostname]"]');
-    if (customDomainField) {
-      customDomainField.addEventListener('input', function() {
-        // If custom domain has value, set host_type to custom_domain
-        if (this.value && this.value.trim()) {
-          hostTypeHidden.value = 'custom_domain';
-        } else {
-          hostTypeHidden.value = 'subdomain';
-        }
-      });
-    }
-
-    // Add click handlers to plan selection buttons
-    planSelectButtons.forEach(button => {
-      button.addEventListener('click', function(e) {
-        e.preventDefault();
-        const tier = this.dataset.tier;
-        selectPlan(tier);
-      });
-    });
-
-    // Initialize with free plan selected
-    selectPlan('free');
+    if (customDomainField) customDomainField.addEventListener('input', recomputeHostType);
+    if (subdomainField) subdomainField.addEventListener('input', recomputeHostType);
+    recomputeHostType();
   }
 
   // Enhanced form validation functions
@@ -665,8 +492,8 @@
   }
 
   // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
-  document.addEventListener('DOMContentLoaded', initializeBusinessRegistrationPlanSelection);
-  document.addEventListener('turbo:load', initializeBusinessRegistrationPlanSelection);
+  document.addEventListener('DOMContentLoaded', initializeBusinessRegistrationHostType);
+  document.addEventListener('turbo:load', initializeBusinessRegistrationHostType);
   document.addEventListener('DOMContentLoaded', initializeBusinessRegistrationValidation);
   document.addEventListener('turbo:load', initializeBusinessRegistrationValidation);
 </script>

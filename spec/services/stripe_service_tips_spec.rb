@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe StripeService, type: :service do
-  let(:business) { create(:business, stripe_account_id: 'acct_test123', tier: 'premium') }
+  let(:business) { create(:business, stripe_account_id: 'acct_test123') }
   let(:tenant_customer) { create(:tenant_customer, business: business, stripe_customer_id: 'cus_test123') }
   let(:experience_service) { create(:service, business: business, service_type: :experience, duration: 60, min_bookings: 1, max_bookings: 10, spots: 5) }
   let(:booking) { create(:booking, business: business, service: experience_service, tenant_customer: tenant_customer, start_time: 2.hours.ago) }
@@ -59,7 +59,7 @@ RSpec.describe StripeService, type: :service do
             )
           ],
           payment_intent_data: hash_including(
-            application_fee_amount: 30, # Platform fees now applied for tips (3% of $10.00 = $0.30 for premium tier)
+            application_fee_amount: 10, # 1% of $10.00 = $0.10
             metadata: hash_including(
               business_id: business.id,
               tip_id: tip.id,
@@ -134,30 +134,18 @@ RSpec.describe StripeService, type: :service do
         expect(tip.status).to eq('completed')
         expect(tip.paid_at).to be_within(1.second).of(Time.current)
         
-        # Check fee calculations for $10.00 tip on premium tier business (3% platform fee)
+        # Check fee calculations for $10.00 tip (1% platform fee)
         expect(tip.stripe_fee_amount).to eq(0.59) # 2.9% of $10.00 + $0.30 = $0.29 + $0.30 = $0.59
-        expect(tip.platform_fee_amount).to eq(0.30) # 3% of $10.00 = $0.30
+        expect(tip.platform_fee_amount).to eq(0.10) # 1% of $10.00 = $0.10
         # Business receives net after all fees
-        expect(tip.business_amount).to eq(9.11) # $10.00 - $0.59 (Stripe fee) - $0.30 (platform fee)
+        expect(tip.business_amount).to eq(9.31) # $10.00 - $0.59 (Stripe fee) - $0.10 (platform fee)
       end
     end
     
-    it 'calculates different platform fees for free tier business' do
-      # Test the platform fee calculation method directly to ensure it works correctly
-      free_business = create(:business, tier: 'free')
-      standard_business = create(:business, tier: 'standard')
-      
-      # Test platform fee calculation for different tiers
+    it 'calculates the 1% platform fee for tips' do
       amount_cents = 1000 # $10.00
-      
-      free_platform_fee = StripeService.send(:calculate_platform_fee_cents, amount_cents, free_business)
-      expect(free_platform_fee).to eq(50) # 5% of $10.00 = 50 cents
-      
-      standard_platform_fee = StripeService.send(:calculate_platform_fee_cents, amount_cents, standard_business)
-      expect(standard_platform_fee).to eq(50) # 5% of $10.00 = 50 cents (standard is also 5%)
-      
-      premium_platform_fee = StripeService.send(:calculate_platform_fee_cents, amount_cents, business) # business is premium
-      expect(premium_platform_fee).to eq(30) # 3% of $10.00 = 30 cents
+      platform_fee = StripeService.send(:calculate_platform_fee_cents, amount_cents, business)
+      expect(platform_fee).to eq(10) # 1% of $10.00 = 10 cents
     end
 
     it 'handles missing business gracefully' do

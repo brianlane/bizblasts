@@ -133,11 +133,7 @@ class Business < ApplicationRecord
     }
   end
 
-  # Explicitly declare the attribute type for the tier enum
-  attribute :tier, :string
-  
   # Enums
-  enum :tier, { free: 'free', standard: 'standard', premium: 'premium' }, suffix: true
   enum :industry, SHOWCASE_INDUSTRY_MAPPINGS
   enum :host_type, { subdomain: 'subdomain', custom_domain: 'custom_domain' }, prefix: true
   enum :canonical_preference, { www: 'www', apex: 'apex' }, suffix: true
@@ -206,12 +202,6 @@ class Business < ApplicationRecord
   has_many :customer_subscriptions, dependent: :destroy
   has_many :subscription_transactions, dependent: :destroy
   
-  # Platform (BizBlasts) referral and loyalty associations
-  has_many :platform_referrals_made, class_name: 'PlatformReferral', foreign_key: 'referrer_business_id', dependent: :destroy
-  has_many :platform_referrals_received, class_name: 'PlatformReferral', foreign_key: 'referred_business_id', dependent: :destroy
-  has_many :platform_loyalty_transactions, dependent: :destroy
-  has_many :platform_discount_codes, dependent: :destroy
-  
   # For Client relationships (many-to-many with User)
   has_many :client_businesses
   has_many :clients, through: :client_businesses, source: :user
@@ -224,7 +214,6 @@ class Business < ApplicationRecord
   
   # New associations for Modules 5 and 6
   has_many :locations, dependent: :destroy
-  has_one :subscription, dependent: :destroy # Added for Module 7
   has_many :integrations, dependent: :destroy # Added for Module 9
   
   # Tips associations
@@ -273,7 +262,6 @@ class Business < ApplicationRecord
   validates :state, presence: true
   validates :zip, presence: true # Consider adding format validation
   validates :description, presence: true
-  validates :tier, presence: true, inclusion: { in: tiers.keys }
   validates :enhanced_accent_color, inclusion: { in: ACCENT_COLOR_OPTIONS }, allow_nil: true
   validates :website_layout, presence: true, inclusion: { in: website_layouts.keys }
   validates :google_place_id, uniqueness: true, allow_nil: true
@@ -285,7 +273,7 @@ class Business < ApplicationRecord
   validates :host_type, presence: true, inclusion: { in: host_types.keys }
 
   # Subdomain format validation – only run if the hostname itself is being modified.
-  # This prevents tier/host_type changes from failing validations when the hostname
+  # This prevents host_type changes from failing validations when the hostname
   # hasn't been altered (e.g. in tests that toggle host_type only).
   validates :hostname,
             format: {
@@ -306,13 +294,6 @@ class Business < ApplicationRecord
             },
             if: -> { host_type_custom_domain? && (new_record? || will_save_change_to_hostname?) }
             
-  # Apply subdomain-only rule **only when creating** a Free or Standard business;
-  # allows later downgrades from Premium to proceed so DomainRemovalService can run.
-  validate :non_premium_requires_subdomain_host_type, if: -> { (free_tier? || standard_tier?) && new_record? }
-  
-  # Ensure that only Premium tier businesses can have custom domains.
-  validate :custom_domain_requires_premium_tier
-  
   scope :active, -> { where(active: true) }
   scope :cname_pending, -> { where(status: 'cname_pending') }
   scope :cname_monitoring, -> { where(status: 'cname_monitoring') }
@@ -325,7 +306,6 @@ class Business < ApplicationRecord
   before_destroy :orphan_all_bookings, prepend: true
   after_save :sync_hours_with_default_location, if: :saved_change_to_hours?
   after_update :handle_loyalty_program_disabled, if: :saved_change_to_loyalty_program_enabled?
-  after_update :handle_tier_downgrade, if: :saved_change_to_tier?
   after_update :handle_canonical_preference_change, if: :saved_change_to_canonical_preference?
   after_validation :set_time_zone_from_address, if: :address_components_changed?
 
@@ -333,19 +313,13 @@ class Business < ApplicationRecord
   # Automatic custom-domain setup triggers
   # ---------------------------------------------------------------------------
 
-  # 1. Newly-registered businesses that signed up for the Premium tier **and**
-  #    provided a custom domain should have the CNAME setup sequence started
-  #    automatically right after creation.
+  # 1. Newly-registered businesses that provide a custom domain should have the
+  #    CNAME setup sequence started automatically right after creation.
   after_commit :trigger_custom_domain_setup_after_create, on: :create
 
   # 2. Send admin notification when a new business registers
   after_commit :send_admin_new_business_notification, on: :create
 
-  # 2. Existing businesses that upgrade to the Premium tier (tier change
-  #    detected) and already have a custom-domain host type should also kick
-  #    off the setup sequence automatically – but only if the setup hasn't
-  #    already been started/completed.
-  after_commit :trigger_custom_domain_setup_after_premium_upgrade, on: :update
   after_commit :trigger_custom_domain_setup_after_host_type_change, on: :update
   after_commit :handle_website_layout_change, if: -> {
     website_layout_enhanced? && (saved_changes.keys & LAYOUT_RELATED_FIELDS).any?
@@ -448,7 +422,7 @@ class Business < ApplicationRecord
   # Subscription methods
   def subscription_discount_enabled?
     # For now, enable subscriptions for all businesses
-    # This could be enhanced to check a business setting or tier
+    # This could be enhanced to check a business setting
     true
   end
 
@@ -496,88 +470,14 @@ class Business < ApplicationRecord
     stock_management_enabled?
   end
   
-  # Platform (BizBlasts) loyalty methods
-  def current_platform_loyalty_points
-    platform_loyalty_points || 0
-  end
-  
-  def platform_points_earned
-    platform_loyalty_transactions.earned.sum(:points_amount)
-  end
-  
-  def platform_points_redeemed
-    platform_loyalty_transactions.redeemed.sum(:points_amount).abs
-  end
-  
-  def can_redeem_platform_points?(points_required)
-    current_platform_loyalty_points >= points_required
-  end
-  
-  def generate_platform_referral_code
-    return platform_referral_code if platform_referral_code.present?
-    
-    # Generate format: BIZ-BUSINESS_INITIALS-RANDOM
-    business_initials = name.split.map(&:first).join.upcase
-    random_string = SecureRandom.alphanumeric(6).upcase
-    
-    code = "BIZ-#{business_initials}-#{random_string}"
-    
-    # Ensure uniqueness
-    while Business.exists?(platform_referral_code: code)
-      random_string = SecureRandom.alphanumeric(6).upcase
-      code = "BIZ-#{business_initials}-#{random_string}"
-    end
-    
-    update!(platform_referral_code: code)
-    code
-  end
-  
-  def add_platform_loyalty_points!(points, description, related_referral = nil)
-    platform_loyalty_transactions.create!(
-      transaction_type: 'earned',
-      points_amount: points,
-      description: description,
-      related_platform_referral: related_referral
-    )
-    
-    # Update cached points
-    increment!(:platform_loyalty_points, points)
-  end
-  
-  def redeem_platform_loyalty_points!(points, description)
-    return false unless can_redeem_platform_points?(points)
-    
-    platform_loyalty_transactions.create!(
-      transaction_type: 'redeemed',
-      points_amount: -points,
-      description: description
-    )
-    
-    # Update cached points
-    decrement!(:platform_loyalty_points, points)
-    
-    true
-  end
-  
-  def platform_loyalty_summary
-    {
-      current_points: current_platform_loyalty_points,
-      total_earned: platform_points_earned,
-      total_redeemed: platform_points_redeemed,
-      total_referrals_made: platform_referrals_made.count,
-      qualified_referrals: platform_referrals_made.qualified.count,
-      available_redemptions: PlatformDiscountCode.available_redemptions_for_business(self)
-    }
-  end
-  
   # Define which attributes are allowed to be searched with Ransack
   def self.ransackable_attributes(auth_object = nil)
-    %w[id name hostname host_type tier industry time_zone active created_at updated_at status cname_monitoring_active domain_coverage_applied domain_cost_covered domain_renewal_date stripe_customer_id stripe_status payment_reminders_enabled stock_management_enabled show_rentals_section rental_late_fee_enabled rental_late_fee_percentage rental_buffer_mins rental_require_deposit_upfront rental_reminder_hours_before rental_deposit_preauth_enabled]
+    %w[id name hostname host_type industry time_zone active created_at updated_at status cname_monitoring_active stripe_customer_id stripe_status payment_reminders_enabled stock_management_enabled show_rentals_section rental_late_fee_enabled rental_late_fee_percentage rental_buffer_mins rental_require_deposit_upfront rental_reminder_hours_before rental_deposit_preauth_enabled]
   end
   
   # Define which associations are allowed to be searched with Ransack
   def self.ransackable_associations(auth_object = nil)
-    %w[staff_members services bookings tenant_customers users clients client_businesses subscription integrations rental_bookings products]
+    %w[staff_members services bookings tenant_customers users clients client_businesses integrations rental_bookings products]
   end
   
   # Custom ransacker for Stripe status filtering
@@ -585,69 +485,9 @@ class Business < ApplicationRecord
     Arel.sql("CASE WHEN stripe_account_id IS NOT NULL AND stripe_account_id != '' THEN 'connected' ELSE 'not_connected' END")
   end
   
-  # Domain coverage methods for Premium tier
-  def eligible_for_domain_coverage?
-    premium_tier? && host_type_custom_domain?
-  end
-  
-  def domain_coverage_limit
-    20.0 # Fixed at $20/year as per requirements
-  end
-  
-  def domain_coverage_available?
-    eligible_for_domain_coverage? && !domain_coverage_applied?
-  end
-  
-  def apply_domain_coverage!(cost, notes = nil, registrar = 'namecheap', auto_renewal = true)
-    return false unless eligible_for_domain_coverage?
-    return false if cost > domain_coverage_limit
-    
-    registration_date = Date.current
-    coverage_expires = registration_date + 1.year
-    next_renewal = registration_date + 1.year
-    
-    update!(
-      domain_coverage_applied: true,
-      domain_cost_covered: cost,
-      domain_coverage_notes: notes,
-      domain_renewal_date: next_renewal,
-      domain_coverage_expires_at: coverage_expires,
-      domain_registration_date: registration_date,
-      domain_registrar: registrar,
-      domain_auto_renewal_enabled: auto_renewal
-    )
-  end
-  
-  def domain_coverage_status
-    return :not_eligible unless eligible_for_domain_coverage?
-    return :available if domain_coverage_available?
-    return :expired if domain_coverage_applied? && domain_coverage_expired?
-    return :applied if domain_coverage_applied?
-    :unknown
-  end
-  
-  def domain_coverage_expired?
-    domain_coverage_expires_at.present? && domain_coverage_expires_at < Date.current
-  end
-  
-  def domain_coverage_expires_soon?(days = 30)
-    domain_coverage_expires_at.present? && 
-    domain_coverage_expires_at <= Date.current + days.days
-  end
-  
-  def domain_will_auto_renew?
-    domain_auto_renewal_enabled? && domain_renewal_date.present?
-  end
-  
-  def domain_coverage_remaining_days
-    return nil unless domain_coverage_expires_at.present?
-    return 0 if domain_coverage_expired?
-    (domain_coverage_expires_at - Date.current).to_i
-  end
-
   # CNAME Domain Setup Methods
   def start_cname_monitoring!
-    return false unless premium_tier? && host_type_custom_domain?
+    return false unless host_type_custom_domain?
     
     update!(
       status: 'cname_monitoring',
@@ -698,7 +538,7 @@ class Business < ApplicationRecord
   end
 
   def can_setup_custom_domain?
-    premium_tier? && host_type_custom_domain? && !cname_active?
+    host_type_custom_domain? && !cname_active?
   end
 
   # ---------------------------------------------------------------------------
@@ -709,7 +549,7 @@ class Business < ApplicationRecord
   # validated *and* Render reports the domain attached (SSL issued) *and* 
   # the domain is returning HTTP 200 status.
   def custom_domain_allow?
-    premium_tier? && host_type_custom_domain? && cname_active? && render_domain_added? && domain_health_verified?
+    host_type_custom_domain? && cname_active? && render_domain_added? && domain_health_verified?
   end
 
   # Set domain health status with optimistic locking protection
@@ -940,7 +780,7 @@ class Business < ApplicationRecord
   end
 
   def can_send_sms?
-    sms_enabled? && Rails.application.config.sms_enabled && !free_tier?
+    sms_enabled? && Rails.application.config.sms_enabled
   end
 
   def sms_auto_invitations_enabled?
@@ -949,22 +789,8 @@ class Business < ApplicationRecord
     respond_to?(:sms_auto_invitations_enabled) ? sms_auto_invitations_enabled : true
   end
 
-  def free_tier?
-    tier == 'free'
-  end
-
   def sms_daily_limit
-    # SMS limits based on tier
-    case tier
-    when 'premium'
-      1000
-    when 'standard'
-      500
-    when 'free'
-      0  # Free tier cannot send SMS
-    else
-      0  # Default to no SMS for unknown tiers
-    end
+    1000
   end
 
   # ---------------------------------------------------------------------------
@@ -1053,7 +879,7 @@ class Business < ApplicationRecord
 
   # Triggered after *create* for eligible businesses.
   def trigger_custom_domain_setup_after_create
-    return unless premium_tier? && host_type_custom_domain? && hostname.present?
+    return unless host_type_custom_domain? && hostname.present?
     return if Rails.env.test? # avoid interfering with specs
 
     # Run domain setup in background to prevent 502 crashes from external API calls
@@ -1078,30 +904,11 @@ class Business < ApplicationRecord
     end
   end
 
-  # Triggered after *update* when a non-premium business upgrades to Premium.
-  def trigger_custom_domain_setup_after_premium_upgrade
-    return if Rails.env.test?
-    return unless saved_change_to_tier? && tier == 'premium'
-
-    # Only act when moving *to* premium, not any other tier change.
-    old_tier, new_tier = saved_change_to_tier
-    return unless old_tier != 'premium' && new_tier == 'premium'
-
-    return unless host_type_custom_domain? && hostname.present?
-
-    # Skip if setup already in progress or completed.
-    return if cname_pending? || cname_monitoring? || cname_active?
-
-    # Run domain setup in background to prevent 502 crashes from external API calls
-    Rails.logger.info "[BUSINESS CALLBACK] Queueing custom-domain setup for Business ##{id} after tier upgrade (#{old_tier} -> premium)"
-    CustomDomainSetupJob.perform_later(id)
-  end
-
-  # Triggered after *update* when host_type changes from subdomain -> custom_domain on a premium business.
+  # Triggered after *update* when host_type changes from subdomain -> custom_domain.
   def trigger_custom_domain_setup_after_host_type_change
     return if Rails.env.test?
     return unless saved_change_to_host_type? && host_type_custom_domain?
-    return unless premium_tier? && hostname.present?
+    return unless hostname.present?
     # Skip if setup already running or completed
     return if cname_pending? || cname_monitoring? || cname_active?
 
@@ -1275,48 +1082,6 @@ class Business < ApplicationRecord
     end
   end
 
-  # Validation helper: Free **and Standard** tiers can only use BizBlasts sub-domains.
-  # Runs only when creating or updating a non-premium business.
-  def non_premium_requires_subdomain_host_type
-    return if host_type_subdomain?
-    errors.add(:host_type, "must be 'subdomain' for Free and Standard tiers")
-  end
-
-  # Keep old method name as alias for backwards compatibility (e.g., specs).
-  alias_method :free_tier_requires_subdomain_host_type, :non_premium_requires_subdomain_host_type
-  
-  # Validation helper: prevent non-premium businesses from using custom domains.
-  def custom_domain_requires_premium_tier
-    return unless host_type_custom_domain?
- 
-    # --- Allow downgrades ----------------------------------------------------
-    # If the business is *downgrading* from premium, let the record save so that
-    # the `handle_tier_downgrade` callback can subsequently remove the custom
-    # domain.  A downgrade is detected when the tier is changing **from**
-    # 'premium' **to** a different value.
-    if will_save_change_to_tier? && tier_was == 'premium' && tier != 'premium'
-      return # skip validation – downgrade will be handled after save
-    end
-
-    # For all other cases (creates, upgrades, edits) enforce the rule.
-    final_tier = if will_save_change_to_tier? && tier.present?
-                   tier                           # new value about to be saved
-                 else
-                   tier_was || tier              # previous persisted value (or current)
-                 end
-
-    unless final_tier == 'premium'
-      errors.add(:tier, 'must be premium to use a custom domain')
-    end
-  end
-  
-  # Returns true if the tier *before the current change* was premium.  Works
-  # in validations (before save) because `tier_was` contains the previously
-  # persisted value.
-  def premium_tier_was?
-    tier_was == 'premium'
-  end
-  
   # Sync business hours with the default location
   def sync_hours_with_default_location
     return unless default_location.present?
@@ -1385,27 +1150,6 @@ class Business < ApplicationRecord
       services_with_loyalty_fallback.update_all(
         subscription_rebooking_preference: 'same_day_next_month'
       )
-    end
-  end
-
-  def handle_tier_downgrade
-    # Only act if tier changed and business has custom domain
-    return unless saved_change_to_tier? && host_type_custom_domain?
-    
-    old_tier, new_tier = saved_change_to_tier
-    
-    # Remove custom domain if downgrading from premium
-    if old_tier == 'premium' && new_tier != 'premium'
-      Rails.logger.info "[TIER DOWNGRADE] Removing custom domain due to tier change from #{old_tier} to #{new_tier} for business #{id}"
-      
-      begin
-        removal_service = DomainRemovalService.new(self)
-        result = removal_service.handle_tier_downgrade!(new_tier)
-        
-        Rails.logger.info "[TIER DOWNGRADE] Domain removal result: #{result[:success] ? 'success' : 'failed'}"
-      rescue => e
-        Rails.logger.error "[TIER DOWNGRADE] Failed to remove domain: #{e.message}"
-      end
     end
   end
 

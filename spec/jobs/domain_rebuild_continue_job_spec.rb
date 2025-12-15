@@ -7,7 +7,6 @@ RSpec.describe DomainRebuildContinueJob, type: :job do
 
   let!(:business) do
     create(:business,
-      tier: 'premium',
       host_type: 'custom_domain',
       hostname: 'example.com',
       status: 'cname_active',

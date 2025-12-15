@@ -73,12 +73,8 @@ class Tip < ApplicationRecord
     stripe_percentage_fee = (amount_cents * 0.029).round
     self.stripe_fee_amount = (stripe_percentage_fee + 30) / 100.0
     
-    # Calculate platform fee based on business tier
-    platform_rate = case business.tier
-                   when 'premium' then 0.03  # 3%
-                   else 0.05                 # 5%
-                   end
-    self.platform_fee_amount = (amount_cents * platform_rate).round / 100.0
+    # Calculate BizBlasts platform fee
+    self.platform_fee_amount = (amount_cents * BizBlasts::PLATFORM_FEE_RATE).round / 100.0
     
     # Calculate net amount business receives after all fees
     self.business_amount = amount - stripe_fee_amount - platform_fee_amount

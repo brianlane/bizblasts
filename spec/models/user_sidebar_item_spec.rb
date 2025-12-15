@@ -59,19 +59,10 @@ RSpec.describe UserSidebarItem, type: :model do
       end
     end
 
-    context 'when business tier is free' do
-      let(:business) { create(:business, tier: :free) }
+    context 'website builder availability' do
+      let(:business) { create(:business) }
 
-      it 'excludes website_builder from default items' do
-        items = described_class.default_items_for(user)
-        expect(items.map { |i| i[:key] }).not_to include('website_builder')
-      end
-    end
-
-    context 'when business tier is premium' do
-      let(:business) { create(:business, tier: :premium) }
-
-      it 'includes website_builder in default items' do
+      it 'includes website_builder in default items for all businesses' do
         items = described_class.default_items_for(user)
         expect(items.map { |i| i[:key] }).to include('website_builder')
       end

@@ -39,9 +39,9 @@ Capybara.register_driver(:cuprite) do |app|
     pending_connection_errors: false,
     # Use generous timeouts by default - Chrome startup can be slow
     # These timeouts are increased for CI but reasonable for local dev too
-    process_timeout: is_ci ? 120 : 30,    # Time for Chrome process to start
-    timeout: is_ci ? 90 : 30,              # General command timeout
-    network_timeout: is_ci ? 120 : 60,     # Network request timeout
+    process_timeout: 120,                  # Time for Chrome process to start (Ferrum default is too low)
+    timeout: is_ci ? 90 : 60,              # General command timeout
+    network_timeout: 120,                  # Network request timeout
     slowmo: is_ci ? 0.1 : 0                # Slight delay in CI for stability
   }
 

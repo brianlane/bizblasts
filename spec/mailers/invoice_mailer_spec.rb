@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe InvoiceMailer, type: :mailer do
-  let(:business) { create(:business, :free_tier) }
+  let(:business) { create(:business) }
   let(:customer) { create(:tenant_customer, business: business) }
   let(:order) { create(:order, tenant_customer: customer, business: business, order_type: :mixed, line_items_count: 2) }
 

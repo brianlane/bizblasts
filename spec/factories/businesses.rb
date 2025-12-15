@@ -3,6 +3,7 @@
 FactoryBot.define do
   factory :business do
     to_create { |instance| instance.save(validate: false) }
+
     # Incorporate parallel worker number for uniqueness
     sequence(:name) do |n|
       worker_num = ENV['TEST_ENV_NUMBER']
@@ -40,17 +41,6 @@ FactoryBot.define do
     enhanced_accent_color { 'red' }
     website_layout { 'basic' }
 
-
-    # Set tier, ensuring free tier gets subdomain host_type
-    tier do 
-      if host_type == 'custom_domain'
-        [:standard, :premium].sample # Custom domain cannot be free
-      else
-        # Always free tier for subdomain
-        'free'
-      end
-    end
-
     time_zone { 'UTC' }
     rental_late_fee_enabled { false }
     active { true }
@@ -84,25 +74,8 @@ FactoryBot.define do
     trait :custom_domain_host do
       host_type { 'custom_domain' }
       sequence(:hostname) { |n| "factory-domain-#{n}.com" }
-      tier { [:standard, :premium].sample } # Cannot be free tier
-    end
-    
-    trait :free_tier do
-      tier { 'free' }
-      host_type { 'subdomain' } # Enforce constraint
-      sequence(:hostname) { |n| "factory-free-#{n}" } 
     end
 
-    trait :standard_tier do
-      tier { 'standard' }
-      # No host_type change needed here, default sequence handles both
-    end
-
-    trait :premium_tier do
-      tier { 'premium' }
-      # No host_type change needed here, default sequence handles both
-    end
-    
     trait :testbiz do
       sequence(:hostname) { |n| "testbiz-#{n}" }
       sequence(:subdomain) { |n| "testbiz-#{n}" }
@@ -156,7 +129,6 @@ FactoryBot.define do
 
     trait :with_custom_domain do
       host_type { 'custom_domain' }
-      tier { 'premium' }
       status { 'cname_active' }
       domain_health_verified { true }
       render_domain_added { true }

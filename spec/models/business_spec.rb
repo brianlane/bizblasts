@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe Business, type: :model do
-  subject { 
+  subject {
     Business.new(
       hostname: 'test-business',
       host_type: 'subdomain',
@@ -15,8 +15,7 @@ RSpec.describe Business, type: :model do
       city: 'Test',
       state: 'CA',
       zip: '90210',
-      description: 'A test business',
-      tier: 'free'
+      description: 'A test business'
     )
   }
 
@@ -85,10 +84,8 @@ RSpec.describe Business, type: :model do
   end
 
   describe 'enums' do
-    it { is_expected.to define_enum_for(:tier).with_values(free: 'free', standard: 'standard', premium: 'premium').backed_by_column_of_type(:string).with_suffix(true) }
-    
     # Test for the new industry enum using SHOWCASE_INDUSTRY_MAPPINGS
-    it do 
+    it do
       is_expected.to define_enum_for(:industry)
         .with_values(Business::SHOWCASE_INDUSTRY_MAPPINGS)
         .backed_by_column_of_type(:string)
@@ -121,13 +118,12 @@ RSpec.describe Business, type: :model do
     it { is_expected.to validate_presence_of(:state) }
     it { is_expected.to validate_presence_of(:zip) }
     it { is_expected.to validate_presence_of(:description) }
-    it { is_expected.to validate_presence_of(:tier) }
     it { is_expected.to validate_presence_of(:hostname) }
     it { is_expected.to validate_presence_of(:host_type) }
 
     # Hostname Format
     context 'when host type is subdomain' do
-      subject { 
+      subject {
         Business.new(
           host_type: :subdomain,
           name: 'Test Business',
@@ -138,11 +134,10 @@ RSpec.describe Business, type: :model do
           city: 'Test',
           state: 'CA',
           zip: '90210',
-          description: 'A test business',
-          tier: 'free'
+          description: 'A test business'
         )
       }
-      
+
       it { is_expected.to allow_value('valid-subdomain123').for(:hostname) }
       it { is_expected.to allow_value('test').for(:hostname) }
       it { is_expected.not_to allow_value('Invalid Subdomain').for(:hostname).with_message("can only contain lowercase letters, numbers, and single hyphens") }
@@ -150,9 +145,9 @@ RSpec.describe Business, type: :model do
       it { is_expected.not_to allow_value('www').for(:hostname).with_message("'www' is reserved.") }
       it { is_expected.not_to allow_value('admin').for(:hostname).with_message("'admin' is reserved.") }
     end
-    
+
     context 'when host type is custom domain' do
-      subject { 
+      subject {
         Business.new(
           host_type: :custom_domain,
           name: 'Test Business',
@@ -163,13 +158,12 @@ RSpec.describe Business, type: :model do
           city: 'Test',
           state: 'CA',
           zip: '90210',
-          description: 'A test business',
-          tier: 'premium'
+          description: 'A test business'
         )
       }
-      
+
       it { is_expected.to allow_value('example.com').for(:hostname) }
-      it { is_expected.to allow_value('sub.example-test.co.uk').for(:hostname) }  
+      it { is_expected.to allow_value('sub.example-test.co.uk').for(:hostname) }
       it { is_expected.not_to allow_value('invalid domain').for(:hostname).with_message("is not a valid domain name") }
       it { is_expected.not_to allow_value('example..com').for(:hostname).with_message("is not a valid domain name") }
       it { is_expected.not_to allow_value('-example.com').for(:hostname).with_message("is not a valid domain name") }
@@ -191,23 +185,13 @@ RSpec.describe Business, type: :model do
         expect(existing_business).to be_valid
       end
     end
-
-    # Tier requirements
-    context 'when tier is free' do
-      subject { build(:business, tier: :free, host_type: 'custom_domain') }
-      
-      it 'validates that host type must be subdomain' do
-        expect(subject).not_to be_valid
-        expect(subject.errors[:host_type]).to include("must be 'subdomain' for Free and Standard tiers")
-      end
-    end
   end
 
   describe 'callbacks' do
     describe '#normalize_hostname' do
       it 'downcases and normalizes hostname for subdomains' do
         business = Business.new(
-          hostname: '  My-Test--Subdomain123!  ', 
+          hostname: '  My-Test--Subdomain123!  ',
           host_type: 'subdomain',
           name: 'Test Business',
           industry: 'other',
@@ -217,13 +201,12 @@ RSpec.describe Business, type: :model do
           city: 'Test',
           state: 'CA',
           zip: '90210',
-          description: 'A test business',
-          tier: 'free'
+          description: 'A test business'
         )
         business.valid? # Trigger callback
         expect(business.hostname).to eq('my-test--subdomain123!')
       end
-      
+
       it 'downcases and strips hostname for custom domains' do
         business = Business.new(
           hostname: '  EXAMPLE.COM  ',
@@ -236,8 +219,7 @@ RSpec.describe Business, type: :model do
           city: 'Test',
           state: 'CA',
           zip: '90210',
-          description: 'A test business',
-          tier: 'premium'
+          description: 'A test business'
         )
         business.valid?
         expect(business.hostname).to eq('example.com')
@@ -255,105 +237,10 @@ RSpec.describe Business, type: :model do
           city: 'Test',
           state: 'CA',
           zip: '90210',
-          description: 'A test business',
-          tier: 'free'
+          description: 'A test business'
         )
         expect(business).not_to be_valid
         expect(business.errors[:hostname]).to include("can't be blank")
-      end
-    end
-  end
-
-  describe 'domain coverage methods' do
-    let(:premium_business) { build(:business, tier: 'premium', host_type: 'custom_domain') }
-    let(:free_business) { build(:business, tier: 'free', host_type: 'subdomain') }
-    let(:standard_subdomain) { build(:business, tier: 'standard', host_type: 'subdomain') }
-    let(:standard_custom) { build(:business, tier: 'standard', host_type: 'custom_domain') }
-
-    describe '#eligible_for_domain_coverage?' do
-      it 'returns true for premium tier with custom domain' do
-        expect(premium_business.eligible_for_domain_coverage?).to be true
-      end
-
-      it 'returns false for free tier regardless of host type' do
-        expect(free_business.eligible_for_domain_coverage?).to be false
-      end
-
-      it 'returns false for standard tier with subdomain' do
-        expect(standard_subdomain.eligible_for_domain_coverage?).to be false
-      end
-
-      it 'returns false for standard tier with custom domain' do
-        expect(standard_custom.eligible_for_domain_coverage?).to be false
-      end
-    end
-
-    describe '#domain_coverage_limit' do
-      it 'returns 20.0 for all businesses' do
-        expect(premium_business.domain_coverage_limit).to eq(20.0)
-        expect(free_business.domain_coverage_limit).to eq(20.0)
-      end
-    end
-
-    describe '#domain_coverage_available?' do
-      it 'returns true for eligible business without coverage applied' do
-        expect(premium_business.domain_coverage_available?).to be true
-      end
-
-      it 'returns false for eligible business with coverage already applied' do
-        premium_business.domain_coverage_applied = true
-        expect(premium_business.domain_coverage_available?).to be false
-      end
-
-      it 'returns false for non-eligible business' do
-        expect(free_business.domain_coverage_available?).to be false
-      end
-    end
-
-    describe '#apply_domain_coverage!' do
-      let(:premium_business_saved) { create(:business, tier: 'premium', host_type: 'custom_domain') }
-
-      it 'applies coverage for eligible business with valid cost' do
-        result = premium_business_saved.apply_domain_coverage!(15.99, 'Test domain registration')
-        
-        expect(result).to be true
-        premium_business_saved.reload
-        expect(premium_business_saved.domain_coverage_applied?).to be true
-        expect(premium_business_saved.domain_cost_covered).to eq(15.99)
-        expect(premium_business_saved.domain_coverage_notes).to eq('Test domain registration')
-        expect(premium_business_saved.domain_renewal_date).to be_within(1.day).of(1.year.from_now.to_date)
-      end
-
-      it 'fails for cost exceeding limit' do
-        result = premium_business_saved.apply_domain_coverage!(25.00)
-        
-        expect(result).to be false
-        premium_business_saved.reload
-        expect(premium_business_saved.domain_coverage_applied?).to be false
-      end
-
-      it 'fails for non-eligible business' do
-        free_business_saved = create(:business, tier: 'free', host_type: 'subdomain')
-        result = free_business_saved.apply_domain_coverage!(10.00)
-        
-        expect(result).to be false
-        free_business_saved.reload
-        expect(free_business_saved.domain_coverage_applied?).to be false
-      end
-    end
-
-    describe '#domain_coverage_status' do
-      it 'returns :not_eligible for non-eligible business' do
-        expect(free_business.domain_coverage_status).to eq(:not_eligible)
-      end
-
-      it 'returns :available for eligible business without coverage' do
-        expect(premium_business.domain_coverage_status).to eq(:available)
-      end
-
-      it 'returns :applied for eligible business with coverage' do
-        premium_business.domain_coverage_applied = true
-        expect(premium_business.domain_coverage_status).to eq(:applied)
       end
     end
   end
@@ -758,7 +645,7 @@ RSpec.describe Business, type: :model do
   end
 
   describe 'domain health verification' do
-    let(:business) { create(:business, tier: 'premium', host_type: 'custom_domain', hostname: 'example.com') }
+    let(:business) { create(:business, host_type: 'custom_domain', hostname: 'example.com') }
     
     describe '#mark_domain_health_status!' do
       it 'sets domain health as verified with timestamp' do
@@ -846,8 +733,8 @@ RSpec.describe Business, type: :model do
     end
 
     describe '#custom_domain_allow?' do
-      let(:business) { create(:business, tier: 'premium', host_type: 'custom_domain', hostname: 'example.com', status: 'cname_active', render_domain_added: true) }
-      
+      let(:business) { create(:business, host_type: 'custom_domain', hostname: 'example.com', status: 'cname_active', render_domain_added: true) }
+
       context 'when all conditions are met' do
         it 'returns true' do
           business.update!(domain_health_verified: true)
@@ -858,13 +745,6 @@ RSpec.describe Business, type: :model do
       context 'when domain health is not verified' do
         it 'returns false' do
           business.update!(domain_health_verified: false)
-          expect(business.custom_domain_allow?).to be false
-        end
-      end
-
-      context 'when not premium tier' do
-        it 'returns false' do
-          business.update!(tier: 'free', domain_health_verified: true)
           expect(business.custom_domain_allow?).to be false
         end
       end

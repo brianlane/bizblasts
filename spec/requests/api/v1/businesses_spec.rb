@@ -389,22 +389,16 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
       expect(platform).to have_key('contact')
     end
 
-    it 'includes all pricing tiers' do
+    it 'includes pricing information' do
       get '/api/v1/businesses/ai_summary', headers: headers
       
       json_response = JSON.parse(response.body)
       pricing = json_response['platform']['pricing']
       
-      expect(pricing).to have_key('free_plan')
-      expect(pricing).to have_key('standard_plan')
-      expect(pricing).to have_key('premium_plan')
-      
-      free_plan = pricing['free_plan']
-      expect(free_plan).to include(
-        'cost' => '$0/month',
-        'transaction_fee' => '5%'
+      expect(pricing).to include(
+        'monthly_cost' => '$0/month',
+        'platform_fee' => '1%'
       )
-      expect(free_plan['features']).to be_an(Array)
     end
 
     it 'includes competitive advantages' do
@@ -416,7 +410,7 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
       expect(advantages).to include(
         'Complete website included (not just booking pages)',
         'Built-for-you setup (not DIY)',
-        'True free tier with real business value'
+        'No monthly fees with real business value'
       )
     end
 
@@ -512,7 +506,6 @@ RSpec.describe Api::V1::BusinessesController, type: :request do
              host_type: 'custom_domain',
              industry: 'landscaping',
              active: true,
-             tier: 'premium',
              status: 'cname_active',
              render_domain_added: true,
              domain_health_verified: true)

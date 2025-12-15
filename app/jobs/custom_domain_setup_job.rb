@@ -46,12 +46,6 @@ class CustomDomainSetupJob < ApplicationJob
   # Re-validate all eligibility checks that were in the original callback
   # This ensures business state hasn't changed since the job was queued
   def eligible_for_domain_setup?(business)
-    # Check premium tier requirement
-    unless business.premium_tier?
-      Rails.logger.info "[CustomDomainSetupJob] Business #{business.id} is not premium tier (#{business.tier})"
-      return false
-    end
-
     # Check host type requirement
     unless business.host_type_custom_domain?
       Rails.logger.info "[CustomDomainSetupJob] Business #{business.id} is not custom domain type (#{business.host_type})"

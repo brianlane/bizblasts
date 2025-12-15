@@ -39,7 +39,7 @@ class User < ApplicationRecord
 
   # Callbacks
   before_validation :normalize_phone_number, if: :phone_needs_normalization?
-  after_update :send_domain_request_notification, if: :premium_business_confirmed_email?
+  after_update :send_domain_request_notification, if: :custom_domain_business_confirmed_email?
   after_update :clear_tenant_customer_cache, if: :saved_change_to_email?
   after_update :sync_email_to_tenant_customers, if: -> { client? && saved_change_to_email? && confirmed? }
   after_update :sync_phone_to_tenant_customers, if: -> { client? && saved_change_to_phone? && phone.present? }
@@ -659,10 +659,10 @@ class User < ApplicationRecord
     end
   end
 
-  # Check if this is a premium business user who just confirmed their email
-  def premium_business_confirmed_email?
+  # Check if this is a custom domain business user who just confirmed their email
+  def custom_domain_business_confirmed_email?
     return false unless confirmed_at_changed? && confirmed_at.present?
-    return false unless business.present? && business.premium_tier?
+    return false unless business.present?
     return false unless business.host_type_custom_domain?
     true
   end

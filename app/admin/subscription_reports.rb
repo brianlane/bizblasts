@@ -37,24 +37,6 @@ ActiveAdmin.register_page "Subscription Reports" do
           end
 
           div class: 'form_field' do
-            label 'Business Tier:'
-            select name: 'business_tier' do
-              option value: '', selected: params[:business_tier].blank? do
-                'All Tiers'
-              end
-              option value: 'free', selected: params[:business_tier] == 'free' do
-                'Free'
-              end
-              option value: 'standard', selected: params[:business_tier] == 'standard' do
-                'Standard'
-              end
-              option value: 'premium', selected: params[:business_tier] == 'premium' do
-                'Premium'
-              end
-            end
-          end
-
-          div class: 'form_field' do
             input type: 'submit', value: 'Generate Report', class: 'button primary'
             link_to 'Export CSV', admin_subscription_reports_path(params.merge(format: 'csv')), class: 'button'
           end
@@ -66,15 +48,12 @@ ActiveAdmin.register_page "Subscription Reports" do
     if params[:report_type].present?
       start_date = params[:start_date]&.to_date || 30.days.ago.to_date
       end_date = params[:end_date]&.to_date || Date.current
-      business_tier = params[:business_tier].presence
-
       case params[:report_type]
       when 'revenue'
         # Revenue Report
         panel "Revenue Report (#{start_date.strftime('%m/%d/%Y')} - #{end_date.strftime('%m/%d/%Y')})" do
           # Base query
           subscriptions = CustomerSubscription.joins(:business)
-          subscriptions = subscriptions.where(businesses: { tier: business_tier }) if business_tier.present?
 
           # Revenue by month
           monthly_revenue = subscriptions.active
@@ -138,7 +117,6 @@ ActiveAdmin.register_page "Subscription Reports" do
         # Churn Analysis Report
         panel "Churn Analysis (#{start_date.strftime('%m/%d/%Y')} - #{end_date.strftime('%m/%d/%Y')})" do
           subscriptions = CustomerSubscription.joins(:business)
-          subscriptions = subscriptions.where(businesses: { tier: business_tier }) if business_tier.present?
 
           # Churn by month
           monthly_churn = subscriptions.cancelled
@@ -202,12 +180,11 @@ ActiveAdmin.register_page "Subscription Reports" do
         # Business Performance Report
         panel "Business Performance (#{start_date.strftime('%m/%d/%Y')} - #{end_date.strftime('%m/%d/%Y')})" do
           businesses_query = Business.joins(:customer_subscriptions)
-          businesses_query = businesses_query.where(tier: business_tier) if business_tier.present?
 
           business_stats = businesses_query
                           .where(customer_subscriptions: { created_at: start_date..end_date })
-                          .group('businesses.id', 'businesses.name', 'businesses.tier')
-                          .select('businesses.id, businesses.name, businesses.tier,
+                          .group('businesses.id', 'businesses.name')
+                          .select('businesses.id, businesses.name,
                                    COUNT(customer_subscriptions.id) as subscription_count,
                                    SUM(customer_subscriptions.subscription_price) as total_revenue,
                                    AVG(customer_subscriptions.subscription_price) as avg_price')
@@ -215,7 +192,6 @@ ActiveAdmin.register_page "Subscription Reports" do
           table do
             tr do
               th 'Business'
-              th 'Tier'
               th 'New Subscriptions'
               th 'Total Revenue'
               th 'Average Price'
@@ -225,7 +201,6 @@ ActiveAdmin.register_page "Subscription Reports" do
               active_count = CustomerSubscription.active.where(business_id: business.id).count
               tr do
                 td link_to(business.name, admin_business_path(business.id))
-                td status_tag(business.tier)
                 td business.subscription_count
                 td number_to_currency(business.total_revenue)
                 td number_to_currency(business.avg_price)
@@ -243,19 +218,9 @@ ActiveAdmin.register_page "Subscription Reports" do
                                          .where(customer_subscriptions: { status: 'active' })
                                          .distinct
 
-          if business_tier.present?
-            active_customers = active_customers.joins(customer_subscriptions: :business)
-                                             .where(businesses: { tier: business_tier })
-          end
-
           # Average subscription duration
           completed_subscriptions = CustomerSubscription.cancelled
                                                        .where(cancelled_at: start_date..end_date)
-          
-          if business_tier.present?
-            completed_subscriptions = completed_subscriptions.joins(:business)
-                                                           .where(businesses: { tier: business_tier })
-          end
 
           avg_duration_days = completed_subscriptions.average('EXTRACT(EPOCH FROM (cancelled_at - created_at)) / 86400') || 0
           avg_duration_months = (avg_duration_days / 30.0).round(1)
@@ -314,11 +279,6 @@ ActiveAdmin.register_page "Subscription Reports" do
           failed_transactions = SubscriptionTransaction.failed
                                                       .includes(:customer_subscription, :business, :tenant_customer)
                                                       .where(created_at: start_date..end_date)
-
-          if business_tier.present?
-            failed_transactions = failed_transactions.joins(:business)
-                                                   .where(businesses: { tier: business_tier })
-          end
 
           # Summary stats
           total_failed = failed_transactions.count
@@ -412,7 +372,7 @@ ActiveAdmin.register_page "Subscription Reports" do
 
     def generate_business_performance_csv
       CSV.generate(headers: true) do |csv|
-        csv << ['Business', 'Tier', 'New Subscriptions', 'Total Revenue', 'Average Price', 'Active Subscriptions']
+        csv << ['Business', 'New Subscriptions', 'Total Revenue', 'Average Price', 'Active Subscriptions']
         # Add business performance data rows here
       end
     end

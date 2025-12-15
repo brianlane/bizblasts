@@ -4,7 +4,7 @@ require 'rails_helper'
 
 RSpec.describe Webhooks::TwilioController, 'CustomerLinker method usage' do
   let(:controller) { described_class.new }
-  let(:business) { create(:business, sms_enabled: true, tier: 'premium') }
+  let(:business) { create(:business, sms_enabled: true) }
   let!(:customer) { create(:tenant_customer, business: business, phone: '+16026866672') }
 
   before do

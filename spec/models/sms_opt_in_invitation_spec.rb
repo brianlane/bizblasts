@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe SmsOptInInvitation, type: :model do
-  let(:business) { create(:business, sms_enabled: true, tier: 'premium') }
+  let(:business) { create(:business, sms_enabled: true) }
   let(:customer) { create(:tenant_customer, business: business, phone: '+15551234567') }
 
   describe 'validations' do

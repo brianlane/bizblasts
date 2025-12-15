@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe EnhancedWebsiteLayoutService, type: :service do
   let(:business) do
     create(:business,
-           :free_tier,
+           host_type: 'subdomain',
            show_services_section: true,
            show_products_section: true,
            show_rentals_section: true,

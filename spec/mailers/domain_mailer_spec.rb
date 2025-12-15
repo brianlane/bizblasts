@@ -59,7 +59,7 @@ RSpec.describe DomainMailer, type: :mailer do
     end
 
     context 'with www subdomain' do
-      before { business.update!(tier: :premium, host_type: :custom_domain, hostname: 'www.example.com') }
+      before { business.update!(host_type: :custom_domain, hostname: 'www.example.com') }
 
       it 'includes both @ and www in DNS instructions' do
         text = body_text(mail)

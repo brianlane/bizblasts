@@ -9,7 +9,6 @@
       .booking-details { background-color: #e9ecef; padding: 15px; border-radius: 5px; margin: 20px 0; }
       .payment-section { background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }
       .experience-warning { background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px; margin: 20px 0; }
-      .tier-benefits { background-color: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 5px; margin: 20px 0; }
       .button { display: inline-block; background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
       .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; font-size: 14px; color: #6c757d; }
     </style>
@@ -59,13 +58,6 @@
           <% else %>
             <p><strong>Payment Status:</strong> <span style="color: #ffc107;">Optional - Pay Now or Later</span></p>
           <% end %>
-        </div>
-      <% end %>
-
-      <% if @tier_benefits.present? %>
-        <div class="tier-benefits">
-          <h3>Your Business Tier Benefits</h3>
-          <p><%= @tier_benefits %></p>
         </div>
       <% end %>
 

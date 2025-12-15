@@ -4,7 +4,7 @@ require 'rails_helper'
 
 RSpec.describe 'Cross-domain authentication integration', type: :request do
   let(:custom_domain_business) {
-    create(:business, :with_custom_domain, hostname: 'example.com', tier: 'premium', status: 'cname_active')
+    create(:business, :with_custom_domain, hostname: 'example.com', status: 'cname_active')
   }
   let(:custom_domain_user) { create(:user, business: custom_domain_business, role: 'manager', password: 'password123') }
 
@@ -168,7 +168,7 @@ RSpec.describe 'Cross-domain authentication integration', type: :request do
     end
 
     it 'validates business custom domain configuration' do
-      subdomain_business = create(:business, hostname: 'testbiz', host_type: 'subdomain', tier: 'free')
+      subdomain_business = create(:business, hostname: 'testbiz', host_type: 'subdomain')
       subdomain_user = create(:user, business: subdomain_business, role: 'manager')
 
       sign_in subdomain_user

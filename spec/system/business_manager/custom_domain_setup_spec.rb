@@ -5,7 +5,6 @@ require 'rails_helper'
 RSpec.describe "Custom Domain Setup", type: :system do
   let!(:premium_business) do
     create(:business,
-      tier: 'premium',
       host_type: 'custom_domain',
       hostname: 'testdomain.com',
       status: 'cname_pending',
@@ -117,7 +116,6 @@ RSpec.describe "Custom Domain Setup", type: :system do
       
       # Create a premium business with custom domain
       premium_business = create(:business,
-        tier: 'premium',
         host_type: 'custom_domain',
         hostname: 'mydomain.com',
         status: 'cname_pending'
@@ -200,25 +198,6 @@ RSpec.describe "Custom Domain Setup", type: :system do
 
       # Should handle the error gracefully
       expect { DomainMonitoringJob.perform_now(premium_business.id) }.not_to raise_error
-    end
-
-    it "stops monitoring when business downgrades from premium" do
-      # Business starts in monitoring state
-      premium_business.update!(
-        status: 'cname_monitoring',
-        cname_monitoring_active: true,
-        cname_check_attempts: 5
-      )
-
-      # Simulate business downgrade
-      premium_business.update!(tier: 'standard')
-
-      # Run monitoring job
-      DomainMonitoringJob.perform_now(premium_business.id)
-
-      # Should skip processing non-premium businesses
-      premium_business.reload
-      expect(premium_business.cname_check_attempts).to eq(5) # Unchanged
     end
 
     it "handles render API errors during monitoring" do

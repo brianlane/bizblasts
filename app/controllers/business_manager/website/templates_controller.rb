@@ -16,7 +16,7 @@ class BusinessManager::Website::TemplatesController < BusinessManager::Website::
   def apply
     unless @template.can_be_used_by?(current_business)
       respond_to do |format|
-        format.html { redirect_to business_manager_website_templates_path, alert: 'Template not available for your business tier or industry' }
+        format.html { redirect_to business_manager_website_templates_path, alert: 'Template not available for your business' }
         format.json { render json: { status: 'error', message: 'Template not available' } }
       end
       return
@@ -65,9 +65,8 @@ class BusinessManager::Website::TemplatesController < BusinessManager::Website::
   def search
     @search_query = params[:q]
     @industry_filter = params[:industry]
-    @tier_filter = params[:tier]
     
-    @templates = WebsiteTemplate.active.includes(:business)
+    @templates = WebsiteTemplate.active
     
     if @search_query.present?
       @templates = @templates.where(
@@ -78,12 +77,6 @@ class BusinessManager::Website::TemplatesController < BusinessManager::Website::
     
     if @industry_filter.present? && @industry_filter != 'all'
       @templates = @templates.where(industry: [@industry_filter, 'universal'])
-    end
-    
-    if @tier_filter.present?
-      @templates = @templates.available_for_tier(@tier_filter)
-    else
-      @templates = @templates.available_for_tier(current_business.tier)
     end
     
     @templates = @templates.order(:template_type, :name).limit(20)
@@ -100,9 +93,7 @@ class BusinessManager::Website::TemplatesController < BusinessManager::Website::
     if industry == 'all'
       @templates = WebsiteTemplateService.available_templates_for_business(current_business)
     else
-      @templates = WebsiteTemplate.active
-                                  .available_for_tier(current_business.tier)
-                                  .for_industry(industry)
+      @templates = WebsiteTemplate.active.for_industry(industry)
     end
     
     respond_to do |format|

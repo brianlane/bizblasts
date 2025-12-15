@@ -7,7 +7,6 @@ RSpec.describe DomainMonitoringJob, type: :job do
 
   let!(:business) do
     create(:business,
-      tier: 'premium',
       host_type: 'custom_domain',
       hostname: 'example.com',
       status: 'cname_monitoring',
@@ -139,7 +138,6 @@ RSpec.describe DomainMonitoringJob, type: :job do
         business.update!(
           status: 'cname_monitoring',
           cname_monitoring_active: true,
-          tier: 'premium',
           host_type: 'custom_domain',
           hostname: 'example.com',
           cname_check_attempts: 1
@@ -179,7 +177,6 @@ RSpec.describe DomainMonitoringJob, type: :job do
   describe '.monitor_all_pending' do
     let!(:monitoring_business1) do
       create(:business,
-        tier: 'premium',
         host_type: 'custom_domain',
         status: 'cname_monitoring',
         cname_monitoring_active: true,
@@ -190,7 +187,6 @@ RSpec.describe DomainMonitoringJob, type: :job do
 
     let!(:monitoring_business2) do
       create(:business,
-        tier: 'premium',
         host_type: 'custom_domain',
         status: 'cname_monitoring',
         cname_monitoring_active: true,
@@ -201,7 +197,6 @@ RSpec.describe DomainMonitoringJob, type: :job do
 
     let!(:recent_business) do
       create(:business,
-        tier: 'premium',
         host_type: 'custom_domain',
         status: 'cname_monitoring',
         cname_monitoring_active: true,
@@ -212,7 +207,6 @@ RSpec.describe DomainMonitoringJob, type: :job do
 
     let!(:inactive_business) do
       create(:business,
-        tier: 'premium',
         host_type: 'custom_domain',
         status: 'cname_monitoring',
         cname_monitoring_active: false,
@@ -222,7 +216,6 @@ RSpec.describe DomainMonitoringJob, type: :job do
 
     let!(:completed_business) do
       create(:business,
-        tier: 'premium',
         host_type: 'custom_domain',
         status: 'cname_monitoring',
         cname_monitoring_active: true,
@@ -274,11 +267,6 @@ RSpec.describe DomainMonitoringJob, type: :job do
 
       it 'returns false for exceeded attempts' do
         business.update!(cname_check_attempts: 12)
-        expect(job.send(:should_continue_monitoring?, business)).to be false
-      end
-
-      it 'returns false for non-premium tier' do
-        business.update!(tier: 'free', host_type: 'subdomain', hostname: 'example')
         expect(job.send(:should_continue_monitoring?, business)).to be false
       end
 

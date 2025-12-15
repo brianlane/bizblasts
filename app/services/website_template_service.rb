@@ -2,12 +2,10 @@ class WebsiteTemplateService
   class TemplateApplicationError < StandardError; end
   
   def self.apply_template(business, template_id, user = nil)
-    return false unless business.standard_tier? || business.premium_tier?
-    
     template = WebsiteTemplate.find(template_id)
     
     unless template.can_be_used_by?(business)
-      raise TemplateApplicationError, "Template not available for your business tier or industry"
+      raise TemplateApplicationError, "Template not available for your business"
     end
     
     business.transaction do
@@ -28,16 +26,11 @@ class WebsiteTemplateService
   end
   
   def self.create_default_theme_for_business(business)
-    return false if business.free_tier?
-    
     WebsiteTheme.create_default_for_business(business)
   end
   
   def self.available_templates_for_business(business)
-    return WebsiteTemplate.none if business.free_tier?
-    
     WebsiteTemplate.active
-                   .available_for_tier(business.tier)
                    .for_industry(business.industry)
                    .order(:template_type, :name)
   end

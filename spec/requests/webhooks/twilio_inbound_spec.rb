@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Twilio Inbound SMS Webhooks', type: :request do
-  let!(:business) { create(:business, sms_enabled: true, tier: 'premium') }
+  let!(:business) { create(:business, sms_enabled: true) }
   let!(:customer) { create(:tenant_customer, business: business, phone: '+16026866672', phone_opt_in: false) }
 
   # Mock Twilio webhook parameters
@@ -276,7 +276,7 @@ RSpec.describe 'Twilio Inbound SMS Webhooks', type: :request do
   describe 'business context determination improvements' do
     context 'when customer has SMS opt-in invitation history' do
       let(:invitation_phone) { '+17775553333' }
-      let(:invitation_business) { create(:business, sms_enabled: true, tier: 'premium') }
+      let(:invitation_business) { create(:business, sms_enabled: true) }
 
       before do
         # Create recent SMS opt-in invitation to establish business context

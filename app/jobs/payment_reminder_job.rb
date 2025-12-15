@@ -3,12 +3,10 @@ class PaymentReminderJob < ApplicationJob
 
   def perform
     # Find all overdue invoices for businesses that have payment reminders enabled
-    # and are on standard+ tier
     overdue_invoices = Invoice.joins(:business)
                              .where(status: [:pending, :overdue])
                              .where('due_date < ?', Date.current)
                              .where(businesses: { 
-                               tier: ['standard', 'premium'], 
                                payment_reminders_enabled: true 
                              })
 

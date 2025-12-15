@@ -34,7 +34,6 @@ RSpec.describe Business::RegistrationsController, type: :controller do
           state: 'CA',
           zip: '12345',
           description: 'A test business',
-          tier: 'free',
           subdomain: "testbusiness-#{SecureRandom.hex(4)}"
         }
       }
@@ -98,87 +97,7 @@ RSpec.describe Business::RegistrationsController, type: :controller do
       # More tests for the happy path
     end
 
-    context 'with platform referral code' do
-      let(:test_referral_code) { 'TEST-REFERRAL-123' }
-      
-      let(:valid_attributes_with_referral) do
-        valid_attributes.deep_dup.tap do |attrs|
-          attrs[:business_attributes][:platform_referral_code] = test_referral_code
-          attrs[:business_attributes][:subdomain] = "testbiz-#{SecureRandom.hex(4)}"
-        end
-      end
-
-      it 'processes platform referral during business registration' do
-        expect(PlatformLoyaltyService).to receive(:process_business_referral_signup)
-          .with(kind_of(Business), test_referral_code)
-          .and_return({ success: true, points_awarded: 500, message: 'Success' })
-
-        post :create, params: { user: valid_attributes_with_referral }
-
-        expect(response).to redirect_to(root_path)
-        expect(User.count).to eq(1)
-        expect(Business.count).to eq(1)
-      end
-
-      it 'handles platform referral processing errors gracefully' do
-        expect(PlatformLoyaltyService).to receive(:process_business_referral_signup)
-          .with(kind_of(Business), test_referral_code)
-          .and_return({ success: false, error: 'Invalid referral code' })
-
-        post :create, params: { user: valid_attributes_with_referral }
-
-        expect(response).to redirect_to(root_path)
-        expect(User.count).to eq(1)
-        expect(Business.count).to eq(1)
-        # Business should still be created even if referral processing fails
-      end
-
-      it 'skips platform referral processing when no code provided' do
-        expect(PlatformLoyaltyService).not_to receive(:process_business_referral_signup)
-
-        post :create, params: { user: valid_attributes }
-
-        expect(response).to redirect_to(root_path)
-        expect(User.count).to eq(1)
-        expect(Business.count).to eq(1)
-      end
-
-      it 'handles exceptions during platform referral processing' do
-        expect(PlatformLoyaltyService).to receive(:process_business_referral_signup)
-          .with(kind_of(Business), test_referral_code)
-          .and_raise(StandardError.new('Service error'))
-
-        expect(Rails.logger).to receive(:error)
-          .with(match(/Error processing platform referral signup/))
-
-        post :create, params: { user: valid_attributes_with_referral }
-
-        expect(response).to redirect_to(root_path)
-        expect(User.count).to eq(1)
-        expect(Business.count).to eq(1)
-      end
-
-      it 'treats blank platform referral code as nil to avoid uniqueness errors' do
-        # First request with blank code
-        attrs1 = valid_attributes.deep_dup
-        attrs1[:business_attributes][:platform_referral_code] = ''
-        attrs1[:business_attributes][:subdomain] = "biz1-#{SecureRandom.hex(4)}"
-
-        expect {
-          post :create, params: { user: attrs1 }
-        }.to change(Business, :count).by(1)
-
-        # Second request also with blank code should succeed
-        attrs2 = valid_attributes.deep_dup
-        attrs2[:email] = "user2-#{SecureRandom.hex(4)}@example.com"
-        attrs2[:business_attributes][:platform_referral_code] = ''
-        attrs2[:business_attributes][:subdomain] = "biz2-#{SecureRandom.hex(4)}"
-
-        expect {
-          post :create, params: { user: attrs2 }
-        }.to change(Business, :count).by(1)
-      end
-
+    context 'with invalid params' do
       it 'does not create resources and re-renders the form with flash alert when an unrecognised industry is supplied' do
         unrecognised_industry = 'Chef Jenn LLC'
         attributes_with_bad_industry = valid_attributes.deep_dup
@@ -192,10 +111,6 @@ RSpec.describe Business::RegistrationsController, type: :controller do
         expect(response).to render_template(:new)
         expect(flash[:alert]).to match(/not a recognised industry/i)
       end
-    end
-
-    context 'with invalid params' do
-      # Add tests for error scenarios
     end
   end
 end 

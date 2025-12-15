@@ -24,43 +24,33 @@ RSpec.describe BusinessMailer, type: :mailer do
   end
 
   describe '#domain_request_notification' do
-    let(:premium_business) { create(:business, tier: 'premium', host_type: 'custom_domain', hostname: 'example.com') }
-    let(:premium_user) { create(:user, :manager, business: premium_business, email: 'premium@test.com') }
+    let(:domain_business) { create(:business, host_type: 'custom_domain', hostname: 'example.com') }
+    let(:domain_user) { create(:user, :manager, business: domain_business, email: 'owner@test.com') }
 
     it 'sends domain request notification email' do
-      mail = BusinessMailer.domain_request_notification(premium_user)
+      mail = BusinessMailer.domain_request_notification(domain_user)
       
-      expect(mail.to).to eq([premium_user.email])
+      expect(mail.to).to eq([domain_user.email])
       expect(mail.subject).to include('Custom Domain Request Received')
-      expect(mail.body.encoded).to include(premium_business.name)
-      expect(mail.body.encoded).to include(premium_business.hostname)
+      expect(mail.body.encoded).to include(domain_business.name)
+      expect(mail.body.encoded).to include(domain_business.hostname)
     end
 
-    it 'includes domain coverage information in the email' do
-      mail = BusinessMailer.domain_request_notification(premium_user)
-      
-      # Check for domain coverage content in both HTML and text versions
-      expect(mail.body.encoded).to include('DOMAIN COST COVERAGE')
-      expect(mail.body.encoded).to include('$20 per year')
-      expect(mail.body.encoded).to include('BizBlasts covers domain registration costs')
-      expect(mail.body.encoded).to include('If under $20/year: We handle registration at no cost')
-      expect(mail.body.encoded).to include('If over $20/year: We\'ll contact you with alternatives')
-    end
+    it 'includes domain setup information in the email' do
+      mail = BusinessMailer.domain_request_notification(domain_user)
 
-    it 'includes coverage policy details' do
-      mail = BusinessMailer.domain_request_notification(premium_user)
-      
+      expect(mail.html_part.body.decoded).to include('Domain Setup Information')
+
       text_part = mail.text_part.body.decoded
-      expect(text_part).to include('If you already own this domain')
-      expect(text_part).to include('domain-related costs through your current registrar')
+      expect(text_part).to include('DOMAIN SETUP INFORMATION')
     end
 
     context 'with domain name in email' do
-      let(:premium_business_with_domain) { create(:business, tier: 'premium', host_type: 'custom_domain', hostname: 'mybusiness.com') }
-      let(:premium_user_with_domain) { create(:user, :manager, business: premium_business_with_domain, email: 'owner@mybusiness.com') }
+      let(:business_with_domain) { create(:business, host_type: 'custom_domain', hostname: 'mybusiness.com') }
+      let(:user_with_domain) { create(:user, :manager, business: business_with_domain, email: 'owner@mybusiness.com') }
 
       it 'displays the requested domain in the email' do
-        mail = BusinessMailer.domain_request_notification(premium_user_with_domain)
+        mail = BusinessMailer.domain_request_notification(user_with_domain)
         
         expect(mail.body.encoded).to include('mybusiness.com')
         expect(mail.body.encoded).to include('Under Review')

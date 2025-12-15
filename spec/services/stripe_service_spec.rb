@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe StripeService, type: :service do
-  let(:business) { create(:business, tier: 'free', stripe_account_id: 'acct_test123') }
+  let(:business) { create(:business, stripe_account_id: 'acct_test123') }
   let(:tenant_customer) { create(:tenant_customer, business: business, stripe_customer_id: 'cus_test123') }
   let(:invoice) { create(:invoice, business: business, tenant_customer: tenant_customer, total_amount: 10.00) }
 
@@ -17,28 +17,14 @@ RSpec.describe StripeService, type: :service do
   end
 
   describe '.calculate_platform_fee_cents' do
-    it 'uses 3% for premium tier' do
-      premium_business = create(:business, tier: 'premium')
-      # For $10.00 = 1000 cents: 3% = 30 cents
-      expect(described_class.send(:calculate_platform_fee_cents, 1000, premium_business)).to eq(30)
+    it 'uses 1% platform fee for all businesses' do
+      # For $10.00 = 1000 cents: 1% = 10 cents
+      expect(described_class.send(:calculate_platform_fee_cents, 1000, business)).to eq(10)
     end
 
-    it 'uses 5% for free tier' do
-      free_business = create(:business, tier: 'free')
-      # For $10.00 = 1000 cents: 5% = 50 cents
-      expect(described_class.send(:calculate_platform_fee_cents, 1000, free_business)).to eq(50)
-    end
-  end
-
-  describe '.get_stripe_price_id' do
-    it 'returns correct ENV value for standard' do
-      allow(ENV).to receive(:[]).with('STRIPE_STANDARD_PRICE_ID').and_return('price_standard_123')
-      expect(described_class.get_stripe_price_id('standard')).to eq('price_standard_123')
-    end
-
-    it 'returns correct ENV value for premium' do
-      allow(ENV).to receive(:[]).with('STRIPE_PREMIUM_PRICE_ID').and_return('price_premium_123')
-      expect(described_class.get_stripe_price_id('premium')).to eq('price_premium_123')
+    it 'uses 1% even without a business argument' do
+      # For $10.00 = 1000 cents: 1% = 10 cents
+      expect(described_class.send(:calculate_platform_fee_cents, 1000)).to eq(10)
     end
   end
 
@@ -74,7 +60,7 @@ RSpec.describe StripeService, type: :service do
           success_url: success_url,
           cancel_url: cancel_url,
           customer: 'cus_test123',
-          payment_intent_data: hash_including(application_fee_amount: 50)
+          payment_intent_data: hash_including(application_fee_amount: 10)
         ),
         { stripe_account: business.stripe_account_id }
       )
@@ -144,7 +130,7 @@ RSpec.describe StripeService, type: :service do
             booking_type: 'service_booking',
             booking_data: booking_data.to_json
           ),
-          payment_intent_data: hash_including(application_fee_amount: 50)
+          payment_intent_data: hash_including(application_fee_amount: 10)
         ),
         { stripe_account: business.stripe_account_id }
       )
@@ -528,7 +514,7 @@ RSpec.describe StripeService, type: :service do
             tip_id: tip.id.to_s,
             business_id: business.id.to_s
           ),
-          payment_intent_data: hash_including(application_fee_amount: 125)
+          payment_intent_data: hash_including(application_fee_amount: 25)
         ),
         { stripe_account: business.stripe_account_id }
       )
@@ -577,33 +563,23 @@ RSpec.describe StripeService, type: :service do
     end
 
     describe ".calculate_tip_platform_fee" do
-      let(:business) { create(:business, tier: 'premium') }
-      
-      it "calculates platform fee for tips based on business tier" do
+      it "calculates 1% platform fee for tips" do
         fee = StripeService.calculate_tip_platform_fee(100.0, business)
-        expect(fee).to eq(3.0) # 3% of $100.00 = $3.00 for premium tier
+        expect(fee).to eq(1.0) # 1% of $100.00 = $1.00
       end
-      
-      it "handles different business tiers" do
-        free_business = create(:business, tier: 'free')
-        fee = StripeService.calculate_tip_platform_fee(100.0, free_business)
-        expect(fee).to eq(5.0) # 5% of $100.00 = $5.00 for free tier
+
+      it "calculates 1% for any business" do
+        another_business = create(:business)
+        fee = StripeService.calculate_tip_platform_fee(100.0, another_business)
+        expect(fee).to eq(1.0) # 1% of $100.00 = $1.00
       end
     end
 
     describe ".calculate_tip_business_amount" do
-      let(:business) { create(:business, tier: 'free') }
-      
       it "calculates business amount after fees (direct charges)" do
         # In direct charges, business pays Stripe fees directly, so we deduct both Stripe and platform fees
         amount = StripeService.calculate_tip_business_amount(100.0, business)
-        expect(amount).to eq(91.8) # 100 - 3.20 (Stripe fee with flat fee) - 5.00 (platform fee)
-      end
-      
-      it "calculates business amount for premium tier after fees" do
-        premium_business = create(:business, tier: 'premium')
-        amount = StripeService.calculate_tip_business_amount(100.0, premium_business)
-        expect(amount).to eq(93.8) # 100 - 3.20 (Stripe fee with flat fee) - 3.00 (platform fee)
+        expect(amount).to eq(95.8) # 100 - 3.20 (Stripe fee with flat fee) - 1.00 (1% platform fee)
       end
     end
   end

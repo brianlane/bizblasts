@@ -87,7 +87,6 @@ ActiveAdmin.register_page "Debug" do
           column :hostname do |tenant|
             tenant.hostname
           end
-          column :tier
           column :active
           column "Test Links" do |tenant|
             hostname_with_domain = "#{tenant.hostname}.example.com" # Adjust domain as needed
