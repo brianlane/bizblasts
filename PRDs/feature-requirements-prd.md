@@ -193,7 +193,7 @@
 - Customer profiles
 
 ### Premium Tier ($99/month + Minimal Transaction Fees)
-- Custom domain with domain coverage up to $20 annually*
+- Custom domain support (you provide your own domain)*
 - Premium website design
 - All Standard tier features
 - Unlimited staff members
@@ -212,7 +212,7 @@
 - Resource management
 - Group booking capabilities
 
-*Domain Coverage Policy: BizBlasts covers domain registration and renewal costs up to $20 annually as part of the Premium subscription. Domains over $20/year require customers to obtain their own domain, which can then be connected to their BizBlasts site. Existing domain owners are responsible for their own domain costs. For new domains over $20/year, we'll contact customers with alternatives under $20.
+*Custom Domain Policy: BizBlasts provides custom domain setup and SSL certificate management at no additional cost. Customers are responsible for purchasing and renewing their own domain from a domain registrar of their choice. BizBlasts handles the technical setup including DNS configuration, SSL certificates, and domain verification.
 
 ## Add-On Features (Additional Cost)
 - Additional site updates: $50 per update

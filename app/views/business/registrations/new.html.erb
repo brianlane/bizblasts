@@ -167,15 +167,26 @@
             <p class="text-xs text-gray-500 mt-1">Will appear as your-biz.bizblasts.com</p>
           </div>
 
-          <!-- Custom domain (optional) -->
+          <!-- Custom Domain Ownership Checkbox -->
           <div class="mt-6">
-            <div id="reg_custom_group">
-              <%= business_f.label :hostname, "Custom Domain (Optional)", class: "block text-sm font-medium text-dark mb-1" %>
-              <%= business_f.text_field :hostname, placeholder: "yourdomain.com", class: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" %>
-              <p class="text-xs text-gray-500 mt-1">Leave blank if you don't want a custom domain</p>
-              
+            <div class="flex items-start">
+              <%= business_f.check_box :custom_domain_owned, { class: "mt-1 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary cursor-pointer", id: "custom_domain_owned_checkbox" }, "1", "0" %>
+              <label for="custom_domain_owned_checkbox" class="ml-3 text-sm text-gray-700 cursor-pointer">
+                <span class="font-medium">I have my own custom domain already</span>
+                <br><span class="text-xs text-gray-500">Check this if you already own a domain you want to use (e.g., yourbusiness.com)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Custom domain fields (shown when checkbox is checked) -->
+          <div class="mt-4 hidden" id="custom_domain_fields">
+            <div id="reg_custom_group" class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+              <%= business_f.label :hostname, "Your Custom Domain", class: "block text-sm font-medium text-dark mb-1" %>
+              <%= business_f.text_field :hostname, placeholder: "yourdomain.com", class: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors bg-white", id: "custom_domain_input" %>
+              <p class="text-xs text-gray-500 mt-1">Enter the domain you own (without www or https://)</p>
+
               <!-- Advanced: Canonical Preference -->
-              <div class="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+              <div class="mt-4 p-3 bg-white border border-gray-200 rounded-lg">
                 <div class="flex items-center justify-between mb-2">
                   <%= business_f.label :canonical_preference, "Canonical URL (Advanced)", class: "text-sm font-medium text-dark" %>
                   <span class="text-xs text-gray-500">Optional</span>
@@ -184,29 +195,18 @@
                   <div class="flex items-center">
                     <%= business_f.radio_button :canonical_preference, 'www', checked: true, class: "h-4 w-4 text-primary border-gray-300 focus:ring-primary cursor-pointer" %>
                     <label for="user_business_attributes_canonical_preference_www" class="ml-2 text-sm text-gray-700 cursor-pointer">
-                      <code class="bg-white px-1 rounded text-primary">www.yourdomain.com</code> (Recommended)
+                      <code class="bg-gray-100 px-1 rounded text-primary">www.yourdomain.com</code> (Recommended)
                     </label>
                   </div>
                   <div class="flex items-center">
                     <%= business_f.radio_button :canonical_preference, 'apex', class: "h-4 w-4 text-primary border-gray-300 focus:ring-primary cursor-pointer" %>
                     <label for="user_business_attributes_canonical_preference_apex" class="ml-2 text-sm text-gray-700 cursor-pointer">
-                      <code class="bg-white px-1 rounded text-primary">yourdomain.com</code> (Advanced)
+                      <code class="bg-gray-100 px-1 rounded text-primary">yourdomain.com</code> (Advanced)
                     </label>
                   </div>
                 </div>
                 <p class="text-xs text-gray-500 mt-2">Choose your preferred canonical URL. Both versions will work, but one will redirect to the other for SEO consistency.</p>
               </div>
-            </div>
-          </div>
-
-          <!-- Custom Domain Ownership Checkbox -->
-          <div class="mt-4">
-            <div class="flex items-start">
-              <%= business_f.check_box :custom_domain_owned, { class: "mt-1 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary" }, "1", "0" %>
-              <label for="user_business_attributes_custom_domain_owned" class="ml-3 text-sm text-gray-700">
-                Already have my own domain
-                <br><span class="text-xs text-gray-500">If left unchecked, you can still connect a domain you purchase separately later</span>
-              </label>
             </div>
           </div>
 
@@ -260,7 +260,7 @@
           </div>
 
           <p class="text-xs text-gray-500 mt-4">
-            Note: Some items may not appear if they require specific features or tier to be enabled.
+            Note: Some items may not appear if they require specific features to be enabled.
           </p>
         </div>
       </div>
@@ -358,314 +358,416 @@
 </div>
 
 <script type="text/javascript">
-  function initializeBusinessRegistrationHostType() {
-    const hostTypeHidden = document.getElementById('host_type_input');
-    const subdomainField = document.querySelector('input[name*="[subdomain]"]');
-    const customDomainField = document.querySelector('input[name*="[hostname]"]');
+  (function() {
+    const HOST_TYPE_INIT_KEY = 'hostTypeInitialized';
+    const VALIDATION_INIT_KEY = 'validationInitialized';
+    
+    function initializeBusinessRegistrationHostType() {
+      const hostTypeHidden = document.getElementById('host_type_input');
+      const subdomainField = document.querySelector('input[name*="[subdomain]"]');
+      const customDomainField = document.querySelector('input[name*="[hostname]"]');
 
-    if (!hostTypeHidden) return;
+      if (!hostTypeHidden) return;
+      
+      // Prevent duplicate initialization
+      if (hostTypeHidden.dataset[HOST_TYPE_INIT_KEY]) return;
+      hostTypeHidden.dataset[HOST_TYPE_INIT_KEY] = 'true';
 
-    function recomputeHostType() {
-      const hasCustomDomain = customDomainField && customDomainField.value && customDomainField.value.trim().length > 0;
-      const hasSubdomain = subdomainField && subdomainField.value && subdomainField.value.trim().length > 0;
+      function recomputeHostType() {
+        const hasCustomDomain = customDomainField && customDomainField.value && customDomainField.value.trim().length > 0;
+        const hasSubdomain = subdomainField && subdomainField.value && subdomainField.value.trim().length > 0;
 
-      if (hasCustomDomain) {
-        hostTypeHidden.value = 'custom_domain';
-      } else if (hasSubdomain) {
-        hostTypeHidden.value = 'subdomain';
+        if (hasCustomDomain) {
+          hostTypeHidden.value = 'custom_domain';
+        } else if (hasSubdomain) {
+          hostTypeHidden.value = 'subdomain';
+        } else {
+          hostTypeHidden.value = 'subdomain';
+        }
+      }
+
+      if (customDomainField) customDomainField.addEventListener('input', recomputeHostType);
+      if (subdomainField) subdomainField.addEventListener('input', recomputeHostType);
+      recomputeHostType();
+    }
+
+    // Enhanced form validation functions
+    function validateField(input, isValid, errorMessage) {
+      const existingError = input.parentElement.querySelector('.field-error');
+      if (existingError) {
+        existingError.remove();
+      }
+
+      if (!isValid) {
+        input.classList.add('border-red-500', 'ring-red-500');
+        input.classList.remove('border-gray-300', 'focus:border-primary', 'focus:ring-primary');
+        
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'field-error text-red-500 text-xs mt-1';
+        errorDiv.textContent = errorMessage;
+        input.parentElement.appendChild(errorDiv);
       } else {
-        hostTypeHidden.value = 'subdomain';
+        input.classList.remove('border-red-500', 'ring-red-500');
+        input.classList.add('border-gray-300', 'focus:border-primary', 'focus:ring-primary');
       }
     }
 
-    if (customDomainField) customDomainField.addEventListener('input', recomputeHostType);
-    if (subdomainField) subdomainField.addEventListener('input', recomputeHostType);
-    recomputeHostType();
-  }
-
-  // Enhanced form validation functions
-  function validateField(input, isValid, errorMessage) {
-    const existingError = input.parentElement.querySelector('.field-error');
-    if (existingError) {
-      existingError.remove();
+    function validateEmail(email) {
+      const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+      return emailRegex.test(email);
     }
 
-    if (!isValid) {
-      input.classList.add('border-red-500', 'ring-red-500');
-      input.classList.remove('border-gray-300', 'focus:border-primary', 'focus:ring-primary');
+    function validatePhone(phone) {
+      const phoneRegex = /^(\+1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})$/;
+      return phoneRegex.test(phone);
+    }
+
+    function validateZip(zip) {
+      const zipRegex = /^[0-9]{5}(-[0-9]{4})?$/;
+      return zipRegex.test(zip);
+    }
+
+    // Add real-time validation listeners
+    function initializeBusinessRegistrationValidation() {
+      const form = document.querySelector('form[action*="business"]');
+      if (!form) return;
       
-      const errorDiv = document.createElement('div');
-      errorDiv.className = 'field-error text-red-500 text-xs mt-1';
-      errorDiv.textContent = errorMessage;
-      input.parentElement.appendChild(errorDiv);
-    } else {
-      input.classList.remove('border-red-500', 'ring-red-500');
-      input.classList.add('border-gray-300', 'focus:border-primary', 'focus:ring-primary');
+      // Prevent duplicate initialization
+      if (form.dataset[VALIDATION_INIT_KEY]) return;
+      form.dataset[VALIDATION_INIT_KEY] = 'true';
+      
+      // Email validation
+      const emailFields = document.querySelectorAll('input[type="email"]');
+      emailFields.forEach(field => {
+        field.addEventListener('blur', function() {
+          if (this.value) {
+            const isValid = validateEmail(this.value);
+            validateField(this, isValid, 'Please enter a valid email address');
+          }
+        });
+      });
+
+      // Phone validation
+      const phoneFields = document.querySelectorAll('input[type="tel"]');
+      phoneFields.forEach(field => {
+        field.addEventListener('blur', function() {
+          if (this.value) {
+            const isValid = validatePhone(this.value);
+            validateField(this, isValid, 'Please enter a valid US phone number (e.g., (555) 123-4567)');
+          }
+        });
+      });
+
+      // ZIP code validation
+      const zipFields = document.querySelectorAll('input[name*="[zip]"]');
+      zipFields.forEach(field => {
+        field.addEventListener('blur', function() {
+          if (this.value) {
+            const isValid = validateZip(this.value);
+            validateField(this, isValid, 'Please enter a valid ZIP code (5 digits or 5+4 format)');
+          }
+        });
+      });
+
+      // Phone number formatting
+      phoneFields.forEach(field => {
+        field.addEventListener('input', function() {
+          let value = this.value.replace(/\D/g, ''); // Remove non-digits
+          if (value.length >= 6) {
+            value = value.replace(/(\d{3})(\d{3})(\d+)/, '($1) $2-$3');
+          } else if (value.length >= 3) {
+            value = value.replace(/(\d{3})(\d+)/, '($1) $2');
+          }
+          this.value = value;
+        });
+      });
+
+      // ZIP code formatting
+      zipFields.forEach(field => {
+        field.addEventListener('input', function() {
+          // Remove all non-digits and hyphens, then remove any hyphens that aren't in the right place
+          let value = this.value.replace(/[^0-9-]/g, '').replace(/-+/g, '-');
+          
+          // Remove hyphens that aren't after exactly 5 digits
+          value = value.replace(/^(\d{1,4})-/, '$1').replace(/(\d{5})-+(\d)/, '$1-$2');
+          
+          // If we have more than 5 digits without a hyphen, add one
+          if (value.length > 5 && !value.includes('-')) {
+            value = value.replace(/(\d{5})(\d+)/, '$1-$2');
+          }
+          
+          // Limit to 10 characters max (12345-6789)
+          if (value.length > 10) {
+            value = value.substring(0, 10);
+          }
+          
+          this.value = value;
+        });
+      });
     }
-  }
 
-  function validateEmail(email) {
-    const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
-    return emailRegex.test(email);
-  }
+    function initAll() {
+      initializeBusinessRegistrationHostType();
+      initializeBusinessRegistrationValidation();
+    }
 
-  function validatePhone(phone) {
-    const phoneRegex = /^(\+1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})$/;
-    return phoneRegex.test(phone);
-  }
-
-  function validateZip(zip) {
-    const zipRegex = /^[0-9]{5}(-[0-9]{4})?$/;
-    return zipRegex.test(zip);
-  }
-
-  // Add real-time validation listeners
-  function initializeBusinessRegistrationValidation() {
-    // Email validation
-    const emailFields = document.querySelectorAll('input[type="email"]');
-    emailFields.forEach(field => {
-      field.addEventListener('blur', function() {
-        if (this.value) {
-          const isValid = validateEmail(this.value);
-          validateField(this, isValid, 'Please enter a valid email address');
-        }
-      });
-    });
-
-    // Phone validation
-    const phoneFields = document.querySelectorAll('input[type="tel"]');
-    phoneFields.forEach(field => {
-      field.addEventListener('blur', function() {
-        if (this.value) {
-          const isValid = validatePhone(this.value);
-          validateField(this, isValid, 'Please enter a valid US phone number (e.g., (555) 123-4567)');
-        }
-      });
-    });
-
-    // ZIP code validation
-    const zipFields = document.querySelectorAll('input[name*="[zip]"]');
-    zipFields.forEach(field => {
-      field.addEventListener('blur', function() {
-        if (this.value) {
-          const isValid = validateZip(this.value);
-          validateField(this, isValid, 'Please enter a valid ZIP code (5 digits or 5+4 format)');
-        }
-      });
-    });
-
-    // Phone number formatting
-    phoneFields.forEach(field => {
-      field.addEventListener('input', function() {
-        let value = this.value.replace(/\D/g, ''); // Remove non-digits
-        if (value.length >= 6) {
-          value = value.replace(/(\d{3})(\d{3})(\d+)/, '($1) $2-$3');
-        } else if (value.length >= 3) {
-          value = value.replace(/(\d{3})(\d+)/, '($1) $2');
-        }
-        this.value = value;
-      });
-    });
-
-    // ZIP code formatting
-    zipFields.forEach(field => {
-      field.addEventListener('input', function() {
-        // Remove all non-digits and hyphens, then remove any hyphens that aren't in the right place
-        let value = this.value.replace(/[^0-9-]/g, '').replace(/-+/g, '-');
-        
-        // Remove hyphens that aren't after exactly 5 digits
-        value = value.replace(/^(\d{1,4})-/, '$1').replace(/(\d{5})-+(\d)/, '$1-$2');
-        
-        // If we have more than 5 digits without a hyphen, add one
-        if (value.length > 5 && !value.includes('-')) {
-          value = value.replace(/(\d{5})(\d+)/, '$1-$2');
-        }
-        
-        // Limit to 10 characters max (12345-6789)
-        if (value.length > 10) {
-          value = value.substring(0, 10);
-        }
-        
-        this.value = value;
-      });
-    });
-  }
-
-  // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
-  document.addEventListener('DOMContentLoaded', initializeBusinessRegistrationHostType);
-  document.addEventListener('turbo:load', initializeBusinessRegistrationHostType);
-  document.addEventListener('DOMContentLoaded', initializeBusinessRegistrationValidation);
-  document.addEventListener('turbo:load', initializeBusinessRegistrationValidation);
+    // Run immediately if DOM is ready (handles Turbo navigation)
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initAll);
+    } else {
+      initAll();
+    }
+    
+    // Also listen for turbo:load for subsequent Turbo navigations
+    document.addEventListener('turbo:load', initAll);
+  })();
 </script>
 
 <!-- Subdomain Availability Checker for Registration -->
 <script type="text/javascript">
-  function initializeRegistrationSubdomainChecker() {
-    const subdomainInput = document.getElementById('registration_subdomain_field');
+  (function() {
+    const SUBDOMAIN_INIT_KEY = 'subdomainCheckerInitialized';
     
-    if (!subdomainInput) return;
-    
-    let checkTimeout;
-    let lastCheckedValue = '';
-    
-    function showValidationMessage(input, message, type = 'error') {
-      // Remove existing validation messages
-      const existingMessage = input.parentNode.querySelector('.subdomain-validation');
-      if (existingMessage) {
-        existingMessage.remove();
-      }
-
-      if (!message) return;
-
-      const messageDiv = document.createElement('div');
-      messageDiv.className = `subdomain-validation text-xs mt-1 ${type === 'success' ? 'text-green-600' : type === 'warning' ? 'text-yellow-600' : 'text-red-600'}`;
-
-      // SECURITY FIX (Alert #25 - CWE-79): Use textContent instead of innerHTML
-      // This prevents XSS attacks by treating the message as plain text only.
-      // Validation messages don't need HTML rendering - they're all plain text.
-      messageDiv.textContent = message;
-
-      input.parentNode.appendChild(messageDiv);
-    }
-    
-    function validateSubdomainFormat(subdomain) {
-      if (!subdomain) return { valid: false, message: '' };
+    function initializeRegistrationSubdomainChecker() {
+      const subdomainInput = document.getElementById('registration_subdomain_field');
       
-      // Check length (3-63 characters)
-      if (subdomain.length < 3) {
-        return { valid: false, message: 'Subdomain must be at least 3 characters long' };
-      }
-      if (subdomain.length > 63) {
-        return { valid: false, message: 'Subdomain must be 63 characters or less' };
-      }
+      if (!subdomainInput) return;
       
-      // Check format: alphanumeric and hyphens, no hyphens at start/end
-      const validFormat = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(subdomain);
-      if (!validFormat) {
-        return { valid: false, message: 'Only lowercase letters, numbers, and hyphens allowed. Cannot start or end with hyphen' };
-      }
+      // Prevent duplicate initialization
+      if (subdomainInput.dataset[SUBDOMAIN_INIT_KEY]) return;
+      subdomainInput.dataset[SUBDOMAIN_INIT_KEY] = 'true';
       
-      // Check for reserved words
-      const reserved = ['www', 'mail', 'ftp', 'admin', 'root', 'api', 'app', 'support', 'help', 'blog', 'shop', 'store', 'manage', 'settings', 'dashboard'];
-      if (reserved.includes(subdomain.toLowerCase())) {
-        return { valid: false, message: 'This subdomain is reserved and cannot be used' };
-      }
+      let checkTimeout;
+      let lastCheckedValue = '';
       
-      return { valid: true, message: '' };
-    }
-    
-    async function checkSubdomainAvailability(subdomain) {
-      try {
-        const response = await fetch(`/subdomains/check?subdomain=${encodeURIComponent(subdomain)}`, {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' }
-        });
-        
-        const data = await response.json();
-        return data;
-      } catch (error) {
-        console.error('Error checking subdomain availability:', error);
-        return { available: false, message: 'Unable to check availability. Please try again.' };
-      }
-    }
-    
-    function handleSubdomainCheck() {
-      const currentValue = subdomainInput.value.toLowerCase().trim();
-      
-      // Skip if value hasn't changed or is empty
-      if (currentValue === lastCheckedValue || !currentValue) {
-        if (!currentValue) showValidationMessage(subdomainInput, '');
-        return;
-      }
-      
-      lastCheckedValue = currentValue;
-      
-      // Format validation first
-      const formatCheck = validateSubdomainFormat(currentValue);
-      if (!formatCheck.valid) {
-        showValidationMessage(subdomainInput, formatCheck.message, 'error');
-        return;
-      }
-      
-      // Show checking message
-      showValidationMessage(subdomainInput, '⏳ Checking availability...', 'warning');
-      
-      // Check availability
-      checkSubdomainAvailability(currentValue).then(result => {
-        if (result.available) {
-          showValidationMessage(subdomainInput, '✅ Available! Will appear as ' + currentValue + '.bizblasts.com', 'success');
-        } else {
-          showValidationMessage(subdomainInput, '❌ ' + (result.message || 'This subdomain is not available'), 'error');
+      function showValidationMessage(input, message, type = 'error') {
+        // Remove existing validation messages
+        const existingMessage = input.parentNode.querySelector('.subdomain-validation');
+        if (existingMessage) {
+          existingMessage.remove();
         }
+
+        if (!message) return;
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `subdomain-validation text-xs mt-1 ${type === 'success' ? 'text-green-600' : type === 'warning' ? 'text-yellow-600' : 'text-red-600'}`;
+
+        // SECURITY FIX (Alert #25 - CWE-79): Use textContent instead of innerHTML
+        // This prevents XSS attacks by treating the message as plain text only.
+        // Validation messages don't need HTML rendering - they're all plain text.
+        messageDiv.textContent = message;
+
+        input.parentNode.appendChild(messageDiv);
+      }
+      
+      function validateSubdomainFormat(subdomain) {
+        if (!subdomain) return { valid: false, message: '' };
+        
+        // Check length (3-63 characters)
+        if (subdomain.length < 3) {
+          return { valid: false, message: 'Subdomain must be at least 3 characters long' };
+        }
+        if (subdomain.length > 63) {
+          return { valid: false, message: 'Subdomain must be 63 characters or less' };
+        }
+        
+        // Check format: alphanumeric and hyphens, no hyphens at start/end
+        const validFormat = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(subdomain);
+        if (!validFormat) {
+          return { valid: false, message: 'Only lowercase letters, numbers, and hyphens allowed. Cannot start or end with hyphen' };
+        }
+        
+        // Check for reserved words
+        const reserved = ['www', 'mail', 'ftp', 'admin', 'root', 'api', 'app', 'support', 'help', 'blog', 'shop', 'store', 'manage', 'settings', 'dashboard'];
+        if (reserved.includes(subdomain.toLowerCase())) {
+          return { valid: false, message: 'This subdomain is reserved and cannot be used' };
+        }
+        
+        return { valid: true, message: '' };
+      }
+      
+      async function checkSubdomainAvailability(subdomain) {
+        try {
+          const response = await fetch(`/subdomains/check?subdomain=${encodeURIComponent(subdomain)}`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+          });
+          
+          const data = await response.json();
+          return data;
+        } catch (error) {
+          console.error('Error checking subdomain availability:', error);
+          return { available: false, message: 'Unable to check availability. Please try again.' };
+        }
+      }
+      
+      function handleSubdomainCheck() {
+        const currentValue = subdomainInput.value.toLowerCase().trim();
+        
+        // Skip if value hasn't changed or is empty
+        if (currentValue === lastCheckedValue || !currentValue) {
+          if (!currentValue) showValidationMessage(subdomainInput, '');
+          return;
+        }
+        
+        lastCheckedValue = currentValue;
+        
+        // Format validation first
+        const formatCheck = validateSubdomainFormat(currentValue);
+        if (!formatCheck.valid) {
+          showValidationMessage(subdomainInput, formatCheck.message, 'error');
+          return;
+        }
+        
+        // Show checking message
+        showValidationMessage(subdomainInput, '⏳ Checking availability...', 'warning');
+        
+        // Check availability
+        checkSubdomainAvailability(currentValue).then(result => {
+          if (result.available) {
+            showValidationMessage(subdomainInput, '✅ Available! Will appear as ' + currentValue + '.bizblasts.com', 'success');
+          } else {
+            showValidationMessage(subdomainInput, '❌ ' + (result.message || 'This subdomain is not available'), 'error');
+          }
+        });
+      }
+      
+      // Add event listeners
+      subdomainInput.addEventListener('input', function() {
+        clearTimeout(checkTimeout);
+        checkTimeout = setTimeout(handleSubdomainCheck, 500); // Debounce 500ms
+      });
+      
+      subdomainInput.addEventListener('blur', function() {
+        clearTimeout(checkTimeout);
+        handleSubdomainCheck();
       });
     }
     
-    // Add event listeners
-    subdomainInput.addEventListener('input', function() {
-      clearTimeout(checkTimeout);
-      checkTimeout = setTimeout(handleSubdomainCheck, 500); // Debounce 500ms
-    });
+    // Run immediately if DOM is ready (handles Turbo navigation)
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeRegistrationSubdomainChecker);
+    } else {
+      initializeRegistrationSubdomainChecker();
+    }
     
-    subdomainInput.addEventListener('blur', function() {
-      clearTimeout(checkTimeout);
-      handleSubdomainCheck();
-    });
-  }
-  
-  document.addEventListener('DOMContentLoaded', initializeRegistrationSubdomainChecker);
-  document.addEventListener('turbo:load', initializeRegistrationSubdomainChecker);
+    // Also listen for turbo:load for subsequent Turbo navigations
+    document.addEventListener('turbo:load', initializeRegistrationSubdomainChecker);
+  })();
 </script>
 
 <script type="text/javascript">
-  function initializeSidebarSelection() {
-    const sectionToggle = document.getElementById('sidebar-section-toggle');
-    const sectionContent = document.getElementById('sidebar-selection-content');
-    const chevron = document.getElementById('sidebar-section-chevron');
-    const selectAllBtn = document.getElementById('select-all-sidebar');
-    const deselectAllBtn = document.getElementById('deselect-all-sidebar');
-    const checkboxes = document.querySelectorAll('.sidebar-item-checkbox');
-    const sidebarCustomizedField = document.getElementById('sidebar_customized');
+  (function() {
+    const CUSTOM_DOMAIN_INIT_KEY = 'customDomainToggleInitialized';
+    
+    function initializeCustomDomainToggle() {
+      const checkbox = document.getElementById('custom_domain_owned_checkbox');
+      const customDomainFields = document.getElementById('custom_domain_fields');
 
-    if (!sectionToggle || !sectionContent) return;
+      if (!checkbox || !customDomainFields) return;
+      
+      // Prevent duplicate initialization
+      if (checkbox.dataset[CUSTOM_DOMAIN_INIT_KEY]) return;
+      checkbox.dataset[CUSTOM_DOMAIN_INIT_KEY] = 'true';
 
-    // Mark sidebar as customized when user interacts
-    function markAsCustomized() {
-      if (sidebarCustomizedField) {
-        sidebarCustomizedField.value = "1";
+      function toggleCustomDomainFields() {
+        if (checkbox.checked) {
+          customDomainFields.classList.remove('hidden');
+        } else {
+          customDomainFields.classList.add('hidden');
+          // Clear the custom domain input when hiding
+          const customDomainInput = document.getElementById('custom_domain_input');
+          if (customDomainInput) {
+            customDomainInput.value = '';
+          }
+        }
+      }
+
+      // Listen for checkbox changes
+      checkbox.addEventListener('change', toggleCustomDomainFields);
+
+      // Handle initial state (in case checkbox is pre-checked)
+      toggleCustomDomainFields();
+    }
+
+    // Run immediately if DOM is ready (handles Turbo navigation)
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeCustomDomainToggle);
+    } else {
+      initializeCustomDomainToggle();
+    }
+    
+    // Also listen for turbo:load for subsequent Turbo navigations
+    document.addEventListener('turbo:load', initializeCustomDomainToggle);
+  })();
+</script>
+
+<script type="text/javascript">
+  (function() {
+    // Use a flag to prevent duplicate event listener attachment
+    const INIT_KEY = 'sidebarSelectionInitialized';
+    
+    function initializeSidebarSelection() {
+      const sectionToggle = document.getElementById('sidebar-section-toggle');
+      const sectionContent = document.getElementById('sidebar-selection-content');
+      const chevron = document.getElementById('sidebar-section-chevron');
+      const selectAllBtn = document.getElementById('select-all-sidebar');
+      const deselectAllBtn = document.getElementById('deselect-all-sidebar');
+      const checkboxes = document.querySelectorAll('.sidebar-item-checkbox');
+      const sidebarCustomizedField = document.getElementById('sidebar_customized');
+
+      if (!sectionToggle || !sectionContent) return;
+      
+      // Prevent duplicate initialization
+      if (sectionToggle.dataset[INIT_KEY]) return;
+      sectionToggle.dataset[INIT_KEY] = 'true';
+
+      // Mark sidebar as customized when user interacts
+      function markAsCustomized() {
+        if (sidebarCustomizedField) {
+          sidebarCustomizedField.value = "1";
+        }
+      }
+
+      // Toggle section visibility
+      sectionToggle.addEventListener('click', function() {
+        sectionContent.classList.toggle('hidden');
+        if (chevron) chevron.classList.toggle('rotate-180');
+      });
+
+      // Track checkbox changes to mark as customized
+      checkboxes.forEach(cb => {
+        cb.addEventListener('change', markAsCustomized);
+      });
+
+      // Select All functionality
+      if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          markAsCustomized();
+          checkboxes.forEach(cb => cb.checked = true);
+        });
+      }
+
+      // Deselect All functionality
+      if (deselectAllBtn) {
+        deselectAllBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          markAsCustomized();
+          checkboxes.forEach(cb => cb.checked = false);
+        });
       }
     }
 
-    // Toggle section visibility
-    sectionToggle.addEventListener('click', function() {
-      sectionContent.classList.toggle('hidden');
-      chevron.classList.toggle('rotate-180');
-    });
-
-    // Track checkbox changes to mark as customized
-    checkboxes.forEach(cb => {
-      cb.addEventListener('change', markAsCustomized);
-    });
-
-    // Select All functionality
-    if (selectAllBtn) {
-      selectAllBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        markAsCustomized();
-        checkboxes.forEach(cb => cb.checked = true);
-      });
+    // Run immediately if DOM is ready (handles Turbo navigation)
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeSidebarSelection);
+    } else {
+      // DOM is already ready, run now
+      initializeSidebarSelection();
     }
-
-    // Deselect All functionality
-    if (deselectAllBtn) {
-      deselectAllBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        markAsCustomized();
-        checkboxes.forEach(cb => cb.checked = false);
-      });
-    }
-  }
-
-  // Initialize on both DOMContentLoaded and turbo:load for Turbo compatibility
-  document.addEventListener('DOMContentLoaded', initializeSidebarSelection);
-  document.addEventListener('turbo:load', initializeSidebarSelection);
+    
+    // Also listen for turbo:load for subsequent Turbo navigations
+    document.addEventListener('turbo:load', initializeSidebarSelection);
+  })();
 </script> 
