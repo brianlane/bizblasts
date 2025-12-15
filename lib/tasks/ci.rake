@@ -162,7 +162,6 @@ namespace :ci do
       business.state = 'CA'
       business.zip = '90210'
       business.description = 'A test business for performance profiling.'
-      business.tier = 'standard'
       business.host_type = 'subdomain'
       business.time_zone = 'UTC'
       # Set hostname to match subdomain - just lowercase letters, no dots or special chars

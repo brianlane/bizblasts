@@ -120,8 +120,7 @@ RSpec.describe Business, 'website layout callback', type: :model do
 
       it 'does NOT identify domain settings changes as layout-related' do
         business.update!(
-          custom_domain_owned: true,
-          domain_registrar: 'GoDaddy'
+          custom_domain_owned: true
         )
         expect(business.saved_changes.keys & Business::LAYOUT_RELATED_FIELDS).to be_empty
       end

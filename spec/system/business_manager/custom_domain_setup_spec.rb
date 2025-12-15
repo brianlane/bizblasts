@@ -241,11 +241,11 @@ RSpec.describe "Custom Domain Setup", type: :system do
     end
 
     it "handles invalid business configuration during setup" do
-      # Create non-premium business
-      free_business = create(:business, tier: 'free', host_type: 'subdomain')
+      # Create business with subdomain (not custom domain)
+      subdomain_business = create(:business, host_type: 'subdomain')
       
       # Mock setup service with invalid business
-      invalid_setup_service = CnameSetupService.new(free_business)
+      invalid_setup_service = CnameSetupService.new(subdomain_business)
       
       allow(CnameSetupService).to receive(:new).and_return(invalid_setup_service)
       allow(invalid_setup_service).to receive(:start_setup!).and_raise(

@@ -61,7 +61,7 @@ RSpec.describe "Business Manager Dashboard", type: :system do
       # Check for Placeholder Statistics widget
       within('#website-stats-widget') do
         expect(page).to have_content("Total Visitors (Last 30d): ---")
-        expect(page).to have_content("Analytics coming soon to standard users!")
+        expect(page).to have_content("Analytics coming soon!")
       end
 
       # Check for Quick Actions including Services link

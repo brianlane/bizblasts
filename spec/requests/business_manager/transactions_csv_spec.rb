@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe 'BusinessManager::Transactions CSV Download', type: :request do
-  let!(:business) { create(:business, :standard) }
+  let!(:business) { create(:business) }
   let!(:manager) { create(:user, :manager, business: business) }
   let!(:customer) { create(:tenant_customer, business: business) }
   let!(:order) { create(:order, business: business, tenant_customer: customer) }
