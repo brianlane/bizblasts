@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe EnhancedWebsiteLayoutService, 'edge cases' do
-  let(:business) { create(:business, :with_subdomain, tier: 'free') }
+  let(:business) { create(:business, :with_subdomain) }
 
   describe 'layout transitions' do
     context 'when switching from enhanced back to basic' do

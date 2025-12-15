@@ -105,7 +105,6 @@ puts
 puts "=== Test 6: Business SMS Capabilities ==="
 puts "Business SMS enabled: #{business.sms_enabled?}"
 puts "Business can send SMS: #{business.can_send_sms?}"
-puts "Business tier: #{business.tier}"
 puts
 
 puts "=== Summary and Diagnosis ==="

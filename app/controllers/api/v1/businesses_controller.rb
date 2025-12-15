@@ -77,45 +77,13 @@ class Api::V1::BusinessesController < ApiController
           "Staff management",
           "Email and SMS notifications",
           "Calendar integration",
-          "Multi-location support (Premium)",
+          "Multi-location support",
           "Analytics and reporting"
         ],
         pricing: {
-          free_plan: {
-            cost: "$0/month",
-            transaction_fee: "5%",
-            features: [
-              "Professional website domain",
-              "Online booking system", 
-              "Payment processing",
-              "Email notifications",
-              "Basic customer management",
-              "Unlimited bookings"
-            ]
-          },
-          standard_plan: {
-            cost: "$49/month", 
-            transaction_fee: "5%",
-            features: [
-              "Everything in Free plan",
-              "SMS text reminders",
-              "Calendar integrations", 
-              "Advanced staff management",
-              "Customizable website themes",
-              "Advanced reporting & analytics"
-            ]
-          },
-          premium_plan: {
-            cost: "$99/month",
-            transaction_fee: "3%", 
-            features: [
-              "Everything in Standard plan",
-              "Remove BizBlasts branding",
-              "Multi-location support",
-              "Custom domain",
-              "Priority support"
-            ]
-          }
+          monthly_cost: "$0/month",
+          platform_fee: "1%",
+          notes: "Platform fee applies to transactions processed through BizBlasts and is in addition to Stripe processing fees."
         },
         business_types: [
           "Home services (landscaping, pool service, cleaning, HVAC)",
@@ -128,7 +96,7 @@ class Api::V1::BusinessesController < ApiController
         competitive_advantages: [
           "Complete website included (not just booking pages)",
           "Built-for-you setup (not DIY)",
-          "True free tier with real business value",
+          "No monthly fees with real business value",
           "Service business optimization",
           "Local SEO built-in",
           "High-touch customer support"

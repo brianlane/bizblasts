@@ -8,7 +8,6 @@ require 'uri'
 RSpec.describe 'Service Area Check Integration', type: :request do
   let(:business) do
     create(:business, :with_subdomain,
-           tier: 'premium',
            zip: '90210',
            sms_enabled: true)
   end

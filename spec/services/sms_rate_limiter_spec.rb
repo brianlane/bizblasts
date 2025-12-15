@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe SmsRateLimiter, type: :service do
-  let(:business) { create(:business, sms_enabled: true, tier: 'standard') }
+  let(:business) { create(:business, sms_enabled: true) }
   let(:customer) { create(:tenant_customer, business: business, phone: '+15551234567', skip_notification_email: true) }
 
   before do
@@ -27,9 +27,9 @@ RSpec.describe SmsRateLimiter, type: :service do
 
     context 'when business daily limit is exceeded' do
       before do
-        # Mock aggregated counts to return daily limit exceeded (500 for standard tier)
+        # Mock aggregated counts to return daily limit exceeded
         allow(SmsRateLimiter).to receive(:get_aggregated_counts).with(business, customer).and_return({
-          business_daily: 500,
+          business_daily: SmsRateLimiter::MAX_SMS_PER_BUSINESS_PER_DAY,
           business_hourly: 50,
           customer_daily: 5,
           customer_hourly: 2
@@ -109,24 +109,9 @@ RSpec.describe SmsRateLimiter, type: :service do
       end
     end
 
-    context 'with different business tiers' do
-      it 'respects premium tier daily limits' do
-        business.update!(tier: 'premium')
-        # Mock counts to be under premium limits (999 daily, under hourly limit)
-        allow(SmsRateLimiter).to receive(:get_aggregated_counts).with(business, customer).and_return({
-          business_daily: 999,
-          business_hourly: 50,
-          customer_daily: 5,
-          customer_hourly: 2
-        })
-        
-        expect(SmsRateLimiter.can_send?(business, customer)).to be true
-      end
-
-      it 'blocks free tier from sending SMS entirely' do
-        business.update!(tier: 'free')
-        
-        # Free tier should not be able to send any SMS
+    context 'when sms is disabled on the business' do
+      it 'returns false' do
+        business.update!(sms_enabled: false)
         expect(SmsRateLimiter.can_send?(business, customer)).to be false
       end
     end
@@ -138,7 +123,7 @@ RSpec.describe SmsRateLimiter, type: :service do
 
       it 'still respects business daily limits' do
         allow(SmsRateLimiter).to receive(:get_aggregated_counts).with(business, nil).and_return({
-          business_daily: 500,
+          business_daily: SmsRateLimiter::MAX_SMS_PER_BUSINESS_PER_DAY,
           business_hourly: 50,
           customer_daily: 0,
           customer_hourly: 0

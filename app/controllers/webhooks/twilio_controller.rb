@@ -181,9 +181,8 @@ module Webhooks
       user = User.where(phone: normalized_phone).first
       return user.business if user&.business
 
-      # Option 3: Fallback to any business that can send SMS (standard/premium tier only)
-      Business.where(sms_enabled: true).where.not(tier: 'free').first || 
-      Business.where.not(tier: 'free').first
+      # Option 3: Fallback to any SMS-enabled business
+      Business.where(sms_enabled: true).first
     end
     
     def process_sms_opt_out(phone_number)
@@ -469,7 +468,6 @@ module Webhooks
       # Use the business that sends the most SMS (likely the main business)
       fallback_business = Business.joins(:sms_messages)
                                  .where(sms_enabled: true)
-                                 .where.not(tier: 'free')
                                  .where('sms_messages.sent_at > ?', 30.days.ago)
                                  .group('businesses.id')
                                  .order('COUNT(sms_messages.id) DESC')
@@ -483,7 +481,6 @@ module Webhooks
       # Strategy 7: Final fallback - any SMS-enabled business (when no recent SMS activity exists)
       # This ensures auto-replies and interactions can still function for new businesses
       final_fallback = Business.where(sms_enabled: true)
-                              .where.not(tier: 'free')
                               .order(:created_at)
                               .first
 
@@ -653,8 +650,7 @@ module Webhooks
         SecureLogger.info "Creating customer for global SMS interaction: phone #{phone_number}"
 
         # Find any business that can handle SMS
-        fallback_business = Business.where(sms_enabled: true).where.not(tier: 'free').first ||
-                           Business.where.not(tier: 'free').first
+        fallback_business = Business.where(sms_enabled: true).first
 
         if fallback_business
           create_minimal_customer(normalized_phone, fallback_business)

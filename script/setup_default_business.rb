@@ -9,7 +9,6 @@ puts "Setting up Default Business for manual testing..."
 business = Business.find_or_create_by(hostname: 'default-business') do |b|
   b.name = 'Default Business'
   b.industry = 'hair_salons'  # Using a valid industry from SHOWCASE_INDUSTRY_MAPPINGS
-  b.tier = 'free'  # Set a valid tier
   b.phone = '555-123-4567'
   b.email = 'default@example.com'
   b.website = 'https://default-business.example.com'
@@ -207,7 +206,6 @@ puts "\nCreating test users for cross-business access testing..."
 other_business = Business.find_or_create_by(hostname: 'other-business') do |b|
   b.name = 'Other Business'
   b.industry = 'boutiques'  # Using a valid industry from SHOWCASE_INDUSTRY_MAPPINGS
-  b.tier = 'free'  # Set a valid tier
   b.phone = '555-999-8888'
   b.email = 'other@example.com'
   b.website = 'https://other-business.example.com'

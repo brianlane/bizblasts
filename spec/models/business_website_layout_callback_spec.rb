@@ -95,8 +95,8 @@ RSpec.describe Business, 'website layout callback', type: :model do
         expect(business.saved_changes.keys & Business::LAYOUT_RELATED_FIELDS).to be_empty
       end
 
-      it 'does NOT identify tier change as layout-related' do
-        business.update!(tier: 'premium')
+      it 'does NOT identify status change as layout-related' do
+        business.update!(status: 'inactive')
         expect(business.saved_changes.keys & Business::LAYOUT_RELATED_FIELDS).to be_empty
       end
 
@@ -120,8 +120,7 @@ RSpec.describe Business, 'website layout callback', type: :model do
 
       it 'does NOT identify domain settings changes as layout-related' do
         business.update!(
-          custom_domain_owned: true,
-          domain_registrar: 'GoDaddy'
+          custom_domain_owned: true
         )
         expect(business.saved_changes.keys & Business::LAYOUT_RELATED_FIELDS).to be_empty
       end
@@ -180,7 +179,7 @@ RSpec.describe Business, 'website layout callback', type: :model do
     context 'performance improvement documentation' do
       it 'documents the before/after callback condition' do
         # BEFORE (Cursor Bug): saved_changes.except('updated_at').present?
-        # This triggered on EVERY field change (phone, email, tier, etc.)
+        # This triggered on EVERY field change (phone, email, status, etc.)
 
         # AFTER (Fixed): (saved_changes.keys & LAYOUT_RELATED_FIELDS).any?
         # This only triggers when layout-related fields actually change

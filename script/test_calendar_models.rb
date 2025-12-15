@@ -11,7 +11,6 @@ business = Business.create!(
   state: 'TS',
   zip: '12345',
   description: 'Test business',
-  tier: 'standard',
   industry: 'consulting',
   host_type: 'subdomain',
   hostname: "testcal#{Time.current.to_i}"

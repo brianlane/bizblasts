@@ -277,16 +277,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_14_100050) do
     t.datetime "created_at", null: false
     t.boolean "custom_domain_owned"
     t.text "description"
-    t.boolean "domain_auto_renewal_enabled", default: false
-    t.decimal "domain_cost_covered", precision: 8, scale: 2
-    t.boolean "domain_coverage_applied", default: false
-    t.date "domain_coverage_expires_at"
-    t.text "domain_coverage_notes"
     t.datetime "domain_health_checked_at"
     t.boolean "domain_health_verified", default: false, null: false
-    t.string "domain_registrar"
-    t.date "domain_registration_date"
-    t.date "domain_renewal_date"
     t.string "email"
     t.string "enhanced_accent_color", default: "red", null: false
     t.string "facebook_url"
@@ -310,8 +302,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_14_100050) do
     t.boolean "payment_reminders_enabled", default: false, null: false
     t.string "phone"
     t.string "pinterest_url"
-    t.integer "platform_loyalty_points", default: 0, null: false
-    t.string "platform_referral_code"
     t.decimal "points_per_dollar", precision: 8, scale: 2, default: "1.0", null: false
     t.decimal "points_per_product", precision: 8, scale: 2, default: "0.0", null: false
     t.decimal "points_per_service", precision: 8, scale: 2, default: "0.0", null: false
@@ -344,7 +334,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_14_100050) do
     t.string "subscription_discount_type", default: "percentage"
     t.decimal "subscription_discount_value", precision: 10, scale: 2, default: "0.0"
     t.string "template_applied"
-    t.string "tier"
     t.string "tiktok_url"
     t.string "time_zone", default: "UTC"
     t.boolean "tip_mailer_if_no_tip_received", default: true, null: false
@@ -361,10 +350,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_14_100050) do
     t.index ["canonical_preference"], name: "index_businesses_on_canonical_preference"
     t.index ["cname_monitoring_active"], name: "index_businesses_on_cname_monitoring_active"
     t.index ["description"], name: "index_businesses_on_description"
-    t.index ["domain_auto_renewal_enabled"], name: "index_businesses_on_domain_auto_renewal_enabled"
-    t.index ["domain_coverage_applied"], name: "index_businesses_on_domain_coverage_applied"
-    t.index ["domain_coverage_expires_at"], name: "index_businesses_on_domain_coverage_expires_at"
-    t.index ["domain_renewal_date"], name: "index_businesses_on_domain_renewal_date"
     t.index ["gallery_enabled"], name: "index_businesses_on_gallery_enabled"
     t.index ["google_business_manual"], name: "index_businesses_on_google_business_manual"
     t.index ["google_place_id"], name: "index_businesses_on_google_place_id", unique: true
@@ -372,7 +357,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_14_100050) do
     t.index ["host_type"], name: "index_businesses_on_host_type"
     t.index ["hostname"], name: "index_businesses_on_hostname", unique: true
     t.index ["name"], name: "index_businesses_on_name"
-    t.index ["platform_referral_code"], name: "index_businesses_on_platform_referral_code", unique: true
     t.index ["rental_deposit_preauth_enabled"], name: "index_businesses_on_deposit_preauth_enabled", where: "(rental_deposit_preauth_enabled = true)"
     t.index ["service_template_id"], name: "index_businesses_on_service_template_id"
     t.index ["sms_auto_invitations_enabled"], name: "index_businesses_on_sms_auto_invitations_enabled"
@@ -1147,52 +1131,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_14_100050) do
     t.index ["tenant_customer_id"], name: "index_pending_sms_notifications_on_tenant_customer_id"
   end
 
-  create_table "platform_discount_codes", force: :cascade do |t|
-    t.bigint "business_id", null: false
-    t.string "code", null: false
-    t.datetime "created_at", null: false
-    t.decimal "discount_amount", precision: 10, scale: 2, null: false
-    t.datetime "expires_at"
-    t.integer "points_redeemed", null: false
-    t.string "status", default: "active", null: false
-    t.string "stripe_coupon_id"
-    t.datetime "updated_at", null: false
-    t.index ["business_id"], name: "index_platform_discount_codes_on_business_id"
-    t.index ["code"], name: "index_platform_discount_codes_on_code", unique: true
-    t.index ["expires_at"], name: "index_platform_discount_codes_on_expires_at"
-    t.index ["status"], name: "index_platform_discount_codes_on_status"
-    t.index ["stripe_coupon_id"], name: "index_platform_discount_codes_on_stripe_coupon_id"
-  end
-
-  create_table "platform_loyalty_transactions", force: :cascade do |t|
-    t.bigint "business_id", null: false
-    t.datetime "created_at", null: false
-    t.text "description", null: false
-    t.integer "points_amount", null: false
-    t.bigint "related_platform_referral_id"
-    t.string "transaction_type", null: false
-    t.datetime "updated_at", null: false
-    t.index ["business_id"], name: "index_platform_loyalty_transactions_on_business_id"
-    t.index ["created_at"], name: "index_platform_loyalty_transactions_on_created_at"
-    t.index ["related_platform_referral_id"], name: "idx_on_related_platform_referral_id_cfb4a77d6f"
-    t.index ["transaction_type"], name: "index_platform_loyalty_transactions_on_transaction_type"
-  end
-
-  create_table "platform_referrals", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.datetime "qualification_met_at"
-    t.string "referral_code", null: false
-    t.bigint "referred_business_id", null: false
-    t.bigint "referrer_business_id", null: false
-    t.datetime "reward_issued_at"
-    t.string "status", default: "pending", null: false
-    t.datetime "updated_at", null: false
-    t.index ["referral_code"], name: "index_platform_referrals_on_referral_code", unique: true
-    t.index ["referred_business_id"], name: "index_platform_referrals_on_referred_business_id"
-    t.index ["referrer_business_id"], name: "index_platform_referrals_on_referrer_business_id"
-    t.index ["status"], name: "index_platform_referrals_on_status"
-  end
-
   create_table "policy_acceptances", force: :cascade do |t|
     t.datetime "accepted_at", null: false
     t.datetime "created_at", null: false
@@ -1890,18 +1828,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_14_100050) do
     t.index ["transaction_type", "status"], name: "index_subscription_transactions_on_transaction_type_and_status"
   end
 
-  create_table "subscriptions", force: :cascade do |t|
-    t.bigint "business_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "current_period_end", null: false
-    t.string "plan_name", null: false
-    t.string "status", null: false
-    t.string "stripe_subscription_id", null: false
-    t.datetime "updated_at", null: false
-    t.index ["business_id"], name: "index_subscriptions_on_business_id", unique: true
-    t.index ["stripe_subscription_id"], name: "index_subscriptions_on_stripe_subscription_id", unique: true
-  end
-
   create_table "tax_rates", force: :cascade do |t|
     t.boolean "applies_to_shipping", default: false
     t.bigint "business_id", null: false
@@ -2207,11 +2133,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_14_100050) do
   add_foreign_key "pending_sms_notifications", "invoices"
   add_foreign_key "pending_sms_notifications", "orders"
   add_foreign_key "pending_sms_notifications", "tenant_customers", on_delete: :cascade
-  add_foreign_key "platform_discount_codes", "businesses", on_delete: :cascade
-  add_foreign_key "platform_loyalty_transactions", "businesses", on_delete: :cascade
-  add_foreign_key "platform_loyalty_transactions", "platform_referrals", column: "related_platform_referral_id"
-  add_foreign_key "platform_referrals", "businesses", column: "referred_business_id", on_delete: :cascade
-  add_foreign_key "platform_referrals", "businesses", column: "referrer_business_id", on_delete: :cascade
   add_foreign_key "policy_acceptances", "users"
   add_foreign_key "product_variants", "products"
   add_foreign_key "products", "businesses", on_delete: :cascade
@@ -2277,7 +2198,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_14_100050) do
   add_foreign_key "subscription_transactions", "orders"
   add_foreign_key "subscription_transactions", "payments"
   add_foreign_key "subscription_transactions", "tenant_customers"
-  add_foreign_key "subscriptions", "businesses", on_delete: :cascade
   add_foreign_key "tax_rates", "businesses", on_delete: :cascade
   add_foreign_key "tenant_customers", "businesses", on_delete: :cascade
   add_foreign_key "tenant_customers", "users"

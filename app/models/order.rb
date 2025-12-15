@@ -242,9 +242,6 @@ class Order < ApplicationRecord
     previous_status = saved_changes['status'][0]
     return if previous_status.nil? || status == 'business_deleted'
     
-    # Only send for standard+ tier businesses
-    return unless business&.tier.in?(['standard', 'premium'])
-    
     begin
       NotificationService.order_status_update(self, previous_status)
       Rails.logger.info "[NOTIFICATION] Sent order status update notification for Order ##{order_number} (#{previous_status} → #{status})"

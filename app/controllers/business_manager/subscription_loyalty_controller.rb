@@ -47,7 +47,7 @@ class BusinessManager::SubscriptionLoyaltyController < BusinessManager::BaseCont
   end
 
   def adjust_tier
-    # This would be used for manual tier adjustments if needed
+    # This would be used for manual loyalty-tier adjustments if needed
     # Implementation depends on business requirements
     redirect_to business_manager_subscription_loyalty_path(@customer_subscription),
                 notice: "Tier adjustment feature coming soon."
@@ -127,7 +127,7 @@ class BusinessManager::SubscriptionLoyaltyController < BusinessManager::BaseCont
                        name: "#{first_name} #{last_name}".strip,
                        email: email,
                        subscription_points: points,
-                       tier: tier_info[:tier_name] || 'Basic',
+                      tier: tier_info[:tier_name] || 'Basic',
                        active_subscriptions: customer.customer_subscriptions.active.count
                      }
                    end
@@ -172,7 +172,7 @@ class BusinessManager::SubscriptionLoyaltyController < BusinessManager::BaseCont
     [
       { action: 'award_compensation', label: 'Award Compensation Points', description: 'Award points for service issues' },
       { action: 'award_milestone', label: 'Award Milestone Bonus', description: 'Manually award milestone points' },
-      { action: 'adjust_tier', label: 'Adjust Tier', description: 'Manually adjust customer tier' }
+      { action: 'adjust_tier', label: 'Adjust Tier', description: 'Manually adjust customer loyalty tier' }
     ]
   end
 

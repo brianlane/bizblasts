@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe SmsService, 'Invitation Logic', type: :service do
-  let(:business) { create(:business, sms_enabled: true, tier: 'premium', sms_auto_invitations_enabled: true) }
+  let(:business) { create(:business, sms_enabled: true, sms_auto_invitations_enabled: true) }
   let(:customer) { create(:tenant_customer, business: business, phone: '+15551234567', phone_opt_in: false) }
   let(:booking) { create(:booking, business: business, tenant_customer: customer) }
 
@@ -30,7 +30,7 @@ RSpec.describe SmsService, 'Invitation Logic', type: :service do
     end
 
     it 'returns false when business cannot send SMS' do
-      business.update!(tier: 'free')
+      business.update!(sms_enabled: false)
       expect(SmsService.should_send_invitation?(customer, business, :booking_confirmation)).to be_falsey
     end
 

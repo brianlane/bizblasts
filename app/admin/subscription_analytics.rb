@@ -128,7 +128,6 @@ ActiveAdmin.register_page "Subscription Analytics" do
           th 'Business'
           th 'Active Subscriptions'
           th 'Monthly Revenue'
-          th 'Tier'
         end
         top_businesses.each do |business_data, revenue|
           business = Business.find(business_data[0])
@@ -136,7 +135,6 @@ ActiveAdmin.register_page "Subscription Analytics" do
             td link_to(business.name, admin_business_path(business.id))
             td business.customer_subscriptions.active.count
             td number_to_currency(revenue)
-            td status_tag(business.tier)
           end
         end
       end

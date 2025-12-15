@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe SmsNotificationReplayService, type: :service do
-  let(:business) { create(:business, sms_enabled: true, tier: 'premium') }
+  let(:business) { create(:business, sms_enabled: true) }
   let(:customer) { create(:tenant_customer, business: business, phone: '+15551234567', phone_opt_in: true, phone_opt_in_at: Time.current, skip_notification_email: true) }
   let(:service) { create(:service, business: business, name: 'Test Service') }
   let(:booking) { create(:booking, business: business, tenant_customer: customer, service: service, start_time: 1.day.from_now) }
@@ -85,7 +85,7 @@ RSpec.describe SmsNotificationReplayService, type: :service do
     end
 
     context 'with business-specific opt-in' do
-      let(:other_business) { create(:business, sms_enabled: true, tier: 'premium') }
+      let(:other_business) { create(:business, sms_enabled: true) }
       let(:other_customer) { create(:tenant_customer, business: other_business, phone: customer.phone, phone_opt_in: true, phone_opt_in_at: Time.current, skip_notification_email: true) }
 
       let!(:business1_notification) { create(:pending_sms_notification, business: business, tenant_customer: customer) }

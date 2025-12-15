@@ -2,7 +2,7 @@ CUSTOM DOMAIN REQUEST RECEIVED
 
 Hello <%= @user.first_name %>,
 
-Thank you for confirming your email address and welcome to BizBlasts Premium! We've received your custom domain request for <%= @business.name %>.
+Thank you for confirming your email address and welcome to BizBlasts! We've received your custom domain request for <%= @business.name %>.
 
 <% if @domain_requested.present? %>
 Requested Domain: <%= @domain_requested %>
@@ -17,20 +17,13 @@ WHAT HAPPENS NEXT:
 
 • Direct Communication: A member of our team will contact you directly with the next steps
 
-DOMAIN COST COVERAGE:
+DOMAIN SETUP INFORMATION:
 
-Excellent news! As a Premium subscriber, BizBlasts covers domain registration costs up to $20 per year.
-
-What happens next:
-• We'll check the cost of your requested domain
-• If under $20/year: We handle registration at no cost to you  
-• If over $20/year: We'll contact you with alternatives under $20
-• Auto-renewal setup: We'll configure auto-renewal and pay annually
-• You always have the option to use your existing domain
-
-COVERAGE DETAILS: BizBlasts covers domain costs up to $20 per year as part of your Premium subscription. Domains over $20/year require you to obtain your own domain, which you can then connect to your BizBlasts site.
-
-If you already own this domain, you'll continue to handle domain-related costs through your current registrar.
+<% if @custom_domain_owned %>
+Since you already own this domain, we'll help you connect it by providing DNS instructions and verifying the connection.
+<% else %>
+If you'd like help acquiring this domain, our team will reach out with next steps and options. You can also purchase your own domain and we’ll help you connect it.
+<% end %>
 
 Our team at bizblaststeam@gmail.com will be reaching out to you shortly regarding domain availability and to guide you through the setup process. No action is required on your part at this time.
 

@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Template Marketplace', type: :system do
-  let!(:business) { create(:business, tier: 'premium', industry: 'landscaping', host_type: 'subdomain') }
+  let!(:business) { create(:business, industry: 'landscaping', host_type: 'subdomain') }
   let!(:manager) { create(:user, :manager, business: business) }
 
   before do
@@ -113,25 +113,6 @@ RSpec.describe 'Template Marketplace', type: :system do
         
         # Should redirect to pages or dashboard
         expect(page).to have_current_path(business_manager_website_pages_path).or have_content('successfully')
-      end
-    end
-  end
-
-  describe 'Premium Templates' do
-    before { visit business_manager_website_templates_path }
-
-    it 'shows premium template indicators' do
-      # Premium templates should be marked
-      if page.has_content?('Premium') || page.has_content?('Pro')
-        expect(page).to have_content('Premium').or have_content('Pro')
-      end
-    end
-
-    it 'allows premium template access for premium businesses' do
-      # Premium tier business should access premium templates
-      if page.has_button?('Apply Template')
-        # Should be able to apply any template
-        expect(page).to have_button('Apply Template')
       end
     end
   end

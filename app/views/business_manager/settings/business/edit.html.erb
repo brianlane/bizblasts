@@ -479,65 +479,47 @@
 
           <!-- Domain Change Request -->
           <div>
-            <%# --- Host Type Toggle for Premium Users ------------------------------------ %>
-            <% if @business.premium_tier? %>
-              <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Domain Mode</label>
-                <div class="flex items-center gap-6">
-                  <label class="inline-flex items-center gap-2">
-                    <input type="radio" name="business[host_type]" value="subdomain" id="host_type_subdomain"
-                           <%= 'checked' if @business.host_type_subdomain? %>
-                           class="h-4 w-4 text-primary border-gray-300 focus:ring-primary cursor-pointer">
-                    <span class="text-sm">BizBlasts Subdomain</span>
-                  </label>
-                  <label class="inline-flex items-center gap-2">
-                    <input type="radio" name="business[host_type]" value="custom_domain" id="host_type_custom"
-                           <%= 'checked' if @business.host_type_custom_domain? %>
-                           class="h-4 w-4 text-primary border-gray-300 focus:ring-primary cursor-pointer">
-                    <span class="text-sm">Custom Domain</span>
-                  </label>
-                </div>
+            <div class="mb-6">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Domain Mode</label>
+              <div class="flex items-center gap-6">
+                <label class="inline-flex items-center gap-2">
+                  <input type="radio" name="business[host_type]" value="subdomain" id="host_type_subdomain"
+                         <%= 'checked' if @business.host_type_subdomain? %>
+                         class="h-4 w-4 text-primary border-gray-300 focus:ring-primary cursor-pointer">
+                  <span class="text-sm">BizBlasts Subdomain</span>
+                </label>
+                <label class="inline-flex items-center gap-2">
+                  <input type="radio" name="business[host_type]" value="custom_domain" id="host_type_custom"
+                         <%= 'checked' if @business.host_type_custom_domain? %>
+                         class="h-4 w-4 text-primary border-gray-300 focus:ring-primary cursor-pointer">
+                  <span class="text-sm">Custom Domain</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="domain-input-wrapper">
+              <div id="subdomain-input-group" <%= 'style="display:none;"' unless @business.host_type_subdomain? %>>
+                <label for="display_subdomain" class="block text-sm font-medium text-gray-700 mb-1">Subdomain</label>
+                <input type="text"
+                       id="display_subdomain"
+                       name="business[subdomain]"
+                       value="<%= @business.subdomain || @business.hostname %>"
+                       placeholder="your-biz"
+                       class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm" />
+                <p class="text-xs text-gray-500 mt-1">Will appear as your-biz.bizblasts.com</p>
               </div>
 
-              <%# Dual input fields %>
-              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="domain-input-wrapper">
-                <div id="subdomain-input-group" <%= 'style="display:none;"' unless @business.host_type_subdomain? %>>
-                  <label for="display_subdomain" class="block text-sm font-medium text-gray-700 mb-1">Subdomain</label>
-                  <input type="text" 
-                         id="display_subdomain" 
-                         name="business[subdomain]"
-                         value="<%= @business.subdomain || @business.hostname %>"
-                         placeholder="your-biz"
-                         class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm" />
-                  <p class="text-xs text-gray-500 mt-1">Will appear as your-biz.bizblasts.com</p>
-                </div>
-
-                <div id="customdomain-input-group" <%= 'style="display:none;"' unless @business.host_type_custom_domain? %>>
-                  <label for="display_hostname" class="block text-sm font-medium text-gray-700 mb-1">Custom Domain</label>
-                  <input type="text" 
-                         id="display_hostname" 
-                         name="business[hostname]"
-                         value="<%= @business.hostname %>"
-                         placeholder="yourdomain.com"
-                         class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm" />
-                  <p class="text-xs text-gray-500 mt-1">Enter full domain (example.com)</p>
-                </div>
+              <div id="customdomain-input-group" <%= 'style="display:none;"' unless @business.host_type_custom_domain? %>>
+                <label for="display_hostname" class="block text-sm font-medium text-gray-700 mb-1">Custom Domain</label>
+                <input type="text"
+                       id="display_hostname"
+                       name="business[hostname]"
+                       value="<%= @business.hostname %>"
+                       placeholder="yourdomain.com"
+                       class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm" />
+                <p class="text-xs text-gray-500 mt-1">Enter full domain (example.com)</p>
               </div>
-            <% end %>
-            <% unless @business.premium_tier? %>
-              <!-- Non-premium: subdomain only -->
-              <!-- Hidden radio to satisfy JS checker logic -->
-              <input type="radio" name="business[host_type]" value="subdomain" id="host_type_subdomain" checked="checked" hidden>
-              
-              <label for="display_subdomain" class="block text-sm font-medium text-gray-700 mb-1">Subdomain</label>
-              <input type="text" 
-                     id="display_subdomain" 
-                     name="business[subdomain]"
-                     value="<%= @business.subdomain || @business.hostname %>"
-                     placeholder="your-biz"
-                     class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm" />
-              <p class="text-xs text-gray-500 mt-1">Will appear as your-biz.bizblasts.com</p>
-            <% end %>
+            </div>
 
           </div>
         </div>

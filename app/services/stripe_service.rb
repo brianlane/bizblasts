@@ -79,24 +79,6 @@ class StripeService
     account.details_submitted
   end
 
-  # Create a Stripe subscription for the business
-  def self.create_subscription(business, price_id)
-    configure_stripe_api_key
-    customer = ensure_stripe_customer_for_business(business)
-    Stripe::Subscription.create(
-      customer: customer.id,
-      items: [{ price: price_id }]
-    )
-  end
-
-  # Handle subscription failures
-  def self.handle_subscription_suspension(stripe_sub)
-    business = Business.find_by(stripe_customer_id: stripe_sub.customer)
-    return unless business
-    record = business.subscription
-    record&.update!(status: 'suspended')
-  end
-
   # Create a Stripe Checkout session for booking payment (booking created after payment)
   def self.create_payment_checkout_session_for_booking(invoice:, booking_data:, success_url:, cancel_url:)
     configure_stripe_api_key
@@ -575,7 +557,7 @@ class StripeService
     end
     
     amount_cents = (tip_amount * 100).to_i
-    # Calculate platform fee for tips based on business tier
+    # Calculate platform fee for tips (1% via BizBlasts::PLATFORM_FEE_RATE)
     platform_fee_cents = calculate_platform_fee_cents(amount_cents, business)
 
     # Prepare session parameters
@@ -818,16 +800,6 @@ class StripeService
     refund
   end
 
-  # Helper to map business tier to Stripe price ID
-  def self.get_stripe_price_id(tier)
-    case tier.to_s.downcase
-    when 'standard'
-      ENV['STRIPE_STANDARD_PRICE_ID']
-    when 'premium'
-      ENV['STRIPE_PREMIUM_PRICE_ID']
-    end
-  end
-
   def self.create_tip_payment_session(tip:, success_url:, cancel_url:)
     configure_stripe_api_key
     business = tip.business
@@ -963,6 +935,16 @@ class StripeService
         cancel_url: cancel_url,
         customer_creation: 'always', # Let Stripe create the customer during checkout
         customer_email: tenant_customer.email, # Pre-fill email
+        # Stripe Checkout subscription mode (Connect): apply platform fee on recurring invoices.
+        subscription_data: {
+          application_fee_percent: BizBlasts::PLATFORM_FEE_PERCENTAGE,
+          metadata: {
+            business_id: business.id.to_s,
+            tenant_customer_id: tenant_customer.id.to_s,
+            subscription_type: subscription_data[:subscription_type],
+            item_id: subscription_data[:item_id].to_s
+          }
+        },
         metadata: {
           business_id: business.id.to_s,
           tenant_customer_id: tenant_customer.id.to_s,
@@ -1017,13 +999,12 @@ class StripeService
     (amount_cents * 0.029).round + 30
   end
 
-  # Calculate platform fee in cents based on business tier
-  def self.calculate_platform_fee_cents(amount_cents, business)
-    rate = case business.tier
-           when 'premium' then 0.03
-           else 0.05
-           end
-    (amount_cents * rate).round
+  # Calculate BizBlasts platform fee in cents.
+  # Implemented via Stripe Connect application fees.
+  #
+  # NOTE: `business` is accepted for call-site compatibility but not used.
+  def self.calculate_platform_fee_cents(amount_cents, _business = nil)
+    (amount_cents * BizBlasts::PLATFORM_FEE_RATE).round
   end
 
   # Retrieve or create Stripe Customer for tenant
@@ -1089,11 +1070,6 @@ class StripeService
     # Check if this is a business registration
     if session.dig('metadata', 'payment_type') == 'client_document' && session.dig('metadata', 'client_document_id').present?
       handle_client_document_payment_completion(session)
-      return
-    end
-
-    if session.dig('metadata', 'registration_type') == 'business'
-      handle_business_registration_completion(session)
       return
     end
 
@@ -1362,20 +1338,9 @@ class StripeService
   end
 
   def self.handle_subscription_event(sub)
-    # Check if this is a business platform subscription (has business metadata)
-    if sub.dig('metadata', 'business_id') || Business.exists?(stripe_customer_id: sub['customer'])
-      # Handle business platform subscription
-      if sub['status'] == 'canceled'
-        handle_subscription_suspension(sub)
-      else
-        record = Subscription.find_by(stripe_subscription_id: sub['id'])
-        return unless record
-        record.update!(status: sub['status'], current_period_end: Time.at(sub['current_period_end']).to_datetime)
-      end
-    else
-      # Handle customer subscription
-      handle_customer_subscription_event(sub)
-    end
+    # BizBlasts no longer has business membership subscriptions.
+    # Only customer subscriptions (business -> customer) are supported.
+    handle_customer_subscription_event(sub)
   end
 
   # Handle customer subscription events (product/service subscriptions)
@@ -1890,192 +1855,6 @@ class StripeService
       Rails.logger.error "[BOOKING] Unexpected error processing booking for session #{session['id']}: #{e.message}"
       # Re-raise to ensure webhook fails and can be retried
       raise e
-    end
-  end
-
-  # Handle business registration completion after successful Stripe payment
-  def self.handle_business_registration_completion(session)
-    Rails.logger.info "[REGISTRATION] Processing business registration completion for session #{session['id']}"
-
-    begin
-      # Extract registration data from session metadata
-      user_data = JSON.parse(session.dig('metadata', 'user_data'))
-      business_data = JSON.parse(session.dig('metadata', 'business_data'))
-      sidebar_items = JSON.parse(session.dig('metadata', 'sidebar_items') || '[]')
-      sidebar_customized = session.dig('metadata', 'sidebar_customized') || "0"
-
-      Rails.logger.info "[REGISTRATION] Creating business: #{business_data['name']} (#{business_data['tier']})"
-
-      ActiveRecord::Base.transaction do
-        # Create business first
-        business = Business.create!(business_data)
-        Rails.logger.info "[REGISTRATION] Created business ##{business.id}"
-
-        # Create user with business association
-        user = User.create!(user_data.merge(
-          business_id: business.id,
-          role: :manager
-        ))
-        Rails.logger.info "[REGISTRATION] Created user ##{user.id} for business ##{business.id}"
-
-        # Update business with Stripe customer ID from the session
-        if session['customer']
-          business.update!(stripe_customer_id: session['customer'])
-        end
-
-        # Create subscription record if this was a paid tier registration
-        if session['subscription'] && business.tier.in?(['standard', 'premium'])
-          create_subscription_record(business, session['subscription'])
-        end
-
-        # Set up all the default records for the business
-        setup_business_defaults_from_webhook(business, user, sidebar_items, sidebar_customized)
-
-        Rails.logger.info "[REGISTRATION] Successfully completed business registration for #{business.name} (ID: #{business.id})"
-      end
-
-    rescue JSON::ParserError => e
-      Rails.logger.error "[REGISTRATION] Failed to parse registration data from session #{session['id']}: #{e.message}"
-    rescue ActiveRecord::RecordInvalid => e
-      Rails.logger.error "[REGISTRATION] Database validation failed for session #{session['id']}: #{e.message}"
-    rescue => e
-      Rails.logger.error "[REGISTRATION] Unexpected error processing registration for session #{session['id']}: #{e.message}"
-      # Re-raise to ensure webhook fails and can be retried
-      raise e
-    end
-  end
-
-  # Set up default records for a newly created business (called from webhook)
-  def self.setup_business_defaults_from_webhook(business, user, sidebar_items = [], sidebar_customized = "0")
-    # Create staff member for the business owner
-    business.staff_members.create!(
-      user: user,
-      name: user.full_name,
-      email: user.email,
-      phone: business.phone,
-      active: true
-    )
-    Rails.logger.info "[REGISTRATION] Created staff member for user ##{user.id}"
-
-    # Create default location using business address
-    create_default_location_from_webhook(business)
-
-    # Create sidebar item preferences for the owner
-    create_sidebar_items_from_registration(user, sidebar_items, sidebar_customized)
-
-    # Set up Stripe Connect account for paid tiers
-    if business.tier.in?(['standard', 'premium'])
-      begin
-        create_connect_account(business)
-        Rails.logger.info "[REGISTRATION] Created Stripe Connect account for business ##{business.id}"
-      rescue Stripe::StripeError => e
-        Rails.logger.error "[REGISTRATION] Failed to create Stripe Connect account for business ##{business.id}: #{e.message}"
-        # Don't fail the whole registration for this
-      end
-    end
-
-    Rails.logger.info "[REGISTRATION] Completed setup for business ##{business.id}"
-  end
-
-  # Create default location for business (called from webhook)
-  def self.create_default_location_from_webhook(business)
-    # Default business hours (9am-5pm Monday-Friday, 10am-2pm Saturday, closed Sunday)
-    default_hours = {
-      "monday" => { "open" => "09:00", "close" => "17:00", "closed" => false },
-      "tuesday" => { "open" => "09:00", "close" => "17:00", "closed" => false },
-      "wednesday" => { "open" => "09:00", "close" => "17:00", "closed" => false },
-      "thursday" => { "open" => "09:00", "close" => "17:00", "closed" => false },
-      "friday" => { "open" => "09:00", "close" => "17:00", "closed" => false },
-      "saturday" => { "open" => "10:00", "close" => "14:00", "closed" => false },
-      "sunday" => { "open" => "00:00", "close" => "00:00", "closed" => true }
-    }
-    
-    business.locations.create!(
-      name: "Main Location",
-      address: business.address,
-      city: business.city,
-      state: business.state,
-      zip: business.zip,
-      hours: default_hours
-    )
-    
-    Rails.logger.info "[REGISTRATION] Created default location for business ##{business.id}"
-  rescue => e
-    Rails.logger.error "[REGISTRATION] Failed to create default location for business ##{business.id}: #{e.message}"
-    # Don't fail the whole registration for this
-  end
-
-  # Create sidebar item preferences for a newly registered user (called from webhook)
-  def self.create_sidebar_items_from_registration(user, selected_items, customized = "0")
-    # If user didn't customize sidebar (didn't interact with the section), use defaults
-    # The sidebar system will show all defaults when no UserSidebarItem records exist
-    return unless customized == "1"
-
-    # User explicitly customized their sidebar - create records for all items
-    # Even if selected_items is empty (user deselected all), we create records with visible: false
-    selected_items ||= []
-
-    # Get all default items (this returns the master list of 21 items)
-    all_items = [
-      'dashboard', 'bookings', 'estimates', 'website', 'website_builder',
-      'transactions', 'payments', 'staff', 'services', 'products',
-      'rentals', 'rental_bookings', 'shipping_methods', 'tax_rates',
-      'customers', 'referrals', 'loyalty', 'platform',
-      'promotions', 'customer_subscriptions', 'settings'
-    ]
-
-    # Create records for all items, marking visibility based on selection
-    all_items.each_with_index do |item_key, index|
-      is_visible = selected_items.include?(item_key)
-
-      user.user_sidebar_items.create!(
-        item_key: item_key,
-        position: index,
-        visible: is_visible
-      )
-    end
-
-    Rails.logger.info "[REGISTRATION] Created #{user.user_sidebar_items.count} sidebar items for user ##{user.id}"
-  rescue ActiveRecord::RecordInvalid => e
-    Rails.logger.error "[REGISTRATION] Failed to create sidebar items for user ##{user.id}: #{e.message}"
-    # Don't fail the whole registration for this
-  end
-
-  # Create subscription record for the business
-  def self.create_subscription_record(business, stripe_subscription_id)
-    begin
-      # Retrieve subscription details from Stripe
-      stripe_sub = Stripe::Subscription.retrieve(stripe_subscription_id)
-      
-      # Determine plan name from tier
-      plan_name = case business.tier
-                  when 'standard' then 'Standard Plan'
-                  when 'premium' then 'Premium Plan'
-                  else business.tier.titleize
-                  end
-      
-      # Create subscription record
-      subscription = business.subscriptions.create!(
-        plan_name: plan_name,
-        stripe_subscription_id: stripe_subscription_id,
-        status: stripe_sub.status,
-        current_period_end: Time.at(stripe_sub.current_period_end).to_datetime
-      )
-      
-      Rails.logger.info "[REGISTRATION] Created subscription record ##{subscription.id} for business ##{business.id}"
-      subscription
-      
-    rescue Stripe::StripeError => e
-      Rails.logger.error "[REGISTRATION] Failed to retrieve Stripe subscription #{stripe_subscription_id}: #{e.message}"
-      # Create a basic subscription record without Stripe details
-      business.subscriptions.create!(
-        plan_name: business.tier.titleize,
-        stripe_subscription_id: stripe_subscription_id,
-        status: 'active'
-      )
-    rescue => e
-      Rails.logger.error "[REGISTRATION] Failed to create subscription record for business ##{business.id}: #{e.message}"
-      # Don't fail the whole registration for this
     end
   end
 

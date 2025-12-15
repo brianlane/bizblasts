@@ -4,7 +4,7 @@ require 'devise/test/integration_helpers'
 RSpec.describe BusinessManager::Settings::SidebarController, type: :request do
   include Devise::Test::IntegrationHelpers
 
-  let!(:business) { create(:business, tier: :standard) }
+  let!(:business) { create(:business) }
   let!(:manager) { create(:user, :manager, business: business) }
   let!(:staff) { create(:user, :staff, business: business) }
   let!(:client) { create(:user, :client) }

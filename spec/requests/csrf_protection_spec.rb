@@ -68,12 +68,8 @@ RSpec.describe "CSRF Protection Configuration", type: :request do
       expect(controller_file).to include('CWE-352')
     end
 
-    it "BusinessManager::Settings::SubscriptionsController has security documentation" do
-      controller_file = File.read(Rails.root.join('app/controllers/business_manager/settings/subscriptions_controller.rb'))
-
-      expect(controller_file).to include('SECURITY:')
-      expect(controller_file).to include('webhook')
-      expect(controller_file).to include('Stripe signature')
+    it "BizBlasts membership billing controller was removed with tier shutdown" do
+      expect(File).not_to exist(Rails.root.join('app/controllers/business_manager/settings/subscriptions_controller.rb'))
     end
   end
 
@@ -124,7 +120,6 @@ RSpec.describe "CSRF Protection Configuration", type: :request do
     it "has comprehensive security documentation explaining each skip" do
       controllers_with_csrf_skips = [
         'app/controllers/stripe_webhooks_controller.rb',
-        'app/controllers/business_manager/settings/subscriptions_controller.rb',
         'app/controllers/calendar_oauth_controller.rb',
         'app/controllers/api/v1/businesses_controller.rb',
         'app/controllers/health_controller.rb',

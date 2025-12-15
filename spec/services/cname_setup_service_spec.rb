@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe CnameSetupService, type: :service do
-  let!(:business) { create(:business, tier: 'premium', host_type: 'custom_domain', hostname: 'example.com', canonical_preference: 'apex') }
+  let!(:business) { create(:business, host_type: 'custom_domain', hostname: 'example.com', canonical_preference: 'apex') }
   let!(:owner) { create(:user, business: business, role: 'manager', email: 'owner@example.com') }
   let(:service) { described_class.new(business) }
   let(:render_service) { instance_double(RenderDomainService) }
@@ -93,19 +93,19 @@ RSpec.describe CnameSetupService, type: :service do
     end
 
     context 'with ineligible business' do
-      let(:free_business) { create(:business, tier: 'free', host_type: 'subdomain') }
-      let(:free_service) { described_class.new(free_business) }
+      let(:subdomain_business) { create(:business, host_type: 'subdomain') }
+      let(:subdomain_service) { described_class.new(subdomain_business) }
 
-      it 'fails validation for free tier' do
-        result = free_service.start_setup!
+      it 'fails validation for subdomain hosting' do
+        result = subdomain_service.start_setup!
 
         expect(result[:success]).to be false
-        expect(result[:error]).to include('Premium tier')
+        expect(result[:error]).to include('custom domain hosting')
       end
     end
 
     context 'with non-custom domain business' do
-      let(:subdomain_business) { create(:business, tier: 'premium', host_type: 'subdomain') }
+      let(:subdomain_business) { create(:business, host_type: 'subdomain') }
       let(:subdomain_service) { described_class.new(subdomain_business) }
 
       it 'fails validation for subdomain hosting' do
@@ -162,7 +162,7 @@ RSpec.describe CnameSetupService, type: :service do
 
     context 'with canonical preference' do
       context 'when preference is www' do
-        let!(:www_business) { create(:business, tier: 'premium', host_type: 'custom_domain', hostname: 'example-www.com', canonical_preference: 'www') }
+        let!(:www_business) { create(:business, host_type: 'custom_domain', hostname: 'example-www.com', canonical_preference: 'www') }
         let!(:www_owner) { create(:user, business: www_business, role: 'manager', email: 'owner@example-www.com') }
         let(:www_service) { described_class.new(www_business) }
         
@@ -310,12 +310,6 @@ RSpec.describe CnameSetupService, type: :service do
         nil_service = described_class.new(nil)
 
         expect { nil_service.send(:validate_business_eligibility!) }.to raise_error(CnameSetupService::InvalidBusinessError, /not found/)
-      end
-
-      it 'raises error for free tier' do
-        business.update!(tier: 'free', host_type: 'subdomain', hostname: 'example')
-
-        expect { service.send(:validate_business_eligibility!) }.to raise_error(CnameSetupService::InvalidBusinessError, /Premium tier/)
       end
 
       it 'raises error for subdomain hosting' do

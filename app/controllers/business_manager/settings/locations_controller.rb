@@ -3,7 +3,6 @@ module BusinessManager
     class LocationsController < ApplicationController
       before_action :authenticate_user!
       before_action :set_business
-      before_action :check_tier_access, only: [:new, :create]
       before_action :set_location, only: [:edit, :update, :destroy]
       before_action :ensure_default_location, only: [:index]
 
@@ -141,13 +140,6 @@ module BusinessManager
         processed
       end
 
-      # Check if current business has access to multiple locations (Premium tier only)
-      def check_tier_access
-        unless @current_business.premium_tier?
-          flash[:alert] = "Multiple locations are available on the Premium plan. Upgrade your subscription to add additional locations."
-          redirect_to business_manager_settings_subscription_path
-        end
-      end
     end
   end
 end 

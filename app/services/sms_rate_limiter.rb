@@ -1,11 +1,7 @@
 class SmsRateLimiter
   # Constants for rate limiting
   MAX_SMS_PER_BUSINESS_PER_HOUR = 100
-  MAX_SMS_PER_BUSINESS_PER_DAY = {
-    'premium' => 1000,
-    'standard' => 500,
-    'free' => 0  # Free tier cannot send SMS
-  }.freeze
+  MAX_SMS_PER_BUSINESS_PER_DAY = 1000
   
   MAX_SMS_PER_CUSTOMER_PER_DAY = 10
   MAX_SMS_PER_CUSTOMER_PER_HOUR = 5
@@ -18,9 +14,8 @@ class SmsRateLimiter
       counts = get_aggregated_counts(business, customer)
       
       # Check business daily limit
-      daily_limit = MAX_SMS_PER_BUSINESS_PER_DAY[business.tier] || MAX_SMS_PER_BUSINESS_PER_DAY['free']
-      if counts[:business_daily] >= daily_limit
-        Rails.logger.warn "[SMS_RATE_LIMIT] Business #{business.id} has reached daily limit: #{counts[:business_daily]}/#{daily_limit}"
+      if counts[:business_daily] >= MAX_SMS_PER_BUSINESS_PER_DAY
+        Rails.logger.warn "[SMS_RATE_LIMIT] Business #{business.id} has reached daily limit: #{counts[:business_daily]}/#{MAX_SMS_PER_BUSINESS_PER_DAY}"
         return false
       end
       

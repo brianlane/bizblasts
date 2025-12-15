@@ -6,7 +6,6 @@ RSpec.describe 'Admin Domain Status API', type: :request do
   let!(:admin_user) { create(:admin_user) }
   let!(:business) do
     create(:business,
-      tier: 'premium',
       host_type: 'custom_domain',
       hostname: 'example.com',
       status: 'cname_monitoring',

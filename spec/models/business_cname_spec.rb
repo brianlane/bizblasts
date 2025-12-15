@@ -4,7 +4,7 @@ require 'rails_helper'
 
 RSpec.describe Business, type: :model do
   describe 'CNAME domain functionality' do
-    let(:business) { create(:business, tier: 'premium', host_type: 'custom_domain', hostname: 'example.com') }
+    let(:business) { create(:business, host_type: 'custom_domain', hostname: 'example.com') }
 
     describe 'status enum' do
       it 'includes CNAME statuses' do
@@ -68,15 +68,6 @@ RSpec.describe Business, type: :model do
         expect(business.status).to eq('cname_monitoring')
         expect(business.cname_monitoring_active).to be true
         expect(business.cname_check_attempts).to eq(0)
-      end
-
-      it 'fails for non-premium business' do
-        business.update!(tier: 'free')
-
-        result = business.start_cname_monitoring!
-
-        expect(result).to be false
-        expect(business.status).not_to eq('cname_monitoring')
       end
 
       it 'fails for subdomain business' do
@@ -215,14 +206,6 @@ RSpec.describe Business, type: :model do
         end
       end
 
-      context 'with non-premium business' do
-        before { business.update!(tier: 'free') }
-
-        it 'returns false' do
-          expect(business.can_setup_custom_domain?).to be false
-        end
-      end
-
       context 'with subdomain business' do
         before { business.update!(host_type: 'subdomain') }
 
@@ -236,59 +219,6 @@ RSpec.describe Business, type: :model do
 
         it 'returns false' do
           expect(business.can_setup_custom_domain?).to be false
-        end
-      end
-    end
-
-    describe '#handle_tier_downgrade callback' do
-      let(:removal_service) { instance_double(DomainRemovalService) }
-
-      before do
-        allow(DomainRemovalService).to receive(:new).with(business).and_return(removal_service)
-        allow(removal_service).to receive(:handle_tier_downgrade!).and_return(success: true)
-      end
-
-      context 'when downgrading from premium to free' do
-        before do
-          business.update!(tier: 'premium')
-        end
-
-        it 'triggers domain removal' do
-          expect(removal_service).to receive(:handle_tier_downgrade!).with('free')
-
-          business.update!(tier: 'free')
-        end
-      end
-
-      context 'when staying on premium tier' do
-        before do
-          business.update!(tier: 'premium')
-        end
-
-        it 'does not trigger domain removal' do
-          expect(DomainRemovalService).not_to receive(:new)
-
-          business.update!(tier: 'premium', name: 'Updated Name')
-        end
-      end
-
-      context 'when business has subdomain hosting' do
-        before do
-          business.update!(tier: 'premium', host_type: 'subdomain')
-        end
-
-        it 'does not trigger domain removal' do
-          expect(DomainRemovalService).not_to receive(:new)
-
-          business.update!(tier: 'free')
-        end
-      end
-
-      context 'when tier is not changing' do
-        it 'does not trigger domain removal' do
-          expect(DomainRemovalService).not_to receive(:new)
-
-          business.update!(name: 'Updated Name')
         end
       end
     end
@@ -321,13 +251,6 @@ RSpec.describe Business, type: :model do
         business.update!(hostname: 'example.com')
 
         expect(business).to be_valid
-      end
-
-      it 'prevents free tier from using custom domains' do
-        free_business = build(:business, tier: 'free', host_type: 'custom_domain')
-
-        expect(free_business).not_to be_valid
-        expect(free_business.errors[:host_type]).to include("must be 'subdomain' for Free and Standard tiers")
       end
     end
   end

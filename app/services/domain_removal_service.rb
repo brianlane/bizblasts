@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-# Service for handling custom domain removal and downgrade scenarios
-# Handles cleanup when businesses downgrade from Premium or disable custom domains
+# Service for handling custom domain removal and disable scenarios.
+# BizBlasts tiers have been removed; this service is purely host_type/status based.
 class DomainRemovalService
   class RemovalError < StandardError; end
 
@@ -49,27 +49,6 @@ class DomainRemovalService
       {
         success: false,
         error: e.message,
-        business_id: @business.id
-      }
-    end
-  end
-
-  # Handle tier downgrade - only remove if going from Premium to lower tier
-  # @param new_tier [String] The new tier being assigned
-  # @return [Hash] Result with success status
-  def handle_tier_downgrade!(new_tier)
-    Rails.logger.info "[DomainRemovalService] Handling tier downgrade to #{new_tier} for business #{@business.id}"
-
-    # Only remove custom domain if downgrading from premium and currently has custom domain
-    # Note: Business model already ensures this is only called for appropriate tier downgrades
-    if @business.host_type_custom_domain? && new_tier != 'premium'
-      Rails.logger.info "[DomainRemovalService] Removing custom domain due to tier downgrade"
-      remove_domain!
-    else
-      Rails.logger.info "[DomainRemovalService] No domain removal needed for tier change"
-      {
-        success: true,
-        message: 'No domain changes needed for this tier change',
         business_id: @business.id
       }
     end

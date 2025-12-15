@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Webhooks::Twilio Inbound Keywords', type: :request do
-  let(:business) { create(:business, sms_enabled: true, tier: 'premium') }
+  let(:business) { create(:business, sms_enabled: true) }
   let(:customer) { create(:tenant_customer, business: business, phone: '+15558675309', phone_opt_in: false, skip_notification_email: true) }
 
   # Mock Twilio for auto-reply sending
@@ -380,7 +380,7 @@ RSpec.describe 'Webhooks::Twilio Inbound Keywords', type: :request do
   end
 
   describe 'Business context determination' do
-    let(:other_business) { create(:business, sms_enabled: true, tier: 'premium') }
+    let(:other_business) { create(:business, sms_enabled: true) }
     let!(:sms_from_business) { create(:sms_message, business: business, phone_number: customer.phone, sent_at: 1.hour.ago) }
 
     context 'when recent SMS activity exists' do

@@ -138,8 +138,8 @@
         <p class="mb-2 font-semibold">This order contains experience services that require immediate payment.</p>
       <% elsif @order.order_type_product? %>
         <p class="mb-2">This order requires payment to confirm.</p>
-        <% # Calculate payment deadline based on tier %>
-        <% deadline = @order.created_at + AutoCancelUnpaidProductOrdersJob::PAYMENT_WINDOWS[@order.business.tier] %>
+        <% # Calculate payment deadline %>
+        <% deadline = @order.created_at + AutoCancelUnpaidProductOrdersJob::PAYMENT_WINDOW %>
         <% if Time.current < deadline %>
           <p class="text-sm text-gray-600">Payment deadline: <%= l deadline, format: :long %></p>
         <% end %>

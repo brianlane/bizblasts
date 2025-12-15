@@ -241,7 +241,7 @@ RSpec.describe 'DOM XSS Prevention', type: :system, js: true do
         skip 'Skip: Business edit page subdomain validation specs timing out in CI'
       end
 
-      let(:business) { create(:business, tier: 'premium') }
+      let(:business) { create(:business) }
       let(:manager) { create(:user, :manager, business: business) }
 
       before do

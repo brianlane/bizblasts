@@ -28,12 +28,8 @@ FactoryBot.define do
           stripe_percentage_fee = (amount_cents * 0.029).round
           tip.stripe_fee_amount = (stripe_percentage_fee + 30) / 100.0
           
-          # Calculate platform fee based on business tier
-          platform_rate = case tip.business.tier
-                         when 'premium' then 0.03  # 3%
-                         else 0.05                 # 5%
-                         end
-          tip.platform_fee_amount = (amount_cents * platform_rate).round / 100.0
+          # Calculate BizBlasts platform fee (1%)
+          tip.platform_fee_amount = (amount_cents * BizBlasts::PLATFORM_FEE_RATE).round / 100.0
           
           # Calculate business amount (tip amount - all fees)
           # Business receives net amount after deducting both Stripe and platform fees
@@ -51,12 +47,5 @@ FactoryBot.define do
       amount { 25.00 }
     end
     
-    trait :premium_business do
-      association :business, tier: 'premium'
-    end
-    
-    trait :free_business do
-      association :business, tier: 'free'
-    end
   end
 end 

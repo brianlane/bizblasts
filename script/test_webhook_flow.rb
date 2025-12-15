@@ -8,7 +8,6 @@ puts
 # Step 1: Create a customer who is NOT opted in initially
 business = Business.find_by(id: 1) || Business.create!(
   name: 'Webhook Test Business',
-  tier: 'premium',
   hostname: 'webhooktest',
   host_type: 'subdomain',
   sms_enabled: true,

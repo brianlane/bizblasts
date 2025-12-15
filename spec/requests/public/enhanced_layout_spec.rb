@@ -1,13 +1,18 @@
 require 'rails_helper'
 
 RSpec.describe 'Enhanced public layout', type: :request do
-  let(:business) { create(:business, :free_tier, subdomain: 'enhancedbiz', hostname: 'enhancedbiz') }
+  let(:business) { create(:business, host_type: 'subdomain', subdomain: 'enhancedbiz', hostname: 'enhancedbiz') }
 
   before do
+    ActsAsTenant.current_tenant = business
     create(:service, business: business, name: 'Premium Detail')
   end
+  
+  after do
+    ActsAsTenant.current_tenant = nil
+  end
 
-  it 'renders the website builder page for free tier businesses using enhanced layout' do
+  it 'renders the website builder page using enhanced layout' do
     business.update!(website_layout: 'enhanced')
 
     host! "#{business.subdomain}.lvh.me"

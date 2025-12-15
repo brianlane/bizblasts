@@ -89,7 +89,7 @@
     <div class="content">
       <p>Hello <%= @user.first_name %>,</p>
       
-      <p>Thank you for confirming your email address and welcome to BizBlasts Premium! We've received your domain request for <strong><%= @business.name %></strong>.</p>
+      <p>Thank you for confirming your email address and welcome to BizBlasts! We've received your domain request for <strong><%= @business.name %></strong>.</p>
 
       <div class="domain-info" style="margin: 20px 0;">
         <% if @subdomain_requested.present? %>
@@ -119,13 +119,12 @@
 
       <% if @domain_requested.present? %>
         <div class="domain-coverage-section" style="margin: 20px 0;">
-          <h3 style="margin-top: 0; color: #2d3748; font-size: 18px;">💰 Domain Setup Information</h3>
+          <h3 style="margin-top: 0; color: #2d3748; font-size: 18px;">Domain Setup Information</h3>
           
           <% if @custom_domain_owned %>
-            <!-- User already owns the domain -->
             <div style="background: #e3f2fd; border: 2px solid #1976d2; border-radius: 8px; padding: 20px; margin: 15px 0;">
               <p style="margin: 0; color: #2d3748; font-weight: 600; font-size: 16px;">
-                <strong style="color: #1976d2;">Perfect!</strong> Since you already own <strong><%= @domain_requested %></strong>, we'll help you connect it to your BizBlasts site.
+                <strong style="color: #1976d2;">Great!</strong> Since you already own <strong><%= @domain_requested %></strong>, we'll help you connect it to your BizBlasts site.
               </p>
               <div style="margin: 15px 0; padding: 10px; background: rgba(255,255,255,0.7); border-radius: 4px;">
                 <h4 style="margin: 0 0 8px 0; color: #2d3748; font-size: 14px;">What happens next:</h4>
@@ -133,31 +132,21 @@
                   <li>Our team will provide you with DNS configuration instructions</li>
                   <li>You'll update your domain's DNS settings with your current registrar</li>
                   <li>We'll verify the connection and activate your custom domain</li>
-                  <li>You'll continue to handle domain costs through your current registrar</li>
                 </ul>
               </div>
             </div>
           <% else %>
-            <!-- BizBlasts will help acquire the domain -->
             <div style="background: #f0fff4; border: 2px solid #28a745; border-radius: 8px; padding: 20px; margin: 15px 0;">
               <p style="margin: 0; color: #2d3748; font-weight: 600; font-size: 16px;">
-                <strong style="color: #28a745;">Excellent news!</strong> As a Premium subscriber, BizBlasts covers domain registration costs up to <strong>$20 per year</strong>.
+                <strong style="color: #28a745;">No problem.</strong> If you'd like help acquiring <strong><%= @domain_requested %></strong>, our team will reach out with next steps and options.
               </p>
               <div style="margin: 15px 0; padding: 10px; background: rgba(255,255,255,0.7); border-radius: 4px;">
                 <h4 style="margin: 0 0 8px 0; color: #2d3748; font-size: 14px;">What happens next:</h4>
                 <ul style="margin: 0; padding-left: 20px; color: #4a5568; font-size: 14px;">
-                  <li>We'll check the availability and cost of <strong><%= @domain_requested %></strong></li>
-                  <li>If under $20/year: We handle registration at no cost to you</li>
-                  <li>If over $20/year: We'll contact you with alternatives under $20</li>
-                  <li><strong>Auto-renewal setup:</strong> We'll configure auto-renewal and pay annually</li>
-                  <li>You always have the option to purchase and use your own domain</li>
+                  <li>We'll check availability of <strong><%= @domain_requested %></strong></li>
+                  <li>We'll contact you with the recommended purchase/registration steps</li>
+                  <li>You can also purchase your own domain and we’ll help you connect it</li>
                 </ul>
-              </div>
-              <div style="margin: 15px 0; padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">
-                <p style="margin: 0; color: #856404; font-size: 13px;">
-                  <strong>Coverage Details:</strong> BizBlasts covers domain costs up to $20 per year as part of your Premium subscription. 
-                  Domains over $20/year require you to obtain your own domain, which you can then connect to your BizBlasts site.
-                </p>
               </div>
             </div>
           <% end %>

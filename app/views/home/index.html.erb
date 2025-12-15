@@ -17,8 +17,8 @@
   "offers": [
     {
       "@type": "Offer",
-      "name": "Free Plan",
-      "description": "Professional website, online booking system, payment processing",
+      "name": "BizBlasts",
+      "description": "$0/month + 1% platform fee on transactions (plus Stripe processing fees)",
       "price": "0",
       "priceCurrency": "USD",
       "priceSpecification": {
@@ -28,35 +28,9 @@
         "billingDuration": "P1M",
         "additionalProperty": {
           "@type": "PropertyValue",
-          "name": "Transaction Fee",
-          "value": "5%"
+          "name": "Platform Fee",
+          "value": "1%"
         }
-      }
-    },
-    {
-      "@type": "Offer", 
-      "name": "Standard Plan",
-      "description": "Everything in Free plus SMS reminders, calendar integration, advanced features",
-      "price": "49",
-      "priceCurrency": "USD",
-      "priceSpecification": {
-        "@type": "UnitPriceSpecification",
-        "price": "49",
-        "priceCurrency": "USD",
-        "billingDuration": "P1M"
-      }
-    },
-    {
-      "@type": "Offer",
-      "name": "Premium Plan", 
-      "description": "Everything in Standard plus multi-location, custom domain, white-label",
-      "price": "99",
-      "priceCurrency": "USD",
-      "priceSpecification": {
-        "@type": "UnitPriceSpecification",
-        "price": "99",
-        "priceCurrency": "USD",
-        "billingDuration": "P1M"
       }
     }
   ],
@@ -175,36 +149,16 @@
   "areaServed": "United States",
   "hasOfferCatalog": {
     "@type": "OfferCatalog",
-    "name": "BizBlasts Plans",
+    "name": "BizBlasts Pricing",
     "itemListElement": [
       {
         "@type": "Offer",
         "itemOffered": {
           "@type": "Service",
-          "name": "BizBlasts Free Plan",
-          "description": "Professional website, online booking, payment processing"
+          "name": "BizBlasts",
+          "description": "$0/month + 1% platform fee on transactions (plus Stripe processing fees)"
         },
         "price": "0",
-        "priceCurrency": "USD"
-      },
-      {
-        "@type": "Offer", 
-        "itemOffered": {
-          "@type": "Service",
-          "name": "BizBlasts Standard Plan",
-          "description": "Enhanced features including SMS, calendar integration, advanced reporting"
-        },
-        "price": "49",
-        "priceCurrency": "USD"
-      },
-      {
-        "@type": "Offer",
-        "itemOffered": {
-          "@type": "Service", 
-          "name": "BizBlasts Premium Plan",
-          "description": "Full-featured plan with multi-location, custom domain, white-label"
-        },
-        "price": "99",
         "priceCurrency": "USD"
       }
     ]
@@ -475,140 +429,79 @@
   <div class="container mx-auto px-4">
     <div class="text-center mb-12">
       <h2 class="text-3xl lg:text-4xl font-bold text-dark mb-4">Simple, Transparent Pricing</h2>
-      <p class="text-xl text-gray-600">Choose the monthly plan for your needs. And upgrade anytime!</p>
+      <p class="text-xl text-gray-600">$0/month + 1% platform fee on transactions (plus Stripe processing fees)</p>
     </div>
     
-    <div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-      <!-- Free Plan -->
-      <div class="bg-white rounded-lg p-8 shadow-lg text-center">
-        <h3 class="text-2xl font-bold text-dark mb-4">Free</h3>
-        <div class="text-4xl font-bold text-dark mb-2">$0</div>
-        <p class="text-gray-600 mb-6">+ 5% transaction fees</p>
-        
-        <ul class="text-left text-gray-600 space-y-3 mb-8">
-          <li class="flex items-center">
-            <svg class="w-5 h-5 text-success mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            Basic Website
-          </li>
-          <li class="flex items-center">
-            <svg class="w-5 h-5 text-success mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            Online Booking
-          </li>
-          <li class="flex items-center">
-            <svg class="w-5 h-5 text-success mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            Payment Processing
-          </li>
-          <li class="flex items-center">
-            <svg class="w-5 h-5 text-success mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            Email Notifications
-          </li>
-          <li class="flex items-center">
-            <svg class="w-5 h-5 text-success mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            Estimates & Quotes
-          </li>
-          <li class="flex items-center">
-            <svg class="w-5 h-5 text-success mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            Equipment Rentals
-          </li>
-        </ul>
-      </div>
-      
-      <!-- Standard Plan - Most Popular -->
-      <div class="bg-white rounded-lg shadow-xl text-center border-4 border-secondary relative overflow-hidden">
-        <div class="bg-secondary text-white px-4 py-2 text-sm font-bold">
-          MOST POPULAR
+    <div class="max-w-4xl mx-auto">
+      <div class="bg-white rounded-lg p-8 shadow-lg">
+        <div class="text-center mb-8">
+          <h3 class="text-2xl font-bold text-dark mb-2">Everything included</h3>
+          <div class="text-4xl font-bold text-dark mb-2">$0/month</div>
+          <p class="text-gray-600">+ 1% platform fee on transactions</p>
         </div>
-        <div class="p-8">
-          <h3 class="text-2xl font-bold text-dark mb-4">Standard</h3>
-          <div class="text-4xl font-bold text-dark mb-2">$9.99</div>
-          <p class="text-gray-600 mb-6">+ 5% transaction fees</p>
-          
-          <ul class="text-left text-gray-600 space-y-3 mb-8">
+
+        <div class="grid md:grid-cols-2 gap-6">
+          <ul class="text-left text-gray-600 space-y-3">
             <li class="flex items-center">
               <svg class="w-5 h-5 text-success mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
               </svg>
-              <b>Text Reminders</b>
+              Website builder + templates
             </li>
             <li class="flex items-center">
               <svg class="w-5 h-5 text-success mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
               </svg>
-              <b>Calendar Integrations</b>
+              Online booking + payments
             </li>
             <li class="flex items-center">
               <svg class="w-5 h-5 text-success mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
               </svg>
-              <b>Advanced Staff Support</b>
+              Email + SMS reminders
             </li>
             <li class="flex items-center">
               <svg class="w-5 h-5 text-success mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
               </svg>
-              <b>Customizable Website</b>
+              Staff + locations
+            </li>
+          </ul>
+
+          <ul class="text-left text-gray-600 space-y-3">
+            <li class="flex items-center">
+              <svg class="w-5 h-5 text-success mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              Products + orders
+            </li>
+            <li class="flex items-center">
+              <svg class="w-5 h-5 text-success mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              Estimates + quotes
+            </li>
+            <li class="flex items-center">
+              <svg class="w-5 h-5 text-success mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              Equipment rentals
+            </li>
+            <li class="flex items-center">
+              <svg class="w-5 h-5 text-success mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              Analytics + reporting
             </li>
           </ul>
         </div>
-      </div>
-      
-      <!-- Premium Plan -->
-      <div class="bg-white rounded-lg p-8 shadow-lg text-center">
-        <h3 class="text-2xl font-bold text-dark mb-4">Premium</h3>
-        <div class="text-4xl font-bold text-dark mb-2">$29.99</div>
-        <p class="text-gray-600 mb-6">+ 3% transaction fees</p>
-        
-        <ul class="text-left text-gray-600 space-y-3 mb-8">
-          <li class="flex items-center">
-            <svg class="w-5 h-5 text-success mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            All Standard Features
-          </li>
-          <li class="flex items-center">
-            <svg class="w-5 h-5 text-success mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            Remove BizBlasts Branding
-          </li>
-          <li class="flex items-center">
-            <svg class="w-5 h-5 text-success mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            Lower Transaction Fees
-          </li>
-          <li class="flex items-center">
-            <svg class="w-5 h-5 text-success mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            Multi-location Support
-          </li>
-          <li class="flex items-center">
-            <svg class="w-5 h-5 text-success mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            Custom Domain
-          </li>
-        </ul>
       </div>
     </div>
     
     <!-- Pricing Footnote -->
     <div class="text-center mt-8">
       <p class="text-sm text-gray-500">
-        * Transaction fees are in addition to Stripe payment processing fees
+        * Platform fees are in addition to Stripe payment processing fees
       </p>
       <div class="mt-6">
         <%= link_to "How We Compare", 

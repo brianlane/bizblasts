@@ -5,7 +5,6 @@ require 'rails_helper'
 RSpec.describe DomainRemovalService, type: :service do
   let!(:business) do
     create(:business,
-      tier: 'premium',
       host_type: 'custom_domain',
       hostname: 'example.com',
       subdomain: 'example',
@@ -162,59 +161,6 @@ RSpec.describe DomainRemovalService, type: :service do
         expect(result[:success]).to be false
         expect(result[:error]).to be_present
         expect(result[:business_id]).to eq(business.id)
-      end
-    end
-  end
-
-  describe '#handle_tier_downgrade!' do
-    context 'when downgrading from premium to free' do
-      it 'removes domain' do
-        # Stub both apex and www domain lookups (production code checks both)
-        allow(render_service).to receive(:find_domain_by_name).with('example.com').and_return({ 'id' => 'dom_123' })
-        allow(render_service).to receive(:find_domain_by_name).with('www.example.com').and_return(nil)
-        allow(render_service).to receive(:remove_domain).with('dom_123').and_return(true)
-        result = service.handle_tier_downgrade!('free')
-
-        expect(result[:success]).to be true
-      end
-    end
-
-    context 'when staying on premium tier' do
-      it 'does not remove domain' do
-        expect(service).not_to receive(:remove_domain!)
-
-        result = service.handle_tier_downgrade!('premium')
-
-        expect(result[:success]).to be true
-        expect(result[:message]).to include('No domain changes needed')
-      end
-    end
-
-    context 'when business is not premium' do
-      before do
-        business.update!(tier: 'free', host_type: 'subdomain', hostname: 'example')
-      end
-
-      it 'does not remove domain' do
-        expect(service).not_to receive(:remove_domain!)
-
-        result = service.handle_tier_downgrade!('free')
-
-        expect(result[:message]).to include('No domain changes needed')
-      end
-    end
-
-    context 'when business does not have custom domain' do
-      before do
-        business.update!(host_type: 'subdomain', hostname: 'example')
-      end
-
-      it 'does not remove domain' do
-        expect(service).not_to receive(:remove_domain!)
-
-        result = service.handle_tier_downgrade!('free')
-
-        expect(result[:message]).to include('No domain changes needed')
       end
     end
   end

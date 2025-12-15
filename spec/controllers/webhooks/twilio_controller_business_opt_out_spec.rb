@@ -1,8 +1,8 @@
 require 'rails_helper'
 
 RSpec.describe Webhooks::TwilioController, 'Business-specific opt-out', type: :controller do
-  let(:business1) { create(:business, sms_enabled: true, tier: 'premium') }
-  let(:business2) { create(:business, sms_enabled: true, tier: 'premium') }
+  let(:business1) { create(:business, sms_enabled: true) }
+  let(:business2) { create(:business, sms_enabled: true) }
   let(:customer1) { create(:tenant_customer, business: business1, phone: '+15551234567', phone_opt_in: true) }
   let(:customer2) { create(:tenant_customer, business: business2, phone: '+15551234567', phone_opt_in: true) }
 

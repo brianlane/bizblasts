@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe SmsNotificationReplayJob, type: :job do
-  let(:business) { create(:business, sms_enabled: true, tier: 'premium') }
+  let(:business) { create(:business, sms_enabled: true) }
   let(:customer) { create(:tenant_customer, business: business, phone: '+15551234567', phone_opt_in: true, phone_opt_in_at: Time.current, skip_notification_email: true) }
 
   describe '#perform' do
@@ -306,7 +306,7 @@ RSpec.describe SmsNotificationReplayJob, type: :job do
     end
 
     it 'only marks notifications for specific business when provided' do
-      other_business = create(:business, sms_enabled: true, tier: 'premium')
+      other_business = create(:business, sms_enabled: true)
       other_customer = create(:tenant_customer, business: other_business, phone: customer.phone, skip_notification_email: true)
       other_notification = create(:pending_sms_notification, business: other_business, tenant_customer: other_customer)
 

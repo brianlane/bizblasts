@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe PendingSmsNotification, type: :model do
-  let(:business) { create(:business, sms_enabled: true, tier: 'premium') }
+  let(:business) { create(:business, sms_enabled: true) }
   let(:customer) { create(:tenant_customer, business: business, phone: '+15551234567', skip_notification_email: true) }
 
   describe 'associations' do
@@ -100,7 +100,7 @@ RSpec.describe PendingSmsNotification, type: :model do
     end
 
     describe '.for_business' do
-      let(:other_business) { create(:business, sms_enabled: true, tier: 'premium') }
+      let(:other_business) { create(:business, sms_enabled: true) }
       let(:other_business_customer) { create(:tenant_customer, business: other_business, phone: '+15559876543', skip_notification_email: true) }
       let!(:other_business_notification) { create(:pending_sms_notification, business: other_business, tenant_customer: other_business_customer) }
 

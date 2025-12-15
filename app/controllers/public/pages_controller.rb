@@ -37,11 +37,10 @@ module Public
       # If sanitization resulted in an empty string, default back to 'home'
       @page_slug = 'home' if @page_slug.blank?
 
-      # PRIORITY: Check for website builder pages FIRST if business has Standard/Premium tier
-      # This ensures custom website builder pages take precedence over free tier static pages
+      # PRIORITY: Check for website builder pages FIRST.
       skip_home_builder = (@page_slug == 'home') && current_tenant.website_layout_basic?
       
-      if !skip_home_builder && (current_tenant.website_layout_enhanced? || current_tenant.standard_tier? || current_tenant.premium_tier?)
+      if !skip_home_builder
         @page = current_tenant.pages.find_by(slug: @page_slug, status: :published)
         
         if @page.blank? && current_tenant.website_layout_enhanced?

@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe SmsService, type: :service do
-  let!(:tenant) { create(:business, sms_enabled: true, tier: 'premium') }
+  let!(:tenant) { create(:business, sms_enabled: true) }
   let!(:customer) { create(:tenant_customer, business: tenant, phone: "+15558675309", phone_opt_in: true, phone_opt_in_at: Time.current) }
   let!(:client_user) { 
     create(:user, :client, email: customer.email, phone_opt_in: true, phone_opt_in_at: Time.current,

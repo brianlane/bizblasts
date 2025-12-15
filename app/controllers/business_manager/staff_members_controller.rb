@@ -2,7 +2,6 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
   # Ensure user is authenticated and acting within their current business context
   # BaseController handles authentication and setting @current_business
 
-  before_action :check_tier_access, only: [:new, :create]
   before_action :set_staff_member, only: [:show, :edit, :update, :destroy, :manage_availability]
 
   # GET /business_manager/staff_members
@@ -292,16 +291,5 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
   def permit_dynamic_slots
     # Allows any key (e.g., "0", "1") to contain a hash with "start" and "end"
     Hash.new { |h, k| h[k] = [:start, :end] }
-  end
-
-  # Check if current business has access to staff management features
-  def check_tier_access
-    if @current_business.free_tier?
-      flash[:alert] = "Adding new staff members is available on Standard and Premium plans. Upgrade your subscription to add new staff members."
-      redirect_to business_manager_settings_subscription_path
-    elsif @current_business.standard_tier? && @current_business.staff_members.count >= 3
-      flash[:alert] = "Standard plan allows up to 3 staff members. Upgrade to Premium for unlimited staff."
-      redirect_to business_manager_settings_subscription_path
-    end
   end
 end 

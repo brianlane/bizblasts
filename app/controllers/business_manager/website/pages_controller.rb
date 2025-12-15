@@ -184,16 +184,12 @@ class BusinessManager::Website::PagesController < BusinessManager::Website::Base
   end
   
   def section_types_for_tier
-            basic_sections = %w[header text image contact_form service_list product_list]
+    basic_sections = %w[header text image contact_form service_list product_list]
     standard_sections = %w[gallery testimonial cta hero_banner]
     premium_sections = %w[product_grid team_showcase pricing_table faq_section 
                          social_media video_embed map_location newsletter_signup]
     
-    sections = basic_sections
-    sections += standard_sections if current_business.standard_tier? || current_business.premium_tier?
-    sections += premium_sections if current_business.premium_tier?
-    
-    sections
+    (basic_sections + standard_sections + premium_sections).uniq
   end
   
   def apply_template_defaults(page, template)

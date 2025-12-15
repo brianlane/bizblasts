@@ -52,7 +52,7 @@ ActiveAdmin.register Business do
     end
   end
 
-  action_item :force_activate_domain, only: :show, if: proc { resource.premium_tier? && resource.host_type_custom_domain? } do
+  action_item :force_activate_domain, only: :show, if: proc { resource.host_type_custom_domain? } do
     link_to 'Force Activate Domain', force_activate_domain_admin_business_path(resource.id),
             class: 'button aa-post-confirm',
             data: { turbo: false, confirm: 'Force-activate domain (bypasses DNS verification). Continue?' }
@@ -108,12 +108,10 @@ ActiveAdmin.register Business do
   # Permit parameters updated for hostname/host_type, domain coverage, and CNAME fields
   permit_params :name, :industry, :phone, :email, :website,
                 :address, :city, :state, :zip, :description, :time_zone,
-                :active, :tier, :subdomain, :service_template_id,
+                :active, :subdomain, :service_template_id,
                 :hostname, :host_type, :canonical_preference, # Added new fields
                 :website_layout, :enhanced_accent_color, # Website layout customization
                 :stripe_customer_id, # Stripe integration
-                :domain_coverage_applied, :domain_cost_covered, :domain_renewal_date, :domain_coverage_notes, # Domain coverage fields
-                :domain_auto_renewal_enabled, :domain_coverage_expires_at, :domain_registrar, :domain_registration_date, # Auto-renewal tracking
                 :status, :cname_setup_email_sent_at, :cname_monitoring_active, :cname_check_attempts, :render_domain_added # CNAME fields
 
   # Enable batch actions
@@ -316,13 +314,10 @@ ActiveAdmin.register Business do
   filter :hostname
   filter :host_type, as: :select, collection: Business.host_types.keys.map { |k| [k.humanize, k] }
   filter :status, as: :select, collection: Business.statuses.keys.map { |k| [k.humanize, k] }
-  filter :tier, as: :select, collection: Business.tiers.keys.map { |k| [k.humanize, k] }
   filter :industry
   filter :active
   filter :stripe_status, as: :select, collection: [['Connected', 'connected'], ['Not Connected', 'not_connected']], label: "Stripe Status"
-  filter :domain_coverage_applied, as: :select, collection: [['Yes', true], ['No', false]]
   filter :cname_monitoring_active, as: :select, collection: [['Yes', true], ['No', false]]
-  filter :domain_renewal_date
   filter :created_at
 
   # Index page configuration updated
@@ -392,7 +387,6 @@ ActiveAdmin.register Business do
         status_tag business.status.humanize, class: "default"
       end
     end
-    column :tier
     column "Stripe Status", :stripe_account_id do |business|
       if business.stripe_account_id.present?
         begin
@@ -406,18 +400,6 @@ ActiveAdmin.register Business do
         end
       else
         status_tag "Not Connected", class: "error"
-      end
-    end
-    column "Domain Coverage", :domain_coverage_applied do |business|
-      if business.eligible_for_domain_coverage?
-        if business.domain_coverage_applied?
-          cost = business.domain_cost_covered || 0
-          status_tag "Covered ($#{cost})", class: "ok"
-        else
-          status_tag "Available", class: "warning"
-        end
-      else
-        status_tag "Not Eligible", class: "error"
       end
     end
     column :industry do |business|
@@ -440,7 +422,7 @@ ActiveAdmin.register Business do
         item "Restart Monitoring", restart_domain_monitoring_admin_business_path(business.id), class: 'member_link aa-post-confirm', data: { turbo: false, confirm: 'Restart DNS monitoring for another hour?' }
       end
 
-      if business.premium_tier? && business.host_type_custom_domain?
+      if business.host_type_custom_domain?
         item "Force Activate Domain", force_activate_domain_admin_business_path(business.id), class: 'member_link aa-post-confirm', data: { turbo: false, confirm: 'Force-activate domain (bypasses DNS verification). Continue?' }
       end
 
@@ -465,7 +447,6 @@ ActiveAdmin.register Business do
           "N/A (Subdomain)"
         end
       end
-      row :tier
       row "Stripe Status" do |business|
         if business.stripe_account_id.present?
           begin
@@ -571,68 +552,8 @@ ActiveAdmin.register Business do
       end
     end
     
-    # Domain Coverage Panel for Premium businesses
-    if business.eligible_for_domain_coverage?
-      panel "Domain Coverage Information" do
-        attributes_table_for business do
-          row "Coverage Status" do |business|
-            if business.domain_coverage_applied?
-              if business.domain_coverage_expired?
-                status_tag "Coverage Expired", class: "error"
-              elsif business.domain_coverage_expires_soon?
-                status_tag "Expiring Soon (#{business.domain_coverage_remaining_days} days)", class: "warning"
-              else
-                status_tag "Coverage Applied", class: "ok"
-              end
-            else
-              status_tag "Coverage Available", class: "warning"
-            end
-          end
-          row "Coverage Limit" do |business|
-            "$#{business.domain_coverage_limit}/year"
-          end
-          row "Amount Covered" do |business|
-            business.domain_cost_covered.present? ? "$#{business.domain_cost_covered}" : "Not applied"
-          end
-          row "Domain Registrar" do |business|
-            business.domain_registrar.present? ? business.domain_registrar.titleize : "Not specified"
-          end
-          row "Registration Date" do |business|
-            business.domain_registration_date&.strftime("%B %d, %Y") || "Not set"
-          end
-          row "Domain Renewal Date" do |business|
-            business.domain_renewal_date&.strftime("%B %d, %Y") || "Not set"
-          end
-          row "Coverage Expires" do |business|
-            if business.domain_coverage_expires_at.present?
-              expires_text = business.domain_coverage_expires_at.strftime("%B %d, %Y")
-              if business.domain_coverage_expired?
-                "#{expires_text} (EXPIRED)"
-              elsif business.domain_coverage_expires_soon?
-                "#{expires_text} (expires in #{business.domain_coverage_remaining_days} days)"
-              else
-                expires_text
-              end
-            else
-              "Not set"
-            end
-          end
-          row "Auto-Renewal Status" do |business|
-            if business.domain_will_auto_renew?
-              status_tag "Auto-Renewal Enabled", class: "ok"
-            else
-              status_tag "Manual Renewal", class: "warning"
-            end
-          end
-          row "Coverage Notes" do |business|
-            business.domain_coverage_notes.present? ? simple_format(business.domain_coverage_notes) : "No notes"
-          end
-        end
-      end
-    end
-    
-    # CNAME Custom Domain Panel for Premium businesses with custom domains
-    if business.premium_tier? && business.host_type_custom_domain?
+    # CNAME Custom Domain Panel for businesses with custom domains
+    if business.host_type_custom_domain?
       panel "Custom Domain Management" do
         attributes_table_for business do
           # Perform single health check for both status rows (performance optimization)
@@ -820,7 +741,7 @@ ActiveAdmin.register Business do
                     data: { confirm: "This will restart DNS monitoring for another hour. Continue?" }
           end
           
-          if business.premium_tier? && business.host_type_custom_domain?
+          if business.host_type_custom_domain?
             link_to "Force Activate Domain", force_activate_domain_admin_business_path(business.id), 
                     method: :post, class: "button", 
                     data: { confirm: "This will bypass DNS verification and immediately activate the domain. Use only if DNS is properly configured. Continue?" }
@@ -857,25 +778,18 @@ ActiveAdmin.register Business do
     f.inputs "Business Details" do
       f.input :name, hint: "Business name (used to auto-generate subdomain/hostname)"
 
-      # Tier selection - drives subdomain vs hostname display
-      f.input :tier, as: :radio, collection: [
-        ['Free - $0/month (BizBlasts subdomain)', 'free'],
-        ['Standard - $9.99/month (BizBlasts subdomain)', 'standard'],
-        ['Premium - $29.99/month (Custom domain)', 'premium']
-      ], hint: "Tier determines hosting type"
+      # Hosting type
+      f.input :host_type, as: :select, collection: Business.host_types.keys.map { |k| [k.humanize, k] }, include_blank: false
 
-      # Subdomain field (for Free/Standard)
+      # Subdomain field
       f.input :subdomain,
-              wrapper_html: { class: 'subdomain-field-wrapper', style: 'display: none;' },
+              wrapper_html: { class: 'subdomain-field-wrapper' },
               hint: "Auto-generated from business name. Will appear as: <span class='subdomain-preview'></span>"
 
-      # Hostname field (for Premium)
+      # Hostname field (for custom domains)
       f.input :hostname,
-              wrapper_html: { class: 'hostname-field-wrapper', style: 'display: none;' },
+              wrapper_html: { class: 'hostname-field-wrapper' },
               hint: "For custom domains (e.g., yourbusiness.com). Auto-generated but can be edited."
-
-      # Hidden field to track host_type (set by JavaScript for new records, preserves current value for edits)
-      f.input :host_type, as: :hidden
 
       f.input :industry, as: :select, collection: Business.industries.keys.map { |k| [k.humanize, k] }, include_blank: false
       f.input :email, hint: "Primary business email (used for manager login)"
@@ -899,20 +813,7 @@ ActiveAdmin.register Business do
     # Stripe Integration section
     f.inputs "Stripe Integration (Optional)", class: "stripe-section" do
       f.input :stripe_account_id, label: "Stripe Connect Account ID", hint: "The Stripe Connect account ID for accepting payments (automatically set when connected)"
-      f.input :stripe_customer_id, label: "Stripe Customer ID", hint: "The Stripe customer ID for business subscriptions (automatically set when paying for plans)"
-    end
-
-    # Domain Coverage section (only for Premium tier businesses)
-    f.inputs "Domain Coverage (Premium Only)", class: "domain-coverage-section" do
-      f.input :domain_coverage_applied, as: :boolean, label: "Domain coverage has been applied"
-      f.input :domain_cost_covered, as: :number, step: 0.01, label: "Amount covered (USD)", hint: "Maximum $20.00/year"
-      f.input :domain_registrar, as: :select, collection: [['Namecheap', 'namecheap'], ['GoDaddy', 'godaddy'], ['Cloudflare', 'cloudflare'], ['Other', 'other']], include_blank: "Select registrar", label: "Domain registrar"
-      f.input :domain_registration_date, as: :datepicker, label: "Domain registration date"
-      f.input :domain_renewal_date, as: :datepicker, label: "Domain renewal date"
-      f.input :domain_coverage_expires_at, as: :datepicker, label: "Coverage expires on", hint: "When BizBlasts coverage ends (usually 1 year from registration)"
-      f.input :domain_auto_renewal_enabled, as: :boolean, label: "Auto-renewal enabled at registrar"
-      f.input :domain_coverage_notes, as: :text, label: "Coverage notes",
-              hint: "Internal notes about domain coverage, cost details, alternatives offered, registrar info, etc."
+      f.input :stripe_customer_id, label: "Stripe Customer ID", hint: "Stripe customer identifier (rarely needed; typically managed by Stripe flows)"
     end
 
     # Website Layout & Customization section
@@ -953,19 +854,17 @@ ActiveAdmin.register Business do
                 .replace(/-+$/, '');             // Trim - from end of text
             }
 
-            // Update subdomain/hostname field visibility based on tier
-            function updateFieldsForTier(tier) {
+            // Update subdomain/hostname field visibility based on host_type
+            function updateFieldsForHostType(hostType) {
               const subdomainWrapper = $('.subdomain-field-wrapper');
               const hostnameWrapper = $('.hostname-field-wrapper');
               const hostTypeField = $('#business_host_type');
 
-              if (tier === 'premium') {
-                // Premium: show hostname field, hide subdomain
+              if (hostType === 'custom_domain') {
                 subdomainWrapper.hide();
                 hostnameWrapper.show();
                 hostTypeField.val('custom_domain');
               } else {
-                // Free/Standard: show subdomain field, hide hostname
                 subdomainWrapper.show();
                 hostnameWrapper.hide();
                 hostTypeField.val('subdomain');
@@ -975,10 +874,10 @@ ActiveAdmin.register Business do
             // Auto-generate subdomain/hostname from business name
             function updateSlugFields() {
               const businessName = $('#business_name').val();
-              const tier = $('input[name="business[tier]"]:checked').val();
+              const hostType = $('#business_host_type').val();
               const slug = slugify(businessName);
 
-              if (tier === 'premium') {
+              if (hostType === 'custom_domain') {
                 // Only auto-generate hostname if it's empty (new business)
                 // Don't overwrite existing hostnames for businesses being edited
                 const hostnameField = $('#business_hostname');
@@ -1017,20 +916,20 @@ ActiveAdmin.register Business do
             // Initialize on page load
             $(document).ready(function() {
               console.log('Document ready - initializing layout fields');
-              // Get initial tier value
-              const initialTier = $('input[name="business[tier]"]:checked').val() || 'free';
-              updateFieldsForTier(initialTier);
+              // Get initial host type value
+              const initialHostType = $('#business_host_type').val() || 'subdomain';
+              updateFieldsForHostType(initialHostType);
 
               // If there's a name, generate initial slug
               if ($('#business_name').val()) {
                 updateSlugFields();
               }
 
-              // Listen for tier changes
-              $('input[name="business[tier]"]').on('change', function() {
-                const tier = $(this).val();
-                updateFieldsForTier(tier);
-                updateSlugFields(); // Regenerate slug for new tier
+              // Listen for host type changes
+              $('#business_host_type').on('change', function() {
+                const hostType = $(this).val();
+                updateFieldsForHostType(hostType);
+                updateSlugFields();
               });
 
               // Listen for name changes and auto-generate slug (debounced)

@@ -73,15 +73,6 @@
               data-filter="industry">
         My Industry
       </button>
-      <% if current_business.premium_tier? %>
-        <button type="button" 
-                class="filter-tab px-4 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer"
-                data-template-browser-target="filterTabs"
-                data-action="click->template-browser#filterTemplates"
-                data-filter="premium">
-          Premium
-        </button>
-      <% end %>
     </nav>
   </div>
 
@@ -91,8 +82,7 @@
       <div class="template-card bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg transition-shadow"
            data-template-id="<%= template.id %>"
            data-template-industry="<%= template.industry %>"
-           data-template-type="<%= template.template_type %>"
-           data-template-premium="<%= template.requires_premium? %>">
+           data-template-type="<%= template.template_type %>">
         
         <!-- Template Preview -->
         <div class="relative">
@@ -152,9 +142,6 @@
               <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
                 <%= Business::SHOWCASE_INDUSTRY_MAPPINGS[template.industry.to_sym] %>
               </span>
-            <% end %>
-            <% if template.requires_premium? %>
-              <span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">Premium</span>
             <% end %>
           </div>
 
@@ -219,13 +206,7 @@
               </button>
             <% else %>
               <div class="flex-1 text-center bg-gray-300 text-gray-500 px-3 py-2 rounded text-sm cursor-not-allowed">
-                <% if template.requires_premium? && !current_business.premium_tier? %>
-                  Requires Premium
-                <% elsif template.industry != 'universal' && template.industry != current_business.industry %>
-                  Different Industry
-                <% else %>
-                  Unavailable
-                <% end %>
+                Different Industry
               </div>
             <% end %>
           </div>
@@ -238,7 +219,7 @@
   <div class="text-center py-12 hidden" data-template-browser-target="emptyState">
     <div class="text-gray-400 text-6xl mb-4">🎨</div>
     <h3 class="text-lg font-medium text-gray-900 mb-2">No templates found</h3>
-    <p class="text-gray-500">Try a different filter or upgrade your plan to access more templates.</p>
+    <p class="text-gray-500">Try a different filter.</p>
   </div>
 
   <!-- Preview Modal -->

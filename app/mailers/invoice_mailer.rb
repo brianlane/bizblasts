@@ -6,8 +6,7 @@ class InvoiceMailer < ApplicationMailer
     @customer = invoice.tenant_customer
     @payment_url = generate_payment_url(invoice)
     
-    # Add tier-specific features for premium businesses
-    @include_analytics = @business.tier == 'premium'
+    @include_analytics = true
     
     SecureLogger.info "[EMAIL] InvoiceMailer.invoice_created preparing email for: #{@customer.email} | Invoice: #{@invoice.invoice_number}"
     
@@ -31,8 +30,7 @@ class InvoiceMailer < ApplicationMailer
     @customer = invoice.tenant_customer
     @payment = payment
     
-    # Add tier-specific features for premium businesses
-    @include_analytics = @business.tier == 'premium'
+    @include_analytics = true
     
     SecureLogger.info "[EMAIL] InvoiceMailer.payment_confirmation preparing email for: #{@customer.email} | Invoice: #{@invoice.invoice_number}"
     
@@ -43,9 +41,8 @@ class InvoiceMailer < ApplicationMailer
     )
   end
 
-  # Send payment reminder for overdue invoices (standard+ tier only, must be enabled)
+  # Send payment reminder for overdue invoices (must be enabled)
   def payment_reminder(invoice)
-    return unless invoice.business.tier.in?(['standard', 'premium'])
     return unless invoice.business.payment_reminders_enabled?
     
     @invoice = invoice
@@ -54,8 +51,7 @@ class InvoiceMailer < ApplicationMailer
     @payment_url = generate_payment_url(invoice)
     @days_overdue = (Date.current - invoice.due_date).to_i
     
-    # Add tier-specific features for premium businesses
-    @include_analytics = @business.tier == 'premium'
+    @include_analytics = true
     
     mail(
       to: @customer.email,
@@ -64,10 +60,8 @@ class InvoiceMailer < ApplicationMailer
     )
   end
 
-  # Send notification when payment fails (standard+ tier only)
+  # Send notification when payment fails
   def payment_failed(invoice, payment)
-    return unless invoice.business.tier.in?(['standard', 'premium'])
-    
     @invoice = invoice
     @business = invoice.business
     @customer = invoice.tenant_customer
@@ -75,8 +69,7 @@ class InvoiceMailer < ApplicationMailer
     @payment_url = generate_payment_url(invoice)
     @failure_reason = payment.failure_reason
     
-    # Add tier-specific features for premium businesses
-    @include_analytics = @business.tier == 'premium'
+    @include_analytics = true
     
     mail(
       to: @customer.email,

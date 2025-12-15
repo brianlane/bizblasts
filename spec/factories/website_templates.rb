@@ -13,18 +13,12 @@ FactoryBot.define do
       }
     end
     preview_image_url { '/assets/template-default.jpg' }
-    requires_premium { false }
     active { true }
 
     trait :industry_specific do
       template_type { 'industry_specific' }
       industry { 'landscaping' }
       name { 'Landscaping Professional Template' }
-    end
-
-    trait :premium do
-      requires_premium { true }
-      name { 'Premium Professional Template' }
     end
 
     trait :inactive do
