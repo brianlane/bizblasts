@@ -557,7 +557,7 @@ class StripeService
     end
     
     amount_cents = (tip_amount * 100).to_i
-    # Calculate platform fee for tips based on business tier
+    # Calculate platform fee for tips (1% via BizBlasts::PLATFORM_FEE_RATE)
     platform_fee_cents = calculate_platform_fee_cents(amount_cents, business)
 
     # Prepare session parameters
