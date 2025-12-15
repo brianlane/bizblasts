@@ -22,10 +22,10 @@
       </div>
     </div>
 
-    <div class="summary-card bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-lg shadow-lg">
+    <div class="summary-card bg-gradient-to-r from-primary to-secondary text-white p-6 rounded-lg shadow-lg">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-blue-100 text-sm font-medium">Current Points</p>
+          <p class="text-white/80 text-sm font-medium">Current Points</p>
           <p class="text-3xl font-bold"><%= number_with_delimiter(@loyalty_summary[:current_total_points]) %></p>
         </div>
         <div class="bg-blue-400 bg-opacity-30 p-3 rounded-full">
@@ -201,7 +201,7 @@
           
           <% if subscription.business.loyalty_program_enabled? %>
             <%= link_to client_subscription_loyalty_path(subscription), 
-                        class: "view-loyalty-button w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-center block" do %>
+                        class: "view-loyalty-button w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary transition-colors text-center block" do %>
               View Loyalty Details
             <% end %>
           <% else %>
@@ -238,7 +238,7 @@
       
       <%= link_to client_subscriptions_path, 
                   class: "action-button bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow text-center" do %>
-        <svg class="w-8 h-8 text-blue-500 mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20">
+        <svg class="w-8 h-8 text-primary mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
         </svg>
         <h4 class="font-medium text-gray-900">Manage Subscriptions</h4>

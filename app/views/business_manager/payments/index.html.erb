@@ -16,14 +16,14 @@
           </svg>
           Import/Export
         <% end %>
-        <% if @current_business.stripe_account_id.present? %>
+      <% if @current_business.stripe_account_id.present? %>
           <%= link_to "View in Stripe Dashboard", 
                 stripe_dashboard_payments_url, 
                 target: "_blank",
                 rel: "noopener",
                 class: "inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors" %>
         <% end %>
-      </div>
+        </div>
     </div>
   </div>
 </div>

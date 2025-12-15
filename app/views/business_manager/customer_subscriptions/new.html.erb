@@ -38,7 +38,7 @@
                    data-controller="customer-dropdown" 
                    data-customer-dropdown-selected-value-value="<%= @customer_subscription.tenant_customer_id %>">
                 <button type="button" 
-                        class="customer-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px] flex items-center justify-between"
+                        class="customer-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-base min-h-[48px] flex items-center justify-between"
                         data-customer-dropdown-target="button"
                         data-action="click->customer-dropdown#toggle">
                   <span class="customer-dropdown-text text-gray-900 flex-1">
@@ -61,7 +61,7 @@
                 </button>
                 <div class="customer-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
                      data-customer-dropdown-target="menu">
-                  <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                  <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                        data-item-id=""
                        data-item-text="Select existing customer"
                        data-customer-dropdown-target="option"
@@ -72,7 +72,7 @@
                       </div>
                     </div>
                     <% if @customer_subscription.tenant_customer_id.blank? %>
-                      <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                      <span class="absolute inset-y-0 right-2 flex items-center text-primary">
                         <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                         </svg>
@@ -80,7 +80,7 @@
                     <% end %>
                   </div>
                   <% @tenant_customers.each do |customer| %>
-                    <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                    <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                          data-item-id="<%= customer.id %>"
                          data-item-text="<%= customer.full_name %> (<%= customer.email %>)"
                          data-customer-dropdown-target="option"
@@ -97,7 +97,7 @@
                         </div>
                       </div>
                       <% if @customer_subscription.tenant_customer_id == customer.id %>
-                        <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                        <span class="absolute inset-y-0 right-2 flex items-center text-primary">
                           <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                           </svg>
@@ -105,16 +105,16 @@
                       <% end %>
                     </div>
                   <% end %>
-                  <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors border-t border-gray-200"
+                  <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors border-t border-gray-200"
                        data-item-id="new"
                        data-item-text="Create new customer"
                        data-customer-dropdown-target="option"
                        data-action="click->customer-dropdown#select">
                     <div class="flex-1">
-                      <div class="font-medium text-blue-600">+ Create new customer</div>
+                      <div class="font-medium text-primary">+ Create new customer</div>
                     </div>
                     <% if @customer_subscription.tenant_customer_id == "new" %>
-                      <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                      <span class="absolute inset-y-0 right-2 flex items-center text-primary">
                         <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                         </svg>
@@ -164,11 +164,11 @@
               <label class="block text-gray-700 text-sm font-bold mb-2">Subscription Type</label>
               <div class="space-y-2">
                 <label class="inline-flex items-center">
-                  <input type="radio" name="subscription_type" value="product" class="form-radio h-4 w-4 text-blue-600" id="subscription_type_product">
+                  <input type="radio" name="subscription_type" value="product" class="form-radio h-4 w-4 text-primary" id="subscription_type_product">
                   <span class="ml-2">Product Subscription</span>
                 </label>
                 <label class="inline-flex items-center">
-                  <input type="radio" name="subscription_type" value="service" class="form-radio h-4 w-4 text-blue-600" id="subscription_type_service">
+                  <input type="radio" name="subscription_type" value="service" class="form-radio h-4 w-4 text-primary" id="subscription_type_service">
                   <span class="ml-2">Service Subscription</span>
                 </label>
               </div>
@@ -185,7 +185,7 @@
                     text_method: :name,
                     dropdown_id: "subscription_product_dropdown" %>
               <% if @products.where(subscription_enabled: true).empty? %>
-                <p class="mt-1 text-sm text-gray-500">No subscription-enabled products found. <%= link_to "Enable subscriptions on products", business_manager_products_path, class: "text-blue-600 hover:text-blue-800" %>.</p>
+                <p class="mt-1 text-sm text-gray-500">No subscription-enabled products found. <%= link_to "Enable subscriptions on products", business_manager_products_path, class: "text-primary hover:text-secondary" %>.</p>
               <% end %>
             </div>
 
@@ -200,7 +200,7 @@
                     text_method: :name,
                     dropdown_id: "subscription_service_dropdown" %>
               <% if @services.where(subscription_enabled: true).empty? %>
-                <p class="mt-1 text-sm text-gray-500">No subscription-enabled services found. <%= link_to "Enable subscriptions on services", business_manager_services_path, class: "text-blue-600 hover:text-blue-800" %>.</p>
+                <p class="mt-1 text-sm text-gray-500">No subscription-enabled services found. <%= link_to "Enable subscriptions on services", business_manager_services_path, class: "text-primary hover:text-secondary" %>.</p>
               <% end %>
             </div>
           </div>
@@ -214,19 +214,19 @@
             <div>
               <%= form.label :quantity, "Quantity", class: "block text-gray-700 text-sm font-bold mb-2" %>
               <%= form.number_field :quantity, min: 1, value: 1, required: true,
-                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" %>
             </div>
 
             <div>
               <%= form.label :next_billing_date, "Next Billing Date", class: "block text-gray-700 text-sm font-bold mb-2" %>
               <%= form.date_field :next_billing_date, value: 1.month.from_now.to_date, required: true,
-                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" %>
             </div>
 
             <div>
               <%= form.label :billing_day_of_month, "Billing Day of Month", class: "block text-gray-700 text-sm font-bold mb-2" %>
               <%= form.number_field :billing_day_of_month, min: 1, max: 28, value: Date.current.day,
-                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" %>
               <p class="mt-1 text-sm text-gray-500">Day of month for recurring billing (1-28)</p>
             </div>
           </div>
@@ -254,7 +254,7 @@
             <div>
               <%= form.label :preferred_time_slot, "Preferred Time Slot", class: "block text-gray-700 text-sm font-bold mb-2" %>
               <%= form.text_field :preferred_time_slot, placeholder: "e.g., 10:00 AM - 12:00 PM",
-                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" %>
             </div>
           </div>
 
@@ -284,13 +284,13 @@
         <div>
           <%= form.label :notes, "Notes", class: "block text-gray-700 text-sm font-bold mb-2" %>
           <%= form.text_area :notes, rows: 3, placeholder: "Optional notes about this subscription",
-                class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+                class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" %>
         </div>
 
         <!-- Submit Button -->
         <div class="flex justify-end">
           <%= form.submit "Create Subscription", 
-                class: "inline-flex items-center justify-center px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 cursor-pointer" %>
+                class: "inline-flex items-center justify-center px-6 py-3 bg-success hover:bg-success text-white font-bold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-success focus:ring-offset-2 cursor-pointer" %>
         </div>
       <% end %>
     </div>

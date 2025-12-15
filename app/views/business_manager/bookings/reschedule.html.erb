@@ -16,7 +16,7 @@
     <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
       <h1 class="text-xl font-bold">Reschedule Booking #<%= @booking.id %></h1>
       <div class="flex space-x-4">
-        <%= link_to business_manager_booking_path(@booking), class: "text-blue-600 hover:text-blue-800" do %>
+        <%= link_to business_manager_booking_path(@booking), class: "text-primary hover:text-secondary" do %>
           ← Back to Booking
         <% end %>
       </div>
@@ -70,7 +70,7 @@
             <h3 class="text-base font-medium text-gray-700 mb-2">New Date</h3>
             <div class="mt-1">
               <%= date_field_tag "date", Date.today, 
-                              class: "mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md",
+                              class: "mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md",
                               min: Date.today %>
             </div>
             <p class="mt-1 text-sm text-gray-500">Select a date to see available time slots.</p>
@@ -95,7 +95,7 @@
                 <% start_time_value = slot[:start_time].strftime("%H:%M") %>
                 <div class="relative">
                   <input type="radio" name="start_time" id="time-<%= start_time_str.parameterize %>" value="<%= start_time_value %>" class="peer absolute h-0 w-0 opacity-0">
-                  <label for="time-<%= start_time_str.parameterize %>" class="flex items-center justify-center py-2 px-4 bg-white border rounded-md cursor-pointer hover:bg-gray-50 peer-checked:bg-blue-50 peer-checked:border-blue-500 peer-checked:text-blue-700">
+                  <label for="time-<%= start_time_str.parameterize %>" class="flex items-center justify-center py-2 px-4 bg-white border rounded-md cursor-pointer hover:bg-gray-50 peer-checked:bg-light peer-checked:border-primary peer-checked:text-primary">
                     <%= start_time_str %>
                   </label>
                 </div>
@@ -110,14 +110,14 @@
         <div class="mb-6">
           <%= f.label :reschedule_notes, "Reschedule Notes", class: "block text-sm font-medium text-gray-700 mb-2" %>
           <%= text_area_tag :reschedule_notes, "", rows: 3, 
-                         class: "shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md", 
+                         class: "shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md", 
                          placeholder: "Enter any notes about the reschedule (optional)" %>
         </div>
         
         <!-- Notify Customer Toggle -->
         <div class="relative flex items-start mb-6">
           <div class="flex items-center h-5">
-            <%= check_box_tag :notify_customer, "1", true, class: "focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded" %>
+            <%= check_box_tag :notify_customer, "1", true, class: "focus:ring-primary h-4 w-4 text-primary border-gray-300 rounded" %>
           </div>
           <div class="ml-3 text-sm">
             <%= label_tag :notify_customer, "Notify customer about this change", class: "font-medium text-gray-700" %>
@@ -126,9 +126,9 @@
         </div>
         
         <div class="flex justify-end space-x-3">
-          <%= link_to "Cancel", business_manager_booking_path(@booking), class: "inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+          <%= link_to "Cancel", business_manager_booking_path(@booking), class: "inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary" %>
           
-          <%= f.submit "Reschedule Booking", class: "inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+          <%= f.submit "Reschedule Booking", class: "inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary hover:bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary" %>
         </div>
       <% end %>
     </div>

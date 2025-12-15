@@ -21,7 +21,7 @@
                   class: "bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors",
                   target: "_blank" %>
       <%= link_to "Edit Sections", business_manager_website_page_sections_path(@page), 
-                  class: "bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors" %>
+                  class: "bg-primary hover:bg-primary text-white px-4 py-2 rounded-lg transition-colors" %>
     </div>
   </div>
 
@@ -34,14 +34,14 @@
         <div>
           <%= form.label :title, class: "block text-sm font-medium text-gray-700 mb-2" %>
           <%= form.text_field :title, 
-                class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500",
+                class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary",
                 placeholder: "Enter page title" %>
         </div>
         
         <div>
           <%= form.label :slug, class: "block text-sm font-medium text-gray-700 mb-2" %>
           <%= form.text_field :slug, 
-                class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500",
+                class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary",
                 placeholder: "page-url-slug" %>
           <p class="text-xs text-gray-500 mt-1">URL: <%= root_url(subdomain: current_business.host_type_subdomain? ? current_business.hostname : nil) %><span id="slug-preview"><%= @page.slug %></span></p>
         </div>
@@ -63,7 +63,7 @@
                   ['custom', 'custom']
                 ], @page.page_type),
                 { prompt: 'Select page type' },
-                { class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" } %>
+                { class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" } %>
         </div>
         
         <div>
@@ -75,21 +75,21 @@
                   ['Archived', 'archived']
                 ], @page.status),
                 {},
-                { class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" } %>
+                { class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" } %>
         </div>
       </div>
 
       <!-- Menu Settings -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="flex items-center">
-          <%= form.check_box :show_in_menu, class: "rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" %>
+          <%= form.check_box :show_in_menu, class: "rounded border-gray-300 text-primary shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" %>
           <%= form.label :show_in_menu, "Show in navigation menu", class: "ml-2 text-sm font-medium text-gray-700" %>
         </div>
         
         <div>
           <%= form.label :menu_order, class: "block text-sm font-medium text-gray-700 mb-2" %>
           <%= form.number_field :menu_order, 
-                class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500",
+                class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary",
                 placeholder: "Order in menu (optional)" %>
         </div>
       </div>
@@ -102,7 +102,7 @@
           <div>
             <%= form.label :seo_title, class: "block text-sm font-medium text-gray-700 mb-2" %>
             <%= form.text_field :seo_title, 
-                  class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500",
+                  class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary",
                   placeholder: "SEO title (optional)" %>
             <p class="text-xs text-gray-500 mt-1">Leave blank to use page title</p>
           </div>
@@ -111,14 +111,14 @@
             <%= form.label :meta_description, class: "block text-sm font-medium text-gray-700 mb-2" %>
             <%= form.text_area :meta_description, 
                   rows: 3,
-                  class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500",
+                  class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary",
                   placeholder: "Brief description for search engines" %>
           </div>
           
           <div>
             <%= form.label :seo_keywords, class: "block text-sm font-medium text-gray-700 mb-2" %>
             <%= form.text_field :seo_keywords, 
-                  class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500",
+                  class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary",
                   placeholder: "Keywords separated by commas" %>
           </div>
         </div>
@@ -131,11 +131,11 @@
           
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="bg-gray-50 rounded-lg p-4">
-              <div class="text-2xl font-bold text-blue-600"><%= @page.page_sections.count %></div>
+              <div class="text-2xl font-bold text-primary"><%= @page.page_sections.count %></div>
               <div class="text-sm text-gray-600">Sections</div>
             </div>
             <div class="bg-gray-50 rounded-lg p-4">
-              <div class="text-2xl font-bold text-green-600"><%= @page.page_versions.count %></div>
+              <div class="text-2xl font-bold text-success"><%= @page.page_versions.count %></div>
               <div class="text-sm text-gray-600">Versions</div>
             </div>
             <div class="bg-gray-50 rounded-lg p-4">
@@ -152,15 +152,15 @@
           <% if @page.persisted? %>
             <%= button_to "Create Version", business_manager_website_page_path(@page, action: :create_version), 
                   method: :post,
-                  class: "px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer" %>
+                  class: "px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary cursor-pointer" %>
           <% end %>
         </div>
         
         <div class="space-x-3">
           <%= link_to "Cancel", business_manager_website_pages_path, 
-                class: "px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+                class: "px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary" %>
           <%= form.submit "Update Page", 
-                class: "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer" %>
+                class: "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary cursor-pointer" %>
         </div>
       </div>
     <% end %>
@@ -172,7 +172,7 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <%= link_to business_manager_website_page_sections_path(@page), 
             class: "flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors" do %>
-        <svg class="w-6 h-6 text-blue-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-6 h-6 text-primary mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
         </svg>
         <div>
@@ -184,7 +184,7 @@
       <%= link_to public_page_url(@page), 
             target: "_blank",
             class: "flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors" do %>
-        <svg class="w-6 h-6 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-6 h-6 text-success mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
         </svg>

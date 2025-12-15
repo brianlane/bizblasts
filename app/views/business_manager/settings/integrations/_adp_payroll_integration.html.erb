@@ -2,7 +2,7 @@
 <div class="border border-gray-200 rounded-xl overflow-hidden">
   <div class="px-5 py-4 bg-gradient-to-r from-emerald-50 to-emerald-100 border-b border-gray-200">
     <h3 class="text-base font-semibold text-gray-900 flex items-center">
-      <svg class="w-5 h-5 mr-2 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="w-5 h-5 mr-2 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M10 3v18M14 3v18M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"/>
       </svg>
       ADP Payroll Export (CSV)
@@ -19,7 +19,7 @@
           <p class="text-xs text-gray-600 mt-1">Controls rounding, included booking statuses, and default pay code.</p>
         </div>
         <div class="flex items-center gap-2">
-          <%= f.check_box :active, class: "h-4 w-4 text-emerald-600 rounded" %>
+          <%= f.check_box :active, class: "h-4 w-4 text-success rounded" %>
           <%= f.label :active, "Enabled", class: "text-sm text-gray-700" %>
         </div>
       </div>
@@ -30,7 +30,7 @@
           <%= f.number_field :rounding_minutes, min: 1, step: 1, class: "w-full border rounded px-3 py-2" %>
         </div>
         <div class="flex items-center gap-2 mt-6 sm:mt-0">
-          <%= f.check_box :round_total_hours, class: "h-4 w-4 text-emerald-600 rounded" %>
+          <%= f.check_box :round_total_hours, class: "h-4 w-4 text-success rounded" %>
           <%= f.label :round_total_hours, "Round total hours", class: "text-sm text-gray-700" %>
         </div>
       </div>
@@ -57,7 +57,7 @@
                      name="adp_payroll_export_config[config][included_booking_statuses][]"
                      value="<%= st %>"
                      <%= 'checked' if adp_payroll_config.included_booking_statuses.include?(st) %>
-                     class="h-4 w-4 text-emerald-600 rounded" />
+                     class="h-4 w-4 text-success rounded" />
               <span><%= st.humanize %></span>
             </label>
           <% end %>
@@ -65,7 +65,7 @@
       </div>
 
       <div class="mt-4">
-        <%= f.submit "Save Payroll Settings", class: "cursor-pointer px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800" %>
+        <%= f.submit "Save Payroll Settings", class: "cursor-pointer px-4 py-2 bg-success text-white rounded-lg hover:bg-emerald-800" %>
       </div>
     <% end %>
 
@@ -89,7 +89,7 @@
         </div>
 
         <div class="mt-4 flex flex-col sm:flex-row gap-3">
-          <%= submit_tag "Preview Hours", class: "cursor-pointer px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800" %>
+          <%= submit_tag "Preview Hours", class: "cursor-pointer px-4 py-2 bg-success text-white rounded-lg hover:bg-emerald-800" %>
           <%= link_to "Clear Preview", business_manager_settings_integrations_path, class: "inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200" %>
         </div>
       <% end %>
@@ -218,7 +218,7 @@
                   </td>
                   <td class="py-2">
                     <% if run.succeeded? %>
-                      <%= link_to "CSV", adp_payroll_export_download_business_manager_settings_integrations_path(id: run.id), class: "text-emerald-700 hover:underline" %>
+                      <%= link_to "CSV", adp_payroll_export_download_business_manager_settings_integrations_path(id: run.id), class: "text-success hover:underline" %>
                     <% else %>
                       <span class="text-gray-400">—</span>
                     <% end %>
@@ -233,7 +233,7 @@
       <% end %>
     </div>
 
-    <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-sm text-emerald-900">
+    <div class="bg-emerald-50 border border-success/30 rounded-lg p-4 text-sm text-emerald-900">
       <p class="font-medium">Staff mapping</p>
       <p class="mt-1">Set each staff member's ADP Employee ID and pay code in <%= link_to "Staff Members", business_manager_staff_members_path, class: "underline" %>.</p>
     </div>

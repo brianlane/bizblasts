@@ -15,7 +15,7 @@
 <div class="flex flex-col sm:flex-row gap-3 sm:gap-3 items-center sm:items-center">
           <%= button_to toggle_status_business_manager_loyalty_index_path, 
                       method: :patch,
-                      class: "cursor-pointer inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white #{ current_business.loyalty_program_enabled? ? 'bg-red-600 hover:bg-red-700 active:bg-red-800' : 'bg-green-600 hover:bg-green-700 active:bg-green-800' } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 transition-colors shadow-sm" do %>
+                      class: "cursor-pointer inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white #{ current_business.loyalty_program_enabled? ? 'bg-red-600 hover:bg-red-700 active:bg-red-800' : 'bg-success hover:bg-success active:bg-green-800' } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 transition-colors shadow-sm" do %>
             <% if current_business.loyalty_program_enabled? %>
               <svg class="-ml-1 mr-2 h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -149,7 +149,7 @@
                   <div class="flex-shrink-0">
                     <% if transaction.earned? %>
                       <div class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                        <svg class="h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="h-4 w-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                         </svg>
                       </div>
@@ -172,7 +172,7 @@
                 </div>
                 <div class="flex items-center">
                   <div class="text-sm text-gray-900 mr-4">
-                    <span class="<%= transaction.earned? ? 'text-green-600' : 'text-red-600' %>">
+                    <span class="<%= transaction.earned? ? 'text-success' : 'text-red-600' %>">
                       <%= transaction.earned? ? '+' : '' %><%= transaction.points_amount %> points
                     </span>
                   </div>

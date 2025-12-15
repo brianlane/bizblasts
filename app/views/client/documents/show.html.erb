@@ -1,6 +1,6 @@
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
   <div class="flex items-center gap-3 text-sm">
-    <%= link_to '← Back to documents', client_documents_path, class: 'text-blue-600 hover:text-blue-700 font-medium' %>
+    <%= link_to '← Back to documents', client_documents_path, class: 'text-primary hover:text-primary font-medium' %>
     <span class="text-gray-400">/</span>
     <span class="text-gray-600"><%= @document.title || document_type_label(@document) %></span>
   </div>
@@ -48,7 +48,7 @@
           <p class="text-sm text-gray-600">A PDF copy of this document is attached. You can view or download it for your records.</p>
           <%= link_to 'Download PDF',
                 rails_blob_path(@document.pdf, disposition: 'attachment'),
-                class: "inline-flex items-center px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold shadow hover:bg-blue-700",
+                class: "inline-flex items-center px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold shadow hover:bg-primary",
                 target: "_blank", rel: "noopener" %>
         </div>
         <div class="border rounded-xl overflow-hidden">

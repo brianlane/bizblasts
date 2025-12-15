@@ -9,7 +9,7 @@
         </div>
         <div class="flex flex-col sm:flex-row gap-2">
           <%= link_to 'View Subscription', [:business_manager, @customer_subscription],
-                class: "inline-flex items-center justify-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" %>
+                class: "inline-flex items-center justify-center px-4 py-2 bg-primary hover:bg-primary text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2" %>
           <%= link_to 'Back to Subscriptions', business_manager_customer_subscriptions_path,
                 class: "inline-flex items-center justify-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2" %>
         </div>
@@ -71,19 +71,19 @@
             <div>
               <%= form.label :quantity, "Quantity", class: "block text-gray-700 text-sm font-bold mb-2" %>
               <%= form.number_field :quantity, min: 1, required: true,
-                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" %>
             </div>
 
             <div>
               <%= form.label :next_billing_date, "Next Billing Date", class: "block text-gray-700 text-sm font-bold mb-2" %>
               <%= form.date_field :next_billing_date, required: true,
-                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" %>
             </div>
 
             <div>
               <%= form.label :billing_day_of_month, "Billing Day of Month", class: "block text-gray-700 text-sm font-bold mb-2" %>
               <%= form.number_field :billing_day_of_month, min: 1, max: 28,
-                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" %>
               <p class="mt-1 text-sm text-gray-500">Day of month for recurring billing (1-28)</p>
             </div>
           </div>
@@ -104,13 +104,13 @@
                         ['Use business default', 'business_default']
                       ], @customer_subscription.service_rebooking_preference),
                       { prompt: "Select rebooking preference" },
-                      { class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" } %>
+                      { class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" } %>
               </div>
 
               <div>
                 <%= form.label :preferred_time_slot, "Preferred Time Slot", class: "block text-gray-700 text-sm font-bold mb-2" %>
                 <%= form.text_field :preferred_time_slot, placeholder: "e.g., 10:00 AM - 12:00 PM",
-                      class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+                      class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" %>
               </div>
             </div>
           </div>
@@ -130,7 +130,7 @@
                       ['Cancel subscription', 'cancel_subscription']
                     ], @customer_subscription.out_of_stock_action),
                     { prompt: "Select out of stock action" },
-                    { class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" } %>
+                    { class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" } %>
             </div>
           </div>
         <% end %>
@@ -139,7 +139,7 @@
         <div>
           <%= form.label :notes, "Notes", class: "block text-gray-700 text-sm font-bold mb-2" %>
           <%= form.text_area :notes, rows: 3, placeholder: "Optional notes about this subscription",
-                class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+                class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" %>
         </div>
 
         <!-- Action Buttons -->
@@ -157,7 +157,7 @@
 
           <div class="flex justify-end">
             <%= form.submit "Update Subscription", 
-                  class: "inline-flex items-center justify-center px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer" %>
+                  class: "inline-flex items-center justify-center px-6 py-3 bg-primary hover:bg-primary text-white font-bold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer" %>
           </div>
         </div>
       <% end %>

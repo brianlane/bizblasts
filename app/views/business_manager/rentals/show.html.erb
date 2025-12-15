@@ -18,7 +18,7 @@
       </div>
     </div>
     <div class="flex gap-2">
-      <%= link_to 'Edit', edit_business_manager_rental_path(@rental), class: "px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700" %>
+      <%= link_to 'Edit', edit_business_manager_rental_path(@rental), class: "px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary" %>
       <%= link_to 'Back to Rentals', business_manager_rentals_path, class: "px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50" %>
     </div>
   </div>
@@ -48,7 +48,7 @@
       <div class="bg-white shadow rounded-lg p-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-medium text-gray-900">Recent Bookings</h2>
-          <%= link_to 'View All', business_manager_rental_bookings_path(product_id: @rental.id), class: "text-sm text-blue-600 hover:text-blue-800" %>
+          <%= link_to 'View All', business_manager_rental_bookings_path(product_id: @rental.id), class: "text-sm text-primary hover:text-secondary" %>
         </div>
         
         <% if @recent_bookings.any? %>
@@ -94,7 +94,7 @@
         <div class="space-y-3">
           <div class="flex justify-between">
             <span class="text-gray-600">Daily Rate</span>
-            <span class="font-semibold text-green-600"><%= number_to_currency(@rental.daily_rate) %></span>
+            <span class="font-semibold text-success"><%= number_to_currency(@rental.daily_rate) %></span>
           </div>
           <% if @rental.hourly_rate.present? && @rental.allow_hourly_rental? %>
             <div class="flex justify-between">
@@ -132,7 +132,7 @@
 
         <div class="mt-4 pt-4 border-t">
           <%= link_to 'Manage Weekly Availability', manage_availability_business_manager_rental_path(@rental),
-                class: "inline-flex items-center px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors" %>
+                class: "inline-flex items-center px-4 py-2 text-sm font-medium text-primary bg-light hover:bg-light rounded-md transition-colors" %>
         </div>
       </div>
 

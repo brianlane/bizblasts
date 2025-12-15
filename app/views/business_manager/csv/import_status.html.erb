@@ -6,13 +6,13 @@
          data-import-progress-url-value="<%= import_status_business_manager_csv_index_path(id: @import_run.id, format: :json) %>"
          data-import-progress-finished-value="<%= @import_run.finished_at.present? %>">
 
-      <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-6 sm:px-6">
+      <div class="bg-gradient-to-r from-primary to-secondary px-4 py-6 sm:px-6">
         <div class="flex items-center justify-between">
           <div>
             <h1 class="text-xl sm:text-2xl font-bold text-white">
               Import Progress: <%= @import_run.import_type.humanize.titleize %>
             </h1>
-            <p class="text-blue-100 mt-1 text-sm"><%= @import_run.original_filename %></p>
+            <p class="text-white/80 mt-1 text-sm"><%= @import_run.original_filename %></p>
           </div>
         </div>
       </div>
@@ -25,7 +25,7 @@
              when 'succeeded' then 'bg-green-100 text-green-800 border-green-200'
              when 'partial' then 'bg-yellow-100 text-yellow-800 border-yellow-200'
              when 'failed' then 'bg-red-100 text-red-800 border-red-200'
-             when 'running' then 'bg-blue-100 text-blue-800 border-blue-200'
+             when 'running' then 'bg-blue-100 text-blue-800 border-primary/30'
              else 'bg-gray-100 text-gray-800 border-gray-200'
              end %>
           <span class="px-3 py-1 rounded-full text-sm font-medium border <%= badge_class %>"
@@ -41,7 +41,7 @@
             <span data-import-progress-target="percentage"><%= @import_run.progress_percentage %>%</span>
           </div>
           <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-            <div class="bg-blue-600 h-3 rounded-full transition-all duration-300"
+            <div class="bg-primary h-3 rounded-full transition-all duration-300"
                  style="width: <%= @import_run.progress_percentage %>%"
                  data-import-progress-target="bar"></div>
           </div>
@@ -59,13 +59,13 @@
             <div class="text-2xl font-bold text-green-700" data-import-progress-target="created">
               <%= @import_run.created_count %>
             </div>
-            <div class="text-sm text-green-600">Created</div>
+            <div class="text-sm text-success">Created</div>
           </div>
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-            <div class="text-2xl font-bold text-blue-700" data-import-progress-target="updated">
+          <div class="bg-light border border-primary/30 rounded-lg p-4 text-center">
+            <div class="text-2xl font-bold text-primary" data-import-progress-target="updated">
               <%= @import_run.updated_count %>
             </div>
-            <div class="text-sm text-blue-600">Updated</div>
+            <div class="text-sm text-primary">Updated</div>
           </div>
           <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
             <div class="text-2xl font-bold text-gray-700" data-import-progress-target="skipped">
@@ -109,7 +109,7 @@
 
           <% if @import_run.finished_at.present? %>
             <%= link_to import_form_business_manager_csv_index_path(type: @import_run.import_type),
-                  class: "inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium" do %>
+                  class: "inline-flex items-center px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary transition-colors font-medium" do %>
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
               </svg>

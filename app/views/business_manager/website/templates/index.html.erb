@@ -30,7 +30,7 @@
       <% end %>
       
       <%= link_to business_manager_website_templates_path, 
-                  class: "px-4 py-2 rounded-md text-sm font-medium transition-colors bg-blue-500 text-white" do %>
+                  class: "px-4 py-2 rounded-md text-sm font-medium transition-colors bg-primary text-white" do %>
         <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
         </svg>
@@ -156,7 +156,7 @@
               </button>
               <% if template.can_be_used_by?(current_business) %>
                 <button type="button" 
-                        class="bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-blue-600 transition-colors"
+                        class="bg-primary text-white px-4 py-2 rounded-lg shadow-lg hover:bg-primary transition-colors"
                         data-action="click->template-browser#applyTemplate"
                         data-template-id="<%= template.id %>">
                   ⚡ Apply
@@ -199,7 +199,7 @@
             
             <% if template.can_be_used_by?(current_business) %>
               <button type="button" 
-                      class="flex-1 text-center bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm transition-colors"
+                      class="flex-1 text-center bg-primary hover:bg-primary text-white px-3 py-2 rounded text-sm transition-colors"
                       data-action="click->template-browser#applyTemplate"
                       data-template-id="<%= template.id %>">
                 Apply Template
@@ -232,7 +232,7 @@
         <h3 class="text-lg font-semibold">Template Preview</h3>
         <div class="space-x-3">
           <button type="button" 
-                  class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors"
+                  class="bg-primary hover:bg-primary text-white px-4 py-2 rounded transition-colors"
                   data-action="click->template-browser#applyCurrentTemplate">
             Apply This Template
           </button>

@@ -37,6 +37,9 @@ class Estimate < ApplicationRecord
     pending_payment: 6
   }
 
+  # Set default status to draft for new records
+  after_initialize :set_default_status, if: :new_record?
+
   validates :first_name, :last_name, :email, :phone, :address, :city, :state, :zip,
             presence: true, if: -> { tenant_customer_id.blank? }
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, if: -> { tenant_customer_id.blank? }
@@ -307,6 +310,10 @@ class Estimate < ApplicationRecord
 
   def set_valid_for_days_default
     self.valid_for_days = 30 if valid_for_days.blank?
+  end
+
+  def set_default_status
+    self.status ||= :draft
   end
 
   # Assign sequential positions to items that don't have proper positions

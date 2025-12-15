@@ -27,12 +27,12 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div class="md:col-span-2">
         <%= form.label :name, class: "block text-sm font-medium text-gray-700" %>
-        <%= form.text_field :name, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500", placeholder: "e.g., Power Drill, Bicycle, Camera" %>
+        <%= form.text_field :name, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary", placeholder: "e.g., Power Drill, Bicycle, Camera" %>
       </div>
       
       <div class="md:col-span-2">
         <%= form.label :description, class: "block text-sm font-medium text-gray-700" %>
-        <%= form.text_area :description, rows: 3, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500", placeholder: "Describe the rental item, its features, and any requirements..." %>
+        <%= form.text_area :description, rows: 3, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary", placeholder: "Describe the rental item, its features, and any requirements..." %>
       </div>
       
       <div>
@@ -41,7 +41,7 @@
              data-dropdown-selected-value-value="<%= @rental.rental_category %>"
              data-dropdown-selected-text-value="<%= @rental.rental_category&.titleize %>">
           <button type="button"
-                  class="mt-1 w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  class="mt-1 w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                   data-dropdown-target="button"
                   data-action="click->dropdown#toggle">
             <span class="rich-dropdown-text text-gray-900">
@@ -55,7 +55,7 @@
           <div class="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 ring-1 ring-black ring-opacity-5 overflow-auto hidden"
                data-dropdown-target="menu">
             <% Product::RENTAL_CATEGORIES.each do |category| %>
-              <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+              <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-light transition-colors"
                    data-item-id="<%= category %>"
                    data-item-text="<%= category.titleize %>"
                    data-dropdown-target="option"
@@ -79,7 +79,7 @@
                data-dropdown-selected-value-value="<%= selected_value %>"
                data-dropdown-selected-text-value="<%= selected_text %>">
             <button type="button"
-                    class="mt-1 w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    class="mt-1 w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                     data-dropdown-target="button"
                     data-action="click->dropdown#toggle">
               <span class="rich-dropdown-text text-gray-900">
@@ -92,7 +92,7 @@
             <%= form.hidden_field :location_id, data: { dropdown_target: 'hidden' } %>
             <div class="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 ring-1 ring-black ring-opacity-5 overflow-auto hidden"
                  data-dropdown-target="menu">
-              <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+              <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-light transition-colors"
                    data-item-id=""
                    data-item-text="No specific location"
                    data-dropdown-target="option"
@@ -100,7 +100,7 @@
                 No specific location
               </div>
               <% @locations.each do |location| %>
-                <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-blue-50 transition-colors"
+                <div class="cursor-pointer select-none relative py-2 px-3 hover:bg-light transition-colors"
                      data-item-id="<%= location.id %>"
                      data-item-text="<%= location.name %>"
                      data-dropdown-target="option"
@@ -115,17 +115,17 @@
       
       <div>
         <%= form.label :rental_quantity_available, "Quantity Available", class: "block text-sm font-medium text-gray-700" %>
-        <%= form.number_field :rental_quantity_available, min: 1, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+        <%= form.number_field :rental_quantity_available, min: 1, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary" %>
         <p class="mt-1 text-xs text-gray-500">How many of this item do you have available for rent?</p>
       </div>
       
       <div class="flex items-center gap-6">
         <div class="flex items-center">
-          <%= form.check_box :active, class: "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
+          <%= form.check_box :active, class: "h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" %>
           <%= form.label :active, "Active", class: "ml-2 text-sm text-gray-700" %>
         </div>
         <div class="flex items-center">
-          <%= form.check_box :featured, class: "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
+          <%= form.check_box :featured, class: "h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" %>
           <%= form.label :featured, "Featured", class: "ml-2 text-sm text-gray-700" %>
         </div>
       </div>
@@ -143,7 +143,7 @@
           <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <span class="text-gray-500 sm:text-sm">$</span>
           </div>
-          <%= form.number_field :price, step: 0.01, min: 0, class: "pl-7 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+          <%= form.number_field :price, step: 0.01, min: 0, class: "pl-7 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary" %>
         </div>
         <p class="mt-1 text-xs text-gray-500">Required - base daily rental rate</p>
       </div>
@@ -154,7 +154,7 @@
           <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <span class="text-gray-500 sm:text-sm">$</span>
           </div>
-          <%= form.number_field :hourly_rate, step: 0.01, min: 0, class: "pl-7 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+          <%= form.number_field :hourly_rate, step: 0.01, min: 0, class: "pl-7 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary" %>
         </div>
         <p class="mt-1 text-xs text-gray-500">Optional - for short-term rentals</p>
       </div>
@@ -165,7 +165,7 @@
           <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <span class="text-gray-500 sm:text-sm">$</span>
           </div>
-          <%= form.number_field :weekly_rate, step: 0.01, min: 0, class: "pl-7 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+          <%= form.number_field :weekly_rate, step: 0.01, min: 0, class: "pl-7 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary" %>
         </div>
         <p class="mt-1 text-xs text-gray-500">Optional - discounted weekly rate</p>
       </div>
@@ -176,7 +176,7 @@
           <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <span class="text-gray-500 sm:text-sm">$</span>
           </div>
-          <%= form.number_field :security_deposit, step: 0.01, min: 0, class: "pl-7 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+          <%= form.number_field :security_deposit, step: 0.01, min: 0, class: "pl-7 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary" %>
         </div>
         <p class="mt-1 text-xs text-gray-500">Refundable deposit collected before rental</p>
       </div>
@@ -184,15 +184,15 @@
     
     <div class="mt-6 flex flex-wrap gap-6">
       <div class="flex items-center">
-        <%= form.check_box :allow_hourly_rental, class: "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
+        <%= form.check_box :allow_hourly_rental, class: "h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" %>
         <%= form.label :allow_hourly_rental, "Allow Hourly Rentals", class: "ml-2 text-sm text-gray-700" %>
       </div>
       <div class="flex items-center">
-        <%= form.check_box :allow_daily_rental, class: "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
+        <%= form.check_box :allow_daily_rental, class: "h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" %>
         <%= form.label :allow_daily_rental, "Allow Daily Rentals", class: "ml-2 text-sm text-gray-700" %>
       </div>
       <div class="flex items-center">
-        <%= form.check_box :allow_weekly_rental, class: "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
+        <%= form.check_box :allow_weekly_rental, class: "h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" %>
         <%= form.label :allow_weekly_rental, "Allow Weekly Rentals", class: "ml-2 text-sm text-gray-700" %>
       </div>
     </div>
@@ -205,19 +205,19 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div>
         <%= form.label :min_rental_duration_mins, "Minimum Duration (minutes)", class: "block text-sm font-medium text-gray-700" %>
-        <%= form.number_field :min_rental_duration_mins, min: 1, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+        <%= form.number_field :min_rental_duration_mins, min: 1, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary" %>
         <p class="mt-1 text-xs text-gray-500">e.g., 60 = 1 hour minimum</p>
       </div>
       
       <div>
         <%= form.label :max_rental_duration_mins, "Maximum Duration (minutes)", class: "block text-sm font-medium text-gray-700" %>
-        <%= form.number_field :max_rental_duration_mins, min: 1, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+        <%= form.number_field :max_rental_duration_mins, min: 1, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary" %>
         <p class="mt-1 text-xs text-gray-500">Leave empty for no maximum</p>
       </div>
       
       <div>
         <%= form.label :rental_buffer_mins, "Buffer Between Rentals (minutes)", class: "block text-sm font-medium text-gray-700" %>
-        <%= form.number_field :rental_buffer_mins, min: 0, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+        <%= form.number_field :rental_buffer_mins, min: 0, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary" %>
         <p class="mt-1 text-xs text-gray-500">Time for cleaning/preparation</p>
       </div>
     </div>
@@ -257,7 +257,7 @@
                    value="<%= duration %>"
                    min="15"
                    step="15"
-                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
                    placeholder="e.g., 60"
                    data-rental-durations-target="input" />
           </div>
@@ -278,7 +278,7 @@
     <div class="flex items-center justify-between">
       <div>
         <button type="button"
-                class="inline-flex items-center px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium rounded-md transition-colors"
+                class="inline-flex items-center px-4 py-2 bg-light hover:bg-light text-primary font-medium rounded-md transition-colors"
                 data-action="click->rental-durations#add"
                 data-rental-durations-target="addButton">
           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -295,7 +295,7 @@
     <% if @rental.persisted? %>
       <div class="mt-6">
         <%= link_to manage_availability_business_manager_rental_path(@rental),
-              class: "inline-flex items-center px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium rounded-md transition-colors" do %>
+              class: "inline-flex items-center px-4 py-2 bg-light hover:bg-light text-primary font-medium rounded-md transition-colors" do %>
           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
           </svg>
@@ -326,15 +326,15 @@
     
     <div>
       <%= form.label :images, "Upload Images", class: "block text-sm font-medium text-gray-700" %>
-      <%= form.file_field :images, multiple: true, accept: "image/*", class: "mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" %>
+      <%= form.file_field :images, multiple: true, accept: "image/*", class: "mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-light file:text-primary hover:file:bg-light" %>
       <p class="mt-1 text-xs text-gray-500">You can upload multiple images. Max 15MB per image.</p>
     </div>
   </div>
 
   <!-- Submit -->
   <div class="flex justify-end gap-3">
-    <%= link_to 'Cancel', business_manager_rentals_path, class: "px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
-    <%= form.submit @rental.new_record? ? 'Create Rental' : 'Update Rental', class: "px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer" %>
+    <%= link_to 'Cancel', business_manager_rentals_path, class: "px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary" %>
+    <%= form.submit @rental.new_record? ? 'Create Rental' : 'Update Rental', class: "px-4 py-2 text-sm font-medium text-white bg-primary border border-transparent rounded-md shadow-sm hover:bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary cursor-pointer" %>
   </div>
 <% end %>
 

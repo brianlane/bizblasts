@@ -13,11 +13,11 @@
                         action: 'click->qr-payment#showModal',
                         'qr-payment-invoice-id-value': @invoice.id
                       },
-                      class: 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer' %>
+                      class: 'bg-primary hover:bg-primary text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer' %>
       <% end %>
       <%= button_to 'Mark as Paid', mark_as_paid_business_manager_invoice_path(@invoice), method: :patch,
                     data: { confirm: 'Mark this invoice as paid? This will create a payment record and cannot be undone.' },
-                    class: 'bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer' %>
+                    class: 'bg-success hover:bg-success text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer' %>
       <%= button_to 'Cancel Invoice', cancel_business_manager_invoice_path(@invoice), method: :patch,
                     data: { confirm: 'Are you sure you want to cancel this invoice? This action cannot be undone.' },
                     class: 'bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline cursor-pointer' %>
@@ -48,21 +48,21 @@
       <% if @invoice.order.present? %>
         <div class="p-4 grid grid-cols-3 gap-4">
           <dt class="font-medium text-gray-600">Order</dt>
-          <dd class="col-span-2"><%= link_to @invoice.order.order_number, business_manager_order_path(@invoice.order), class: 'text-blue-600 hover:text-blue-800' %></dd>
+          <dd class="col-span-2"><%= link_to @invoice.order.order_number, business_manager_order_path(@invoice.order), class: 'text-primary hover:text-secondary' %></dd>
         </div>
       <% end %>
       <% if @invoice.booking.present? %>
         <div class="p-4 grid grid-cols-3 gap-4">
           <dt class="font-medium text-gray-600">Booking</dt>
-          <dd class="col-span-2"><%= link_to "Booking ##{@invoice.booking.id}", business_manager_booking_path(@invoice.booking), class: 'text-blue-600 hover:text-blue-800' %></dd>
+          <dd class="col-span-2"><%= link_to "Booking ##{@invoice.booking.id}", business_manager_booking_path(@invoice.booking), class: 'text-primary hover:text-secondary' %></dd>
         </div>
       <% end %>
       <%# Add more fields as needed: due_date, amount, tax_amount, etc. %>
     </dl>
   </div>
 
-  <%= link_to 'Back to Invoices', business_manager_invoices_path, class: "text-blue-600 hover:text-blue-800" %>
-  <%= link_to 'Back to Customer', business_manager_customer_path(@invoice.tenant_customer), class: "ml-4 text-blue-600 hover:text-blue-800" %>
+  <%= link_to 'Back to Invoices', business_manager_invoices_path, class: "text-primary hover:text-secondary" %>
+  <%= link_to 'Back to Customer', business_manager_customer_path(@invoice.tenant_customer), class: "ml-4 text-primary hover:text-secondary" %>
 
   <!-- QR Payment Modal -->
   <div data-qr-payment-target="modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">

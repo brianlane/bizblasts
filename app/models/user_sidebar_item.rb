@@ -11,4 +11,4 @@ class UserSidebarItem < ApplicationRecord
   def self.default_items_for(user)
     SidebarItems.all_items(user: user)
   end
-end
+end 

@@ -58,7 +58,7 @@ export default class extends Controller {
       const data = await response.json()
       this.updateProgress(data)
 
-      if (data.finished_at) {
+      if (data.finished) {
         this.stopPolling()
         this.finishedValue = true
       }
@@ -70,12 +70,12 @@ export default class extends Controller {
   updateProgress(data) {
     // Update percentage
     if (this.hasPercentageTarget) {
-      this.percentageTarget.textContent = `${data.progress_percentage}%`
+      this.percentageTarget.textContent = `${data.progress}%`
     }
 
     // Update progress bar
     if (this.hasBarTarget) {
-      this.barTarget.style.width = `${data.progress_percentage}%`
+      this.barTarget.style.width = `${data.progress}%`
     }
 
     // Update processed count

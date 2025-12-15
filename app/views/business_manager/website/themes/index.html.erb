@@ -12,7 +12,7 @@
                   class: "bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors",
                   target: "_blank" %>
       <%= link_to "Create Theme", new_business_manager_website_theme_path, 
-                  class: "bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors" %>
+                  class: "bg-primary hover:bg-primary text-white px-4 py-2 rounded-lg transition-colors" %>
     </div>
   </div>
 
@@ -36,7 +36,7 @@
       <% end %>
       
       <%= link_to business_manager_website_themes_path, 
-                  class: "px-4 py-2 rounded-md text-sm font-medium transition-colors bg-blue-500 text-white" do %>
+                  class: "px-4 py-2 rounded-md text-sm font-medium transition-colors bg-primary text-white" do %>
         <svg class="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 325.04 325.04">
           <path d="M117.866,234.088c-2.956,14.532-4.875,21.558-16.092,22.458c-2.764,0.222-5.015,2.308-5.446,5.047 c-0.432,2.738,1.069,5.416,3.631,6.477c0.721,0.298,17.877,7.308,37.921,7.309c0.003,0,0.005,0,0.007,0 c13.968,0,25.95-3.386,35.612-10.063c11.45-7.912,19.344-20.294,23.541-36.788l-38.572-38.88 C125.871,194.924,121.253,217.436,117.866,234.088z"/>
           <path d="M322.745,63.336c-1.037-1.046-2.887-2.293-5.806-2.293c-3.423,0-12.516,0-67.74,46.992 c-25.509,21.706-54.92,48.559-78.314,71.41l36.603,36.894c24.061-25.009,52.129-56.355,74.451-83.258 c14.096-16.986,24.935-31.002,32.216-41.657C323.799,77.311,328.023,68.655,322.745,63.336z"/>
@@ -49,16 +49,16 @@
 
   <!-- Active Theme Highlight -->
   <% if @active_theme %>
-    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-primary/30 rounded-lg p-6">
       <div class="flex items-center justify-between">
         <div>
           <h2 class="text-lg font-semibold text-blue-900">🎨 Active Theme</h2>
-          <p class="text-blue-700 font-medium text-xl mt-1"><%= @active_theme.name %></p>
-          <p class="text-blue-600 text-sm mt-1">Currently applied to your website</p>
+          <p class="text-primary font-medium text-xl mt-1"><%= @active_theme.name %></p>
+          <p class="text-primary text-sm mt-1">Currently applied to your website</p>
         </div>
         <div class="space-x-3">
           <%= link_to "Preview", theme_test_business_path(business_subdomain: current_business.host_type_subdomain? ? current_business.hostname : nil), 
-                      class: "bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors",
+                      class: "bg-primary hover:bg-primary text-white px-4 py-2 rounded transition-colors",
                       target: "_blank" %>
           <%= link_to "Edit", edit_business_manager_website_theme_path(@active_theme), 
                       class: "bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded transition-colors" %>
@@ -121,7 +121,7 @@
                 <div class="flex items-center justify-between">
                   <span>Created: <%= theme.created_at.strftime('%m/%d/%Y') %></span>
                   <% if theme.custom_css.present? %>
-                    <span class="text-blue-600">Customized</span>
+                    <span class="text-primary">Customized</span>
                   <% end %>
                 </div>
               </div>
@@ -150,7 +150,7 @@
                   
                   <!-- Preview Button -->
                   <button type="button"
-                          class="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
+                          class="text-sm px-3 py-1 bg-primary/10 text-primary rounded-md hover:bg-secondary/20 transition-colors"
                           data-action="click->theme-browser#previewTheme">
                     Preview
                   </button>
@@ -187,7 +187,7 @@
         <h3 class="text-lg font-medium text-gray-900 mb-2">No themes yet</h3>
         <p class="text-gray-500 mb-6">Create your first theme to customize your website's appearance.</p>
         <%= link_to "Create Theme", new_business_manager_website_theme_path, 
-                    class: "bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg transition-colors" %>
+                    class: "bg-primary hover:bg-primary text-white px-6 py-3 rounded-lg transition-colors" %>
       </div>
     <% end %>
   </div>
@@ -202,7 +202,7 @@
         <h3 class="text-lg font-semibold">Theme Preview</h3>
         <div class="space-x-3">
           <button type="button" 
-                  class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors"
+                  class="bg-primary hover:bg-primary text-white px-4 py-2 rounded transition-colors"
                   data-action="click->theme-browser#activateCurrentTheme">
             Activate This Theme
           </button>

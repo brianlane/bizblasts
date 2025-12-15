@@ -2,7 +2,7 @@
   <div class="panel">
     <div class="panel-header flex justify-between items-center">
       <h1 class="text-2xl font-bold">Website Pages Settings</h1>
-      <%= link_to '← Back to Settings', business_manager_settings_path, class: 'text-blue-600 hover:underline' %>
+      <%= link_to '← Back to Settings', business_manager_settings_path, class: 'text-primary hover:underline' %>
     </div>
     <div class="panel-body mt-4">
       <%= form_with model: @business, url: business_manager_settings_website_pages_path, method: :patch, local: true do |f| %>
@@ -38,7 +38,7 @@
                                  data: { dropdown_target: "hidden" } %>
               <button type="button"
                       id="enhanced-accent-button"
-                      class="relative min-w-[11rem] bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm flex items-center justify-between gap-3"
+                      class="relative min-w-[11rem] bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm flex items-center justify-between gap-3"
                       aria-haspopup="listbox"
                       aria-expanded="false"
                       aria-labelledby="enhanced-accent-label enhanced-accent-button"
@@ -56,7 +56,7 @@
                    aria-labelledby="enhanced-accent-label">
                 <% accent_options.each do |label, value| %>
                   <button type="button"
-                          class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors relative"
+                          class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-light transition-colors relative"
                           data-dropdown-target="option"
                           data-item-id="<%= value %>"
                           data-item-text="<%= label %>"
@@ -98,10 +98,10 @@
           <p class="text-sm text-gray-600 mt-1 mb-4">
             Manage your photos and video gallery. Upload up to 100 photos and 1 video.
           </p>
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <div class="bg-light border border-primary/30 rounded-lg p-4 mb-4">
             <div class="flex items-start">
               <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="h-5 w-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                 </svg>
               </div>
@@ -112,7 +112,7 @@
                       <%= pluralize(@business.gallery_photos_count, 'photo') %> •
                       Video: <%= @business.gallery_video.attached? ? 'Yes' : 'No' %>
                     </p>
-                    <p class="text-xs text-blue-700 mt-1">
+                    <p class="text-xs text-primary mt-1">
                       Gallery <%= @business.gallery_enabled? ? 'enabled' : 'disabled' %> on your website
                     </p>
                   </div>
@@ -122,12 +122,12 @@
             </div>
           </div>
           <div class="mt-3">
-            <%= f.check_box :gallery_enabled, class: "rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
+            <%= f.check_box :gallery_enabled, class: "rounded border-gray-300 text-primary focus:ring-primary" %>
             <%= f.label :gallery_enabled, 'Enable Gallery on Website', class: "ml-2" %>
             <p class="text-xs text-gray-500 mt-1 ml-6">Show the gallery section on your public website</p>
           </div>
           <div class="mt-3">
-            <%= f.check_box :show_gallery_section, class: "rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
+            <%= f.check_box :show_gallery_section, class: "rounded border-gray-300 text-primary focus:ring-primary" %>
             <%= f.label :show_gallery_section, 'Show Gallery Section', class: "ml-2" %>
             <p class="text-xs text-gray-500 mt-1 ml-6">Display gallery as a dedicated section (enhanced layout only)</p>
           </div>
@@ -166,7 +166,7 @@
         </fieldset>
 
         <div class="mt-6">
-          <%= f.submit 'Save Changes', class: 'px-4 py-2 bg-blue-600 text-white rounded' %>
+          <%= f.submit 'Save Changes', class: 'px-4 py-2 bg-primary text-white rounded' %>
         </div>
       <% end %>
     </div>

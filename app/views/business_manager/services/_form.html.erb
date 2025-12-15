@@ -106,7 +106,7 @@
   </div>
 
   <div class="mb-4">
-    <%= form.check_box :subscription_enabled, class: "form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500", id: "service_subscription_enabled" %>
+    <%= form.check_box :subscription_enabled, class: "form-checkbox h-5 w-5 text-primary rounded focus:ring-primary", id: "service_subscription_enabled" %>
     <%= form.label :subscription_enabled, "Enable subscriptions", class: "ml-2 text-gray-700 text-sm font-bold" %>
   </div>
 
@@ -117,7 +117,7 @@
 
     <div class="mb-4">
       <%= form.check_box :video_enabled,
-            class: "form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500",
+            class: "form-checkbox h-5 w-5 text-primary rounded focus:ring-primary",
             id: "service_video_enabled",
             data: { action: "change->video-meeting-settings#toggleProvider" } %>
       <%= form.label :video_enabled, "Enable video meetings for this service", class: "ml-2 text-gray-700 text-sm font-bold" %>
@@ -131,7 +131,7 @@
             <% @video_providers.each do |provider| %>
               <div class="flex items-center">
                 <%= form.radio_button :video_provider, provider[:key],
-                      class: "form-radio h-4 w-4 text-blue-600 focus:ring-blue-500",
+                      class: "form-radio h-4 w-4 text-primary focus:ring-primary",
                       id: "service_video_provider_#{provider[:key]}" %>
                 <%= form.label "video_provider_#{provider[:key]}", provider[:name], class: "ml-2 text-gray-700 text-sm" %>
 
@@ -145,7 +145,7 @@
                    end
                 %>
                 <% if connected_staff.any? %>
-                  <span class="ml-2 text-xs text-green-600">
+                  <span class="ml-2 text-xs text-success">
                     (<%= connected_staff.map(&:name).join(', ') %> connected)
                   </span>
                 <% else %>
@@ -158,7 +158,7 @@
 
             <div class="flex items-center">
               <%= form.radio_button :video_provider, 'video_none',
-                    class: "form-radio h-4 w-4 text-blue-600 focus:ring-blue-500",
+                    class: "form-radio h-4 w-4 text-primary focus:ring-primary",
                     id: "service_video_provider_video_none" %>
               <%= form.label :video_provider_video_none, "No provider (disable video)", class: "ml-2 text-gray-700 text-sm" %>
             </div>
@@ -176,7 +176,7 @@
       </div>
 
       <% if @video_meeting_connections.blank? && @video_providers.present? %>
-        <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+        <div class="p-4 bg-light border border-primary/30 rounded-lg mb-4">
           <p class="text-sm text-blue-800">
             <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -204,7 +204,7 @@
     <h3 class="text-lg font-semibold mb-2">Assign Staff Members</h3>
     <%= form.collection_check_boxes :staff_member_ids, @current_business.staff_members.order(:name), :id, :name do |b|
       b.label(class: "inline-flex items-center mr-4 mb-2") do
-        b.check_box(class: "form-checkbox h-5 w-5 text-blue-600") + 
+        b.check_box(class: "form-checkbox h-5 w-5 text-primary") + 
         content_tag(:span, b.text, class: "ml-2")
       end
     end %>
@@ -233,9 +233,9 @@
      </div>
      
      <!-- Service Type Explanation -->
-     <div class="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+     <div class="mt-3 p-4 bg-light border border-primary/30 rounded-lg">
        <h5 class="text-sm font-medium text-blue-800 mb-2">Service Type Definitions:</h5>
-       <div class="text-sm text-blue-700 space-y-2">
+       <div class="text-sm text-primary space-y-2">
          <div>
            <span class="font-semibold">Standard:</span> Regular services that customers book individually. Quantity is always 1 person, payment can be flexible (before or after service), and each booking is independent.
          </div>
@@ -307,7 +307,7 @@
             <h4 class="font-medium text-gray-900">Current Availability</h4>
             <p class="text-sm text-gray-600" data-service-form-target="availabilityStatus">
               <% if service.enforce_service_availability? %>
-                <span class="text-green-600">✓ Enforcement enabled</span> - 
+                <span class="text-success">✓ Enforcement enabled</span> - 
                 <% total_slots = service.availability&.values&.flatten&.reject(&:blank?)&.count || 0 %>
                 <%= total_slots %> time slots configured
               <% else %>
@@ -414,7 +414,7 @@
                            id="full_day_<%= day %>" 
                            name="full_day[<%= day %>]"
                            value="1"
-                           class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2" 
+                           class="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary focus:ring-2" 
                            data-day="<%= day %>"
                            data-action="change->service-availability#toggleFullDay" />
                     <label for="full_day_<%= day %>" class="ml-2 text-sm font-medium text-gray-700">
@@ -429,7 +429,7 @@
                 </div>
                 
                 <button type="button" 
-                        class="mt-3 w-full px-3 py-2 border-2 border-dashed border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-600 rounded-md transition-colors text-sm cursor-pointer"
+                        class="mt-3 w-full px-3 py-2 border-2 border-dashed border-gray-300 text-gray-600 hover:border-blue-400 hover:text-primary rounded-md transition-colors text-sm cursor-pointer"
                         data-day="<%= day %>"
                         data-action="click->service-availability#addTimeSlot">
                   <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -442,7 +442,7 @@
           <% end %>
         </div>
         
-        <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="mt-4 p-3 bg-light border border-primary/30 rounded-lg">
           <p class="text-sm text-blue-800">
             <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -462,7 +462,7 @@
       <h3 class="text-lg font-semibold mb-2">Add-on Products</h3>
       <%= form.collection_check_boxes :add_on_product_ids, addon_products, :id, :name do |b|
         b.label(class: "inline-flex items-center mr-4 mb-2") do
-          b.check_box(class: "form-checkbox h-5 w-5 text-blue-600") + 
+          b.check_box(class: "form-checkbox h-5 w-5 text-primary") + 
           content_tag(:span, b.text, class: "ml-2")
         end
       end %>
@@ -482,7 +482,7 @@
         <div>
           <%= form.label :subscription_discount_percentage, "Subscription Discount (%)", class: "block text-gray-700 text-sm font-bold mb-2" %>
           <%= form.number_field :subscription_discount_percentage, step: "0.01", inputmode: "decimal", min: 0, max: 100, 
-                class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500", data: { disable_wheel: true } %>
+                class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary", data: { disable_wheel: true } %>
           <p class="mt-1 text-sm text-gray-500">Discount percentage for customers who subscribe (e.g., 15% off recurring bookings)</p>
         </div>
 
@@ -525,9 +525,9 @@
           <p class="mt-1 text-sm text-gray-500">How to handle recurring service bookings when preferred times aren't available</p>
         </div>
 
-        <div class="bg-blue-50 p-4 rounded-lg">
+        <div class="bg-light p-4 rounded-lg">
           <h5 class="text-sm font-medium text-blue-800 mb-2">Rebooking Options:</h5>
-          <ul class="text-sm text-blue-700 space-y-1">
+          <ul class="text-sm text-primary space-y-1">
             <li><strong>Same day next month (or soonest available):</strong> Try to book same day/time next month, fallback to earliest available slot</li>
             <li><strong>Same day next month (or loyalty points if unavailable):</strong> Try to book same day/time next month, award loyalty points if no slots available (requires loyalty program)</li>
             <li><strong>Let customers choose their preference:</strong> Customers can select their preferred rebooking option when subscribing</li>
@@ -587,7 +587,7 @@
                     <input type="checkbox" 
                            name="service[images_attributes][<%= index %>][primary]" 
                            value="1" 
-                           class="form-checkbox h-4 w-4 text-blue-600 primary-image-checkbox mr-3"
+                           class="form-checkbox h-4 w-4 text-primary primary-image-checkbox mr-3"
                            <%= 'checked' if image.primary %>
                            id="service_images_attributes_<%= index %>_primary" />
                     <label for="service_images_attributes_<%= index %>_primary" 
@@ -630,7 +630,7 @@
         
         <!-- Custom styled button with icon -->
         <button type="button" id="custom-file-button" 
-                class="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-primary text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer">
+                class="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-primary text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer">
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
           </svg>
@@ -644,8 +644,8 @@
       </div>
       
       <!-- Help text -->
-      <div class="mt-4 p-3 bg-blue-50 rounded-md">
-        <p class="text-sm text-blue-700">
+      <div class="mt-4 p-3 bg-light rounded-md">
+        <p class="text-sm text-primary">
           <strong>📸 Image Guidelines:</strong><br>
           • Formats: PNG, JPEG, GIF, WebP, HEIC, HEIF<br>
           • Max size: 15MB per file<br>
@@ -663,7 +663,7 @@
   <div class="mt-8 border-t pt-6">
     <div class="flex justify-center">
       <%= form.submit(service.new_record? ? 'Create Service' : 'Update Service', 
-            class: "inline-flex items-center justify-center px-6 py-3 bg-primary text-white font-bold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer") %>
+            class: "inline-flex items-center justify-center px-6 py-3 bg-primary text-white font-bold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer") %>
     </div>
   </div>
 <% end %>
@@ -820,25 +820,25 @@
           if (validFiles.length > 0) {
             // Update button styling for success
             if (customFileButton) {
-              customFileButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 cursor-pointer';
+              customFileButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-success hover:bg-success text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-success focus:ring-offset-2 cursor-pointer';
             }
             
             // Update file selection display
             if (fileSelectionDisplay) {
-              fileSelectionDisplay.className = 'mt-3 text-sm text-green-600 font-medium';
+              fileSelectionDisplay.className = 'mt-3 text-sm text-success font-medium';
               fileSelectionDisplay.textContent = `${validFiles.length} file(s) selected: ${validFiles.map(f => f.name).join(', ')}`;
             }
             
             // Show success message
             const feedback = document.createElement('div');
             feedback.id = 'file-selection-feedback';
-            feedback.className = 'mt-2 text-sm text-green-600 font-medium';
+            feedback.className = 'mt-2 text-sm text-success font-medium';
             event.target.parentElement.appendChild(feedback);
           }
         } else {
           // Reset styling if no files
           if (customFileButton) {
-            customFileButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer';
+            customFileButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-primary hover:bg-primary text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer';
           }
           if (fileSelectionDisplay) {
             fileSelectionDisplay.className = 'mt-3 text-sm text-gray-600 font-medium';

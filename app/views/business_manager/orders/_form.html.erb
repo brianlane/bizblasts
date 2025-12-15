@@ -10,7 +10,7 @@
          data-controller="customer-dropdown" 
          data-customer-dropdown-selected-value-value="<%= @order.tenant_customer_id %>">
               <button type="button" 
-                class="customer-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px] flex items-center justify-between"
+                class="customer-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-base min-h-[48px] flex items-center justify-between"
                 data-customer-dropdown-target="button"
                 data-action="click->customer-dropdown#toggle">
         <span class="customer-dropdown-text text-gray-900 flex-1">
@@ -36,7 +36,7 @@
         <div class="customer-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
              data-customer-dropdown-target="menu">
         
-                  <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                  <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                data-item-id=""
                data-item-text="Select existing customer"
                data-customer-dropdown-target="option"
@@ -47,7 +47,7 @@
             </div>
           </div>
           <% if @order.tenant_customer_id.blank? %>
-            <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+            <span class="absolute inset-y-0 right-2 flex items-center text-primary">
               <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
               </svg>
@@ -56,7 +56,7 @@
         </div>
         
         <% @customers.each do |customer| %>
-                      <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                      <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                  data-item-id="<%= customer.id %>"
                  data-item-text="<%= customer.full_name %> (<%= customer.email %>)"
                  data-customer-dropdown-target="option"
@@ -73,7 +73,7 @@
               </div>
             </div>
             <% if @order.tenant_customer_id == customer.id %>
-              <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+              <span class="absolute inset-y-0 right-2 flex items-center text-primary">
                 <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                 </svg>
@@ -82,18 +82,18 @@
           </div>
         <% end %>
         
-                  <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors border-t border-gray-200"
+                  <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors border-t border-gray-200"
                data-item-id="new"
                data-item-text="Create new customer"
                data-customer-dropdown-target="option"
                data-action="click->customer-dropdown#select">
           <div class="flex items-center justify-between">
             <div class="flex-1">
-              <div class="font-medium text-blue-600">+ Create new customer</div>
+              <div class="font-medium text-primary">+ Create new customer</div>
             </div>
           </div>
           <% if @order.tenant_customer_id == "new" %>
-            <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+            <span class="absolute inset-y-0 right-2 flex items-center text-primary">
               <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
               </svg>
@@ -144,7 +144,7 @@
       <!-- Custom Shipping Method Dropdown -->
       <div class="shipping-dropdown relative">
         <button type="button" 
-                class="shipping-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                class="shipping-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-base min-h-[48px]"
                 data-shipping-dropdown-target="button">
           <span class="shipping-dropdown-text text-gray-900">
             <% if @order.shipping_method_id.present? %>
@@ -165,7 +165,7 @@
         <div class="shipping-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
              data-shipping-dropdown-target="menu">
           
-          <div class="shipping-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+          <div class="shipping-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                data-shipping-id=""
                data-shipping-name="Select shipping"
                data-shipping-dropdown-target="option">
@@ -175,7 +175,7 @@
               </div>
             </div>
             <% if @order.shipping_method_id.blank? %>
-              <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+              <span class="absolute inset-y-0 right-2 flex items-center text-primary">
                 <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                 </svg>
@@ -184,7 +184,7 @@
           </div>
           
           <% @shipping_methods.each do |shipping_method| %>
-            <div class="shipping-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+            <div class="shipping-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                  data-shipping-id="<%= shipping_method.id %>"
                  data-shipping-name="<%= shipping_method.name %>"
                  data-shipping-dropdown-target="option">
@@ -197,7 +197,7 @@
                 </div>
               </div>
               <% if @order.shipping_method_id == shipping_method.id %>
-                <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                <span class="absolute inset-y-0 right-2 flex items-center text-primary">
                   <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                   </svg>
@@ -217,7 +217,7 @@
       <!-- Custom Tax Rate Dropdown -->
       <div class="tax-dropdown relative">
         <button type="button" 
-                class="tax-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                class="tax-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-base min-h-[48px]"
                 data-tax-dropdown-target="button">
           <span class="tax-dropdown-text text-gray-900">
             <% if @order.tax_rate_id.present? %>
@@ -238,7 +238,7 @@
         <div class="tax-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
              data-tax-dropdown-target="menu">
           
-          <div class="tax-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+          <div class="tax-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                data-tax-id=""
                data-tax-name="Select tax rate"
                data-tax-dropdown-target="option">
@@ -248,7 +248,7 @@
               </div>
             </div>
             <% if @order.tax_rate_id.blank? %>
-              <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+              <span class="absolute inset-y-0 right-2 flex items-center text-primary">
                 <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                 </svg>
@@ -257,7 +257,7 @@
           </div>
           
           <% @tax_rates.each do |tax_rate| %>
-            <div class="tax-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+            <div class="tax-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                  data-tax-id="<%= tax_rate.id %>"
                  data-tax-name="<%= tax_rate.name %>"
                  data-tax-dropdown-target="option">
@@ -270,7 +270,7 @@
                 </div>
               </div>
               <% if @order.tax_rate_id == tax_rate.id %>
-                <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                <span class="absolute inset-y-0 right-2 flex items-center text-primary">
                   <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                   </svg>
@@ -302,7 +302,7 @@
 
   <!-- Product Line Items -->
   <h3 class="text-lg font-bold mb-2">Products</h3>
-  <button type="button" id="add-product-btn" class="mb-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded cursor-pointer">
+  <button type="button" id="add-product-btn" class="mb-4 bg-primary hover:bg-primary text-white font-bold py-2 px-4 rounded cursor-pointer">
     Add Product
   </button>
   <div class="overflow-x-auto mb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -322,7 +322,7 @@
           <td class="border px-4 py-2 min-w-[200px]">
             <div class="rich-dropdown relative" id="product_dropdown_<%= index %>">
               <button type="button" 
-                      class="rich-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                      class="rich-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-base min-h-[48px]"
                       data-dropdown-target="button">
                 <span class="rich-dropdown-text text-gray-900">
                   <% if item.product_variant_id.present? %>
@@ -341,7 +341,7 @@
               
               <div class="rich-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
                    data-dropdown-target="menu">
-                <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                      data-item-id=""
                      data-item-text="Select Variant"
                      data-item-price="0"
@@ -352,7 +352,7 @@
                     </div>
                   </div>
                   <% if item.product_variant_id.blank? %>
-                    <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                    <span class="absolute inset-y-0 right-2 flex items-center text-primary">
                       <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                       </svg>
@@ -361,7 +361,7 @@
                 </div>
                 
                 <% @product_variants.each do |variant| %>
-                  <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                  <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                        data-item-id="<%= variant.id %>"
                        data-item-text="<%= variant.product.name %> - <%= variant.name %>"
                        data-item-price="<%= variant.final_price %>"
@@ -371,11 +371,11 @@
                         <div class="font-medium text-gray-900"><%= variant.product.name %> - <%= variant.name %></div>
                       </div>
                       <div class="ml-3 text-right">
-                        <div class="text-sm font-medium text-blue-600"><%= number_to_currency(variant.final_price) %></div>
+                        <div class="text-sm font-medium text-primary"><%= number_to_currency(variant.final_price) %></div>
                       </div>
                     </div>
                     <% if item.product_variant_id == variant.id %>
-                      <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                      <span class="absolute inset-y-0 right-2 flex items-center text-primary">
                         <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                         </svg>
@@ -413,7 +413,7 @@
   <!-- Service Line Items -->
   <% product_count = @order.line_items.reject(&:marked_for_destruction?).select(&:product?).size %>
   <h3 class="text-lg font-bold mb-2">Services</h3>
-  <button type="button" id="add-service-btn" class="mb-4 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded cursor-pointer">
+  <button type="button" id="add-service-btn" class="mb-4 bg-success hover:bg-success text-white font-bold py-2 px-4 rounded cursor-pointer">
     Add Service
   </button>
   <div class="overflow-x-auto mb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -435,7 +435,7 @@
           <td class="border px-4 py-2 min-w-[150px]">
             <div class="rich-dropdown relative" id="service_dropdown_<%= index %>">
               <button type="button" 
-                      class="rich-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                      class="rich-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-base min-h-[48px]"
                       data-dropdown-target="button">
                 <span class="rich-dropdown-text text-gray-900">
                   <% if item.service_id.present? %>
@@ -463,7 +463,7 @@
               
               <div class="rich-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
                    data-dropdown-target="menu">
-                <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                      data-item-id=""
                      data-item-text="Select Service"
                      data-item-price="0"
@@ -474,7 +474,7 @@
                     </div>
                   </div>
                   <% if item.service_id.blank? %>
-                    <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                    <span class="absolute inset-y-0 right-2 flex items-center text-primary">
                       <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                       </svg>
@@ -486,7 +486,7 @@
                   <% variants = service.service_variants.active %>
                   <% if variants.any? %>
                     <% variants.each do |variant| %>
-                      <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                      <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                            data-item-id="<%= service.id %>"
                            data-item-text="<%= "#{service.name} - #{variant.name} (#{variant.duration}m)" %>"
                            data-item-price="<%= variant.price %>"
@@ -497,13 +497,13 @@
                             <div class="text-sm text-gray-500"><%= variant.duration %> minutes</div>
                           </div>
                           <div class="ml-3 text-right">
-                            <div class="text-sm font-medium text-blue-600"><%= number_to_currency(variant.price) %></div>
+                            <div class="text-sm font-medium text-primary"><%= number_to_currency(variant.price) %></div>
                           </div>
                         </div>
                       </div>
                     <% end %>
                   <% else %>
-                    <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                    <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                          data-item-id="<%= service.id %>"
                          data-item-text="<%= "#{service.name} (#{service.duration}m)" %>"
                          data-item-price="<%= service.price %>"
@@ -514,7 +514,7 @@
                           <div class="text-sm text-gray-500"><%= service.duration %> minutes</div>
                         </div>
                         <div class="ml-3 text-right">
-                          <div class="text-sm font-medium text-blue-600"><%= number_to_currency(service.price) %></div>
+                          <div class="text-sm font-medium text-primary"><%= number_to_currency(service.price) %></div>
                         </div>
                       </div>
                     </div>
@@ -529,7 +529,7 @@
           <td class="border px-4 py-2 min-w-[150px]">
             <div class="rich-dropdown relative" id="staff_dropdown_<%= index %>">
               <button type="button" 
-                      class="rich-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                      class="rich-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-base min-h-[48px]"
                       data-dropdown-target="button">
                 <span class="rich-dropdown-text text-gray-900">
                   <% if item.staff_member_id.present? %>
@@ -548,7 +548,7 @@
               
               <div class="rich-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
                    data-dropdown-target="menu">
-                <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                      data-item-id=""
                      data-item-text="Select Staff"
                      data-dropdown-target="option">
@@ -558,7 +558,7 @@
                     </div>
                   </div>
                   <% if item.staff_member_id.blank? %>
-                    <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                    <span class="absolute inset-y-0 right-2 flex items-center text-primary">
                       <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                       </svg>
@@ -567,7 +567,7 @@
                 </div>
                 
                 <% @staff_members.each do |sm| %>
-                  <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                  <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                        data-item-id="<%= sm.id %>"
                        data-item-text="<%= sm.name %>"
                        data-dropdown-target="option">
@@ -580,7 +580,7 @@
                       </div>
                     </div>
                     <% if item.staff_member_id == sm.id %>
-                      <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                      <span class="absolute inset-y-0 right-2 flex items-center text-primary">
                         <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                         </svg>
@@ -621,7 +621,7 @@
     </table>
   </div>
 
-  <%= f.submit (@order.new_record? ? 'Create Order' : 'Update Order'), class: 'bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded cursor-pointer' %>
+  <%= f.submit (@order.new_record? ? 'Create Order' : 'Update Order'), class: 'bg-success hover:bg-success text-white font-bold py-2 px-4 rounded cursor-pointer' %>
 <% end %>
 
 <template id="line-item-template">
@@ -629,7 +629,7 @@
     <td class="border px-4 py-2 min-w-[200px]">
       <div class="rich-dropdown relative" id="product_dropdown_NEW_INDEX">
         <button type="button" 
-                class="rich-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                class="rich-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-base min-h-[48px]"
                 data-dropdown-target="button">
           <span class="rich-dropdown-text text-gray-900">Select Variant</span>
           <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
@@ -641,7 +641,7 @@
         
         <div class="rich-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
              data-dropdown-target="menu">
-          <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+          <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                data-item-id=""
                data-item-text="Select Variant"
                data-item-price="0"
@@ -651,7 +651,7 @@
                 <div class="font-medium text-gray-500">Select Variant</div>
               </div>
             </div>
-            <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+            <span class="absolute inset-y-0 right-2 flex items-center text-primary">
               <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
               </svg>
@@ -659,7 +659,7 @@
           </div>
           
           <% @product_variants.each do |variant| %>
-            <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+            <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                  data-item-id="<%= variant.id %>"
                  data-item-text="<%= variant.product.name %> - <%= variant.name %>"
                  data-item-price="<%= variant.final_price %>"
@@ -669,7 +669,7 @@
                   <div class="font-medium text-gray-900"><%= variant.product.name %> - <%= variant.name %></div>
                 </div>
                 <div class="ml-3 text-right">
-                  <div class="text-sm font-medium text-blue-600"><%= number_to_currency(variant.final_price) %></div>
+                  <div class="text-sm font-medium text-primary"><%= number_to_currency(variant.final_price) %></div>
                 </div>
               </div>
             </div>
@@ -702,7 +702,7 @@
     <td class="border px-4 py-2 min-w-[150px]">
       <div class="rich-dropdown relative" id="service_dropdown_NEW_INDEX">
         <button type="button" 
-                class="rich-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                class="rich-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-base min-h-[48px]"
                 data-dropdown-target="button">
           <span class="rich-dropdown-text text-gray-900">Select Service</span>
           <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
@@ -714,7 +714,7 @@
         
         <div class="rich-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
              data-dropdown-target="menu">
-          <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+          <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                data-item-id=""
                data-item-text="Select Service"
                data-item-price="0"
@@ -724,7 +724,7 @@
                 <div class="font-medium text-gray-500">Select Service</div>
               </div>
             </div>
-            <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+            <span class="absolute inset-y-0 right-2 flex items-center text-primary">
               <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
               </svg>
@@ -735,7 +735,7 @@
             <% variants = service.service_variants.active %>
             <% if variants.any? %>
               <% variants.each do |variant| %>
-                <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+                <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                      data-item-id="<%= service.id %>"
                      data-item-text="<%= "#{service.name} - #{variant.name} (#{variant.duration}m)" %>"
                      data-item-price="<%= variant.price %>"
@@ -746,13 +746,13 @@
                       <div class="text-sm text-gray-500"><%= variant.duration %> minutes</div>
                     </div>
                     <div class="ml-3 text-right">
-                      <div class="text-sm font-medium text-blue-600"><%= number_to_currency(variant.price) %></div>
+                      <div class="text-sm font-medium text-primary"><%= number_to_currency(variant.price) %></div>
                     </div>
                   </div>
                 </div>
               <% end %>
             <% else %>
-              <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+              <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                    data-item-id="<%= service.id %>"
                    data-item-text="<%= "#{service.name} (#{service.duration}m)" %>"
                    data-item-price="<%= service.price %>"
@@ -763,7 +763,7 @@
                     <div class="text-sm text-gray-500"><%= service.duration %> minutes</div>
                   </div>
                   <div class="ml-3 text-right">
-                    <div class="text-sm font-medium text-blue-600"><%= number_to_currency(service.price) %></div>
+                    <div class="text-sm font-medium text-primary"><%= number_to_currency(service.price) %></div>
                   </div>
                 </div>
               </div>
@@ -777,7 +777,7 @@
     <td class="border px-4 py-2 min-w-[150px]">
       <div class="rich-dropdown relative" id="staff_dropdown_NEW_INDEX">
         <button type="button" 
-                class="rich-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+                class="rich-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-base min-h-[48px]"
                 data-dropdown-target="button">
           <span class="rich-dropdown-text text-gray-900">Select Staff</span>
           <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
@@ -789,7 +789,7 @@
         
         <div class="rich-dropdown-menu absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
              data-dropdown-target="menu">
-          <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+          <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                data-item-id=""
                data-item-text="Select Staff"
                data-dropdown-target="option">
@@ -798,7 +798,7 @@
                 <div class="font-medium text-gray-500">Select Staff</div>
               </div>
             </div>
-            <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+            <span class="absolute inset-y-0 right-2 flex items-center text-primary">
               <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
               </svg>
@@ -806,7 +806,7 @@
           </div>
           
           <% @staff_members.each do |sm| %>
-            <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+            <div class="rich-dropdown-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                  data-item-id="<%= sm.id %>"
                  data-item-text="<%= sm.name %>"
                  data-dropdown-target="option">

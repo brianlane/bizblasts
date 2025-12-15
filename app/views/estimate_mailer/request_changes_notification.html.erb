@@ -15,4 +15,4 @@
 <p><em>The current estimate PDF is attached for your reference.</em></p>
 <% end %>
 
-<p>You can view the estimate here: <%= link_to 'View Estimate', business_manager_estimate_url(@estimate, host: "#{@estimate.business.subdomain}.#{Rails.application.config.main_domain}") %></p>
+<p>You can view the estimate here: <%= link_to 'View Estimate', business_manager_estimate_url(@estimate, host: "#{@estimate.business.subdomain}.#{Rails.application.config.main_domain}") %></p> 

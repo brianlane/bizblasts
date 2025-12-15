@@ -22,7 +22,7 @@
           <% @analytics_data[:monthly_revenue].each do |month, revenue| %>
             <div class="flex justify-between items-center">
               <span class="text-sm text-gray-600"><%= month %></span>
-              <span class="text-lg font-medium text-green-600"><%= number_to_currency(revenue) %></span>
+              <span class="text-lg font-medium text-success"><%= number_to_currency(revenue) %></span>
             </div>
           <% end %>
         </div>
@@ -39,7 +39,7 @@
           <% @analytics_data[:subscription_growth].each do |month, count| %>
             <div class="flex justify-between items-center">
               <span class="text-sm text-gray-600"><%= month %></span>
-              <span class="text-lg font-medium text-blue-600"><%= pluralize(count, 'subscription') %></span>
+              <span class="text-lg font-medium text-primary"><%= pluralize(count, 'subscription') %></span>
             </div>
           <% end %>
         </div>
@@ -70,7 +70,7 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   <%= data[:month] %>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-success">
                   +<%= data[:created] %>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">
@@ -78,7 +78,7 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm">
                   <% net_change = data[:created] - data[:cancelled] %>
-                  <span class="<%= net_change >= 0 ? 'text-green-600' : 'text-red-600' %>">
+                  <span class="<%= net_change >= 0 ? 'text-success' : 'text-red-600' %>">
                     <%= net_change >= 0 ? '+' : '' %><%= net_change %>
                   </span>
                 </td>
@@ -128,10 +128,10 @@
             <div class="flex justify-between items-center">
               <span class="text-sm text-gray-700 flex-1 truncate"><%= service_name %></span>
               <div class="flex items-center space-x-2">
-                <span class="text-sm font-medium text-blue-600"><%= pluralize(count, 'subscription') %></span>
+                <span class="text-sm font-medium text-primary"><%= pluralize(count, 'subscription') %></span>
                 <div class="w-12 bg-gray-200 rounded-full h-2">
                   <% percentage = @analytics_data[:service_performance].values.max > 0 ? (count.to_f / @analytics_data[:service_performance].values.max * 100).round : 0 %>
-                  <div class="bg-blue-600 h-2 rounded-full" style="width: <%= percentage %>%"></div>
+                  <div class="bg-primary h-2 rounded-full" style="width: <%= percentage %>%"></div>
                 </div>
               </div>
             </div>

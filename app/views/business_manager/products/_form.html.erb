@@ -20,13 +20,13 @@
       <div>
         <%= form.label :name, class: "block text-gray-700 text-sm font-bold mb-2" %>
         <%= form.text_field :name, required: true, 
-              class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+              class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" %>
       </div>
 
       <div>
         <%= form.label :description, class: "block text-gray-700 text-sm font-bold mb-2" %>
         <%= form.text_area :description, rows: 4, 
-              class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+              class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" %>
       </div>
 
       <div>
@@ -55,7 +55,7 @@
       <div>
         <%= form.label :price, "Base Price ($)", class: "block text-gray-700 text-sm font-bold mb-2" %>
         <%= form.number_field :price, step: "0.01", inputmode: "decimal", 
-              class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500", data: { disable_wheel: true } %>
+              class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary", data: { disable_wheel: true } %>
       </div>
 
       <% if current_business.requires_stock_tracking? %>
@@ -63,7 +63,7 @@
           <div>
             <%= form.label :stock_quantity, "Stock Quantity", class: "block text-gray-700 text-sm font-bold mb-2" %>
             <%= form.number_field :stock_quantity, min: 0, inputmode: "numeric",
-                  class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+                  class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" %>
             <p class="mt-1 text-sm text-gray-500">Only applies if the product has no variants defined below.</p>
           </div>
         <% end %>
@@ -86,40 +86,40 @@
       <!-- Status Options -->
       <div class="space-y-3">
         <div class="flex items-center">
-          <%= form.check_box :active, class: "form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500" %>
+          <%= form.check_box :active, class: "form-checkbox h-5 w-5 text-primary rounded focus:ring-primary" %>
           <%= form.label :active, "Active", class: "ml-2 text-gray-700 text-sm font-bold" %>
         </div>
 
         <div class="flex items-center">
-          <%= form.check_box :featured, class: "form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500" %>
+          <%= form.check_box :featured, class: "form-checkbox h-5 w-5 text-primary rounded focus:ring-primary" %>
           <%= form.label :featured, "Featured Product", class: "ml-2 text-gray-700 text-sm font-bold" %>
         </div>
 
         <div class="flex items-center">
-          <%= form.check_box :tips_enabled, class: "form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500" %>
+          <%= form.check_box :tips_enabled, class: "form-checkbox h-5 w-5 text-primary rounded focus:ring-primary" %>
           <%= form.label :tips_enabled, "Enable tips", class: "ml-2 text-gray-700 text-sm font-bold" %>
         </div>
 
         <div class="flex items-center">
-          <%= form.check_box :subscription_enabled, class: "form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500", id: "product_subscription_enabled" %>
+          <%= form.check_box :subscription_enabled, class: "form-checkbox h-5 w-5 text-primary rounded focus:ring-primary", id: "product_subscription_enabled" %>
           <%= form.label :subscription_enabled, "Enable subscriptions", class: "ml-2 text-gray-700 text-sm font-bold" %>
         </div>
 
         <div class="flex items-center">
-          <%= form.check_box :allow_discounts, class: "form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500" %>
+          <%= form.check_box :allow_discounts, class: "form-checkbox h-5 w-5 text-primary rounded focus:ring-primary" %>
           <%= form.label :allow_discounts, "Allow discount codes", class: "ml-2 text-gray-700 text-sm font-bold" %>
           <span class="ml-2 text-xs text-gray-500">(When unchecked, this product will be excluded from all discount codes)</span>
         </div>
 
         <% if current_business.requires_stock_tracking? %>
           <div class="flex items-center">
-            <%= form.check_box :show_stock_to_customers, class: "form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500" %>
+            <%= form.check_box :show_stock_to_customers, class: "form-checkbox h-5 w-5 text-primary rounded focus:ring-primary" %>
             <%= form.label :show_stock_to_customers, "Show stock to customers", class: "ml-2 text-gray-700 text-sm font-bold" %>
             <span class="ml-2 text-xs text-gray-500">(When unchecked, customers won't see stock quantities)</span>
           </div>
 
           <div class="flex items-center">
-            <%= form.check_box :hide_when_out_of_stock, class: "form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500" %>
+            <%= form.check_box :hide_when_out_of_stock, class: "form-checkbox h-5 w-5 text-primary rounded focus:ring-primary" %>
             <%= form.label :hide_when_out_of_stock, "Hide when out of stock", class: "ml-2 text-gray-700 text-sm font-bold" %>
             <span class="ml-2 text-xs text-gray-500">(When checked, product will be completely hidden from customers when out of stock)</span>
           </div>
@@ -140,7 +140,7 @@
         <div>
           <%= form.label :subscription_discount_percentage, "Subscription Discount (%)", class: "block text-gray-700 text-sm font-bold mb-2" %>
           <%= form.number_field :subscription_discount_percentage, step: 0.01, min: 0, max: 100, 
-                class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+                class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" %>
           <p class="mt-1 text-sm text-gray-500">Discount percentage for customers who subscribe (e.g., 10% off recurring orders)</p>
         </div>
 
@@ -176,9 +176,9 @@
           <p class="mt-1 text-sm text-gray-500">Action to take when product is out of stock during subscription billing</p>
         </div>
 
-        <div class="bg-blue-50 p-4 rounded-lg">
+        <div class="bg-light p-4 rounded-lg">
           <h5 class="text-sm font-medium text-blue-800 mb-2">Stock Action Options:</h5>
-          <ul class="text-sm text-blue-700 space-y-1">
+          <ul class="text-sm text-primary space-y-1">
             <li><strong>Skip month:</strong> Skip this month, try again next cycle</li>
             <li><strong>Loyalty points:</strong> Give loyalty points instead (if loyalty enabled)</li>
             
@@ -279,7 +279,7 @@
                     <input type="checkbox" 
                            name="product[images_attributes][<%= index %>][primary]" 
                            value="1" 
-                           class="form-checkbox h-4 w-4 text-blue-600 primary-image-checkbox mr-3"
+                           class="form-checkbox h-4 w-4 text-primary primary-image-checkbox mr-3"
                            <%= 'checked' if image.primary %>
                            id="product_images_attributes_<%= index %>_primary" />
                     <label for="product_images_attributes_<%= index %>_primary" 
@@ -322,7 +322,7 @@
         
         <!-- Custom styled button with icon -->
         <button type="button" id="custom-file-button" 
-                class="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-primary text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer">
+                class="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-primary text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer">
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
           </svg>
@@ -336,8 +336,8 @@
       </div>
       
       <!-- Help text -->
-      <div class="mt-4 p-3 bg-blue-50 rounded-md">
-        <p class="text-sm text-blue-700">
+      <div class="mt-4 p-3 bg-light rounded-md">
+        <p class="text-sm text-primary">
           <strong>📸 Image Guidelines:</strong><br>
           • Formats: PNG, JPEG, GIF, WebP, HEIC, HEIF<br>
           • Max size: 15MB per file<br>
@@ -360,12 +360,12 @@
       user_created_variants_count = @product.persisted? ? @product.user_created_variants.count : 0
       show_customization = user_created_variants_count >= 2
     %>
-    <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg" id="variant-label-customization" style="<%= show_customization ? 'display: block;' : 'display: none;' %>">
+    <div class="mb-6 p-4 bg-light border border-primary/30 rounded-lg" id="variant-label-customization" style="<%= show_customization ? 'display: block;' : 'display: none;' %>">
       <h4 class="text-md font-medium text-gray-900 mb-3">Variant Display Settings</h4>
       <div>
         <%= form.label :variant_label_text, "Variant Selection Label", class: "block text-gray-700 text-sm font-bold mb-2" %>
         <%= form.text_field :variant_label_text, placeholder: "e.g., Choose a size, Select color, Pick variant", 
-              class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" %>
+              class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" %>
         <p class="mt-1 text-xs text-gray-500">This text appears above the variant dropdown on your product page. Products with only one variant will automatically hide the dropdown.</p>
       </div>
     </div>
@@ -379,7 +379,7 @@
         <button type="button"
                 data-product-variants-target="addButton"
                 data-action="click->product-variants#addVariant"
-                class="inline-flex items-center px-4 py-2 bg-primary text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer">
+                class="inline-flex items-center px-4 py-2 bg-primary text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer">
           + Add Variant
         </button>
       </div>
@@ -390,7 +390,7 @@
   <div class="mt-8 border-t pt-6">
     <div class="flex flex-col sm:flex-row gap-4">
       <%= form.submit(@product.new_record? ? 'Create Product' : 'Update Product', 
-            class: "inline-flex items-center justify-center px-6 py-3 bg-primary text-white font-bold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 cursor-pointer") %>
+            class: "inline-flex items-center justify-center px-6 py-3 bg-primary text-white font-bold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-success focus:ring-offset-2 cursor-pointer") %>
     </div>
   </div>
 <% end %>
@@ -409,26 +409,26 @@
       <div>
         <label class="block text-gray-700 text-sm font-bold mb-2">Variant Name</label>
         <input type="text" name="product[product_variants_attributes][NEW_RECORD][name]" required placeholder="e.g., Large, Red" 
-               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" />
+               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" />
       </div>
       
       <div>
         <label class="block text-gray-700 text-sm font-bold mb-2">SKU</label>
         <input type="text" name="product[product_variants_attributes][NEW_RECORD][sku]" placeholder="Stock Keeping Unit" 
-               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" />
+               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" />
       </div>
       
       <div>
         <label class="block text-gray-700 text-sm font-bold mb-2">Price Modifier ($)</label>
         <input type="number" name="product[product_variants_attributes][NEW_RECORD][price_modifier]" step="0.01" inputmode="decimal" placeholder="0.00"
-               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" />
+               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" />
         <p class="mt-1 text-xs text-gray-500">Positive for upcharge, negative for discount</p>
       </div>
       
       <div>
         <label class="block text-gray-700 text-sm font-bold mb-2">Stock Quantity</label>
         <input type="number" name="product[product_variants_attributes][NEW_RECORD][stock_quantity]" required min="0" inputmode="numeric" placeholder="0"
-               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" />
+               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" />
       </div>
     </div>
     
@@ -601,25 +601,25 @@
           if (validFiles.length > 0) {
             // Update button styling for success
             if (customFileButton) {
-              customFileButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 cursor-pointer';
+              customFileButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-success hover:bg-success text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-success focus:ring-offset-2 cursor-pointer';
             }
             
             // Update file selection display
             if (fileSelectionDisplay) {
-              fileSelectionDisplay.className = 'mt-3 text-sm text-green-600 font-medium';
+              fileSelectionDisplay.className = 'mt-3 text-sm text-success font-medium';
               fileSelectionDisplay.textContent = `${validFiles.length} file(s) selected: ${validFiles.map(f => f.name).join(', ')}`;
             }
             
             // Show success message
             const feedback = document.createElement('div');
             feedback.id = 'file-selection-feedback';
-            feedback.className = 'mt-2 text-sm text-green-600 font-medium';
+            feedback.className = 'mt-2 text-sm text-success font-medium';
             event.target.parentElement.appendChild(feedback);
           }
         } else {
           // Reset styling if no files
           if (customFileButton) {
-            customFileButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer';
+            customFileButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-primary hover:bg-primary text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer';
           }
           if (fileSelectionDisplay) {
             fileSelectionDisplay.className = 'mt-3 text-sm text-gray-600 font-medium';

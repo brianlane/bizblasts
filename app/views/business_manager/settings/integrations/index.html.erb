@@ -40,7 +40,7 @@
       <div class="flex items-center justify-between">
         <div>
           <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-            <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
             </svg>
             Calendar Integrations
@@ -56,7 +56,7 @@
           <h3 class="font-medium text-gray-900 mb-3">Sync Statistics (Last 24 Hours)</h3>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
             <div>
-              <div class="text-2xl font-bold text-green-600"><%= @sync_statistics[:successful] %></div>
+              <div class="text-2xl font-bold text-success"><%= @sync_statistics[:successful] %></div>
               <div class="text-xs text-gray-600">Successful Syncs</div>
             </div>
             <div>
@@ -64,7 +64,7 @@
               <div class="text-xs text-gray-600">Failed Syncs</div>
             </div>
             <div>
-              <div class="text-2xl font-bold text-blue-600"><%= @sync_statistics[:success_rate].round(1) %>%</div>
+              <div class="text-2xl font-bold text-primary"><%= @sync_statistics[:success_rate].round(1) %>%</div>
               <div class="text-xs text-gray-600">Success Rate</div>
             </div>
           </div>
@@ -111,7 +111,7 @@
                       <div class="flex items-center space-x-2">
                         <%= button_to "Resync", calendar_integration_resync_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
                                       method: :post, 
-                                      class: "cursor-pointer px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700" %>
+                                      class: "cursor-pointer px-3 py-1 text-sm bg-primary text-white rounded hover:bg-primary" %>
                         
                         <% if staff_member.default_calendar_connection == connection %>
                           <%= button_to "Remove Default", calendar_integration_toggle_default_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
@@ -155,7 +155,7 @@
                         <div class="grid grid-cols-2 gap-3">
                           <%= button_to "Resync", calendar_integration_resync_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
                                         method: :post, 
-                                        class: "cursor-pointer w-full px-4 py-3 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors min-h-[44px] flex items-center justify-center" %>
+                                        class: "cursor-pointer w-full px-4 py-3 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors min-h-[44px] flex items-center justify-center" %>
                           
                           <% if staff_member.default_calendar_connection == connection %>
                             <%= button_to "Remove Default", calendar_integration_toggle_default_business_manager_settings_integrations_path(calendar_integration_id: connection.id), 
@@ -220,7 +220,7 @@
 
         <% if @staff_members.empty? %>
           <div class="text-center py-8">
-            <p class="text-gray-600">No active staff members found. <%= link_to "Add staff members", business_manager_staff_members_path, class: "text-blue-600 hover:underline" %> to enable calendar integrations.</p>
+            <p class="text-gray-600">No active staff members found. <%= link_to "Add staff members", business_manager_staff_members_path, class: "text-primary hover:underline" %> to enable calendar integrations.</p>
           </div>
         <% end %>
       </div>
@@ -290,11 +290,11 @@
                         <div>
                           <div class="flex items-center gap-2">
                             <% if connection.zoom? %>
-                              <svg class="w-5 h-5 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+                              <svg class="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M4.5 4.5h15a1.5 1.5 0 011.5 1.5v9a1.5 1.5 0 01-1.5 1.5H18v3l-4.5-3H4.5A1.5 1.5 0 013 15V6a1.5 1.5 0 011.5-1.5z"/>
                               </svg>
                             <% else %>
-                              <svg class="w-5 h-5 text-green-500" viewBox="0 0 24 24" fill="currentColor">
+                              <svg class="w-5 h-5 text-success" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
                               </svg>
                             <% end %>
@@ -322,11 +322,11 @@
                         <div class="bg-white p-4 border-b border-gray-200">
                           <div class="flex items-center gap-2">
                             <% if connection.zoom? %>
-                              <svg class="w-5 h-5 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+                              <svg class="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M4.5 4.5h15a1.5 1.5 0 011.5 1.5v9a1.5 1.5 0 01-1.5 1.5H18v3l-4.5-3H4.5A1.5 1.5 0 013 15V6a1.5 1.5 0 011.5-1.5z"/>
                               </svg>
                             <% else %>
-                              <svg class="w-5 h-5 text-green-500" viewBox="0 0 24 24" fill="currentColor">
+                              <svg class="w-5 h-5 text-success" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
                               </svg>
                             <% end %>
@@ -350,12 +350,12 @@
               <%# Define button classes statically so Tailwind JIT can find them %>
               <% video_button_classes = {
                 'zoom' => {
-                  desktop: 'cursor-pointer px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors',
-                  mobile: 'cursor-pointer w-full px-4 py-3 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 min-h-[44px]'
+                  desktop: 'cursor-pointer px-4 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors',
+                  mobile: 'cursor-pointer w-full px-4 py-3 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary min-h-[44px]'
                 },
                 'google_meet' => {
-                  desktop: 'cursor-pointer px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors',
-                  mobile: 'cursor-pointer w-full px-4 py-3 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 min-h-[44px]'
+                  desktop: 'cursor-pointer px-4 py-2 text-sm font-medium bg-success text-white rounded-lg hover:bg-success focus:ring-2 focus:ring-success focus:ring-offset-2 transition-colors',
+                  mobile: 'cursor-pointer w-full px-4 py-3 text-sm font-medium bg-success text-white rounded-lg hover:bg-success min-h-[44px]'
                 }
               } %>
               <% available_video_options = [] %>
@@ -381,7 +381,7 @@
                                       video_integration_link_from_calendar_business_manager_settings_integrations_path,
                                       params: { staff_member_id: staff_member.id },
                                       method: :post,
-                                      class: "cursor-pointer px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors" %>
+                                      class: "cursor-pointer px-4 py-2 text-sm font-medium bg-success text-white rounded-lg hover:bg-success focus:ring-2 focus:ring-success focus:ring-offset-2 transition-colors" %>
                         <%= button_to "Connect Different Google Account",
                                       video_integration_connect_business_manager_settings_integrations_path,
                                       params: { provider: option[:provider], staff_member_id: staff_member.id },
@@ -407,7 +407,7 @@
                                       video_integration_link_from_calendar_business_manager_settings_integrations_path,
                                       params: { staff_member_id: staff_member.id },
                                       method: :post,
-                                      class: "cursor-pointer w-full px-4 py-3 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 min-h-[44px]" %>
+                                      class: "cursor-pointer w-full px-4 py-3 text-sm font-medium bg-success text-white rounded-lg hover:bg-success min-h-[44px]" %>
                         <%= button_to "Connect Different Google Account",
                                       video_integration_connect_business_manager_settings_integrations_path,
                                       params: { provider: option[:provider], staff_member_id: staff_member.id },
@@ -595,14 +595,14 @@
           </div>
         </div>
 
-        <div class="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg max-w-2xl mx-auto">
+        <div class="mt-8 p-4 bg-light border border-primary/30 rounded-lg max-w-2xl mx-auto">
           <div class="flex items-start">
-            <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
             <div class="ml-3 text-sm">
               <p class="text-blue-800 font-medium">Need a specific integration?</p>
-              <p class="text-blue-700 mt-1">Let us know what services you'd like to connect with your business. We're actively working on expanding our integration ecosystem.</p>
+              <p class="text-primary mt-1">Let us know what services you'd like to connect with your business. We're actively working on expanding our integration ecosystem.</p>
             </div>
           </div>
         </div>

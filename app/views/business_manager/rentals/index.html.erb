@@ -63,7 +63,7 @@
                   <div class="flex items-start justify-between">
                     <div>
                       <%= link_to rental.name, business_manager_rental_path(rental), 
-                            class: "text-lg font-semibold text-blue-600 hover:text-blue-800" %>
+                            class: "text-lg font-semibold text-primary hover:text-secondary" %>
                       <div class="flex flex-wrap gap-2 mt-1">
                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium <%= rental.active? ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' %>">
                           <%= rental.active? ? 'Active' : 'Inactive' %>
@@ -86,7 +86,7 @@
                   <div class="mt-3 flex flex-wrap gap-4 text-sm">
                     <div>
                       <span class="text-gray-500">Daily:</span>
-                      <span class="font-medium text-green-600"><%= number_to_currency(rental.daily_rate) %></span>
+                      <span class="font-medium text-success"><%= number_to_currency(rental.daily_rate) %></span>
                     </div>
                     <% if rental.hourly_rate.present? && rental.allow_hourly_rental? %>
                       <div>
@@ -121,7 +121,7 @@
                   <%= link_to 'View', business_manager_rental_path(rental), 
                         class: "inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors" %>
                   <%= link_to 'Availability', manage_availability_business_manager_rental_path(rental),
-                        class: "inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors" %>
+                        class: "inline-flex items-center px-3 py-1.5 text-sm font-medium text-primary bg-light hover:bg-light rounded-md transition-colors" %>
                   <%= button_to 'Delete', business_manager_rental_path(rental),
                         method: :delete,
                         data: { confirm: "Are you sure you want to delete '#{rental.name}'?" },

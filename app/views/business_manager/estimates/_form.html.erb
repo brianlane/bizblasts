@@ -28,7 +28,7 @@
     <!-- Custom Customer Dropdown -->
     <div class="customer-dropdown relative">
       <button type="button" 
-              class="customer-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base min-h-[48px]"
+              class="customer-dropdown-button w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-base min-h-[48px]"
               data-customer-dropdown-target="button"
               data-action="click->customer-dropdown#toggle">
         <span class="customer-dropdown-text text-gray-900">
@@ -45,14 +45,14 @@
       <div class="customer-dropdown-menu absolute z-[100] mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none hidden"
            data-customer-dropdown-target="menu">
         
-        <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+        <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
              data-item-id="new"
              data-item-text="Create new customer"
              data-customer-dropdown-target="option"
              data-action="click->customer-dropdown#select">
           <div class="flex items-center justify-between">
             <div class="flex-1">
-              <div class="font-medium text-blue-600">+ Create new customer</div>
+              <div class="font-medium text-primary">+ Create new customer</div>
             </div>
           </div>
         </div>
@@ -60,7 +60,7 @@
         <% if @customers.any? %>
           <div class="border-t border-gray-200"></div>
           <% @customers.each do |customer| %>
-            <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-blue-50 transition-colors"
+            <div class="customer-option cursor-pointer select-none relative py-3 px-3 hover:bg-light transition-colors"
                  data-item-id="<%= customer.id %>"
                  data-item-text="<%= customer.full_name %> (<%= customer.email %>)"
                  data-customer-dropdown-target="option"
@@ -94,28 +94,28 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
           <%= cf.label :first_name, 'First Name', class: 'block text-sm font-medium text-gray-700 mb-1' %>
-          <%= cf.text_field :first_name, class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm' %>
+          <%= cf.text_field :first_name, class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm' %>
         </div>
         <div>
           <%= cf.label :last_name, 'Last Name', class: 'block text-sm font-medium text-gray-700 mb-1' %>
-          <%= cf.text_field :last_name, class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm' %>
+          <%= cf.text_field :last_name, class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm' %>
         </div>
       </div>
       
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
           <%= cf.label :email, 'Email', class: 'block text-sm font-medium text-gray-700 mb-1' %>
-          <%= cf.email_field :email, class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm' %>
+          <%= cf.email_field :email, class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm' %>
         </div>
         <div>
           <%= cf.label :phone, 'Phone', class: 'block text-sm font-medium text-gray-700 mb-1' %>
-          <%= cf.telephone_field :phone, class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm' %>
+          <%= cf.telephone_field :phone, class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm' %>
         </div>
       </div>
       
       <div class="mb-4">
         <%= cf.label :address, 'Address', class: 'block text-sm font-medium text-gray-700 mb-1' %>
-        <%= cf.text_field :address, class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm' %>
+        <%= cf.text_field :address, class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm' %>
       </div>
     <% end %>
     
@@ -123,15 +123,15 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
       <div>
         <%= f.label :city, 'City', class: 'block text-sm font-medium text-gray-700 mb-1' %>
-        <%= f.text_field :city, class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm' %>
+        <%= f.text_field :city, class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm' %>
       </div>
       <div>
         <%= f.label :state, 'State', class: 'block text-sm font-medium text-gray-700 mb-1' %>
-        <%= f.text_field :state, class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm' %>
+        <%= f.text_field :state, class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm' %>
       </div>
       <div>
         <%= f.label :zip, 'ZIP Code', class: 'block text-sm font-medium text-gray-700 mb-1' %>
-        <%= f.text_field :zip, class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm' %>
+        <%= f.text_field :zip, class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm' %>
       </div>
     </div>
     </div>
@@ -147,7 +147,7 @@
         <%= f.text_field :proposed_start_time,
               type: 'datetime-local',
               value: (@estimate.proposed_start_time ? @estimate.proposed_start_time.strftime('%Y-%m-%dT%H:%M') : nil),
-              class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm' %>
+              class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm' %>
       </div>
 
       <div>
@@ -158,7 +158,7 @@
         <%= f.number_field :valid_for_days,
               min: 1, max: 365, step: 1,
               value: (@estimate.valid_for_days || 30),
-              class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm' %>
+              class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm' %>
       </div>
     </div>
   </div>
@@ -171,7 +171,7 @@
       <div>
         <%= f.label :required_deposit, 'Required Deposit ($)', class: 'block text-sm font-medium text-gray-700 mb-1' %>
         <%= f.number_field :required_deposit, step: 0.01, min: 0, 
-              class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm',
+              class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm',
               placeholder: '0.00' %>
       </div>
     </div>
@@ -183,7 +183,7 @@
       <h3 class="text-lg font-semibold text-gray-900">Estimate Line Items</h3>
       <button type="button"
               data-action="estimate-line-items#addItem"
-              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
         </svg>
@@ -250,7 +250,7 @@
 
       <div class="flex justify-between text-lg font-bold border-t-2 border-gray-300 pt-3">
         <span class="text-gray-900">Total:</span>
-        <span data-estimate-line-items-target="total" class="text-blue-600">$0.00</span>
+        <span data-estimate-line-items-target="total" class="text-primary">$0.00</span>
       </div>
     </div>
   </div>
@@ -258,8 +258,8 @@
   <!-- Form Actions -->
   <div class="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
     <%= link_to 'Cancel', business_manager_estimates_path, 
-          class: 'inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500' %>
+          class: 'inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary' %>
     <%= f.submit (@estimate.persisted? ? 'Update Estimate' : 'Create Estimate'), 
-          class: 'inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500' %>
+          class: 'inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary' %>
      </div>
  <% end %> 

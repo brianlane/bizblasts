@@ -7,7 +7,7 @@
       </h3>
       <div>
         <%= link_to 'Edit', edit_business_manager_service_path(@service), class: "text-indigo-600 hover:text-indigo-900 mr-3" %>
-        <%= link_to 'Back to Services', business_manager_services_path, class: "text-blue-600 hover:text-blue-800" %>
+        <%= link_to 'Back to Services', business_manager_services_path, class: "text-primary hover:text-secondary" %>
       </div>
     </div>
     <div class="border-t border-gray-200 px-4 py-5 sm:p-0">
@@ -42,7 +42,7 @@
             <% if @service.staff_members.any? %>
               <ul class="list-disc list-inside">
                 <% @service.staff_members.each do |staff| %>
-                  <li><%= link_to staff.name || staff.user&.email, business_manager_staff_member_path(staff), class: "text-blue-600 hover:text-blue-800" %></li>
+                  <li><%= link_to staff.name || staff.user&.email, business_manager_staff_member_path(staff), class: "text-primary hover:text-secondary" %></li>
                 <% end %>
               </ul>
             <% else %>
@@ -122,7 +122,7 @@
               <div class="flex items-center">
                 <div class="flex-shrink-0">
                   <div class="w-8 h-8 bg-green-100 rounded-md flex items-center justify-center">
-                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                   </div>
@@ -138,7 +138,7 @@
               <div class="flex items-center">
                 <div class="flex-shrink-0">
                   <div class="w-8 h-8 bg-blue-100 rounded-md flex items-center justify-center">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4m-6 0H6a1 1 0 00-1 1v9a1 1 0 001 1h12a1 1 0 001-1V8a1 1 0 00-1-1h-3m-6 0V7"></path>
                     </svg>
                   </div>
@@ -189,7 +189,7 @@
                   class: "inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors" %>
             <% if upcoming_bookings > 0 %>
               <%= link_to "Manage Upcoming Bookings", business_manager_bookings_path(service_id: @service.id, date_range: 'this_month'), 
-                    class: "inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" %>
+                    class: "inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-primary bg-light hover:bg-light rounded-lg transition-colors" %>
             <% end %>
           </div>
         </div>
