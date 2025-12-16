@@ -10,13 +10,13 @@ class ClientDocumentMailer < ApplicationMailer
     # Generate the document access URL using secure token
     @document_url = public_client_document_url(
       token: client_document.token,
-      host: client_document.business.full_domain,
+      host: "#{@business.subdomain}.#{Rails.application.config.main_domain}",
       protocol: 'https'
     )
 
     mail(
       to: customer_email,
-      from: @business.formatted_email,
+      from: @business.email,
       subject: "Document for your signature: #{client_document.title || 'Agreement'}"
     )
   end
