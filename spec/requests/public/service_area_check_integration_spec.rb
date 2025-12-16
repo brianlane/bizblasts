@@ -117,9 +117,12 @@ RSpec.describe 'Service Area Check Integration', type: :request do
       it 'shows validation error' do
         get new_service_area_check_path(service_id: service.id)
 
-        # Mock geocoding - return nil for invalid ZIP
+        # Mock geocoding - return valid coords for business, nil for invalid customer ZIP
         checker = ServiceAreaChecker.new(business)
         allow(ServiceAreaChecker).to receive(:new).with(business).and_return(checker)
+        allow(checker).to receive(:coordinates_for).and_call_original
+        allow(checker).to receive(:coordinates_for)
+          .with('90210').and_return([34.0901, -118.4065])
         allow(checker).to receive(:coordinates_for)
           .with('99999').and_return(nil)
 
