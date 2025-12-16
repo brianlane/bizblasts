@@ -82,6 +82,13 @@ module BusinessManager
           c.first_name = customer_name.split.first
           c.last_name = customer_name.split[1..].join(' ').presence
         end
+        
+        # Verify customer was successfully persisted (handles race conditions/validation failures)
+        unless customer.persisted?
+          redirect_to send_document_business_manager_document_template_path(@template), 
+                      alert: "Failed to create customer: #{customer.errors.full_messages.join(', ')}"
+          return
+        end
       else
         redirect_to send_document_business_manager_document_template_path(@template), alert: 'Please select a customer or enter an email address.'
         return

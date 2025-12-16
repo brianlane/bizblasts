@@ -17,32 +17,37 @@ module Public
     end
 
     def sign
-      # Validate document can be signed
-      unless @document.signable?
-        alert_message = if @document.completed?
-                          'This document has already been signed.'
-                        elsif @document.status == 'void'
-                          'This document is no longer valid.'
-                        elsif @document.status == 'draft'
-                          'This document is not ready for signing.'
-                        elsif !@document.signature_required?
-                          'This document does not require a signature.'
-                        else
-                          'This document cannot be signed at this time.'
-                        end
-        redirect_to public_client_document_path(token: @document.token), alert: alert_message
-        return
-      end
-
-      # Validate signature data
+      # Validate signature data before starting transaction
       unless params[:signature_data].present?
         redirect_to public_client_document_path(token: @document.token), alert: 'Signature is required.'
         return
       end
 
-      signature = @document.ensure_signature_for('customer')
-
+      result = nil
+      
       ActiveRecord::Base.transaction do
+        # Lock the document to prevent race conditions (TOCTOU)
+        @document.lock!
+        
+        # Re-check signable? after acquiring lock to prevent double-signing
+        unless @document.signable?
+          alert_message = if @document.completed?
+                            'This document has already been signed.'
+                          elsif @document.status == 'void'
+                            'This document is no longer valid.'
+                          elsif @document.status == 'draft'
+                            'This document is not ready for signing.'
+                          elsif !@document.signature_required?
+                            'This document does not require a signature.'
+                          else
+                            'This document cannot be signed at this time.'
+                          end
+          result = { redirect: public_client_document_path(token: @document.token), alert: alert_message }
+          raise ActiveRecord::Rollback
+        end
+
+        signature = @document.ensure_signature_for('customer')
+        
         # Save the signature
         signature.update!(
           signature_data: params[:signature_data],
@@ -54,16 +59,28 @@ module Public
         # Update document status
         if @document.payment_required? && @document.deposit_amount.to_f > 0
           @document.update!(status: 'pending_payment', signed_at: Time.current)
-          # TODO: Redirect to payment
-          redirect_to public_client_document_path(token: @document.token), notice: 'Document signed. Please complete payment.'
+          result = { redirect: public_client_document_path(token: @document.token), notice: 'Document signed. Please complete payment.' }
         else
           @document.update!(status: 'completed', signed_at: Time.current, completed_at: Time.current)
-          
-          # Notify business
-          ClientDocumentMailer.signed_notification(@document).deliver_later
-          
-          redirect_to public_client_document_path(token: @document.token), notice: 'Thank you! Document signed successfully.'
+          result = { redirect: public_client_document_path(token: @document.token), notice: 'Thank you! Document signed successfully.', notify: true }
         end
+      end
+
+      # Handle result after transaction completes
+      if result
+        # Send notification email outside transaction if document was completed
+        if result[:notify]
+          ClientDocumentMailer.signed_notification(@document).deliver_later
+        end
+        
+        if result[:alert]
+          redirect_to result[:redirect], alert: result[:alert]
+        else
+          redirect_to result[:redirect], notice: result[:notice]
+        end
+      else
+        # Transaction was rolled back without setting result
+        redirect_to public_client_document_path(token: @document.token), alert: 'An error occurred. Please try again.'
       end
     rescue ActiveRecord::RecordInvalid => e
       redirect_to public_client_document_path(token: @document.token), alert: "Error saving signature: #{e.message}"
