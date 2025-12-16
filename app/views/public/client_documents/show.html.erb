@@ -69,7 +69,7 @@
       <% end %>
     </div>
 
-  <% elsif @document.signature_required? && !@document.signed_at.present? %>
+  <% elsif @document.signable? %>
     <!-- Signature Required -->
     <div class="bg-white shadow rounded-lg p-6">
       <h2 class="text-lg font-semibold text-gray-900 mb-4">Sign Document</h2>
@@ -154,6 +154,11 @@ document.addEventListener('DOMContentLoaded', function() {
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+    
+    // Clear hidden input when canvas is resized to prevent stale data submission
+    if (hiddenInput) {
+      hiddenInput.value = '';
+    }
   }
   
   resizeCanvas();
