@@ -40,12 +40,15 @@ class TenantCustomer < ApplicationRecord
   after_create :send_business_customer_notification
   after_create :generate_unsubscribe_token
   after_create :set_default_email_preferences
+  after_create_commit :sync_to_email_marketing_on_create
+  after_update_commit :sync_to_email_marketing_on_update
   before_validation :normalize_email
   before_validation :normalize_phone_number
   validate :unique_email_per_business
   
   # Add accessor to skip email notifications when handled by staggered delivery
   attr_accessor :skip_notification_email
+  attr_accessor :skip_email_marketing_sync
   
   scope :active, -> { where(active: true) }
   scope :subscribed_to_emails, -> { where(unsubscribed_at: nil) }
@@ -410,4 +413,51 @@ class TenantCustomer < ApplicationRecord
       SecureLogger.error "[NOTIFICATION] Failed to schedule business customer notification for Customer #{full_name} (#{email}): #{e.message}"
     end
   end
-end 
+
+  # Sync customer to email marketing platforms on create
+  def sync_to_email_marketing_on_create
+    return if skip_email_marketing_sync
+    return unless email.present? && active?
+
+    # Find connections that should sync on customer create
+    business.email_marketing_connections.active.where(sync_on_customer_create: true).find_each do |connection|
+      EmailMarketing::SyncSingleContactJob.perform_later(id, connection.provider, 'sync')
+    end
+  rescue StandardError => e
+    Rails.logger.error "[TenantCustomer] Failed to queue email marketing sync on create: #{e.message}"
+  end
+
+  # Sync customer to email marketing platforms on update
+  def sync_to_email_marketing_on_update
+    return if skip_email_marketing_sync
+    return unless email.present?
+
+    # Check if relevant fields changed
+    sync_relevant_changes = saved_changes.keys & %w[email first_name last_name phone active email_marketing_opt_out unsubscribed_at]
+    return if sync_relevant_changes.empty?
+
+    # Handle unsubscribe/deactivation specially
+    if saved_changes.key?('active') && !active?
+      # Customer deactivated - remove from email marketing
+      business.email_marketing_connections.active.find_each do |connection|
+        EmailMarketing::SyncSingleContactJob.perform_later(id, connection.provider, 'remove')
+      end
+      return
+    end
+
+    if saved_changes.key?('email_marketing_opt_out') && email_marketing_opt_out?
+      # Customer opted out - update unsubscribe status
+      business.email_marketing_connections.active.find_each do |connection|
+        EmailMarketing::SyncSingleContactJob.perform_later(id, connection.provider, 'sync')
+      end
+      return
+    end
+
+    # Regular update - sync to platforms that sync on update
+    business.email_marketing_connections.active.where(sync_on_customer_update: true).find_each do |connection|
+      EmailMarketing::SyncSingleContactJob.perform_later(id, connection.provider, 'sync')
+    end
+  rescue StandardError => e
+    Rails.logger.error "[TenantCustomer] Failed to queue email marketing sync on update: #{e.message}"
+  end
+end

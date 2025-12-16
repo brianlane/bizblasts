@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_16_130000) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_16_140002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -635,6 +635,58 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_16_130000) do
     t.integer "version", default: 1, null: false
     t.index ["business_id", "document_type", "active"], name: "idx_on_business_id_document_type_active_ad65b373a5"
     t.index ["business_id"], name: "index_document_templates_on_business_id"
+  end
+
+  create_table "email_marketing_connections", force: :cascade do |t|
+    t.text "access_token"
+    t.string "account_email"
+    t.string "account_id"
+    t.boolean "active", default: true
+    t.string "api_server"
+    t.bigint "business_id", null: false
+    t.jsonb "config", default: {}
+    t.datetime "connected_at"
+    t.datetime "created_at", null: false
+    t.string "default_list_id"
+    t.string "default_list_name"
+    t.jsonb "field_mappings", default: {}
+    t.datetime "last_synced_at"
+    t.integer "provider", default: 0, null: false
+    t.boolean "receive_unsubscribe_webhooks", default: true
+    t.text "refresh_token"
+    t.boolean "sync_on_customer_create", default: true
+    t.boolean "sync_on_customer_update", default: true
+    t.integer "sync_strategy", default: 0, null: false
+    t.datetime "token_expires_at"
+    t.integer "total_contacts_synced", default: 0
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_email_marketing_connections_on_active"
+    t.index ["business_id", "provider"], name: "idx_email_marketing_conn_business_provider", unique: true
+    t.index ["business_id"], name: "index_email_marketing_connections_on_business_id"
+    t.index ["provider"], name: "index_email_marketing_connections_on_provider"
+  end
+
+  create_table "email_marketing_sync_logs", force: :cascade do |t|
+    t.bigint "business_id", null: false
+    t.datetime "completed_at"
+    t.integer "contacts_created", default: 0
+    t.integer "contacts_failed", default: 0
+    t.integer "contacts_synced", default: 0
+    t.integer "contacts_updated", default: 0
+    t.datetime "created_at", null: false
+    t.integer "direction", default: 0, null: false
+    t.bigint "email_marketing_connection_id", null: false
+    t.jsonb "error_details", default: []
+    t.datetime "started_at"
+    t.integer "status", default: 0, null: false
+    t.jsonb "summary", default: {}
+    t.integer "sync_type", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["business_id"], name: "index_email_marketing_sync_logs_on_business_id"
+    t.index ["created_at"], name: "index_email_marketing_sync_logs_on_created_at"
+    t.index ["email_marketing_connection_id"], name: "idx_on_email_marketing_connection_id_8d816d900b"
+    t.index ["status"], name: "index_email_marketing_sync_logs_on_status"
+    t.index ["sync_type"], name: "index_email_marketing_sync_logs_on_sync_type"
   end
 
   create_table "estimate_items", force: :cascade do |t|
@@ -1889,12 +1941,16 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_16_130000) do
     t.boolean "active", default: true
     t.string "address"
     t.bigint "business_id", null: false
+    t.string "constant_contact_id"
     t.datetime "created_at", null: false
     t.string "email"
     t.boolean "email_marketing_opt_out"
+    t.datetime "email_marketing_synced_at"
     t.string "first_name"
     t.datetime "last_appointment"
     t.string "last_name"
+    t.string "mailchimp_list_id"
+    t.string "mailchimp_subscriber_hash"
     t.text "notes"
     t.string "phone"
     t.boolean "phone_marketing_opt_out", default: false, null: false
@@ -1911,7 +1967,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_16_130000) do
     t.index "lower((email)::text)", name: "index_tenant_customers_on_lower_email"
     t.index ["business_id", "phone"], name: "index_tenant_customers_on_business_phone_for_users", unique: true, where: "(user_id IS NOT NULL)"
     t.index ["business_id"], name: "index_tenant_customers_on_business_id"
+    t.index ["constant_contact_id"], name: "index_tenant_customers_on_constant_contact_id"
     t.index ["email", "business_id"], name: "index_tenant_customers_on_email_and_business_id", unique: true
+    t.index ["mailchimp_subscriber_hash"], name: "index_tenant_customers_on_mailchimp_subscriber_hash"
     t.index ["quickbooks_customer_id"], name: "index_tenant_customers_on_quickbooks_customer_id"
     t.index ["sms_opted_out_businesses"], name: "index_tenant_customers_on_sms_opted_out_businesses", using: :gin
     t.index ["stripe_customer_id"], name: "index_tenant_customers_on_stripe_customer_id", unique: true
@@ -2121,6 +2179,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_16_130000) do
   add_foreign_key "document_signatures", "businesses"
   add_foreign_key "document_signatures", "client_documents"
   add_foreign_key "document_templates", "businesses"
+  add_foreign_key "email_marketing_connections", "businesses"
+  add_foreign_key "email_marketing_sync_logs", "businesses"
+  add_foreign_key "email_marketing_sync_logs", "email_marketing_connections"
   add_foreign_key "estimate_items", "estimates"
   add_foreign_key "estimate_items", "product_variants"
   add_foreign_key "estimate_items", "products"
