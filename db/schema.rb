@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_15_221119) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_16_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -491,6 +491,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_15_221119) do
     t.string "status", default: "draft", null: false
     t.bigint "tenant_customer_id"
     t.string "title"
+    t.string "token", null: false
     t.datetime "updated_at", null: false
     t.index ["business_id", "status"], name: "index_client_documents_on_business_id_and_status"
     t.index ["business_id"], name: "index_client_documents_on_business_id"
@@ -501,6 +502,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_15_221119) do
     t.index ["invoice_id"], name: "index_client_documents_on_invoice_id"
     t.index ["payment_intent_id"], name: "index_client_documents_on_payment_intent_id"
     t.index ["tenant_customer_id"], name: "index_client_documents_on_tenant_customer_id"
+    t.index ["token"], name: "index_client_documents_on_token", unique: true
   end
 
   create_table "csv_import_runs", force: :cascade do |t|
@@ -1233,6 +1235,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_15_221119) do
     t.bigint "business_id", null: false
     t.datetime "created_at", null: false
     t.text "description"
+    t.bigint "document_template_id"
     t.boolean "featured", default: false
     t.boolean "hide_when_out_of_stock", default: false, null: false
     t.decimal "hourly_rate", precision: 10, scale: 2
@@ -1265,6 +1268,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_15_221119) do
     t.index ["business_id", "position"], name: "index_products_on_business_id_and_position"
     t.index ["business_id", "rental_category"], name: "index_products_on_business_id_and_rental_category", where: "(product_type = 3)"
     t.index ["business_id"], name: "index_products_on_business_id"
+    t.index ["document_template_id"], name: "index_products_on_document_template_id"
     t.index ["featured"], name: "index_products_on_featured"
     t.index ["location_id"], name: "index_products_on_location_id"
     t.index ["rental_availability_schedule"], name: "index_products_on_rental_availability_schedule", using: :gin
@@ -1522,6 +1526,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_15_221119) do
     t.datetime "created_at", null: false
     t.bigint "created_from_estimate_id"
     t.text "description"
+    t.bigint "document_template_id"
     t.integer "duration", null: false
     t.boolean "enforce_service_availability", default: true, null: false
     t.datetime "event_starts_at"
@@ -1548,6 +1553,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_15_221119) do
     t.index ["business_id", "position"], name: "index_services_on_business_id_and_position"
     t.index ["business_id"], name: "index_services_on_business_id"
     t.index ["created_from_estimate_id"], name: "index_services_on_created_from_estimate_id"
+    t.index ["document_template_id"], name: "index_services_on_document_template_id"
     t.index ["event_starts_at"], name: "index_services_on_event_starts_at_for_events", where: "(service_type = 2)"
     t.index ["name", "business_id"], name: "index_services_on_name_and_business_id", unique: true
     t.index ["quickbooks_item_id"], name: "index_services_on_quickbooks_item_id"
@@ -2179,6 +2185,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_15_221119) do
   add_foreign_key "policy_acceptances", "users"
   add_foreign_key "product_variants", "products"
   add_foreign_key "products", "businesses", on_delete: :cascade
+  add_foreign_key "products", "document_templates"
   add_foreign_key "products", "locations"
   add_foreign_key "promotion_products", "products", on_delete: :cascade
   add_foreign_key "promotion_products", "promotions", on_delete: :cascade
@@ -2209,6 +2216,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_15_221119) do
   add_foreign_key "rental_condition_reports", "staff_members"
   add_foreign_key "service_variants", "services"
   add_foreign_key "services", "businesses", on_delete: :cascade
+  add_foreign_key "services", "document_templates"
   add_foreign_key "services", "estimates", column: "created_from_estimate_id"
   add_foreign_key "services_staff_members", "services", on_delete: :cascade
   add_foreign_key "services_staff_members", "staff_members", on_delete: :cascade

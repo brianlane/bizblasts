@@ -4,6 +4,12 @@ class Product < ApplicationRecord
   include TenantScoped
   include DurationFormatting
 
+  # Document template for products (terms, agreements, etc.)
+  belongs_to :document_template, optional: true
+  
+  # Client documents for this product (when used as documentable)
+  has_one :client_document, as: :documentable, dependent: :nullify
+
   has_many :product_variants, -> { order(:id) }, dependent: :destroy
   # If variants are mandatory, line_items might associate through variants
   # has_many :line_items, dependent: :destroy # Use this if products DON'T have variants

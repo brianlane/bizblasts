@@ -6,8 +6,16 @@ class DocumentTemplate < ApplicationRecord
   DOCUMENT_TYPES = [
     ['Estimate approval', 'estimate'],
     ['Rental security deposit', 'rental_security_deposit'],
-    ['Experience booking', 'experience_booking']
+    ['Experience booking', 'experience_booking'],
+    ['Service agreement', 'service'],
+    ['Product agreement', 'product'],
+    ['Standalone document', 'standalone']
   ].freeze
+
+  # Associations for services/products that use this template
+  has_many :services, dependent: :nullify
+  has_many :products, dependent: :nullify
+  has_many :client_documents, dependent: :nullify
 
   belongs_to :business
 

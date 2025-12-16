@@ -1,0 +1,21 @@
+<p>Hello,</p>
+
+<p>A customer has signed a document.</p>
+
+<p><strong>Document:</strong> <%= @client_document.title || 'Agreement' %></p>
+
+<% if @customer %>
+<p><strong>Customer:</strong> <%= @customer.full_name %></p>
+<p><strong>Email:</strong> <%= @customer.email %></p>
+<% end %>
+
+<p><strong>Signed at:</strong> <%= @client_document.signed_at&.strftime('%B %d, %Y at %I:%M %p') %></p>
+
+<% if @client_document.payment_required? && @client_document.deposit_paid_at.present? %>
+<p><strong>Payment:</strong> <%= number_to_currency(@client_document.deposit_amount) %> paid at <%= @client_document.deposit_paid_at&.strftime('%B %d, %Y at %I:%M %p') %></p>
+<% end %>
+
+<p>You can view the full document details in your business dashboard.</p>
+
+<p>Thank you,<br>BizBlasts</p>
+

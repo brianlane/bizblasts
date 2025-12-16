@@ -1,0 +1,123 @@
+<div class="max-w-3xl mx-auto py-8 px-4">
+  <div class="mb-6">
+    <%= link_to business_manager_document_templates_path, class: "inline-flex items-center text-gray-600 hover:text-gray-900" do %>
+      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+      </svg>
+      Back to Templates
+    <% end %>
+  </div>
+
+  <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+    <div class="bg-gradient-to-r from-primary to-blue-600 px-6 py-4">
+      <h1 class="text-2xl font-bold text-white">Send Document</h1>
+      <p class="text-blue-100 mt-1">Send "<%= @template.name %>" to a customer</p>
+    </div>
+
+    <div class="p-6">
+      <%= form_with url: create_and_send_business_manager_document_template_path(@template), method: :post, local: true, class: "space-y-6" do |form| %>
+        
+        <!-- Document Preview Section -->
+        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+          <h3 class="text-sm font-semibold text-gray-700 mb-2">Document Preview</h3>
+          <div class="prose prose-sm max-w-none text-gray-600 max-h-48 overflow-y-auto">
+            <%= simple_format(@template.body) %>
+          </div>
+        </div>
+
+        <!-- Recipient Section -->
+        <div class="space-y-4">
+          <h3 class="text-lg font-semibold text-gray-900">Recipient</h3>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Existing Customer Selection -->
+            <div>
+              <%= form.label :tenant_customer_id, "Select Existing Customer", class: "block text-gray-700 text-sm font-bold mb-2" %>
+              <% if @customers.any? %>
+                <%= render 'shared/rich_dropdown',
+                    collection: [OpenStruct.new(id: nil, name: '-- Select customer --')] + @customers.map { |c| OpenStruct.new(id: c.id, name: "#{c.full_name} (#{c.email})") },
+                    field_name: "tenant_customer_id",
+                    selected_value: nil,
+                    prompt_text: "Select a customer",
+                    value_method: :id,
+                    text_method: :name,
+                    required: false,
+                    dropdown_id: "tenant_customer_dropdown" %>
+              <% else %>
+                <p class="text-sm text-gray-500 italic">No customers yet</p>
+              <% end %>
+            </div>
+
+            <!-- Or New Customer -->
+            <div>
+              <div class="text-center text-gray-400 text-sm font-medium mb-2 md:hidden">— OR —</div>
+              <%= form.label :customer_email, "Enter New Email", class: "block text-gray-700 text-sm font-bold mb-2" %>
+              <%= form.email_field :customer_email, placeholder: "customer@example.com", 
+                    class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" %>
+              <div class="mt-2">
+                <%= form.label :customer_name, "Customer Name (optional)", class: "block text-gray-700 text-xs mb-1" %>
+                <%= form.text_field :customer_name, placeholder: "John Doe",
+                      class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary text-sm" %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Document Settings -->
+        <div class="space-y-4 border-t pt-6">
+          <h3 class="text-lg font-semibold text-gray-900">Document Settings</h3>
+          
+          <div>
+            <%= form.label :title, "Document Title", class: "block text-gray-700 text-sm font-bold mb-2" %>
+            <%= form.text_field :title, value: @template.name,
+                  class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" %>
+          </div>
+
+          <div class="flex items-center space-x-6">
+            <div class="flex items-center">
+              <%= form.check_box :signature_required, checked: true, class: "form-checkbox h-5 w-5 text-primary rounded focus:ring-primary" %>
+              <%= form.label :signature_required, "Require Signature", class: "ml-2 text-gray-700 text-sm font-bold" %>
+            </div>
+
+            <div class="flex items-center">
+              <%= form.check_box :payment_required, class: "form-checkbox h-5 w-5 text-primary rounded focus:ring-primary", id: "payment_required_checkbox" %>
+              <%= form.label :payment_required, "Require Payment", class: "ml-2 text-gray-700 text-sm font-bold" %>
+            </div>
+          </div>
+
+          <div id="deposit_amount_section" class="hidden">
+            <%= form.label :deposit_amount, "Payment Amount ($)", class: "block text-gray-700 text-sm font-bold mb-2" %>
+            <%= form.number_field :deposit_amount, step: "0.01", min: "0", value: "0.00",
+                  class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" %>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="border-t pt-6">
+          <div class="flex justify-end space-x-3">
+            <%= link_to "Cancel", business_manager_document_templates_path, class: "px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50" %>
+            <%= form.submit "Send Document", class: "inline-flex items-center px-6 py-2 bg-primary text-white font-bold rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const paymentCheckbox = document.getElementById('payment_required_checkbox');
+    const depositSection = document.getElementById('deposit_amount_section');
+    
+    if (paymentCheckbox && depositSection) {
+      paymentCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+          depositSection.classList.remove('hidden');
+        } else {
+          depositSection.classList.add('hidden');
+        }
+      });
+    }
+  });
+</script>
+

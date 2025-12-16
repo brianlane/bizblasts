@@ -1,0 +1,21 @@
+Hi <%= @customer_name %>,
+
+<%= @business.name %> has sent you a document that requires your attention.
+
+Document: <%= @client_document.title || 'Agreement' %>
+
+<% if @client_document.signature_required? %>
+This document requires your signature. Please review and sign at your earliest convenience.
+<% end %>
+
+<% if @client_document.payment_required? && @client_document.deposit_amount.to_f > 0 %>
+This document also requires a payment of <%= number_to_currency(@client_document.deposit_amount) %>.
+<% end %>
+
+View & Sign Document: <%= @document_url %>
+
+If you have any questions, please contact <%= @business.name %> directly.
+
+Thank you,
+<%= @business.name %>
+

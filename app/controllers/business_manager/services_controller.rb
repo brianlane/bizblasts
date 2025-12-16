@@ -267,6 +267,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       :position, # Allow position updates
       :enforce_service_availability, # Allow enforcement setting
       :created_from_estimate_id, # Allow tracking which estimate created this service
+      :document_template_id, # Allow associating a document template (service agreement/waiver)
       staff_member_ids: [], # Allow staff assignment via new association
       add_on_product_ids: [], # Allow add-on product assignment
       images: [], # Allow new image uploads

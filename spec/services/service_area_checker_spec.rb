@@ -91,6 +91,8 @@ RSpec.describe ServiceAreaChecker, type: :service do
 
       it 'returns :no_business_location when business ZIP cannot be geocoded' do
         mock_coordinates_for(checker, '94102', nil)
+        # Also mock customer ZIP to prevent real HTTP calls (which could timeout and return true)
+        mock_coordinates_for(checker, '94601', [37.8044, -122.2712])
 
         result = checker.within_radius?('94601', radius_miles: 50)
         expect(result).to eq(:no_business_location)
