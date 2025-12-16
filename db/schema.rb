@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_16_120000) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_16_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -491,6 +491,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_16_120000) do
     t.string "status", default: "draft", null: false
     t.bigint "tenant_customer_id"
     t.string "title"
+    t.string "token", null: false
     t.datetime "updated_at", null: false
     t.index ["business_id", "status"], name: "index_client_documents_on_business_id_and_status"
     t.index ["business_id"], name: "index_client_documents_on_business_id"
@@ -501,6 +502,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_16_120000) do
     t.index ["invoice_id"], name: "index_client_documents_on_invoice_id"
     t.index ["payment_intent_id"], name: "index_client_documents_on_payment_intent_id"
     t.index ["tenant_customer_id"], name: "index_client_documents_on_tenant_customer_id"
+    t.index ["token"], name: "index_client_documents_on_token", unique: true
   end
 
   create_table "csv_import_runs", force: :cascade do |t|

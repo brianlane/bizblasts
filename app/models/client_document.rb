@@ -19,9 +19,22 @@ class ClientDocument < ApplicationRecord
   validates :document_type, presence: true
   validates :status, presence: true, inclusion: { in: STATUSES }
   validates :deposit_amount, numericality: { greater_than_or_equal_to: 0 }
+  validates :token, presence: true, uniqueness: true
+
+  before_validation :generate_token, on: :create
 
   scope :pending, -> { where(status: %w[pending_signature pending_payment]) }
   scope :completed, -> { where(status: :completed) }
+
+  # Check if document can be signed
+  def can_sign?
+    signature_required? && %w[sent pending_signature].include?(status)
+  end
+
+  # Check if document is in a signable state
+  def signable?
+    can_sign? && signed_at.blank?
+  end
 
   def apply_template(template)
     return unless template
@@ -66,5 +79,11 @@ class ClientDocument < ApplicationRecord
 
   def requires_payment_collection?
     payment_required? && deposit_amount.to_f.positive?
+  end
+
+  private
+
+  def generate_token
+    self.token ||= SecureRandom.hex(16)
   end
 end

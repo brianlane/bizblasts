@@ -17,13 +17,30 @@ module Public
     end
 
     def sign
-      signature = @document.ensure_signature_for('customer')
-      
-      # Validate signature data
-      unless params[:signature_data].present?
-        redirect_to public_client_document_path(token: @document.id), alert: 'Signature is required.'
+      # Validate document can be signed
+      unless @document.signable?
+        alert_message = if @document.completed?
+                          'This document has already been signed.'
+                        elsif @document.status == 'void'
+                          'This document is no longer valid.'
+                        elsif @document.status == 'draft'
+                          'This document is not ready for signing.'
+                        elsif !@document.signature_required?
+                          'This document does not require a signature.'
+                        else
+                          'This document cannot be signed at this time.'
+                        end
+        redirect_to public_client_document_path(token: @document.token), alert: alert_message
         return
       end
+
+      # Validate signature data
+      unless params[:signature_data].present?
+        redirect_to public_client_document_path(token: @document.token), alert: 'Signature is required.'
+        return
+      end
+
+      signature = @document.ensure_signature_for('customer')
 
       ActiveRecord::Base.transaction do
         # Save the signature
@@ -38,32 +55,33 @@ module Public
         if @document.payment_required? && @document.deposit_amount.to_f > 0
           @document.update!(status: 'pending_payment', signed_at: Time.current)
           # TODO: Redirect to payment
-          redirect_to public_client_document_path(token: @document.id), notice: 'Document signed. Please complete payment.'
+          redirect_to public_client_document_path(token: @document.token), notice: 'Document signed. Please complete payment.'
         else
           @document.update!(status: 'completed', signed_at: Time.current, completed_at: Time.current)
           
           # Notify business
           ClientDocumentMailer.signed_notification(@document).deliver_later
           
-          redirect_to public_client_document_path(token: @document.id), notice: 'Thank you! Document signed successfully.'
+          redirect_to public_client_document_path(token: @document.token), notice: 'Thank you! Document signed successfully.'
         end
       end
     rescue ActiveRecord::RecordInvalid => e
-      redirect_to public_client_document_path(token: @document.id), alert: "Error saving signature: #{e.message}"
+      redirect_to public_client_document_path(token: @document.token), alert: "Error saving signature: #{e.message}"
     end
 
     def download_pdf
       if @document.pdf.attached?
         redirect_to rails_blob_path(@document.pdf, disposition: 'attachment'), allow_other_host: true
       else
-        redirect_to public_client_document_path(token: @document.id), alert: 'PDF not available.'
+        redirect_to public_client_document_path(token: @document.token), alert: 'PDF not available.'
       end
     end
 
     private
 
     def set_document
-      @document = ClientDocument.find_by(id: params[:token])
+      # Use secure token instead of predictable ID
+      @document = ClientDocument.find_by(token: params[:token])
       
       if @document.nil?
         render plain: 'Document not found', status: :not_found

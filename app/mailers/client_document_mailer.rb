@@ -7,9 +7,9 @@ class ClientDocumentMailer < ApplicationMailer
     @business = client_document.business
     @customer_name = customer_name
 
-    # Generate the document access URL
+    # Generate the document access URL using secure token
     @document_url = public_client_document_url(
-      token: client_document.id,
+      token: client_document.token,
       host: client_document.business.full_domain,
       protocol: 'https'
     )
