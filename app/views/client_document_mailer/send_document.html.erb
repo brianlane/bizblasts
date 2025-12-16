@@ -1,0 +1,22 @@
+<p>Hi <%= @customer_name %>,</p>
+
+<p><%= @business.name %> has sent you a document that requires your attention.</p>
+
+<p><strong>Document:</strong> <%= @client_document.title || 'Agreement' %></p>
+
+<% if @client_document.signature_required? %>
+<p>This document requires your signature. Please review and sign at your earliest convenience.</p>
+<% end %>
+
+<% if @client_document.payment_required? && @client_document.deposit_amount.to_f > 0 %>
+<p>This document also requires a payment of <strong><%= number_to_currency(@client_document.deposit_amount) %></strong>.</p>
+<% end %>
+
+<p>
+  <%= link_to "View & Sign Document", @document_url, style: "display: inline-block; padding: 12px 24px; background-color: #3B82F6; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;" %>
+</p>
+
+<p>If you have any questions, please contact <%= @business.name %> directly.</p>
+
+<p>Thank you,<br><%= @business.name %></p>
+

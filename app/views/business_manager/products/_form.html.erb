@@ -110,7 +110,36 @@
           <%= form.label :allow_discounts, "Allow discount codes", class: "ml-2 text-gray-700 text-sm font-bold" %>
           <span class="ml-2 text-xs text-gray-500">(When unchecked, this product will be excluded from all discount codes)</span>
         </div>
+      </div>
 
+      <!-- Document Template Section -->
+      <div class="border-t pt-4 mt-4">
+        <h4 class="text-md font-semibold text-gray-800 mb-3">Product Agreement / Terms</h4>
+        <% product_templates = @current_business.document_templates.active.where(document_type: 'product') %>
+        <% if product_templates.any? %>
+          <%= form.label :document_template_id, "Require customer to sign:", class: "block text-gray-700 text-sm font-bold mb-2" %>
+          <%= render 'shared/rich_dropdown',
+              collection: [OpenStruct.new(id: nil, name: 'None (no agreement required)')] + product_templates.map { |t| OpenStruct.new(id: t.id, name: t.name) },
+              field_name: "#{form.object_name}[document_template_id]",
+              selected_value: @product.document_template_id,
+              prompt_text: "Select a document template",
+              value_method: :id,
+              text_method: :name,
+              required: false,
+              dropdown_id: "product_document_template_dropdown" %>
+          <p class="mt-1 text-sm text-gray-500">Customers will need to sign this document when purchasing this product.</p>
+        <% else %>
+          <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <p class="text-sm text-gray-600">
+              No product agreements available.
+              <%= link_to "Create a product agreement template", new_business_manager_document_template_path(document_type: 'product'), class: "text-primary hover:underline" %>
+              to require customers to sign when purchasing.
+            </p>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="space-y-3 mt-4">
         <% if current_business.requires_stock_tracking? %>
           <div class="flex items-center">
             <%= form.check_box :show_stock_to_customers, class: "form-checkbox h-5 w-5 text-primary rounded focus:ring-primary" %>

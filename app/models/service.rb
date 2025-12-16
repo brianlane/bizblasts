@@ -6,6 +6,10 @@ class Service < ApplicationRecord
   acts_as_tenant(:business)
   belongs_to :business
   belongs_to :created_from_estimate, class_name: 'Estimate', optional: true
+  belongs_to :document_template, optional: true
+  
+  # Client documents for this service (when used as documentable)
+  has_one :client_document, as: :documentable, dependent: :nullify
   has_many :staff_assignments, dependent: :destroy
   has_many :assigned_staff, through: :staff_assignments, source: :user
   has_many :services_staff_members, dependent: :destroy

@@ -154,6 +154,7 @@ module BusinessManager
         :hide_when_out_of_stock, # Hide product when out of stock
         :variant_label_text, # Variant label customization
         :position, # Allow position updates
+        :document_template_id, # Allow associating a document template (product agreement/terms)
         add_on_service_ids: [], 
         # Allow multiple images to be uploaded
         images: [], 

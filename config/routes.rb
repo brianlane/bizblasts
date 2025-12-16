@@ -359,7 +359,12 @@ Rails.application.routes.draw do
         end
       end
 
-      resources :document_templates
+      resources :document_templates do
+        member do
+          get :send_document
+          post :create_and_send
+        end
+      end
 
       # Business orders management
       resources :orders, only: [:index, :show, :new, :create, :edit, :update] do
@@ -809,6 +814,11 @@ Rails.application.routes.draw do
     patch 'estimates/:token/decline', to: 'estimates#decline', as: :decline_public_estimate
     post 'estimates/:token/request_changes', to: 'estimates#request_changes', as: :request_changes_public_estimate
     get 'estimates/:token/pdf', to: 'estimates#download_pdf', as: :download_public_estimate_pdf
+
+    # Public token-based client document access (no authentication required)
+    get 'documents/:token', to: 'client_documents#show', as: :public_client_document
+    post 'documents/:token/sign', to: 'client_documents#sign', as: :sign_public_client_document
+    get 'documents/:token/pdf', to: 'client_documents#download_pdf', as: :download_public_client_document_pdf
   end
 
   authenticated :user, ->(user) { user.admin? } do

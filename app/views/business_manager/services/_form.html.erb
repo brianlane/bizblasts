@@ -105,6 +105,33 @@
     <span class="ml-2 text-xs text-gray-500">(When unchecked, this service will be excluded from all discount codes)</span>
   </div>
 
+  <!-- Document Template Section -->
+  <div class="mb-4 border-t pt-4">
+    <h4 class="text-md font-semibold text-gray-800 mb-3">Service Agreement / Waiver</h4>
+    <% service_templates = @current_business.document_templates.active.where(document_type: 'service') %>
+    <% if service_templates.any? %>
+      <%= form.label :document_template_id, "Require customer to sign:", class: "block text-gray-700 text-sm font-bold mb-2" %>
+      <%= render 'shared/rich_dropdown',
+          collection: [OpenStruct.new(id: nil, name: 'None (no agreement required)')] + service_templates.map { |t| OpenStruct.new(id: t.id, name: t.name) },
+          field_name: "#{form.object_name}[document_template_id]",
+          selected_value: service.document_template_id,
+          prompt_text: "Select a document template",
+          value_method: :id,
+          text_method: :name,
+          required: false,
+          dropdown_id: "service_document_template_dropdown" %>
+      <p class="mt-1 text-sm text-gray-500">Customers will need to sign this document when booking this service.</p>
+    <% else %>
+      <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+        <p class="text-sm text-gray-600">
+          No service agreements available.
+          <%= link_to "Create a service agreement template", new_business_manager_document_template_path(document_type: 'service'), class: "text-primary hover:underline" %>
+          to require customers to sign when booking.
+        </p>
+      </div>
+    <% end %>
+  </div>
+
   <div class="mb-4">
     <%= form.check_box :subscription_enabled, class: "form-checkbox h-5 w-5 text-primary rounded focus:ring-primary", id: "service_subscription_enabled" %>
     <%= form.label :subscription_enabled, "Enable subscriptions", class: "ml-2 text-gray-700 text-sm font-bold" %>
