@@ -6,9 +6,9 @@ module EmailMarketing
     class ContactSyncService < BaseSyncService
       protected
 
-      # Column that tracks if a customer has been synced to Constant Contact
-      def provider_sync_id_column
-        'constant_contact_id'
+      # Scope for customers that have never been synced to Constant Contact
+      def never_synced_to_provider_scope(base_scope)
+        base_scope.where(constant_contact_id: nil)
       end
 
       def sync_in_batches(customers, list_id)

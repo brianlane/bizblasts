@@ -55,13 +55,13 @@ class EmailMarketingOauthController < ApplicationController
     if connection
       session[:oauth_flash_notice] = "Successfully connected to #{connection.provider_name}!"
       Rails.logger.info "[EmailMarketingOAuth] Successfully connected #{provider} for business #{connection.business_id}"
+      redirect_to_integrations_page(connection.business)
     else
       error_message = oauth_handler.errors.full_messages.to_sentence
       session[:oauth_flash_alert] = "Failed to connect: #{error_message}"
       Rails.logger.error "[EmailMarketingOAuth] Failed to connect #{provider}: #{error_message}"
+      redirect_to_integrations_page
     end
-
-    redirect_to_integrations_page
   rescue StandardError => e
     Rails.logger.error "[EmailMarketingOAuth] Callback error for #{provider}: #{e.message}"
     Rails.logger.error e.backtrace.first(10).join("\n")
@@ -93,12 +93,22 @@ class EmailMarketingOauthController < ApplicationController
     "#{scheme}://#{host}#{port_str}/oauth/email-marketing/#{provider}/callback"
   end
 
-  def redirect_to_integrations_page
-    # The state should contain the business_id, but we redirect to main domain
-    # which will then route appropriately
-    redirect_to business_manager_settings_integrations_url(
-      host: Rails.application.config.main_domain.presence || request.host,
-      protocol: request.ssl? ? 'https' : 'http'
-    )
+  def redirect_to_integrations_page(business = nil)
+    # Redirect to the business's subdomain so the /manage/... route is accessible
+    # The /manage/... routes are constrained to business subdomains, not the main domain
+    protocol = request.ssl? ? 'https' : 'http'
+
+    if business&.subdomain.present?
+      # Redirect to business subdomain where /manage/... routes work
+      main_domain = Rails.application.config.main_domain.presence || request.host
+      host = "#{business.subdomain}.#{main_domain}"
+      redirect_to business_manager_settings_integrations_url(host: host, protocol: protocol)
+    else
+      # Fallback: redirect to main domain root (user will need to navigate manually)
+      redirect_to root_url(
+        host: Rails.application.config.main_domain.presence || request.host,
+        protocol: protocol
+      )
+    end
   end
 end

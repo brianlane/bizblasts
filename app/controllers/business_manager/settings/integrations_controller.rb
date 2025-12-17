@@ -1010,7 +1010,7 @@ module BusinessManager
 
       # GET /manage/settings/integrations/email-marketing/:provider/lists
       def email_marketing_lists
-        provider = params[:provider]
+        provider = normalize_email_marketing_provider(params[:provider])
         connection = current_business.email_marketing_connections.find_by(provider: provider)
 
         unless connection&.connected?
@@ -1027,7 +1027,7 @@ module BusinessManager
 
       # PATCH /manage/settings/integrations/email-marketing/:provider/config
       def email_marketing_update_config
-        provider = params[:provider]
+        provider = normalize_email_marketing_provider(params[:provider])
         connection = current_business.email_marketing_connections.find_by(provider: provider)
 
         unless connection
@@ -1044,7 +1044,7 @@ module BusinessManager
 
       # POST /manage/settings/integrations/email-marketing/:provider/sync
       def email_marketing_sync
-        provider = params[:provider]
+        provider = normalize_email_marketing_provider(params[:provider])
         connection = current_business.email_marketing_connections.find_by(provider: provider)
 
         unless connection&.connected?
@@ -1065,7 +1065,7 @@ module BusinessManager
 
       # GET /manage/settings/integrations/email-marketing/:provider/sync-status
       def email_marketing_sync_status
-        provider = params[:provider]
+        provider = normalize_email_marketing_provider(params[:provider])
         connection = current_business.email_marketing_connections.find_by(provider: provider)
 
         unless connection
@@ -1151,6 +1151,12 @@ module BusinessManager
           :receive_unsubscribe_webhooks,
           :sync_strategy
         )
+      end
+
+      # Normalize provider param to match enum format (e.g., 'constant-contact' -> 'constant_contact')
+      # Routes use hyphenated format but enum uses underscores
+      def normalize_email_marketing_provider(provider)
+        provider.to_s.tr('-', '_')
       end
 
       def available_email_marketing_providers

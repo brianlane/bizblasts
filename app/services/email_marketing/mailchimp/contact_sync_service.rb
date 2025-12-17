@@ -6,9 +6,9 @@ module EmailMarketing
     class ContactSyncService < BaseSyncService
       protected
 
-      # Column that tracks if a customer has been synced to Mailchimp
-      def provider_sync_id_column
-        'mailchimp_subscriber_hash'
+      # Scope for customers that have never been synced to Mailchimp
+      def never_synced_to_provider_scope(base_scope)
+        base_scope.where(mailchimp_subscriber_hash: nil)
       end
 
       def sync_in_batches(customers, list_id)

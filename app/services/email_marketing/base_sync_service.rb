@@ -169,20 +169,20 @@ module EmailMarketing
       #
       # This ensures a newly-connected second provider's first incremental sync
       # includes all customers, not just recently updated ones.
-      never_synced_condition = provider_sync_id_column
-      if never_synced_condition
-        base_scope.where("updated_at > ? OR #{never_synced_condition} IS NULL", since)
-      else
-        # Fallback to legacy behavior if subclass doesn't specify
-        base_scope.where('updated_at > ? OR email_marketing_synced_at IS NULL', since)
-      end
+      updated_since = base_scope.where(base_scope.arel_table[:updated_at].gt(since))
+      never_synced = never_synced_to_provider_scope(base_scope)
+
+      # Combine with OR using Arel to avoid SQL injection
+      updated_since.or(never_synced)
     end
 
-    # Override in subclass to specify the provider-specific ID column
-    # that indicates a customer has been synced to that provider
-    def provider_sync_id_column
-      nil
+    # Override in subclass to provide scope for customers never synced to this provider
+    # Default: customers with null email_marketing_synced_at
+    def never_synced_to_provider_scope(base_scope)
+      base_scope.where(email_marketing_synced_at: nil)
     end
+
+    private
 
     def create_sync_log(sync_type)
       EmailMarketingSyncLog.create!(
