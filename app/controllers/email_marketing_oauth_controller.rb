@@ -13,14 +13,12 @@ class EmailMarketingOauthController < ApplicationController
     # Handle OAuth errors
     if error.present?
       Rails.logger.error "[EmailMarketingOAuth] OAuth error for #{provider}: #{error} - #{error_description}"
-      session[:oauth_flash_alert] = "Failed to connect: #{error_description || error}"
-      redirect_to_integrations_page
+      redirect_to_integrations_page(nil, alert: "Failed to connect: #{error_description || error}")
       return
     end
 
     unless code.present? && state.present?
-      session[:oauth_flash_alert] = 'Invalid OAuth callback - missing code or state'
-      redirect_to_integrations_page
+      redirect_to_integrations_page(nil, alert: 'Invalid OAuth callback - missing code or state')
       return
     end
 
@@ -38,8 +36,7 @@ class EmailMarketingOauthController < ApplicationController
 
     oauth_handler = build_oauth_handler(provider)
     unless oauth_handler
-      session[:oauth_flash_alert] = 'Invalid email marketing provider'
-      redirect_to_integrations_page
+      redirect_to_integrations_page(nil, alert: 'Invalid email marketing provider')
       return
     end
 
@@ -53,20 +50,17 @@ class EmailMarketingOauthController < ApplicationController
     )
 
     if connection
-      session[:oauth_flash_notice] = "Successfully connected to #{connection.provider_name}!"
       Rails.logger.info "[EmailMarketingOAuth] Successfully connected #{provider} for business #{connection.business_id}"
-      redirect_to_integrations_page(connection.business)
+      redirect_to_integrations_page(connection.business, notice: "Successfully connected to #{connection.provider_name}!")
     else
       error_message = oauth_handler.errors.full_messages.to_sentence
-      session[:oauth_flash_alert] = "Failed to connect: #{error_message}"
       Rails.logger.error "[EmailMarketingOAuth] Failed to connect #{provider}: #{error_message}"
-      redirect_to_integrations_page
+      redirect_to_integrations_page(nil, alert: "Failed to connect: #{error_message}")
     end
   rescue StandardError => e
     Rails.logger.error "[EmailMarketingOAuth] Callback error for #{provider}: #{e.message}"
     Rails.logger.error e.backtrace.first(10).join("\n")
-    session[:oauth_flash_alert] = 'An error occurred during connection. Please try again.'
-    redirect_to_integrations_page
+    redirect_to_integrations_page(nil, alert: 'An error occurred during connection. Please try again.')
   end
 
   private
@@ -83,35 +77,60 @@ class EmailMarketingOauthController < ApplicationController
   end
 
   def email_marketing_oauth_callback_url(provider)
-    scheme = request.ssl? ? 'https' : 'http'
-    host = Rails.application.config.main_domain.presence || request.host
-    port_str = if host&.include?(':') || request.port.nil? || [80, 443].include?(request.port)
-                 ''
-               else
-                 ":#{request.port}"
-               end
-    "#{scheme}://#{host}#{port_str}/oauth/email-marketing/#{provider}/callback"
+    EmailMarketingOauthHelper.callback_url(provider, request)
   end
 
-  def redirect_to_integrations_page(business = nil)
-    # Redirect to the business's domain so the /manage/... route is accessible
-    # The /manage/... routes are constrained to business subdomains/custom domains
-    #
-    # Uses TenantHost.url_for for consistency with other OAuth controllers
-    # and to leverage proper custom domain handling (checks custom_domain_allow?, etc.)
+  # Redirect to the integrations page with a signed flash message
+  # Since OAuth callbacks cross domain boundaries (main domain -> tenant subdomain),
+  # we can't use session-based flash messages. Instead, we use a signed message
+  # passed via URL parameter that's verified on the receiving end.
+  #
+  # This is secure because:
+  # - The message is cryptographically signed using Rails.application.message_verifier
+  # - It cannot be tampered with or forged
+  # - It has a 5-minute expiry to prevent replay attacks
+  # - The CWE-598 concern about sensitive data in URLs doesn't apply here since
+  #   we're only passing success/failure messages, not credentials or tokens
+  def redirect_to_integrations_page(business = nil, notice: nil, alert: nil)
+    base_path = '/manage/settings/integrations'
+
+    # Build signed flash message for cross-domain transport
+    flash_data = build_signed_flash_message(notice: notice, alert: alert)
+
     if business.present?
-      url = TenantHost.url_for(business, request, '/manage/settings/integrations')
+      url = TenantHost.url_for(business, request, base_path)
       if url.present?
-        redirect_to url, allow_other_host: true
+        url_with_flash = append_flash_param(url, flash_data)
+        redirect_to url_with_flash, allow_other_host: true
         return
       end
     end
 
     # Fallback: redirect to main domain root (user will need to navigate manually)
     protocol = request.ssl? ? 'https' : 'http'
-    redirect_to root_url(
+    fallback_url = root_url(
       host: Rails.application.config.main_domain.presence || request.host,
       protocol: protocol
     )
+    redirect_to append_flash_param(fallback_url, flash_data), allow_other_host: true
+  end
+
+  def build_signed_flash_message(notice: nil, alert: nil)
+    return nil unless notice.present? || alert.present?
+
+    message_data = {
+      notice: notice,
+      alert: alert,
+      timestamp: Time.current.to_i
+    }.compact
+
+    Rails.application.message_verifier(:oauth_flash).generate(message_data)
+  end
+
+  def append_flash_param(url, flash_data)
+    return url unless flash_data.present?
+
+    separator = url.include?('?') ? '&' : '?'
+    "#{url}#{separator}oauth_flash=#{CGI.escape(flash_data)}"
   end
 end

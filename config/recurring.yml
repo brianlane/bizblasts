@@ -19,3 +19,23 @@ production:
     class: RentalReminderJob
     queue: default
     schedule: at 8am every day
+
+  # Email Marketing Jobs
+  # Token refresh runs hourly to ensure OAuth tokens are refreshed before expiry
+  # Connections with tokens expiring within 5 minutes will be refreshed
+  email_marketing_token_refresh:
+    class: EmailMarketing::TokenRefreshJob
+    queue: email_marketing
+    schedule: every hour
+
+  # Auth token cleanup runs daily to remove expired cross-domain auth tokens
+  auth_token_cleanup:
+    class: AuthTokenCleanupJob
+    queue: default
+    schedule: at 2am every day
+
+  # Invalidated session cleanup runs daily to remove old session blacklist entries
+  invalidated_session_cleanup:
+    class: InvalidatedSessionCleanupJob
+    queue: default
+    schedule: at 3am every day

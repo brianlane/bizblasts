@@ -134,9 +134,12 @@ module Webhooks
     # 2. Restricting to known Mailchimp IP addresses (fallback)
     #
     # Note: CSRF skip is acceptable here because we have this alternative verification.
+    #
+    # IP addresses are configured in config/initializers/email_marketing.rb
+    # and can be overridden via the MAILCHIMP_WEBHOOK_IPS environment variable.
     def verify_mailchimp_request
-      # Option 1: If a webhook secret is configured, verify it
-      # (Mailchimp can be configured to send a secret in the webhook URL or header)
+      # Option 1: If a webhook secret is configured, verify it (preferred method)
+      # Mailchimp can be configured to send a secret in the webhook URL or header
       secret = ENV['MAILCHIMP_WEBHOOK_SECRET']
       if secret.present?
         # Check if secret is passed as a query parameter (common Mailchimp pattern)
@@ -144,33 +147,13 @@ module Webhooks
                        ActiveSupport::SecurityUtils.secure_compare(params[:secret].to_s, secret)
       end
 
-      # Option 2: Verify request comes from known Mailchimp IP addresses
-      # These are Mailchimp's published webhook IP ranges from https://mailchimp.com/about/ips/
-      # Last updated: December 2024. Review periodically for changes.
-      allowed_ips = [
-        '52.23.45.43',
-        '52.204.253.38',
-        '52.204.255.205',
-        '54.85.123.78',
-        '54.87.214.91',
-        '54.208.115.215',
-        '54.209.221.135',
-        '54.221.253.203',
-        '54.224.62.94',
-        '54.224.148.131',
-        '54.226.12.205',
-        '54.227.4.208',
-        '54.227.107.57',
-        '54.231.189.82',
-        '54.231.242.40',
-        '54.237.188.163',
-        '54.242.175.77'
-      ]
-
-      # In development/test, allow localhost
+      # Option 2: In development/test, allow localhost
       return true if Rails.env.development? || Rails.env.test?
 
-      # Check if remote IP is in allowed list
+      # Option 3: Verify request comes from known Mailchimp IP addresses
+      # These IPs are configured in config/initializers/email_marketing.rb
+      # and sourced from https://mailchimp.com/about/ips/
+      allowed_ips = Rails.application.config.email_marketing.mailchimp_webhook_ips
       remote_ip = request.remote_ip
       allowed_ips.include?(remote_ip)
     end

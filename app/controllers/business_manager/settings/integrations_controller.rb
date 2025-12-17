@@ -62,16 +62,24 @@ module BusinessManager
           end
         end
         
-        # SECURITY FIX (CWE-598): Read OAuth flash messages from session instead of URL parameters
-        # This prevents sensitive data from being exposed in browser history, server logs,
-        # referrer headers, and proxy caches.
+        # Handle OAuth flash messages from cross-domain redirects
+        # Since OAuth callbacks cross domain boundaries (main domain -> tenant subdomain),
+        # we use signed URL parameters instead of session-based flash messages.
         #
-        # Session-based approach is secure because:
-        # - Session data is stored server-side, not in URLs
-        # - Messages are immediately cleared after display
-        # - Consistent with OAuth state management pattern
-        # - Aligns with secure CalendarOauthController pattern
-        if session[:oauth_flash_notice]
+        # This is secure because:
+        # - The message is cryptographically signed using Rails.application.message_verifier
+        # - It cannot be tampered with or forged
+        # - It has a 5-minute expiry to prevent replay attacks
+        # - Only success/failure messages are passed, not sensitive data
+        #
+        # Also check session for backwards compatibility with other OAuth flows
+        if params[:oauth_flash].present?
+          flash_data = EmailMarketingOauthHelper.verify_flash_message(params[:oauth_flash])
+          if flash_data
+            flash.now[:notice] = flash_data[:notice] if flash_data[:notice].present?
+            flash.now[:alert] = flash_data[:alert] if flash_data[:alert].present?
+          end
+        elsif session[:oauth_flash_notice]
           flash.now[:notice] = session.delete(:oauth_flash_notice)
         elsif session[:oauth_flash_alert]
           flash.now[:alert] = session.delete(:oauth_flash_alert)
@@ -1141,14 +1149,7 @@ module BusinessManager
       end
 
       def email_marketing_oauth_callback_url(provider)
-        scheme = request.ssl? ? 'https' : 'http'
-        host = Rails.application.config.main_domain.presence || request.host
-        port_str = if host&.include?(':') || request.port.nil? || [80, 443].include?(request.port)
-                     ''
-                   else
-                     ":#{request.port}"
-                   end
-        "#{scheme}://#{host}#{port_str}/oauth/email-marketing/#{provider}/callback"
+        EmailMarketingOauthHelper.callback_url(provider, request)
       end
 
       def email_marketing_config_params

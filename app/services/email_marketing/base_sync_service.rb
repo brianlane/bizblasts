@@ -122,8 +122,12 @@ module EmailMarketing
       @api_client ||= connection.api_client
     end
 
+    # Returns the threshold above which batch API should be used
+    # Configurable per provider via config/initializers/email_marketing.rb
+    # or via environment variables (EMAIL_MARKETING_*_BATCH_THRESHOLD)
     def batch_threshold
-      50 # Use batch API for more than 50 contacts
+      thresholds = Rails.application.config.email_marketing.batch_thresholds
+      thresholds[connection.provider.to_sym] || thresholds[:default] || 50
     end
 
     def sync_individually(customers, list_id)

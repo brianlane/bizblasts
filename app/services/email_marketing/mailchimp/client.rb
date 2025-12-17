@@ -46,6 +46,11 @@ module EmailMarketing
         subscriber_hash = email_hash(customer.email)
         url = "#{api_base}/lists/#{target_list}/members/#{subscriber_hash}"
 
+        # Track whether this is a new contact or an update
+        # If the customer already has a mailchimp_subscriber_hash for this list, it's an update
+        is_existing_contact = customer.mailchimp_subscriber_hash.present? &&
+                              customer.mailchimp_list_id == target_list
+
         body = build_member_body(customer)
         body['status_if_new'] = 'subscribed'
         # Check both global unsubscribe (unsubscribed_at) AND marketing opt-out (email_marketing_opt_out)
@@ -61,9 +66,11 @@ module EmailMarketing
             mailchimp_list_id: target_list,
             email_marketing_synced_at: Time.current
           )
-          # Use 'created' to match BaseSyncService expectations for new contacts
-          # Mailchimp doesn't distinguish create vs update in PUT response, so we use subscriber status
-          { success: true, subscriber_hash: subscriber_hash, action: response.body['status'] == 'subscribed' ? 'created' : 'updated' }
+          # Determine action based on whether contact existed before this call
+          # Mailchimp's PUT is an upsert and doesn't distinguish create vs update in the response,
+          # so we track it ourselves based on prior sync state
+          action = is_existing_contact ? 'updated' : 'created'
+          { success: true, subscriber_hash: subscriber_hash, action: action }
         else
           add_error("Failed to add contact #{customer.email}: #{response.error_message}")
           { success: false, error: response.error_message }

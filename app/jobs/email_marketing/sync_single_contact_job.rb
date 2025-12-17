@@ -14,8 +14,8 @@ module EmailMarketing
     # @param customer_id [Integer] The TenantCustomer ID
     # @param provider [String, nil] Optional specific provider ('mailchimp' or 'constant_contact')
     #   If nil, syncs to all connected platforms
-    # @param action [String] 'sync' (add/update) or 'remove'
-    def perform(customer_id, provider = nil, action = 'sync')
+    # @param action [String] One of SyncActions::SYNC, SyncActions::REMOVE, SyncActions::OPT_OUT
+    def perform(customer_id, provider = nil, action = SyncActions::SYNC)
       customer = TenantCustomer.find(customer_id)
       business = customer.business
 
@@ -33,9 +33,9 @@ module EmailMarketing
           sync_service = connection.sync_service
 
           result = case action
-                   when 'remove'
+                   when SyncActions::REMOVE
                      sync_service.remove_customer(customer)
-                   when 'sync', 'opt_out'
+                   when SyncActions::SYNC, SyncActions::OPT_OUT
                      # Both sync and opt_out actions update the customer in the provider
                      # opt_out specifically ensures unsubscribe status is pushed
                      sync_service.sync_customer(customer)
@@ -56,9 +56,9 @@ module EmailMarketing
 
     def should_sync?(connection, action)
       case action
-      when 'sync'
+      when SyncActions::SYNC
         connection.sync_on_customer_create || connection.sync_on_customer_update
-      when 'remove', 'opt_out'
+      when SyncActions::REMOVE, SyncActions::OPT_OUT
         # Always allow remove and opt_out actions
         # Opt-out status must be pushed to providers regardless of auto-sync settings
         # to ensure unsubscribe preferences are respected
