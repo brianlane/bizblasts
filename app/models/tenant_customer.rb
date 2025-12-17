@@ -445,8 +445,13 @@ class TenantCustomer < ApplicationRecord
       return
     end
 
-    if saved_changes.key?('email_marketing_opt_out') && email_marketing_opt_out?
-      # Customer opted out - update unsubscribe status
+    # Handle opt-out/unsubscribe changes - these must always sync regardless of auto-sync settings
+    # to ensure unsubscribe preferences are respected by email marketing providers
+    opt_out_changed = saved_changes.key?('email_marketing_opt_out') && email_marketing_opt_out?
+    unsubscribed_changed = saved_changes.key?('unsubscribed_at') && unsubscribed_at.present?
+
+    if opt_out_changed || unsubscribed_changed
+      # Customer opted out or unsubscribed - update status in providers
       # Use 'opt_out' action to ensure this syncs even if auto-sync is disabled
       business.email_marketing_connections.active.find_each do |connection|
         EmailMarketing::SyncSingleContactJob.perform_later(id, connection.provider, 'opt_out')

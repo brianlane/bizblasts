@@ -99,6 +99,9 @@ module EmailMarketing
           started_at: Time.current
         )
 
+        # Skip outbound sync to prevent echo/feedback loops
+        # Webhook-driven updates should not trigger another sync back to the provider
+        customer.skip_email_marketing_sync = true
         customer.update!(email_marketing_opt_out: true)
 
         log.complete!(
@@ -116,6 +119,8 @@ module EmailMarketing
         customer = find_customer_by_email(email)
         return unless customer
 
+        # Skip outbound sync to prevent echo/feedback loops
+        customer.skip_email_marketing_sync = true
         customer.update!(email_marketing_opt_out: false)
         Rails.logger.info "[Mailchimp::ContactSyncService] Customer #{customer.id} subscribed via webhook"
       end
@@ -133,7 +138,11 @@ module EmailMarketing
         updates[:last_name] = merges['LNAME'] if merges['LNAME'].present?
         updates[:phone] = merges['PHONE'] if merges['PHONE'].present?
 
-        customer.update!(updates) if updates.present?
+        if updates.present?
+          # Skip outbound sync to prevent echo/feedback loops
+          customer.skip_email_marketing_sync = true
+          customer.update!(updates)
+        end
         Rails.logger.info "[Mailchimp::ContactSyncService] Customer #{customer.id} profile updated via webhook"
       end
 
@@ -143,6 +152,8 @@ module EmailMarketing
         customer = find_customer_by_email(email)
         return unless customer
 
+        # Skip outbound sync to prevent echo/feedback loops
+        customer.skip_email_marketing_sync = true
         # Email was cleaned (bounced/invalid) - mark as inactive
         customer.update!(
           email_marketing_opt_out: true,
@@ -159,6 +170,8 @@ module EmailMarketing
         customer = find_customer_by_email(old_email)
         return unless customer
 
+        # Skip outbound sync to prevent echo/feedback loops
+        customer.skip_email_marketing_sync = true
         # Update customer email
         customer.update!(email: new_email, mailchimp_subscriber_hash: nil)
         Rails.logger.info "[Mailchimp::ContactSyncService] Customer #{customer.id} email changed via webhook"

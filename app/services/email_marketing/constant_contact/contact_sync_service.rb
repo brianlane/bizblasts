@@ -92,6 +92,9 @@ module EmailMarketing
           started_at: Time.current
         )
 
+        # Skip outbound sync to prevent echo/feedback loops
+        # Webhook-driven updates should not trigger another sync back to the provider
+        customer.skip_email_marketing_sync = true
         customer.update!(email_marketing_opt_out: true)
 
         log.complete!(
@@ -110,6 +113,8 @@ module EmailMarketing
         customer = find_customer(contact_id: contact_id, email: email)
         return unless customer
 
+        # Skip outbound sync to prevent echo/feedback loops
+        customer.skip_email_marketing_sync = true
         customer.update!(email_marketing_opt_out: false)
         Rails.logger.info "[ConstantContact::ContactSyncService] Customer #{customer.id} subscribed via webhook"
       end
@@ -131,7 +136,11 @@ module EmailMarketing
           updates[:phone] = phone['phone_number'] if phone && phone['phone_number'].present?
         end
 
-        customer.update!(updates) if updates.present?
+        if updates.present?
+          # Skip outbound sync to prevent echo/feedback loops
+          customer.skip_email_marketing_sync = true
+          customer.update!(updates)
+        end
         Rails.logger.info "[ConstantContact::ContactSyncService] Customer #{customer.id} profile updated via webhook"
       end
 
@@ -142,6 +151,8 @@ module EmailMarketing
         customer = find_customer(contact_id: contact_id, email: email)
         return unless customer
 
+        # Skip outbound sync to prevent echo/feedback loops
+        customer.skip_email_marketing_sync = true
         customer.update!(
           constant_contact_id: nil,
           email_marketing_opt_out: true
