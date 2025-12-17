@@ -1,0 +1,71 @@
+# frozen_string_literal: true
+
+module EmailMarketing
+  # Job for syncing a single customer to email marketing platforms
+  class SyncSingleContactJob < ApplicationJob
+    queue_as :email_marketing
+
+    # Retry on common transient errors
+    retry_on StandardError, wait: :polynomially_longer, attempts: 3
+
+    # Discard if the customer no longer exists
+    discard_on ActiveRecord::RecordNotFound
+
+    # @param customer_id [Integer] The TenantCustomer ID
+    # @param provider [String, nil] Optional specific provider ('mailchimp' or 'constant_contact')
+    #   If nil, syncs to all connected platforms
+    # @param action [String] One of SyncActions::SYNC, SyncActions::REMOVE, SyncActions::OPT_OUT
+    def perform(customer_id, provider = nil, action = SyncActions::SYNC)
+      customer = TenantCustomer.find(customer_id)
+      business = customer.business
+
+      ActsAsTenant.with_tenant(business) do
+        connections = if provider.present?
+                        business.email_marketing_connections.active.where(provider: provider)
+                      else
+                        business.email_marketing_connections.active
+                      end
+
+        connections.find_each do |connection|
+          next unless connection.connected?
+          next unless should_sync?(connection, action)
+
+          sync_service = connection.sync_service
+
+          result = case action
+                   when SyncActions::REMOVE
+                     sync_service.remove_customer(customer)
+                   when SyncActions::SYNC, SyncActions::OPT_OUT
+                     # Both sync and opt_out actions update the customer in the provider
+                     # opt_out specifically ensures unsubscribe status is pushed
+                     sync_service.sync_customer(customer)
+                   else
+                     { success: false, error: "Unknown action: #{action}" }
+                   end
+
+          if result[:success]
+            Rails.logger.info "[EmailMarketing::SyncSingleContactJob] #{action.capitalize}d customer #{customer_id} to #{connection.provider_name}"
+          else
+            Rails.logger.error "[EmailMarketing::SyncSingleContactJob] Failed to #{action} customer #{customer_id} to #{connection.provider_name}: #{result[:error]}"
+          end
+        end
+      end
+    end
+
+    private
+
+    def should_sync?(connection, action)
+      case action
+      when SyncActions::SYNC
+        connection.sync_on_customer_create || connection.sync_on_customer_update
+      when SyncActions::REMOVE, SyncActions::OPT_OUT
+        # Always allow remove and opt_out actions
+        # Opt-out status must be pushed to providers regardless of auto-sync settings
+        # to ensure unsubscribe preferences are respected
+        true
+      else
+        false
+      end
+    end
+  end
+end

@@ -235,6 +235,10 @@ class Business < ApplicationRecord
   has_one :quickbooks_connection, dependent: :destroy
   has_many :quickbooks_export_runs, dependent: :destroy
 
+  # Email Marketing Integrations (Mailchimp, Constant Contact)
+  has_many :email_marketing_connections, dependent: :destroy
+  has_many :email_marketing_sync_logs, dependent: :destroy
+
   # CSV Import/Export
   has_many :csv_import_runs, dependent: :destroy
 

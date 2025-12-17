@@ -155,6 +155,11 @@ Rails.application.routes.draw do
   post '/webhooks/stripe', to: 'stripe_webhooks#create'
   post '/webhooks/twilio', to: 'webhooks/twilio#delivery_receipt'
   post '/webhooks/twilio/inbound', to: 'webhooks/twilio#inbound_message'
+
+  # Email Marketing webhooks
+  get '/webhooks/email-marketing/mailchimp', to: 'webhooks/email_marketing#mailchimp_verify'
+  post '/webhooks/email-marketing/mailchimp', to: 'webhooks/email_marketing#mailchimp'
+  post '/webhooks/email-marketing/constant-contact', to: 'webhooks/email_marketing#constant_contact'
   
   # SMS link redirects
   get '/s/:short_code', to: 'sms_links#redirect', as: :sms_link_redirect
@@ -171,6 +176,9 @@ Rails.application.routes.draw do
 
   # QuickBooks OAuth callback (outside subdomain constraint for security)
   get '/oauth/quickbooks/callback', to: 'quickbooks_oauth#callback', as: :quickbooks_oauth_callback
+
+  # Email Marketing OAuth callbacks (Mailchimp, Constant Contact)
+  get '/oauth/email-marketing/:provider/callback', to: 'email_marketing_oauth#callback', as: :email_marketing_oauth_callback
   # Add routes for admin bookings availability before ActiveAdmin is initialized
   get '/admin/bookings-availability/slots', to: 'admin/booking_availability#available_slots', as: :available_slots_bookings
   get '/admin/bookings-availability/new', to: 'admin/booking_availability#new', as: :new_admin_booking_from_slots
@@ -457,6 +465,16 @@ Rails.application.routes.draw do
             post 'quickbooks/exports/invoices', action: :quickbooks_export_invoices, as: :quickbooks_export_invoices
             patch 'quickbooks/config', action: :quickbooks_config_update, as: :quickbooks_config_update
             post 'quickbooks/exports/:id/retry', action: :quickbooks_export_retry_failed, as: :quickbooks_export_retry_failed
+
+            # Email Marketing integration routes (Mailchimp, Constant Contact)
+            get 'mailchimp/oauth/authorize', action: :mailchimp_oauth_authorize, as: :mailchimp_oauth_authorize
+            delete 'mailchimp/disconnect', action: :mailchimp_disconnect, as: :mailchimp_disconnect
+            get 'constant-contact/oauth/authorize', action: :constant_contact_oauth_authorize, as: :constant_contact_oauth_authorize
+            delete 'constant-contact/disconnect', action: :constant_contact_disconnect, as: :constant_contact_disconnect
+            get 'email-marketing/:provider/lists', action: :email_marketing_lists, as: :email_marketing_lists
+            patch 'email-marketing/:provider/config', action: :email_marketing_update_config, as: :email_marketing_update_config
+            post 'email-marketing/:provider/sync', action: :email_marketing_sync, as: :email_marketing_sync
+            get 'email-marketing/:provider/sync-status', action: :email_marketing_sync_status, as: :email_marketing_sync_status
           end
         end
         resource :website_pages, only: [:edit, :update]

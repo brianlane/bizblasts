@@ -22,6 +22,13 @@ module BusinessManager
         @adp_payroll_config = current_business.adp_payroll_export_config || current_business.build_adp_payroll_export_config
         @adp_payroll_export_runs = current_business.adp_payroll_export_runs.order(created_at: :desc).limit(10)
 
+        # Email Marketing integrations (Mailchimp, Constant Contact)
+        @mailchimp_connection = current_business.email_marketing_connections.mailchimp.first
+        @constant_contact_connection = current_business.email_marketing_connections.constant_contact.first
+        @email_marketing_providers = available_email_marketing_providers
+        @mailchimp_sync_logs = @mailchimp_connection&.sync_logs&.recent&.limit(5) || []
+        @constant_contact_sync_logs = @constant_contact_connection&.sync_logs&.recent&.limit(5) || []
+
         # ADP payroll preview (optional UI)
         @adp_preview_rows = []
         @adp_preview_summary = nil
@@ -55,16 +62,25 @@ module BusinessManager
           end
         end
         
-        # SECURITY FIX (CWE-598): Read OAuth flash messages from session instead of URL parameters
-        # This prevents sensitive data from being exposed in browser history, server logs,
-        # referrer headers, and proxy caches.
+        # Handle OAuth flash messages from cross-domain redirects
+        # Since OAuth callbacks cross domain boundaries (main domain -> tenant subdomain),
+        # we use database-backed tokens instead of session-based flash messages.
         #
-        # Session-based approach is secure because:
-        # - Session data is stored server-side, not in URLs
-        # - Messages are immediately cleared after display
-        # - Consistent with OAuth state management pattern
-        # - Aligns with secure CalendarOauthController pattern
-        if session[:oauth_flash_notice]
+        # The flash_token parameter contains only an opaque, cryptographically-secure
+        # random token (not sensitive data), which is consumed once and marked as used.
+        # This approach:
+        # - Avoids CodeQL CWE-598 warnings about sensitive data in GET requests
+        # - Tokens are single-use with automatic 5-minute expiry
+        # - Tokens cannot be tampered with or forged
+        #
+        # Also check session for backwards compatibility with other OAuth flows
+        if params[:flash_token].present?
+          flash_data = OauthFlashMessage.consume(params[:flash_token])
+          if flash_data
+            flash.now[:notice] = flash_data[:notice] if flash_data[:notice].present?
+            flash.now[:alert] = flash_data[:alert] if flash_data[:alert].present?
+          end
+        elsif session[:oauth_flash_notice]
           flash.now[:notice] = session.delete(:oauth_flash_notice)
         elsif session[:oauth_flash_alert]
           flash.now[:alert] = session.delete(:oauth_flash_alert)
@@ -917,6 +933,186 @@ module BusinessManager
         send_data export_run.csv_data, filename: filename, type: 'text/csv'
       end
 
+      # ----------------------------------------------------------------------
+      # Email Marketing Integration Actions (Mailchimp & Constant Contact)
+      # ----------------------------------------------------------------------
+
+      # GET /manage/settings/integrations/mailchimp/oauth/authorize
+      def mailchimp_oauth_authorize
+        unless MailchimpOauthCredentials.configured?
+          redirect_to business_manager_settings_integrations_path,
+                      alert: 'Mailchimp OAuth not configured. Please contact support.'
+          return
+        end
+
+        oauth_handler = EmailMarketing::Mailchimp::OauthHandler.new
+        redirect_uri = email_marketing_oauth_callback_url('mailchimp')
+
+        auth_url = oauth_handler.authorization_url(current_business.id, redirect_uri)
+
+        if auth_url
+          # NOTE: We don't store state in session because OAuth callback goes to main domain
+          # which won't have access to tenant-scoped session. CSRF protection is provided
+          # by the cryptographically-signed state parameter verified in the callback handler.
+          redirect_to auth_url, allow_other_host: true
+        else
+          redirect_to business_manager_settings_integrations_path,
+                      alert: oauth_handler.errors.full_messages.to_sentence.presence || 'Failed to start Mailchimp connection.'
+        end
+      rescue StandardError => e
+        Rails.logger.error "[MailchimpOAuth] Authorization error: #{e.message}"
+        redirect_to business_manager_settings_integrations_path,
+                    alert: 'Failed to start Mailchimp OAuth process. Please try again.'
+      end
+
+      # DELETE /manage/settings/integrations/mailchimp/disconnect
+      def mailchimp_disconnect
+        connection = current_business.email_marketing_connections.mailchimp.first
+
+        if connection
+          connection.destroy
+          redirect_to business_manager_settings_integrations_path, notice: 'Mailchimp disconnected successfully.'
+        else
+          redirect_to business_manager_settings_integrations_path, alert: 'No Mailchimp connection found.'
+        end
+      end
+
+      # GET /manage/settings/integrations/constant-contact/oauth/authorize
+      def constant_contact_oauth_authorize
+        unless ConstantContactOauthCredentials.configured?
+          redirect_to business_manager_settings_integrations_path,
+                      alert: 'Constant Contact OAuth not configured. Please contact support.'
+          return
+        end
+
+        oauth_handler = EmailMarketing::ConstantContact::OauthHandler.new
+        redirect_uri = email_marketing_oauth_callback_url('constant-contact')
+
+        auth_url = oauth_handler.authorization_url(current_business.id, redirect_uri)
+
+        if auth_url
+          # NOTE: We don't store state in session because OAuth callback goes to main domain
+          # which won't have access to tenant-scoped session. CSRF protection is provided
+          # by the cryptographically-signed state parameter verified in the callback handler.
+          redirect_to auth_url, allow_other_host: true
+        else
+          redirect_to business_manager_settings_integrations_path,
+                      alert: oauth_handler.errors.full_messages.to_sentence.presence || 'Failed to start Constant Contact connection.'
+        end
+      rescue StandardError => e
+        Rails.logger.error "[ConstantContactOAuth] Authorization error: #{e.message}"
+        redirect_to business_manager_settings_integrations_path,
+                    alert: 'Failed to start Constant Contact OAuth process. Please try again.'
+      end
+
+      # DELETE /manage/settings/integrations/constant-contact/disconnect
+      def constant_contact_disconnect
+        connection = current_business.email_marketing_connections.constant_contact.first
+
+        if connection
+          connection.destroy
+          redirect_to business_manager_settings_integrations_path, notice: 'Constant Contact disconnected successfully.'
+        else
+          redirect_to business_manager_settings_integrations_path, alert: 'No Constant Contact connection found.'
+        end
+      end
+
+      # GET /manage/settings/integrations/email-marketing/:provider/lists
+      def email_marketing_lists
+        provider = normalize_email_marketing_provider(params[:provider])
+        connection = current_business.email_marketing_connections.find_by(provider: provider)
+
+        unless connection&.connected?
+          render json: { error: 'Not connected' }, status: :unprocessable_entity
+          return
+        end
+
+        lists = connection.available_lists
+        render json: { lists: lists }
+      rescue StandardError => e
+        Rails.logger.error "[EmailMarketing] Failed to fetch lists: #{e.message}"
+        render json: { error: 'Failed to fetch lists' }, status: :internal_server_error
+      end
+
+      # PATCH /manage/settings/integrations/email-marketing/:provider/config
+      def email_marketing_update_config
+        provider = normalize_email_marketing_provider(params[:provider])
+        connection = current_business.email_marketing_connections.find_by(provider: provider)
+
+        unless connection
+          redirect_to business_manager_settings_integrations_path, alert: 'Connection not found.'
+          return
+        end
+
+        if connection.update(email_marketing_config_params)
+          redirect_to business_manager_settings_integrations_path, notice: "#{connection.provider_name} settings updated."
+        else
+          redirect_to business_manager_settings_integrations_path, alert: connection.errors.full_messages.to_sentence
+        end
+      end
+
+      # POST /manage/settings/integrations/email-marketing/:provider/sync
+      def email_marketing_sync
+        provider = normalize_email_marketing_provider(params[:provider])
+        connection = current_business.email_marketing_connections.find_by(provider: provider)
+
+        unless connection&.connected?
+          redirect_to business_manager_settings_integrations_path, alert: 'Not connected to this provider.'
+          return
+        end
+
+        # Require a default list to be configured before syncing
+        unless connection.default_list_id.present?
+          redirect_to business_manager_settings_integrations_path,
+                      alert: "Please select a default list in #{connection.provider_name} before syncing."
+          return
+        end
+
+        # Default to full sync since UI says "sync all your customers"
+        # Use 'incremental' only when explicitly requested
+        sync_type = params[:sync_type] || 'full'
+
+        EmailMarketing::SyncContactsJob.perform_later(
+          connection.id,
+          { sync_type: sync_type, list_id: connection.default_list_id }
+        )
+
+        redirect_to business_manager_settings_integrations_path,
+                    notice: "#{connection.provider_name} sync started. This may take a few minutes."
+      end
+
+      # GET /manage/settings/integrations/email-marketing/:provider/sync-status
+      def email_marketing_sync_status
+        provider = normalize_email_marketing_provider(params[:provider])
+        connection = current_business.email_marketing_connections.find_by(provider: provider)
+
+        unless connection
+          render json: { error: 'Connection not found' }, status: :not_found
+          return
+        end
+
+        recent_logs = connection.sync_logs.recent.limit(5).map do |log|
+          {
+            id: log.id,
+            sync_type: log.sync_type,
+            status: log.status,
+            direction: log.direction,
+            contacts_synced: log.contacts_synced,
+            contacts_failed: log.contacts_failed,
+            started_at: log.started_at,
+            completed_at: log.completed_at,
+            duration: log.duration_formatted
+          }
+        end
+
+        render json: {
+          connected: connection.connected?,
+          last_synced_at: connection.last_synced_at,
+          total_contacts_synced: connection.total_contacts_synced,
+          recent_syncs: recent_logs
+        }
+      end
+
       private
 
       def set_business
@@ -951,6 +1147,34 @@ module BusinessManager
                      ":#{request.port}"
                    end
         "#{scheme}://#{host}#{port_str}/oauth/quickbooks/callback"
+      end
+
+      def email_marketing_oauth_callback_url(provider)
+        EmailMarketingOauthHelper.callback_url(provider, request)
+      end
+
+      def email_marketing_config_params
+        params.require(:email_marketing_connection).permit(
+          :default_list_id,
+          :default_list_name,
+          :sync_on_customer_create,
+          :sync_on_customer_update,
+          :receive_unsubscribe_webhooks,
+          :sync_strategy
+        )
+      end
+
+      # Normalize provider param to match enum format (e.g., 'constant-contact' -> 'constant_contact')
+      # Routes use hyphenated format but enum uses underscores
+      def normalize_email_marketing_provider(provider)
+        provider.to_s.tr('-', '_')
+      end
+
+      def available_email_marketing_providers
+        providers = []
+        providers << 'mailchimp' if MailchimpOauthCredentials.configured?
+        providers << 'constant_contact' if ConstantContactOauthCredentials.configured?
+        providers
       end
 
       def available_providers

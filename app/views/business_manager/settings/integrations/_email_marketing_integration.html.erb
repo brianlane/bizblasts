@@ -1,0 +1,203 @@
+<%# Email Marketing Integration Section (Mailchimp & Constant Contact) %>
+
+<div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100 mt-8">
+  <div class="px-6 py-4 bg-gradient-to-r from-green-50 to-emerald-100 border-b border-gray-200">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+          <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+          </svg>
+          Email Marketing
+        </h2>
+        <p class="text-sm text-gray-600 mt-1">Sync your customers with email marketing platforms</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="p-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <%# Mailchimp Section %>
+      <div class="border border-gray-200 rounded-xl overflow-hidden">
+        <div class="p-4 bg-gray-50 border-b border-gray-200">
+          <div class="flex items-center">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center mr-3" style="background-color: #FFE01B;">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="#000000">
+                <path d="M18.5 13c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5.5-9C5.67 11 5 11.67 5 12.5S5.67 14 6.5 14 8 13.33 8 12.5 7.33 11 6.5 11zm5.5 1c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+              </svg>
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-900">Mailchimp</h3>
+              <p class="text-sm text-gray-500">Email marketing & automation</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-4">
+          <% if local_assigns[:mailchimp_connection] && mailchimp_connection&.connected? %>
+            <%# Connected State %>
+            <div class="flex items-center mb-4">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 8 8">
+                  <circle cx="4" cy="4" r="3"/>
+                </svg>
+                Connected
+              </span>
+            </div>
+
+            <div class="space-y-3 text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-500">Account:</span>
+                <span class="font-medium text-gray-900"><%= mailchimp_connection.account_email %></span>
+              </div>
+              <% if mailchimp_connection.default_list_name.present? %>
+                <div class="flex justify-between">
+                  <span class="text-gray-500">Default List:</span>
+                  <span class="font-medium text-gray-900"><%= mailchimp_connection.default_list_name %></span>
+                </div>
+              <% end %>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Total Synced:</span>
+                <span class="font-medium text-gray-900"><%= mailchimp_connection.total_contacts_synced || 0 %> contacts</span>
+              </div>
+              <% if mailchimp_connection.last_synced_at.present? %>
+                <div class="flex justify-between">
+                  <span class="text-gray-500">Last Sync:</span>
+                  <span class="font-medium text-gray-900"><%= time_ago_in_words(mailchimp_connection.last_synced_at) %> ago</span>
+                </div>
+              <% end %>
+            </div>
+
+            <%# Settings Form %>
+            <%= form_with url: email_marketing_update_config_business_manager_settings_integrations_path(provider: 'mailchimp'),
+                          method: :patch,
+                          scope: :email_marketing_connection,
+                          class: "mt-4 pt-4 border-t border-gray-200",
+                          data: { turbo: false } do |f| %>
+              <div class="space-y-3">
+                <div class="flex items-center">
+                  <%= f.check_box :sync_on_customer_create,
+                      { checked: mailchimp_connection.sync_on_customer_create, class: "h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded" },
+                      true, false %>
+                  <%= f.label :sync_on_customer_create, "Auto-sync new customers", class: "ml-2 text-sm text-gray-700" %>
+                </div>
+                <div class="flex items-center">
+                  <%= f.check_box :sync_on_customer_update,
+                      { checked: mailchimp_connection.sync_on_customer_update, class: "h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded" },
+                      true, false %>
+                  <%= f.label :sync_on_customer_update, "Sync customer updates", class: "ml-2 text-sm text-gray-700" %>
+                </div>
+              </div>
+
+              <div class="mt-4 flex flex-wrap gap-2">
+                <%= f.submit "Save Settings", class: "inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500" %>
+
+                <%= link_to email_marketing_sync_business_manager_settings_integrations_path(provider: 'mailchimp'),
+                    method: :post,
+                    data: { confirm: "This will sync all your customers to Mailchimp. Continue?", turbo: false },
+                    class: "inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500" do %>
+                  <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                  </svg>
+                  Sync Now
+                <% end %>
+
+                <%= link_to mailchimp_disconnect_business_manager_settings_integrations_path,
+                    method: :delete,
+                    data: { confirm: "Are you sure you want to disconnect Mailchimp?", turbo: false },
+                    class: "inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500" do %>
+                  Disconnect
+                <% end %>
+              </div>
+            <% end %>
+
+            <%# Recent Sync Logs %>
+            <% if local_assigns[:mailchimp_sync_logs] && mailchimp_sync_logs.any? %>
+              <div class="mt-4 pt-4 border-t border-gray-200">
+                <h4 class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Recent Syncs</h4>
+                <div class="space-y-1">
+                  <% mailchimp_sync_logs.first(3).each do |log| %>
+                    <div class="flex items-center justify-between text-xs">
+                      <span class="text-gray-600"><%= log.sync_type.humanize %></span>
+                      <span class="<%= log.status_completed? || log.status_partially_completed? ? 'text-green-600' : log.status_failed? ? 'text-red-600' : 'text-yellow-600' %>">
+                        <%= log.contacts_synced %> synced
+                        <% if log.contacts_failed > 0 %>
+                          (<%= log.contacts_failed %> failed)
+                        <% end %>
+                      </span>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+
+          <% else %>
+            <%# Not Connected State %>
+            <p class="text-sm text-gray-600 mb-4">Connect Mailchimp to automatically sync your customer list for email marketing campaigns.</p>
+
+            <% if MailchimpOauthCredentials.configured? %>
+              <%= link_to mailchimp_oauth_authorize_business_manager_settings_integrations_path,
+                  class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500",
+                  data: { turbo: false } do %>
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                </svg>
+                Connect Mailchimp
+              <% end %>
+            <% else %>
+              <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p class="text-sm text-yellow-800">Mailchimp integration is not configured. Please contact support.</p>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+
+      <%# Constant Contact Section - Coming Soon %>
+      <div class="border border-gray-200 rounded-xl overflow-hidden">
+        <div class="p-4 bg-gray-50 border-b border-gray-200">
+          <div class="flex items-center">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center mr-3" style="background-color: #0072C6;">
+              <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              </svg>
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-900">Constant Contact</h3>
+              <p class="text-sm text-gray-500">Email marketing platform</p>
+            </div>
+            <span class="ml-auto inline-block px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full font-medium">Coming Soon</span>
+          </div>
+        </div>
+
+        <div class="p-4">
+          <p class="text-sm text-gray-600 mb-4">Constant Contact integration is coming soon! You'll be able to automatically sync your customer list for email marketing campaigns.</p>
+          
+          <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <div class="flex items-start">
+              <svg class="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <div class="ml-3 text-sm">
+                <p class="text-gray-600">In the meantime, you can use <strong>Mailchimp</strong> to sync your customers for email marketing.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%# Info Box %>
+    <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      <div class="flex items-start">
+        <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div class="ml-3 text-sm">
+          <p class="text-blue-800 font-medium">About Email Marketing Sync</p>
+          <p class="text-blue-700 mt-1">When enabled, your customer data (name, email, phone) will be automatically synced to your email marketing platform. Changes made in your email platform (like unsubscribes) will be synced back to BizBlasts.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
