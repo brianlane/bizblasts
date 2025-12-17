@@ -33,17 +33,12 @@ RSpec.describe 'Email Marketing Integrations', type: :request do
       end
     end
 
-    context 'with constant contact connection' do
-      let!(:cc_connection) do
-        create(:email_marketing_connection, :constant_contact, :with_list, business: business)
-      end
-
-      it 'shows the connected constant contact account' do
+    context 'constant contact section' do
+      it 'shows constant contact as coming soon' do
         get business_manager_settings_integrations_path
 
         expect(response.body).to include('Constant Contact')
-        expect(response.body).to include('Connected')
-        expect(response.body).to include(cc_connection.account_email)
+        expect(response.body).to include('Coming Soon')
       end
     end
   end

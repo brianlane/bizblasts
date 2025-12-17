@@ -87,6 +87,8 @@ module EmailMarketing
     def add_error(message)
       @errors << message
       Rails.logger.error "[#{self.class.name}] #{message}"
+      # Return a failure hash so callers using `return add_error(...)` get a valid result
+      { success: false, error: message }
     end
 
     # Simple struct for API responses

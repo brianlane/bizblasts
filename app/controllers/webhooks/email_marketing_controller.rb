@@ -3,7 +3,10 @@
 module Webhooks
   # Handles incoming webhooks from email marketing platforms (Mailchimp, Constant Contact)
   class EmailMarketingController < ApplicationController
-    skip_before_action :verify_authenticity_token
+    # Only skip CSRF verification for webhook POST endpoints called by external services
+    # The mailchimp_verify GET action doesn't need CSRF skipped (GET requests are exempt)
+    # but we explicitly limit skip_before_action to only the POST webhook actions
+    skip_before_action :verify_authenticity_token, only: [:mailchimp, :constant_contact]
 
     # Mailchimp sends a GET request to verify the webhook URL
     # GET /webhooks/email-marketing/mailchimp

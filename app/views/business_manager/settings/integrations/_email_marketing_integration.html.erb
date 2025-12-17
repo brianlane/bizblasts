@@ -71,6 +71,7 @@
             <%# Settings Form %>
             <%= form_with url: email_marketing_update_config_business_manager_settings_integrations_path(provider: 'mailchimp'),
                           method: :patch,
+                          scope: :email_marketing_connection,
                           class: "mt-4 pt-4 border-t border-gray-200",
                           data: { turbo: false } do |f| %>
               <div class="space-y-3">
