@@ -1052,7 +1052,16 @@ module BusinessManager
           return
         end
 
-        sync_type = params[:sync_type] || 'incremental'
+        # Require a default list to be configured before syncing
+        unless connection.default_list_id.present?
+          redirect_to business_manager_settings_integrations_path,
+                      alert: "Please select a default list in #{connection.provider_name} before syncing."
+          return
+        end
+
+        # Default to full sync since UI says "sync all your customers"
+        # Use 'incremental' only when explicitly requested
+        sync_type = params[:sync_type] || 'full'
 
         EmailMarketing::SyncContactsJob.perform_later(
           connection.id,

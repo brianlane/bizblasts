@@ -13,6 +13,7 @@ module Webhooks
     # Defense-in-depth authentication:
     # - `mailchimp`: request source verification (secret param and/or IP allowlist)
     # - `constant_contact`: HMAC signature verification (`X-CTCT-Signature`)
+    # codeql[rb/csrf-protection-disabled] Webhooks cannot use CSRF tokens; we use signature/IP verification
     protect_from_forgery with: :null_session
 
     # Mailchimp sends a GET request to verify the webhook URL
