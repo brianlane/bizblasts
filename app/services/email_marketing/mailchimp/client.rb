@@ -61,7 +61,9 @@ module EmailMarketing
             mailchimp_list_id: target_list,
             email_marketing_synced_at: Time.current
           )
-          { success: true, subscriber_hash: subscriber_hash, action: response.body['status'] == 'subscribed' ? 'added' : 'updated' }
+          # Use 'created' to match BaseSyncService expectations for new contacts
+          # Mailchimp doesn't distinguish create vs update in PUT response, so we use subscriber status
+          { success: true, subscriber_hash: subscriber_hash, action: response.body['status'] == 'subscribed' ? 'created' : 'updated' }
         else
           add_error("Failed to add contact #{customer.email}: #{response.error_message}")
           { success: false, error: response.error_message }
