@@ -48,7 +48,9 @@ module EmailMarketing
 
         body = build_member_body(customer)
         body['status_if_new'] = 'subscribed'
-        body['status'] = customer.unsubscribed_from_emails? ? 'unsubscribed' : 'subscribed'
+        # Check both global unsubscribe (unsubscribed_at) AND marketing opt-out (email_marketing_opt_out)
+        opted_out = customer.unsubscribed_from_emails? || customer.email_marketing_opt_out?
+        body['status'] = opted_out ? 'unsubscribed' : 'subscribed'
 
         response = http_request(:put, url, body: body)
 
@@ -119,12 +121,14 @@ module EmailMarketing
 
         operations = customers.map do |customer|
           subscriber_hash = email_hash(customer.email)
+          # Check both global unsubscribe AND marketing opt-out
+          opted_out = customer.unsubscribed_from_emails? || customer.email_marketing_opt_out?
           {
             method: 'PUT',
             path: "/lists/#{target_list}/members/#{subscriber_hash}",
             body: build_member_body(customer).merge(
               'status_if_new' => 'subscribed',
-              'status' => customer.unsubscribed_from_emails? ? 'unsubscribed' : 'subscribed'
+              'status' => opted_out ? 'unsubscribed' : 'subscribed'
             ).to_json
           }
         end

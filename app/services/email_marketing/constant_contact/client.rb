@@ -235,10 +235,12 @@ module EmailMarketing
       end
 
       def build_contact_body(customer, list_id = nil, for_update: false)
+        # Check both global unsubscribe (unsubscribed_at) AND marketing opt-out (email_marketing_opt_out)
+        opted_out = customer.unsubscribed_from_emails? || customer.email_marketing_opt_out?
         body = {
           email_address: {
             address: customer.email,
-            permission_to_send: customer.unsubscribed_from_emails? ? 'unsubscribed' : 'implicit'
+            permission_to_send: opted_out ? 'unsubscribed' : 'implicit'
           },
           first_name: customer.first_name.to_s,
           last_name: customer.last_name.to_s,

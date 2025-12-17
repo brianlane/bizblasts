@@ -4,6 +4,25 @@ module EmailMarketing
   module Mailchimp
     # Service for syncing contacts to Mailchimp
     class ContactSyncService < BaseSyncService
+      # Handle incoming webhook data (unsubscribes, profile updates, etc.)
+      # Must be public so ProcessWebhookJob can call it
+      def handle_webhook(webhook_data)
+        return unless webhook_data
+
+        case webhook_data['type']
+        when 'unsubscribe'
+          handle_unsubscribe(webhook_data['data'])
+        when 'subscribe'
+          handle_subscribe(webhook_data['data'])
+        when 'profile'
+          handle_profile_update(webhook_data['data'])
+        when 'cleaned'
+          handle_cleaned(webhook_data['data'])
+        when 'upemail'
+          handle_email_change(webhook_data['data'])
+        end
+      end
+
       protected
 
       # Scope for customers that have never been synced to Mailchimp
@@ -59,24 +78,6 @@ module EmailMarketing
         end
 
         status
-      end
-
-      # Handle incoming webhook data (unsubscribes, profile updates, etc.)
-      def handle_webhook(webhook_data)
-        return unless webhook_data
-
-        case webhook_data['type']
-        when 'unsubscribe'
-          handle_unsubscribe(webhook_data['data'])
-        when 'subscribe'
-          handle_subscribe(webhook_data['data'])
-        when 'profile'
-          handle_profile_update(webhook_data['data'])
-        when 'cleaned'
-          handle_cleaned(webhook_data['data'])
-        when 'upemail'
-          handle_email_change(webhook_data['data'])
-        end
       end
 
       private

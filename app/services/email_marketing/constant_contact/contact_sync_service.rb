@@ -4,6 +4,25 @@ module EmailMarketing
   module ConstantContact
     # Service for syncing contacts to Constant Contact
     class ContactSyncService < BaseSyncService
+      # Handle incoming webhook data
+      # Must be public so ProcessWebhookJob can call it
+      def handle_webhook(webhook_data)
+        return unless webhook_data
+
+        event_type = webhook_data['event_type'] || webhook_data['topic_id']
+
+        case event_type
+        when 'contacts.unsubscribe', 'contact.unsubscribe'
+          handle_unsubscribe(webhook_data)
+        when 'contacts.subscribe', 'contact.subscribe'
+          handle_subscribe(webhook_data)
+        when 'contacts.update', 'contact.update'
+          handle_profile_update(webhook_data)
+        when 'contacts.delete', 'contact.delete'
+          handle_delete(webhook_data)
+        end
+      end
+
       protected
 
       # Scope for customers that have never been synced to Constant Contact
@@ -53,24 +72,6 @@ module EmailMarketing
         end
 
         status
-      end
-
-      # Handle incoming webhook data
-      def handle_webhook(webhook_data)
-        return unless webhook_data
-
-        event_type = webhook_data['event_type'] || webhook_data['topic_id']
-
-        case event_type
-        when 'contacts.unsubscribe', 'contact.unsubscribe'
-          handle_unsubscribe(webhook_data)
-        when 'contacts.subscribe', 'contact.subscribe'
-          handle_subscribe(webhook_data)
-        when 'contacts.update', 'contact.update'
-          handle_profile_update(webhook_data)
-        when 'contacts.delete', 'contact.delete'
-          handle_delete(webhook_data)
-        end
       end
 
       private
