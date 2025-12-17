@@ -6,6 +6,11 @@ module EmailMarketing
     class ContactSyncService < BaseSyncService
       protected
 
+      # Column that tracks if a customer has been synced to Constant Contact
+      def provider_sync_id_column
+        'constant_contact_id'
+      end
+
       def sync_in_batches(customers, list_id)
         # Constant Contact uses activity-based bulk import
         result = api_client.batch_add_contacts(customers, list_id: list_id)

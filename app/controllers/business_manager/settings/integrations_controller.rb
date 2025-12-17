@@ -942,11 +942,9 @@ module BusinessManager
         auth_url = oauth_handler.authorization_url(current_business.id, redirect_uri)
 
         if auth_url
-          # CSRF protection: Store OAuth state in session for verification in callback
-          # Extract state parameter from the auth URL
-          state_param = extract_oauth_state_from_url(auth_url)
-          session[:email_marketing_oauth_state] = state_param if state_param.present?
-
+          # NOTE: We don't store state in session because OAuth callback goes to main domain
+          # which won't have access to tenant-scoped session. CSRF protection is provided
+          # by the cryptographically-signed state parameter verified in the callback handler.
           redirect_to auth_url, allow_other_host: true
         else
           redirect_to business_manager_settings_integrations_path,
@@ -984,11 +982,9 @@ module BusinessManager
         auth_url = oauth_handler.authorization_url(current_business.id, redirect_uri)
 
         if auth_url
-          # CSRF protection: Store OAuth state in session for verification in callback
-          # Extract state parameter from the auth URL
-          state_param = extract_oauth_state_from_url(auth_url)
-          session[:email_marketing_oauth_state] = state_param if state_param.present?
-
+          # NOTE: We don't store state in session because OAuth callback goes to main domain
+          # which won't have access to tenant-scoped session. CSRF protection is provided
+          # by the cryptographically-signed state parameter verified in the callback handler.
           redirect_to auth_url, allow_other_host: true
         else
           redirect_to business_manager_settings_integrations_path,
@@ -1144,17 +1140,6 @@ module BusinessManager
                      ":#{request.port}"
                    end
         "#{scheme}://#{host}#{port_str}/oauth/email-marketing/#{provider}/callback"
-      end
-
-      # Extract the state parameter from an OAuth authorization URL
-      # Used for CSRF protection - store in session to verify on callback
-      def extract_oauth_state_from_url(auth_url)
-        uri = URI.parse(auth_url)
-        params = URI.decode_www_form(uri.query || '')
-        state_param = params.find { |key, _| key == 'state' }
-        state_param&.last
-      rescue URI::InvalidURIError
-        nil
       end
 
       def email_marketing_config_params

@@ -6,6 +6,11 @@ module EmailMarketing
     class ContactSyncService < BaseSyncService
       protected
 
+      # Column that tracks if a customer has been synced to Mailchimp
+      def provider_sync_id_column
+        'mailchimp_subscriber_hash'
+      end
+
       def sync_in_batches(customers, list_id)
         # Mailchimp has a batch API for bulk operations
         result = api_client.batch_add_contacts(customers, list_id: list_id)

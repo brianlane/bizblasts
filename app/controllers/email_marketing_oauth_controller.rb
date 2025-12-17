@@ -24,19 +24,17 @@ class EmailMarketingOauthController < ApplicationController
       return
     end
 
-    # CSRF protection: Validate OAuth state matches session
-    # This prevents CSRF attacks where an attacker tricks a user into connecting
-    # the attacker's account instead of their own
-    unless session[:email_marketing_oauth_state].present? &&
-           ActiveSupport::SecurityUtils.secure_compare(session[:email_marketing_oauth_state].to_s, state.to_s)
-      session[:oauth_flash_alert] = 'Invalid OAuth state parameter (possible CSRF detected)'
-      Rails.logger.warn "[EmailMarketingOAuth] CSRF check failed for #{provider}: state mismatch"
-      redirect_to_integrations_page
-      return
-    end
-
-    # Invalidate used oauth_state to prevent re-use
-    session.delete(:email_marketing_oauth_state)
+    # NOTE: We do NOT use session-based state validation here because OAuth flow
+    # crosses domain boundaries (tenant subdomain/custom domain -> main domain callback).
+    # Session cookies are scoped by domain, so the main domain won't have access to
+    # the session from the tenant domain.
+    #
+    # Instead, CSRF protection is provided by the cryptographically-signed state parameter:
+    # - State is generated using Rails.application.message_verifier(:email_marketing_oauth)
+    # - Contains business_id, provider, timestamp, and nonce
+    # - Verified in oauth_handler.handle_callback via verify_state method
+    # - Has 15-minute expiry to prevent replay attacks
+    # - Invalid/tampered states are rejected by the message verifier
 
     oauth_handler = build_oauth_handler(provider)
     unless oauth_handler

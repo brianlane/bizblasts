@@ -158,11 +158,30 @@ module EmailMarketing
     end
 
     def fetch_customers_updated_since(since)
-      connection.business.tenant_customers
-                .active
-                .where.not(email: nil)
-                .where.not(email: '')
-                .where('updated_at > ? OR email_marketing_synced_at IS NULL', since)
+      base_scope = connection.business.tenant_customers
+                             .active
+                             .where.not(email: nil)
+                             .where.not(email: '')
+
+      # Check for customers that either:
+      # 1. Were updated since the last sync, OR
+      # 2. Have never been synced to THIS specific provider (provider-specific ID is null)
+      #
+      # This ensures a newly-connected second provider's first incremental sync
+      # includes all customers, not just recently updated ones.
+      never_synced_condition = provider_sync_id_column
+      if never_synced_condition
+        base_scope.where("updated_at > ? OR #{never_synced_condition} IS NULL", since)
+      else
+        # Fallback to legacy behavior if subclass doesn't specify
+        base_scope.where('updated_at > ? OR email_marketing_synced_at IS NULL', since)
+      end
+    end
+
+    # Override in subclass to specify the provider-specific ID column
+    # that indicates a customer has been synced to that provider
+    def provider_sync_id_column
+      nil
     end
 
     def create_sync_log(sync_type)
