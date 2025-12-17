@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_17_205137) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_17_210239) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -1049,6 +1049,18 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_17_205137) do
     t.string "subject"
     t.datetime "updated_at", null: false
     t.index ["business_id"], name: "index_notification_templates_on_business_id"
+  end
+
+  create_table "oauth_flash_messages", force: :cascade do |t|
+    t.string "alert"
+    t.datetime "created_at", null: false
+    t.datetime "expires_at", null: false
+    t.string "notice"
+    t.string "token", null: false
+    t.datetime "updated_at", null: false
+    t.boolean "used", default: false, null: false
+    t.index ["expires_at"], name: "index_oauth_flash_messages_on_expires_at"
+    t.index ["token"], name: "index_oauth_flash_messages_on_token", unique: true
   end
 
   create_table "orders", force: :cascade do |t|

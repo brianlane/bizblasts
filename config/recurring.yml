@@ -39,3 +39,9 @@ production:
     class: InvalidatedSessionCleanupJob
     queue: default
     schedule: at 3am every day
+
+  # OAuth flash message cleanup runs every 15 minutes to remove used/expired tokens
+  oauth_flash_message_cleanup:
+    class: OauthFlashMessageCleanupJob
+    queue: default
+    schedule: every 15 minutes

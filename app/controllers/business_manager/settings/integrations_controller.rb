@@ -64,17 +64,18 @@ module BusinessManager
         
         # Handle OAuth flash messages from cross-domain redirects
         # Since OAuth callbacks cross domain boundaries (main domain -> tenant subdomain),
-        # we use signed URL parameters instead of session-based flash messages.
+        # we use database-backed tokens instead of session-based flash messages.
         #
-        # This is secure because:
-        # - The message is cryptographically signed using Rails.application.message_verifier
-        # - It cannot be tampered with or forged
-        # - It has a 5-minute expiry to prevent replay attacks
-        # - Only success/failure messages are passed, not sensitive data
+        # The oauth_flash parameter contains only an opaque, cryptographically-secure
+        # random token (not sensitive data), which is consumed once and marked as used.
+        # This approach:
+        # - Avoids CodeQL CWE-598 warnings about sensitive data in GET requests
+        # - Tokens are single-use with automatic 5-minute expiry
+        # - Tokens cannot be tampered with or forged
         #
         # Also check session for backwards compatibility with other OAuth flows
         if params[:oauth_flash].present?
-          flash_data = EmailMarketingOauthHelper.verify_flash_message(params[:oauth_flash])
+          flash_data = OauthFlashMessage.consume(params[:oauth_flash])
           if flash_data
             flash.now[:notice] = flash_data[:notice] if flash_data[:notice].present?
             flash.now[:alert] = flash_data[:alert] if flash_data[:alert].present?

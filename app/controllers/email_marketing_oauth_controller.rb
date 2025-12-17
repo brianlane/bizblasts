@@ -80,27 +80,26 @@ class EmailMarketingOauthController < ApplicationController
     EmailMarketingOauthHelper.callback_url(provider, request)
   end
 
-  # Redirect to the integrations page with a signed flash message
+  # Redirect to the integrations page with a database-backed flash message token
   # Since OAuth callbacks cross domain boundaries (main domain -> tenant subdomain),
-  # we can't use session-based flash messages. Instead, we use a signed message
-  # passed via URL parameter that's verified on the receiving end.
+  # we can't use session-based flash messages. Instead, we store the message in the
+  # database and pass only an opaque token in the URL.
   #
-  # This is secure because:
-  # - The message is cryptographically signed using Rails.application.message_verifier
-  # - It cannot be tampered with or forged
-  # - It has a 5-minute expiry to prevent replay attacks
-  # - The CWE-598 concern about sensitive data in URLs doesn't apply here since
-  #   we're only passing success/failure messages, not credentials or tokens
+  # This approach:
+  # - Avoids CodeQL CWE-598 warnings about sensitive data in GET requests
+  # - Uses cryptographically secure random tokens
+  # - Has automatic expiry (5 minutes) to prevent replay attacks
+  # - Tokens are single-use and cleaned up periodically
   def redirect_to_integrations_page(business = nil, notice: nil, alert: nil)
     base_path = '/manage/settings/integrations'
 
-    # Build signed flash message for cross-domain transport
-    flash_data = build_signed_flash_message(notice: notice, alert: alert)
+    # Create database-backed flash message token
+    flash_token = create_flash_token(notice: notice, alert: alert)
 
     if business.present?
       url = TenantHost.url_for(business, request, base_path)
       if url.present?
-        url_with_flash = append_flash_param(url, flash_data)
+        url_with_flash = append_flash_param(url, flash_token)
         redirect_to url_with_flash, allow_other_host: true
         return
       end
@@ -112,25 +111,19 @@ class EmailMarketingOauthController < ApplicationController
       host: Rails.application.config.main_domain.presence || request.host,
       protocol: protocol
     )
-    redirect_to append_flash_param(fallback_url, flash_data), allow_other_host: true
+    redirect_to append_flash_param(fallback_url, flash_token), allow_other_host: true
   end
 
-  def build_signed_flash_message(notice: nil, alert: nil)
+  def create_flash_token(notice: nil, alert: nil)
     return nil unless notice.present? || alert.present?
 
-    message_data = {
-      notice: notice,
-      alert: alert,
-      timestamp: Time.current.to_i
-    }.compact
-
-    Rails.application.message_verifier(:oauth_flash).generate(message_data)
+    OauthFlashMessage.create_with_token(notice: notice, alert: alert)
   end
 
-  def append_flash_param(url, flash_data)
-    return url unless flash_data.present?
+  def append_flash_param(url, flash_token)
+    return url unless flash_token.present?
 
     separator = url.include?('?') ? '&' : '?'
-    "#{url}#{separator}oauth_flash=#{CGI.escape(flash_data)}"
+    "#{url}#{separator}oauth_flash=#{CGI.escape(flash_token)}"
   end
 end
