@@ -30,8 +30,12 @@ module Webhooks
 
       # Mailchimp webhooks are form-encoded, not JSON
       webhook_type = params['type']
-      webhook_data = params['data'] || params.to_unsafe_h.except('controller', 'action')
-      list_id = webhook_data['list_id'] || params['data[list_id]']
+      # Use to_unsafe_h to avoid ActionController::UnfilteredParameters error
+      # when accessing nested params that haven't been permitted.
+      # This is safe because we're processing webhook data, not user input for mass assignment.
+      raw_params = params.to_unsafe_h.except('controller', 'action')
+      webhook_data = raw_params['data'] || raw_params
+      list_id = webhook_data['list_id'] || raw_params.dig('data', 'list_id')
 
       # Find the connection for this list
       connection = find_mailchimp_connection(list_id)
@@ -43,12 +47,13 @@ module Webhooks
       end
 
       # Process the webhook asynchronously
+      # webhook_data is already a Hash from to_unsafe_h, no need to call .to_h
       EmailMarketing::ProcessWebhookJob.perform_later(
         'mailchimp',
         connection.id,
         {
           type: webhook_type,
-          data: webhook_data.to_h,
+          data: webhook_data,
           received_at: Time.current.iso8601
         }
       )

@@ -35,8 +35,12 @@ module EmailMarketing
           result = case action
                    when 'remove'
                      sync_service.remove_customer(customer)
-                   else
+                   when 'sync', 'opt_out'
+                     # Both sync and opt_out actions update the customer in the provider
+                     # opt_out specifically ensures unsubscribe status is pushed
                      sync_service.sync_customer(customer)
+                   else
+                     { success: false, error: "Unknown action: #{action}" }
                    end
 
           if result[:success]
@@ -54,8 +58,11 @@ module EmailMarketing
       case action
       when 'sync'
         connection.sync_on_customer_create || connection.sync_on_customer_update
-      when 'remove'
-        true # Always allow remove
+      when 'remove', 'opt_out'
+        # Always allow remove and opt_out actions
+        # Opt-out status must be pushed to providers regardless of auto-sync settings
+        # to ensure unsubscribe preferences are respected
+        true
       else
         false
       end

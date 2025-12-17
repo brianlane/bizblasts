@@ -94,21 +94,24 @@ class EmailMarketingOauthController < ApplicationController
   end
 
   def redirect_to_integrations_page(business = nil)
-    # Redirect to the business's subdomain so the /manage/... route is accessible
-    # The /manage/... routes are constrained to business subdomains, not the main domain
-    protocol = request.ssl? ? 'https' : 'http'
-
-    if business&.subdomain.present?
-      # Redirect to business subdomain where /manage/... routes work
-      main_domain = Rails.application.config.main_domain.presence || request.host
-      host = "#{business.subdomain}.#{main_domain}"
-      redirect_to business_manager_settings_integrations_url(host: host, protocol: protocol)
-    else
-      # Fallback: redirect to main domain root (user will need to navigate manually)
-      redirect_to root_url(
-        host: Rails.application.config.main_domain.presence || request.host,
-        protocol: protocol
-      )
+    # Redirect to the business's domain so the /manage/... route is accessible
+    # The /manage/... routes are constrained to business subdomains/custom domains
+    #
+    # Uses TenantHost.url_for for consistency with other OAuth controllers
+    # and to leverage proper custom domain handling (checks custom_domain_allow?, etc.)
+    if business.present?
+      url = TenantHost.url_for(business, request, '/manage/settings/integrations')
+      if url.present?
+        redirect_to url, allow_other_host: true
+        return
+      end
     end
+
+    # Fallback: redirect to main domain root (user will need to navigate manually)
+    protocol = request.ssl? ? 'https' : 'http'
+    redirect_to root_url(
+      host: Rails.application.config.main_domain.presence || request.host,
+      protocol: protocol
+    )
   end
 end
