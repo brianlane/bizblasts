@@ -2,20 +2,15 @@
 
 module Webhooks
   # Handles incoming webhooks from email marketing platforms (Mailchimp, Constant Contact)
-  class EmailMarketingController < ApplicationController
-    # SECURITY: External webhook endpoints (CWE-352 / CSRF)
-    #
-    # Webhooks are server-to-server callbacks and cannot include Rails CSRF tokens.
-    # Instead of disabling CSRF verification (which CodeQL flags), we keep forgery
-    # protection enabled but use the `null_session` strategy so unverified requests
-    # cannot leverage cookie-backed session state.
-    #
-    # Defense-in-depth authentication:
-    # - `mailchimp`: request source verification (secret param and/or IP allowlist)
-    # - `constant_contact`: HMAC signature verification (`X-CTCT-Signature`)
-    # codeql[rb/csrf-protection-disabled] Webhooks cannot use CSRF tokens; we use signature/IP verification
-    protect_from_forgery with: :null_session
-
+  #
+  # Inherits from Webhooks::BaseController (ActionController::API) which does not include
+  # CSRF protection - this is correct because webhooks are server-to-server callbacks
+  # that cannot include CSRF tokens.
+  #
+  # Authentication is handled via:
+  # - Mailchimp: IP allowlist + optional webhook secret (verify_mailchimp_request)
+  # - Constant Contact: HMAC signature verification (verify_constant_contact_signature)
+  class EmailMarketingController < BaseController
     # Mailchimp sends a GET request to verify the webhook URL
     # GET /webhooks/email-marketing/mailchimp
     def mailchimp_verify
