@@ -436,11 +436,26 @@ class TenantCustomer < ApplicationRecord
     sync_relevant_changes = saved_changes.keys & %w[email first_name last_name phone active email_marketing_opt_out unsubscribed_at]
     return if sync_relevant_changes.empty?
 
-    # Handle unsubscribe/deactivation specially
+    # Handle deactivation specially - remove from email marketing
     if saved_changes.key?('active') && !active?
-      # Customer deactivated - remove from email marketing
       business.email_marketing_connections.active.find_each do |connection|
         EmailMarketing::SyncSingleContactJob.perform_later(id, connection.provider, 'remove')
+      end
+      return
+    end
+
+    # For inactive customers, only process opt-out/unsubscribe changes
+    # Do NOT sync regular field updates for inactive customers to providers
+    # This preserves the deactivation semantics
+    unless active?
+      # Handle opt-out/unsubscribe changes even for inactive customers
+      opt_out_changed = saved_changes.key?('email_marketing_opt_out') && email_marketing_opt_out?
+      unsubscribed_changed = saved_changes.key?('unsubscribed_at') && unsubscribed_at.present?
+
+      if opt_out_changed || unsubscribed_changed
+        business.email_marketing_connections.active.find_each do |connection|
+          EmailMarketing::SyncSingleContactJob.perform_later(id, connection.provider, 'opt_out')
+        end
       end
       return
     end
@@ -459,7 +474,7 @@ class TenantCustomer < ApplicationRecord
       return
     end
 
-    # Regular update - sync to platforms that sync on update
+    # Regular update - sync to platforms that sync on update (only for active customers)
     business.email_marketing_connections.active.where(sync_on_customer_update: true).find_each do |connection|
       EmailMarketing::SyncSingleContactJob.perform_later(id, connection.provider, 'sync')
     end
