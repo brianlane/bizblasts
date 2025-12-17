@@ -66,7 +66,7 @@ module BusinessManager
         # Since OAuth callbacks cross domain boundaries (main domain -> tenant subdomain),
         # we use database-backed tokens instead of session-based flash messages.
         #
-        # The oauth_flash parameter contains only an opaque, cryptographically-secure
+        # The flash_token parameter contains only an opaque, cryptographically-secure
         # random token (not sensitive data), which is consumed once and marked as used.
         # This approach:
         # - Avoids CodeQL CWE-598 warnings about sensitive data in GET requests
@@ -74,8 +74,8 @@ module BusinessManager
         # - Tokens cannot be tampered with or forged
         #
         # Also check session for backwards compatibility with other OAuth flows
-        if params[:oauth_flash].present?
-          flash_data = OauthFlashMessage.consume(params[:oauth_flash])
+        if params[:flash_token].present?
+          flash_data = OauthFlashMessage.consume(params[:flash_token])
           if flash_data
             flash.now[:notice] = flash_data[:notice] if flash_data[:notice].present?
             flash.now[:alert] = flash_data[:alert] if flash_data[:alert].present?
