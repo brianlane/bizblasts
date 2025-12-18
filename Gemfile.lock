@@ -360,7 +360,7 @@ GEM
     multi_json (1.18.0)
     multi_xml (0.7.2)
       bigdecimal (~> 3.1)
-    net-http (0.8.0)
+    net-http (0.9.1)
       uri (>= 0.11.1)
     net-imap (0.5.12)
       date
@@ -631,7 +631,7 @@ GEM
     tsort (0.2.0)
     ttfunk (1.8.0)
       bigdecimal (~> 3.1)
-    twilio-ruby (7.8.8)
+    twilio-ruby (7.9.0)
       faraday (>= 0.9, < 3.0)
       jwt (>= 1.5, < 4.0)
       nokogiri (>= 1.6, < 2.0)
@@ -746,7 +746,7 @@ DEPENDENCIES
   thruster
   timecop
   tod
-  twilio-ruby (~> 7.8)
+  twilio-ruby (~> 7.9)
   tzinfo-data
   web-console
   webdrivers
