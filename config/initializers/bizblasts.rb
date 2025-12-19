@@ -9,3 +9,4 @@ module BizBlasts
   PLATFORM_FEE_PERCENTAGE = 1.0
 end
 
+

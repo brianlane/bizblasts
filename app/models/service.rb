@@ -35,6 +35,9 @@ class Service < ApplicationRecord
     attachable.variant :large, resize_to_limit: [2000, 2000]
   end
 
+  # Virtual attribute for storing crop data for gallery images (keyed by attachment ID)
+  attr_accessor :images_crop_data
+
   # Ensure `images.ordered` is available on the ActiveStorage proxy
   def images
     proxy = super

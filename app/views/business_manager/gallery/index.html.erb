@@ -1,6 +1,8 @@
 <% content_for :title, "Gallery Management" %>
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" data-controller="gallery-manager">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+     data-controller="gallery-manager simple-image-cropper"
+     data-simple-image-cropper-viewport-size-value="300">
   <!-- Header -->
   <div class="mb-8">
     <div class="flex items-center justify-between">
@@ -285,5 +287,11 @@
     </div>
   </div>
 </div>
+
+<!-- Simple Image Cropper Modal for Gallery Photos -->
+<%= render 'shared/simple_image_cropper_modal',
+    modal_id: "gallery_photo_cropper",
+    viewport_size: 300
+%>
 
 </div>

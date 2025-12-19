@@ -74,6 +74,11 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
         @business.logo.purge
       end
 
+      # Apply crop transformation if logo was uploaded with crop data
+      if @business.logo.attached? && permitted_params[:logo_crop_data].present?
+        process_logo_crop(permitted_params[:logo_crop_data])
+      end
+
       # If the user switched back to subdomain mode, run the same removal
       # service used by ActiveAdmin to clean up Render and revert safely.
       if @business.saved_change_to_host_type? && @business.host_type_subdomain?
@@ -326,7 +331,7 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
     # 1. Via verified integrations flow in IntegrationsController (using GoogleBusinessVerificationService)
     # 2. Via manual entry for service businesses that can't use the search flow
     permitted = params.require(:business).permit(
-      :name, :industry, :phone, :email, :website, :address, :city, :state, :zip, :description, :time_zone, :logo, :stock_management_enabled,
+      :name, :industry, :phone, :email, :website, :address, :city, :state, :zip, :description, :time_zone, :logo, :logo_crop_data, :stock_management_enabled,
       :subdomain, :hostname, :host_type, :custom_domain_owned, :canonical_preference,
       :google_place_id,
       # Permit individual hour fields, which will be processed into a JSON hash
@@ -415,6 +420,20 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
       )
       
       Rails.logger.info "[BUSINESS_SETTINGS] Created new default location ##{new_location.id} for business ##{@business.id}"
+    end
+  end
+
+  # Apply crop transformation to uploaded logo
+  def process_logo_crop(crop_data)
+    return unless @business.logo.attached? && crop_data.present?
+
+    begin
+      result = ImageCropService.crop(@business.logo, crop_data)
+      unless result
+        Rails.logger.warn "[BUSINESS_SETTINGS] Logo crop failed for business #{@business.id}"
+      end
+    rescue StandardError => e
+      Rails.logger.error "[BUSINESS_SETTINGS] Logo crop error for business #{@business.id}: #{e.message}"
     end
   end
 end 

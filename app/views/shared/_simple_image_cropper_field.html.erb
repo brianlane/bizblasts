@@ -1,0 +1,113 @@
+<%#
+  Simple Image Cropper Field Component
+
+  A complete image upload with simple drag-to-reposition cropper.
+  Uses the simple-image-cropper controller for a mobile-friendly experience.
+
+  Usage:
+    <%= render 'shared/simple_image_cropper_field',
+        form: f,
+        field_name: :logo,
+        crop_field_name: :logo_crop_data,
+        label: "Business Logo",
+        viewport_size: 280,
+        accept: "image/png,image/jpeg,image/gif,image/webp",
+        preview_size: "w-24 h-24",
+        existing_image: @business.logo,
+        helper_text: "Square format required"
+    %>
+<% form ||= nil %>
+<% field_name ||= :image %>
+<% crop_field_name ||= :"#{field_name}_crop_data" %>
+<% label ||= field_name.to_s.humanize %>
+<% viewport_size ||= 280 %>
+<% accept ||= "image/png,image/jpeg,image/gif,image/webp,image/heic,image/heif" %>
+<% preview_size ||= "w-24 h-24" %>
+<% existing_image ||= nil %>
+<% helper_text ||= nil %>
+<% modal_id ||= "#{field_name}_simple_cropper_modal" %>
+<% required ||= false %>
+
+<div class="space-y-2"
+     data-controller="simple-image-cropper"
+     data-simple-image-cropper-viewport-size-value="<%= viewport_size %>">
+
+  <!-- Label -->
+  <label class="block text-sm font-medium text-gray-700">
+    <%= label %>
+    <% if required %>
+      <span class="text-red-500">*</span>
+    <% end %>
+  </label>
+
+  <div class="flex items-start gap-4">
+    <!-- Preview Thumbnail -->
+    <div data-simple-image-cropper-target="thumbnail"
+         class="<%= preview_size %> rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden <%= existing_image&.attached? ? '' : 'hidden' %>">
+      <% if existing_image&.attached? %>
+        <%= image_tag existing_image.variant(resize_to_limit: [200, 200]),
+            class: "max-w-full max-h-full object-cover",
+            data: { simple_image_cropper_target: "thumbnailImage" } %>
+      <% else %>
+        <img src="" alt="Preview"
+             class="max-w-full max-h-full object-cover"
+             data-simple-image-cropper-target="thumbnailImage">
+      <% end %>
+    </div>
+
+    <!-- Empty State / Upload Area -->
+    <div class="flex-1">
+      <div class="flex flex-col gap-2">
+        <!-- Upload Button -->
+        <button type="button"
+                class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                data-action="click->simple-image-cropper#triggerFileSelect">
+          <svg class="-ml-1 mr-2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          <% if existing_image&.attached? %>
+            Change Image
+          <% else %>
+            Upload Image
+          <% end %>
+        </button>
+
+        <!-- File name display -->
+        <span data-simple-image-cropper-target="fileName" class="text-sm text-gray-500"></span>
+
+        <% if helper_text.present? %>
+          <p class="text-sm text-gray-500"><%= helper_text %></p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden File Input -->
+  <% if form %>
+    <%= form.file_field field_name,
+        accept: accept,
+        class: "hidden",
+        data: {
+          simple_image_cropper_target: "fileInput",
+          action: "change->simple-image-cropper#fileSelected"
+        } %>
+    <%= form.hidden_field crop_field_name,
+        data: { simple_image_cropper_target: "cropData" } %>
+  <% else %>
+    <input type="file"
+           name="<%= field_name %>"
+           accept="<%= accept %>"
+           class="hidden"
+           data-simple-image-cropper-target="fileInput"
+           data-action="change->simple-image-cropper#fileSelected">
+    <input type="hidden"
+           name="<%= crop_field_name %>"
+           data-simple-image-cropper-target="cropData">
+  <% end %>
+
+  <!-- Simple Cropper Modal -->
+  <%= render 'shared/simple_image_cropper_modal',
+      modal_id: modal_id,
+      viewport_size: viewport_size %>
+</div>
+

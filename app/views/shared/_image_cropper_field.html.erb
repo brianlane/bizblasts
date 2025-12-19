@@ -1,0 +1,125 @@
+<%#
+  Image Cropper Field Component
+
+  A complete image upload with cropper integration. Includes:
+  - File input (hidden)
+  - Upload button
+  - Preview thumbnail
+  - Crop data hidden field
+  - Cropper modal
+
+  Usage:
+    <%= render 'shared/image_cropper_field',
+        form: f,
+        field_name: :logo,           # The attachment field name
+        crop_field_name: :logo_crop_data,  # Hidden field for crop JSON
+        label: "Business Logo",
+        aspect_ratio: 1,             # 0 = free, 1 = 1:1, etc.
+        lock_aspect_ratio: true,     # Lock to single ratio
+        available_ratios: ["1:1"],   # Available ratio options
+        accept: "image/png,image/jpeg,image/gif,image/webp",
+        preview_size: "w-32 h-32",   # Tailwind classes for preview
+        existing_image: @business.logo,  # Existing attachment (optional)
+        helper_text: "Square logo recommended"  # Optional help text
+    %>
+%>
+<% form ||= nil %>
+<% field_name ||= :image %>
+<% crop_field_name ||= :"#{field_name}_crop_data" %>
+<% label ||= field_name.to_s.humanize %>
+<% aspect_ratio ||= 0 %>
+<% lock_aspect_ratio ||= false %>
+<% available_ratios ||= ["free", "1:1"] %>
+<% accept ||= "image/png,image/jpeg,image/gif,image/webp,image/heic,image/heif" %>
+<% preview_size ||= "w-24 h-24" %>
+<% existing_image ||= nil %>
+<% helper_text ||= nil %>
+<% modal_id ||= "#{field_name}_cropper_modal" %>
+<% required ||= false %>
+
+<div class="space-y-2"
+     data-controller="image-cropper"
+     data-image-cropper-aspect-ratio-value="<%= aspect_ratio %>"
+     data-image-cropper-lock-aspect-ratio-value="<%= lock_aspect_ratio %>"
+     data-image-cropper-max-dimension-value="4096">
+
+  <!-- Label -->
+  <label class="block text-sm font-medium text-gray-700">
+    <%= label %>
+    <% if required %>
+      <span class="text-red-500">*</span>
+    <% end %>
+  </label>
+
+  <div class="flex items-start gap-4">
+    <!-- Preview Thumbnail -->
+    <div data-image-cropper-target="thumbnail"
+         class="<%= preview_size %> rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden <%= existing_image&.attached? ? '' : 'hidden' %>">
+      <% if existing_image&.attached? %>
+        <%= image_tag existing_image.variant(resize_to_limit: [200, 200]),
+            class: "max-w-full max-h-full object-cover",
+            data: { image_cropper_target: "thumbnailImage" } %>
+      <% else %>
+        <img src="" alt="Preview"
+             class="max-w-full max-h-full object-cover"
+             data-image-cropper-target="thumbnailImage">
+      <% end %>
+    </div>
+
+    <!-- Empty State / Upload Area -->
+    <div class="flex-1">
+      <div class="flex flex-col gap-2">
+        <!-- Upload Button -->
+        <button type="button"
+                class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                data-action="click->image-cropper#triggerFileSelect">
+          <svg class="-ml-1 mr-2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          <% if existing_image&.attached? %>
+            Change Image
+          <% else %>
+            Upload Image
+          <% end %>
+        </button>
+
+        <!-- File name display -->
+        <span data-image-cropper-target="fileName" class="text-sm text-gray-500"></span>
+
+        <% if helper_text.present? %>
+          <p class="text-sm text-gray-500"><%= helper_text %></p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden File Input -->
+  <% if form %>
+    <%= form.file_field field_name,
+        accept: accept,
+        class: "hidden",
+        data: {
+          image_cropper_target: "fileInput",
+          action: "change->image-cropper#fileSelected"
+        } %>
+    <%= form.hidden_field crop_field_name,
+        data: { image_cropper_target: "cropData" } %>
+  <% else %>
+    <input type="file"
+           name="<%= field_name %>"
+           accept="<%= accept %>"
+           class="hidden"
+           data-image-cropper-target="fileInput"
+           data-action="change->image-cropper#fileSelected">
+    <input type="hidden"
+           name="<%= crop_field_name %>"
+           data-image-cropper-target="cropData">
+  <% end %>
+
+  <!-- Cropper Modal -->
+  <%= render 'shared/image_cropper_modal',
+      modal_id: modal_id,
+      aspect_ratio: aspect_ratio,
+      lock_aspect_ratio: lock_aspect_ratio,
+      available_ratios: available_ratios %>
+</div>

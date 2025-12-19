@@ -2,7 +2,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
   # Ensure user is authenticated and acting within their current business context
   # BaseController handles authentication and setting @current_business
 
-  before_action :set_service, only: [:show, :edit, :update, :destroy, :update_position, :move_up, :move_down, :manage_availability, :clear_availability]
+  before_action :set_service, only: [:show, :edit, :update, :destroy, :update_position, :move_up, :move_down, :manage_availability, :clear_availability, :add_image, :remove_image, :crop_image]
 
   # GET /business_manager/services
   def index
@@ -37,6 +37,9 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
         process_availability_data(@service)
       end
 
+      # Apply crop transformations to images if crop data is provided
+      process_image_crops
+
       respond_to do |format|
         format.html { redirect_to business_manager_services_path, notice: 'Service was successfully created.' }
         format.json { render json: { service: @service.as_json(only: [:id, :name, :description, :price, :duration]) }, status: :created }
@@ -67,7 +70,10 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       if availability_data_present?
         process_availability_data(@service)
       end
-      
+
+      # Apply crop transformations to images if crop data is provided
+      process_image_crops
+
       redirect_to business_manager_services_path, notice: 'Service was successfully updated.'
     else
       set_video_meeting_data
@@ -199,16 +205,152 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
         date: params[:date],
         logger: logger
       )
-      
+
       date_info = @availability_manager.date_info
       @date = date_info[:current_date]
       @start_date = date_info[:start_date]
       @end_date = date_info[:end_date]
-      
+
       if request.patch?
         handle_availability_update
       else
         handle_availability_display
+      end
+    end
+
+    # POST /business_manager/services/:id/add_image
+    # Async image upload endpoint
+    def add_image
+      image_file = params[:image]
+
+      unless image_file.present?
+        respond_to do |format|
+          format.html { redirect_to edit_business_manager_service_path(@service), alert: 'No image file provided' }
+          format.json { render json: { error: 'No image file provided' }, status: :unprocessable_content }
+        end
+        return
+      end
+
+      # Validate file size (15MB limit)
+      if image_file.size > 15.megabytes
+        respond_to do |format|
+          format.html { redirect_to edit_business_manager_service_path(@service), alert: 'Image too large (max 15MB)' }
+          format.json { render json: { error: 'Image too large (max 15MB)' }, status: :unprocessable_content }
+        end
+        return
+      end
+
+      # Attach the image
+      @service.images.attach(image_file)
+
+      # Get the newly attached image
+      new_attachment = @service.images.attachments.last
+
+      respond_to do |format|
+        format.html { redirect_to edit_business_manager_service_path(@service), notice: 'Image uploaded successfully' }
+        format.json do
+          render json: {
+            success: true,
+            attachment_id: new_attachment.id,
+            filename: new_attachment.filename.to_s,
+            thumbnail_url: rails_public_blob_url(new_attachment.representation(resize_to_limit: [120, 120])),
+            full_url: rails_public_blob_url(new_attachment)
+          }
+        end
+      end
+    rescue StandardError => e
+      Rails.logger.error "[SERVICES] Failed to upload image: #{e.message}"
+      respond_to do |format|
+        format.html { redirect_to edit_business_manager_service_path(@service), alert: 'Failed to upload image' }
+        format.json { render json: { error: e.message }, status: :unprocessable_content }
+      end
+    end
+
+    # DELETE /business_manager/services/:id/remove_image/:attachment_id
+    # Async image removal endpoint
+    def remove_image
+      attachment_id = params[:attachment_id]
+      attachment = @service.images.attachments.find_by(id: attachment_id)
+
+      unless attachment
+        respond_to do |format|
+          format.html { redirect_to edit_business_manager_service_path(@service), alert: 'Image not found' }
+          format.json { render json: { error: 'Image not found' }, status: :not_found }
+        end
+        return
+      end
+
+      attachment.purge
+
+      respond_to do |format|
+        format.html { redirect_to edit_business_manager_service_path(@service), notice: 'Image removed successfully' }
+        format.json { render json: { success: true } }
+      end
+    rescue StandardError => e
+      Rails.logger.error "[SERVICES] Failed to remove image: #{e.message}"
+      respond_to do |format|
+        format.html { redirect_to edit_business_manager_service_path(@service), alert: 'Failed to remove image' }
+        format.json { render json: { error: e.message }, status: :unprocessable_content }
+      end
+    end
+
+    # POST /business_manager/services/:id/crop_image/:attachment_id
+    # Server-side image cropping endpoint
+    def crop_image
+      attachment_id = params[:attachment_id]
+      crop_data = params[:crop_data]
+
+      unless crop_data.present?
+        respond_to do |format|
+          format.html { redirect_to edit_business_manager_service_path(@service), alert: 'No crop data provided' }
+          format.json { render json: { error: 'No crop data provided' }, status: :unprocessable_content }
+        end
+        return
+      end
+
+      attachment = @service.images.attachments.find_by(id: attachment_id)
+
+      unless attachment
+        respond_to do |format|
+          format.html { redirect_to edit_business_manager_service_path(@service), alert: 'Image not found' }
+          format.json { render json: { error: 'Image not found' }, status: :not_found }
+        end
+        return
+      end
+
+      # Parse crop data if it's a string
+      crop_params = crop_data.is_a?(String) ? JSON.parse(crop_data) : crop_data.to_unsafe_h
+
+      result = ImageCropService.crop(attachment, crop_params)
+
+      if result
+        respond_to do |format|
+          format.html { redirect_to edit_business_manager_service_path(@service), notice: 'Image cropped successfully' }
+          format.json do
+            attachment.reload
+            render json: {
+              success: true,
+              thumbnail_url: rails_public_blob_url(attachment.representation(resize_to_limit: [120, 120])),
+              full_url: rails_public_blob_url(attachment)
+            }
+          end
+        end
+      else
+        respond_to do |format|
+          format.html { redirect_to edit_business_manager_service_path(@service), alert: 'Failed to crop image' }
+          format.json { render json: { error: 'Failed to crop image' }, status: :unprocessable_content }
+        end
+      end
+    rescue JSON::ParserError => e
+      respond_to do |format|
+        format.html { redirect_to edit_business_manager_service_path(@service), alert: 'Invalid crop data format' }
+        format.json { render json: { error: 'Invalid crop data format' }, status: :unprocessable_content }
+      end
+    rescue StandardError => e
+      Rails.logger.error "[SERVICES] Failed to crop image: #{e.message}"
+      respond_to do |format|
+        format.html { redirect_to edit_business_manager_service_path(@service), alert: 'Failed to crop image' }
+        format.json { render json: { error: e.message }, status: :unprocessable_content }
       end
     end
 
@@ -273,7 +415,8 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       images: [], # Allow new image uploads
       images_attributes: [:id, :primary, :position, :_destroy],
       service_variants_attributes: [:id, :name, :duration, :price, :active, :position, :_destroy],
-      availability: {}
+      availability: {},
+      images_crop_data: {} # Allow crop data for gallery images
     )
   end
 
@@ -291,15 +434,15 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
 
   def handle_image_updates
     new_images = params.dig(:service, :images)
-    
+
     # If there are new images, append them to existing ones
     if new_images.present?
       # Filter out empty uploads
       valid_images = Array(new_images).compact.reject(&:blank?)
-      
+
       if valid_images.any?
         @service.images.attach(valid_images)
-        
+
         # Check for attachment errors
         if @service.images.any? { |img| !img.persisted? }
           @service.errors.add(:images, "Failed to attach some images")
@@ -307,11 +450,42 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
         end
       end
     end
-    
+
     return true
   rescue => e
     @service.errors.add(:images, "Error processing images: #{e.message}")
     return false
+  end
+
+  # Apply crop transformations to existing service images
+  def process_image_crops
+    crop_data_hash = params.dig(:service, :images_crop_data)
+    return unless crop_data_hash.present?
+
+    crop_data_hash.each do |attachment_id, crop_json|
+      next if crop_json.blank?
+
+      begin
+        crop_data = crop_json.is_a?(String) ? JSON.parse(crop_json) : crop_json
+        attachment = @service.images.attachments.find_by(id: attachment_id)
+
+        unless attachment
+          Rails.logger.warn "[SERVICES] Image attachment #{attachment_id} not found for service #{@service.id}"
+          next
+        end
+
+        result = ImageCropService.crop(attachment, crop_data)
+        if result
+          Rails.logger.info "[SERVICES] Successfully cropped image #{attachment_id} for service #{@service.id}"
+        else
+          Rails.logger.warn "[SERVICES] Crop operation returned false for image #{attachment_id}"
+        end
+      rescue JSON::ParserError => e
+        Rails.logger.error "[SERVICES] Invalid crop data JSON for attachment #{attachment_id}: #{e.message}"
+      rescue StandardError => e
+        Rails.logger.error "[SERVICES] Crop error for attachment #{attachment_id}: #{e.message}"
+      end
+    end
   end
 
   # Helper to permit dynamic slot hashes

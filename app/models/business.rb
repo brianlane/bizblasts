@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class Business < ApplicationRecord
-  attr_accessor :remove_logo
+  attr_accessor :remove_logo, :logo_crop_data
   # Business represents a tenant in the multi-tenant architecture
   
   # Define the comprehensive list of industries based on showcase examples

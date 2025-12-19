@@ -4,6 +4,7 @@ require Rails.root.join('lib/constraints/subdomain_constraint')
 require Rails.root.join('lib/constraints/custom_domain_constraint')
 require Rails.root.join('lib/constraints/business_domain_constraint')
 require Rails.root.join('lib/constraints/tenant_public_constraint')
+require Rails.root.join('lib/cloudfront_url_signer')
 
 Rails.application.routes.draw do
   # Health check routes - MUST be first to avoid being caught by catch-all routes
@@ -261,6 +262,10 @@ Rails.application.routes.draw do
           get 'manage_availability'
           patch 'manage_availability'
           patch :clear_availability
+          # Async image management
+          post :add_image
+          delete 'remove_image/:attachment_id', action: :remove_image, as: :remove_image
+          post 'crop_image/:attachment_id', action: :crop_image, as: :crop_image
         end
         resources :service_variants, except: [:show]
       end
@@ -269,6 +274,10 @@ Rails.application.routes.draw do
           patch :update_position
           patch :move_up
           patch :move_down
+          # Async image management
+          post :add_image
+          delete 'remove_image/:attachment_id', action: :remove_image, as: :remove_image
+          post 'crop_image/:attachment_id', action: :crop_image, as: :crop_image
         end
       end
       
@@ -311,6 +320,7 @@ Rails.application.routes.draw do
         post 'photos', action: :create_photo, as: :photos
         post 'photos/reorder', action: :reorder_photos, as: :reorder_photos
         patch 'photos/:id', action: :update_photo, as: :update_photo
+        post 'photos/:id/crop', action: :crop_photo, as: :crop_photo
         delete 'photos/:id', action: :destroy_photo, as: :destroy_photo
         post 'video', action: :create_video, as: :video
         patch 'video', action: :update_video, as: :update_video
@@ -960,8 +970,26 @@ Rails.application.routes.draw do
 
   # CloudFront CDN support for Active Storage
   direct :rails_public_blob do |blob|
-    if ENV.fetch("ACTIVE_STORAGE_ASSET_HOST", false) && blob&.key
-      File.join(ENV.fetch("ACTIVE_STORAGE_ASSET_HOST"), blob.key)
+    # Only generate CloudFront-style URLs when the underlying blob is stored in S3.
+    # In development we typically use Disk storage; pointing at CloudFront would 403.
+    base_blob =
+      if blob.respond_to?(:blob)
+        blob.blob
+      else
+        blob
+      end
+
+    using_s3 =
+      if base_blob.respond_to?(:service_name) && base_blob.service_name.present?
+        base_blob.service_name.to_s == "amazon"
+      else
+        Rails.application.config.active_storage.service.to_s == "amazon"
+      end
+
+    if using_s3 && ENV.fetch("ACTIVE_STORAGE_ASSET_HOST", false) && blob&.key
+      base = ENV.fetch("ACTIVE_STORAGE_ASSET_HOST").to_s
+      url = File.join(base, blob.key)
+      CloudfrontUrlSigner.signed_url(url)
     else
       route = if blob.is_a?(ActiveStorage::Variant) || blob.is_a?(ActiveStorage::VariantWithRecord)
                 :rails_representation

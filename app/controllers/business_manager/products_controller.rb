@@ -1,6 +1,6 @@
 module BusinessManager
   class ProductsController < BaseController # Inherit from your base controller for this namespace
-    before_action :set_product, only: [:show, :edit, :update, :destroy, :update_position, :move_up, :move_down]
+    before_action :set_product, only: [:show, :edit, :update, :destroy, :update_position, :move_up, :move_down, :add_image, :remove_image, :crop_image]
 
     # GET /manage/products
     def index
@@ -26,6 +26,8 @@ module BusinessManager
     def create
       @product = current_business.products.new(product_params)
       if @product.save
+        # Process any image crops after save
+        process_image_crops if params.dig(:product, :images_crop_data).present?
         redirect_to business_manager_product_path(@product), notice: 'Product was successfully created.'
       else
         flash.now[:alert] = @product.errors.full_messages.to_sentence
@@ -42,6 +44,8 @@ module BusinessManager
     # PATCH/PUT /manage/products/:id
     def update
       if @product.update(product_params_without_images) && handle_image_updates
+        # Process any image crops after save
+        process_image_crops if params.dig(:product, :images_crop_data).present?
         redirect_to business_manager_product_path(@product), notice: 'Product was successfully updated.'
       else
         flash.now[:alert] = @product.errors.full_messages.to_sentence
@@ -106,7 +110,7 @@ module BusinessManager
       # Check if product is already at the bottom
       products_list = current_business.products.positioned.to_a
       current_index = products_list.index(@product)
-      
+
       if current_index.nil?
         respond_to do |format|
           format.json { render json: { status: 'error', message: 'Product not found' }, status: :not_found }
@@ -114,7 +118,7 @@ module BusinessManager
         end
         return
       end
-      
+
       if current_index == products_list.length - 1
         # Already at the bottom, do nothing but return success
         respond_to do |format|
@@ -123,7 +127,7 @@ module BusinessManager
         end
         return
       end
-      
+
       # Move to next position
       target_product = products_list[current_index + 1]
       if @product.move_to_position(target_product.position)
@@ -136,6 +140,111 @@ module BusinessManager
           format.json { render json: { status: 'error', message: 'Failed to move product down' }, status: :unprocessable_content }
           format.html { redirect_to business_manager_products_path, alert: 'Failed to move product down' }
         end
+      end
+    end
+
+    # POST /business_manager/products/:id/add_image
+    # Async image upload endpoint
+    def add_image
+      image_file = params[:image]
+
+      unless image_file.present?
+        render json: { success: false, error: "No image provided" }, status: :unprocessable_entity
+        return
+      end
+
+      # Validate file type
+      allowed_types = %w[image/png image/jpeg image/gif image/webp image/heic image/heif]
+      unless allowed_types.include?(image_file.content_type)
+        render json: { success: false, error: "Invalid file type. Allowed: PNG, JPEG, GIF, WebP, HEIC, HEIF" }, status: :unprocessable_entity
+        return
+      end
+
+      # Validate file size (15MB max)
+      max_size = 15.megabytes
+      if image_file.size > max_size
+        render json: { success: false, error: "File too large. Maximum size is 15MB." }, status: :unprocessable_entity
+        return
+      end
+
+      begin
+        @product.images.attach(image_file)
+        new_attachment = @product.images.attachments.last
+
+        if new_attachment.persisted?
+          render json: {
+            success: true,
+            attachment_id: new_attachment.id,
+            filename: new_attachment.filename.to_s,
+            thumbnail_url: rails_public_blob_url(new_attachment.representation(resize_to_limit: [120, 120])),
+            full_url: rails_public_blob_url(new_attachment)
+          }
+        else
+          render json: { success: false, error: "Failed to save image" }, status: :unprocessable_entity
+        end
+      rescue StandardError => e
+        Rails.logger.error "[PRODUCTS] Image upload error: #{e.message}"
+        render json: { success: false, error: "Upload failed: #{e.message}" }, status: :unprocessable_entity
+      end
+    end
+
+    # DELETE /business_manager/products/:id/remove_image/:attachment_id
+    # Async image removal endpoint
+    def remove_image
+      attachment = @product.images.attachments.find_by(id: params[:attachment_id])
+
+      unless attachment
+        render json: { success: false, error: "Image not found" }, status: :not_found
+        return
+      end
+
+      begin
+        attachment.purge
+        render json: { success: true, message: "Image removed successfully" }
+      rescue StandardError => e
+        Rails.logger.error "[PRODUCTS] Image removal error: #{e.message}"
+        render json: { success: false, error: "Failed to remove image: #{e.message}" }, status: :unprocessable_entity
+      end
+    end
+
+    # POST /business_manager/products/:id/crop_image/:attachment_id
+    # Server-side image cropping endpoint
+    def crop_image
+      attachment = @product.images.attachments.find_by(id: params[:attachment_id])
+
+      unless attachment
+        render json: { success: false, error: "Image not found" }, status: :not_found
+        return
+      end
+
+      crop_data = params[:crop_data]
+      unless crop_data.present?
+        render json: { success: false, error: "No crop data provided" }, status: :unprocessable_entity
+        return
+      end
+
+      begin
+        # Parse crop data if it's a JSON string
+        crop_params = crop_data.is_a?(String) ? JSON.parse(crop_data) : crop_data.to_unsafe_h
+
+        result = ImageCropService.crop(attachment, crop_params)
+
+        if result
+          # Return updated thumbnail URL
+          render json: {
+            success: true,
+            message: "Image cropped successfully",
+            thumbnail_url: rails_public_blob_url(attachment.representation(resize_to_limit: [120, 120])),
+            full_url: rails_public_blob_url(attachment)
+          }
+        else
+          render json: { success: false, error: "Crop operation failed" }, status: :unprocessable_entity
+        end
+      rescue JSON::ParserError => e
+        render json: { success: false, error: "Invalid crop data format" }, status: :unprocessable_entity
+      rescue StandardError => e
+        Rails.logger.error "[PRODUCTS] Image crop error: #{e.message}"
+        render json: { success: false, error: "Crop failed: #{e.message}" }, status: :unprocessable_entity
       end
     end
 
@@ -155,12 +264,14 @@ module BusinessManager
         :variant_label_text, # Variant label customization
         :position, # Allow position updates
         :document_template_id, # Allow associating a document template (product agreement/terms)
-        add_on_service_ids: [], 
+        add_on_service_ids: [],
         # Allow multiple images to be uploaded
-        images: [], 
+        images: [],
         # Permit nested attributes for variants and images (for updates/ordering/primary)
         product_variants_attributes: [:id, :name, :sku, :price_modifier, :stock_quantity, :_destroy],
-        images_attributes: [:id, :primary, :position, :_destroy]
+        images_attributes: [:id, :primary, :position, :_destroy],
+        # Image crop data (hash keyed by attachment ID)
+        images_crop_data: {}
       )
     end
 
@@ -170,15 +281,15 @@ module BusinessManager
 
     def handle_image_updates
       new_images = params.dig(:product, :images)
-      
+
       # If there are new images, append them to existing ones
       if new_images.present?
         # Filter out empty uploads
         valid_images = Array(new_images).compact.reject(&:blank?)
-        
+
         if valid_images.any?
           @product.images.attach(valid_images)
-          
+
           # Check for attachment errors
           if @product.images.any? { |img| !img.persisted? }
             @product.errors.add(:images, "Failed to attach some images")
@@ -186,11 +297,41 @@ module BusinessManager
           end
         end
       end
-      
+
       return true
     rescue => e
       @product.errors.add(:images, "Error processing images: #{e.message}")
       return false
+    end
+
+    # Process crop data for individual product images
+    def process_image_crops
+      crop_data_hash = params.dig(:product, :images_crop_data)
+      return unless crop_data_hash.present?
+
+      # Handle both hash format and array of JSON strings
+      crop_data_hash.each do |attachment_id, crop_json|
+        next if crop_json.blank?
+
+        begin
+          crop_data = crop_json.is_a?(String) ? JSON.parse(crop_json) : crop_json
+          next if crop_data.blank?
+
+          # Find the attachment by ID
+          attachment = @product.images.attachments.find_by(id: attachment_id)
+          next unless attachment
+
+          # Apply crop using ImageCropService
+          result = ImageCropService.crop(attachment, crop_data)
+          unless result
+            Rails.logger.warn "[PRODUCTS] Image crop failed for attachment #{attachment_id}"
+          end
+        rescue JSON::ParserError => e
+          Rails.logger.error "[PRODUCTS] Invalid crop data JSON for attachment #{attachment_id}: #{e.message}"
+        rescue StandardError => e
+          Rails.logger.error "[PRODUCTS] Image crop error for attachment #{attachment_id}: #{e.message}"
+        end
+      end
     end
   end
 end 

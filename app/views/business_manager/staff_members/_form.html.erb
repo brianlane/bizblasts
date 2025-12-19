@@ -276,82 +276,22 @@
               class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-primary" %>
       </div>
       
-      <!-- Profile Photo Section -->
-      <div class="bg-gray-50 p-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors">
-        <%= f.label :photo, "Profile Photo", class: "block text-gray-700 text-sm font-bold mb-3" %>
-        
-        <!-- File upload area -->
-        <div class="text-center">
-          <!-- Hidden file input -->
-          <%= f.file_field :photo, 
-                accept: "image/png,image/jpeg,image/gif,image/webp,image/heic,image/heif",                                                                     
-                class: "hidden",
-                id: "staff_member_photo_input",
-                data: { allowed_types: "image/png,image/jpeg,image/gif,image/webp,image/heic,image/heif" },
-                onchange: "validateStaffPhoto(this)" %>
-          
-          <!-- Custom styled button -->
-          <button type="button" id="staff-photo-button" 
-                  class="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-primary hover:bg-primary text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-            </svg>
-            Choose Profile Photo
-          </button>
-          
-          <!-- File selection display -->
-          <div id="photo-selection-display" class="mt-3 text-sm text-gray-600 font-medium">
-            No photo selected
-          </div>
-        </div>
-        
-        <!-- Current photo display -->
-        <% if staff_member.photo.attached? && staff_member.persisted? %>
-          <div class="mt-4 flex flex-col sm:flex-row items-center sm:items-start gap-4 p-4 bg-white rounded-lg border">
-            <div class="flex-shrink-0">
-              <% begin %>
-                <%= image_tag rails_public_blob_url(staff_member.photo.variant(:thumb)), 
-                      class: "h-20 w-20 rounded-full object-cover shadow-sm border-2 border-gray-200" %>
-              <% rescue => e %>
-                <div class="h-20 w-20 rounded-full bg-gray-200 flex items-center justify-center">
-                  <span class="text-gray-500 text-xs text-center">Photo<br>Error</span>
-                </div>
-              <% end %>
-            </div>
-            <div class="text-center sm:text-left">
-              <p class="text-sm font-medium text-gray-700">Current Photo</p>
-              <p class="text-xs text-gray-500 mt-1">
-                <%= staff_member.photo.filename if staff_member.photo.respond_to?(:filename) %>
-              </p>
-            </div>
-          </div>
-        <% end %>
-        
-        <!-- Help text -->
-        <div class="mt-4 p-3 bg-light rounded-md">
-          <p class="text-sm text-primary">
-            <strong>📸 Photo Guidelines:</strong><br>
-            • Formats: PNG, JPEG, GIF, WebP, HEIC, HEIF<br>
-            • Max size: 15MB<br>
-            • HEIC files automatically converted to JPEG<br>
-            • Recommended: Professional headshot, square aspect ratio
-          </p>
-        </div>
+      <!-- Profile Photo Section with Simple Image Cropper -->
+      <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+        <%= render 'shared/simple_image_cropper_field',
+            form: f,
+            field_name: :photo,
+            crop_field_name: :photo_crop_data,
+            label: "Profile Photo",
+            viewport_size: 280,
+            accept: "image/png,image/jpeg,image/gif,image/webp,image/heic,image/heif",
+            preview_size: "w-20 h-20 rounded-full",
+            existing_image: (staff_member.persisted? && staff_member.photo.attached?) ? staff_member.photo : nil,
+            helper_text: "Professional headshot recommended. PNG, JPEG, GIF, WebP, HEIC up to 15MB." %>
       </div>
 
       <script>
         function initializeStaffMemberFormFeatures() {
-          // Handle custom photo button click
-          const photoButton = document.getElementById('staff-photo-button');
-          const photoInput = document.getElementById('staff_member_photo_input');
-          const photoDisplay = document.getElementById('photo-selection-display');
-          
-          if (photoButton && photoInput) {
-            photoButton.addEventListener('click', function() {
-              photoInput.click();
-            });
-          }
-          
           // Role Dropdown Functionality
           const roleDropdownButton = document.querySelector('[data-role-dropdown-target="button"]');
           const roleDropdownMenu = document.querySelector('[data-role-dropdown-target="menu"]');
@@ -359,13 +299,13 @@
           const roleDropdownText = document.querySelector('.role-dropdown-text');
           const roleDropdownArrow = roleDropdownButton?.querySelector('svg');
           const roleHiddenField = document.getElementById('staff_member_user_role');
-          
+
           if (roleDropdownButton && roleDropdownMenu) {
             // Toggle dropdown
             roleDropdownButton.addEventListener('click', function(e) {
               e.preventDefault();
               const isHidden = roleDropdownMenu.classList.contains('hidden');
-              
+
               if (isHidden) {
                 roleDropdownMenu.classList.remove('hidden');
                 roleDropdownArrow?.classList.add('rotate-180');
@@ -374,25 +314,25 @@
                 roleDropdownArrow?.classList.remove('rotate-180');
               }
             });
-            
+
             // Handle option selection
             roleDropdownOptions.forEach(option => {
               option.addEventListener('click', function(e) {
                 e.preventDefault();
-                
+
                 const roleValue = this.getAttribute('data-role-value');
                 const roleName = this.getAttribute('data-role-name');
-                
+
                 // Update hidden field
                 if (roleHiddenField) {
                   roleHiddenField.value = roleValue;
                 }
-                
+
                 // Update button text
                 if (roleDropdownText) {
                   roleDropdownText.textContent = roleName;
                 }
-                
+
                 // Update selection indicators
                 roleDropdownOptions.forEach(opt => {
                   const checkmark = opt.querySelector('svg');
@@ -400,18 +340,18 @@
                     checkmark.classList.add('hidden');
                   }
                 });
-                
+
                 const selectedCheckmark = this.querySelector('svg');
                 if (selectedCheckmark) {
                   selectedCheckmark.classList.remove('hidden');
                 }
-                
+
                 // Close dropdown
                 roleDropdownMenu.classList.add('hidden');
                 roleDropdownArrow?.classList.remove('rotate-180');
               });
             });
-            
+
             // Close dropdown when clicking outside
             document.addEventListener('click', function(e) {
               if (!roleDropdownButton.contains(e.target) && !roleDropdownMenu.contains(e.target)) {
@@ -424,86 +364,6 @@
 
         document.addEventListener('DOMContentLoaded', initializeStaffMemberFormFeatures);
         document.addEventListener('turbo:load', initializeStaffMemberFormFeatures);
-
-        function validateStaffPhoto(input) {
-          const file = input.files[0];
-          // Remove any existing feedback
-          let existingFeedback = document.getElementById('photo-feedback');
-          if (existingFeedback) {
-            existingFeedback.remove();
-          }
-          
-          if (!file) {
-            // Reset styling if no file
-            const photoButton = document.getElementById('staff-photo-button');
-            const photoDisplay = document.getElementById('photo-selection-display');
-            if (photoButton) {
-              photoButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-primary hover:bg-primary text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer';
-            }
-            if (photoDisplay) {
-              photoDisplay.className = 'mt-3 text-sm text-gray-600 font-medium';
-              photoDisplay.textContent = 'No photo selected';
-            }
-            return;
-          }
-          
-          let hasErrors = false;
-          
-          // Check file size (15MB = 15 * 1024 * 1024 bytes)
-          if (file.size > 15 * 1024 * 1024) {
-            alert('Photo must be less than 15MB. Please choose a smaller file.');
-            hasErrors = true;
-          }
-          
-          // Check file type - get from data attribute or fallback
-          const allowedTypes = input.dataset.allowedTypes ? 
-            input.dataset.allowedTypes.split(',') :
-            ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];                                             
-          if (!allowedTypes.includes(file.type)) {
-            alert('Photo must be PNG, JPEG, GIF, WebP, HEIC, or HEIF format.');
-            hasErrors = true;
-          }
-          
-          if (hasErrors) {
-            input.value = '';
-            // Update button styling for error
-            const photoButton = document.getElementById('staff-photo-button');
-            const photoDisplay = document.getElementById('photo-selection-display');
-            if (photoButton) {
-              photoButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 cursor-pointer';
-            }
-            if (photoDisplay) {
-              photoDisplay.className = 'mt-3 text-sm text-red-600 font-medium';
-              photoDisplay.textContent = 'Invalid photo file';
-            }
-            
-            // Add error feedback
-            const feedback = document.createElement('div');
-            feedback.id = 'photo-feedback';
-            feedback.className = 'mt-2 text-sm text-red-600 font-medium';
-            feedback.innerHTML = '❌ Please choose a valid photo file.';
-            input.parentElement.appendChild(feedback);
-            return;
-          }
-          
-          // Valid file - update UI to show success
-          const photoButton = document.getElementById('staff-photo-button');
-          const photoDisplay = document.getElementById('photo-selection-display');
-          if (photoButton) {
-            photoButton.className = 'inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-success hover:bg-success text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-success focus:ring-offset-2 cursor-pointer';
-          }
-          if (photoDisplay) {
-            photoDisplay.className = 'mt-3 text-sm text-success font-medium';
-            photoDisplay.textContent = `Selected: ${file.name}`;
-          }
-          
-          // Add success feedback
-          const feedback = document.createElement('div');
-          feedback.id = 'photo-feedback';
-          feedback.className = 'mt-2 text-sm text-success font-medium';
-          feedback.innerHTML = '✅ Photo ready to upload.';
-          input.parentElement.appendChild(feedback);
-        }
       </script>
 
       <!-- Status Toggle -->

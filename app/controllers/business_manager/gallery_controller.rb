@@ -4,7 +4,7 @@ module BusinessManager
   # Controller for managing business gallery photos and videos
   class GalleryController < BusinessManager::BaseController
     before_action :set_business
-    before_action :set_gallery_photo, only: %i[update_photo destroy_photo]
+    before_action :set_gallery_photo, only: %i[update_photo destroy_photo crop_photo]
 
     # GET /manage/gallery
     def index
@@ -150,6 +150,56 @@ module BusinessManager
           format.html { redirect_to business_manager_gallery_index_path, alert: 'Failed to remove video' }
           format.json { render json: { error: 'Failed to remove video' }, status: :unprocessable_content }
         end
+      end
+    end
+
+    # POST /manage/gallery/photos/:id/crop
+    def crop_photo
+      crop_data = params[:crop_data]
+
+      unless crop_data.present?
+        respond_to do |format|
+          format.html { redirect_to business_manager_gallery_index_path, alert: 'No crop data provided' }
+          format.json { render json: { error: 'No crop data provided' }, status: :unprocessable_content }
+        end
+        return
+      end
+
+      # Parse crop data if it's a string
+      crop_params = crop_data.is_a?(String) ? JSON.parse(crop_data) : crop_data.to_unsafe_h
+
+      result = ImageCropService.crop_attached_image(
+        @gallery_photo,
+        :image,
+        crop_params
+      )
+
+      if result[:success]
+        respond_to do |format|
+          format.html { redirect_to business_manager_gallery_index_path, notice: 'Photo cropped successfully' }
+          format.json do
+            render json: {
+              success: true,
+              image_url: @gallery_photo.image_url(:medium)
+            }
+          end
+        end
+      else
+        respond_to do |format|
+          format.html { redirect_to business_manager_gallery_index_path, alert: result[:error] }
+          format.json { render json: { error: result[:error] }, status: :unprocessable_content }
+        end
+      end
+    rescue JSON::ParserError => e
+      respond_to do |format|
+        format.html { redirect_to business_manager_gallery_index_path, alert: 'Invalid crop data format' }
+        format.json { render json: { error: 'Invalid crop data format' }, status: :unprocessable_content }
+      end
+    rescue StandardError => e
+      Rails.logger.error "Failed to crop gallery photo: #{e.message}"
+      respond_to do |format|
+        format.html { redirect_to business_manager_gallery_index_path, alert: 'Failed to crop photo' }
+        format.json { render json: { error: e.message }, status: :unprocessable_content }
       end
     end
 
