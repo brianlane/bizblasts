@@ -110,17 +110,18 @@ RSpec.describe ImageCroppable, type: :controller do
     let(:service) { create(:service) }
 
     context "with valid image attachment" do
-      let(:image_file) { fixture_file_upload("spec/fixtures/files/test_image.png", "image/png") }
+      let(:image_file) { fixture_file_upload("spec/fixtures/files/test_image.jpg", "image/jpeg") }
 
       before do
         service.images.attach(image_file)
       end
 
-      it "returns true for PNG images" do
-        attachment = service.images.attachments.first
-        controller_instance = described_class.allocate
+      it "returns true for JPEG images" do
+        # Access the VALID_IMAGE_TYPES constant - JPEG is a valid type
+        expect(ImageCroppable::VALID_IMAGE_TYPES).to include("image/jpeg")
+      end
 
-        # Access the VALID_IMAGE_TYPES constant
+      it "includes PNG in valid types" do
         expect(ImageCroppable::VALID_IMAGE_TYPES).to include("image/png")
       end
 

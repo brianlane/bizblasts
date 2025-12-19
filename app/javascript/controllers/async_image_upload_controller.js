@@ -206,8 +206,15 @@ export default class extends Controller {
       return true
     }
 
-    // Retry on server errors (5xx)
-    if (error.message.includes('5')) {
+    // Retry on server errors (5xx) - check for specific phrases
+    const serverErrorPhrases = [
+      'Server temporarily unavailable',
+      'error 500',
+      'error 502',
+      'error 503',
+      'error 504'
+    ]
+    if (serverErrorPhrases.some(phrase => error.message.includes(phrase))) {
       return true
     }
 

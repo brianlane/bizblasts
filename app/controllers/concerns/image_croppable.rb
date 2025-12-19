@@ -47,6 +47,9 @@ module ImageCroppable
                  Rails.logger.warn "[IMAGE_CROP] Invalid JSON crop data: #{e.message}"
                  return {}
                end
+             elsif crop_data.is_a?(ActionController::Parameters)
+               # Safely convert ActionController::Parameters to hash with permitted keys
+               crop_data.permit(*ALLOWED_CROP_KEYS).to_h
              elsif crop_data.respond_to?(:to_h)
                crop_data.to_h
              else

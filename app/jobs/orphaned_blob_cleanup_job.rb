@@ -82,10 +82,11 @@ class OrphanedBlobCleanupJob < ApplicationJob
   def cleanup_orphaned_variants(stats, dry_run, verbose)
     # Clean up variant records that point to non-existent blobs
     # This can happen if a blob is deleted but its variants aren't properly cleaned up
+    # Note: We only filter orphaned variants without timestamp constraint since
+    # active_storage_variant_records doesn't have created_at by default
     orphaned_variants = ActiveStorage::VariantRecord
       .left_outer_joins(:blob)
       .where(active_storage_blobs: { id: nil })
-      .where("active_storage_variant_records.created_at < ?", VARIANT_AGE_THRESHOLD.ago)
       .limit(BATCH_SIZE)
 
     stats[:orphaned_variants_found] = orphaned_variants.count

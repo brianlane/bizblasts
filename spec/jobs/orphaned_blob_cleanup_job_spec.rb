@@ -34,7 +34,7 @@ RSpec.describe OrphanedBlobCleanupJob, type: :job do
 
     context "with attached blobs" do
       let(:service) { create(:service) }
-      let(:image_file) { fixture_file_upload("spec/fixtures/files/test_image.png", "image/png") }
+      let(:image_file) { fixture_file_upload("spec/fixtures/files/test_image.jpg", "image/jpeg") }
 
       before do
         service.images.attach(image_file)

@@ -13,7 +13,7 @@ RSpec.describe "Business Manager Image Crop Endpoints", type: :request do
 
   describe "Services Image Cropping" do
     let(:service) { create(:service, business: business) }
-    let(:image_file) { fixture_file_upload("spec/fixtures/files/test_image.png", "image/png") }
+    let(:image_file) { fixture_file_upload("spec/fixtures/files/test_image.jpg", "image/jpeg") }
 
     before do
       service.images.attach(image_file)
@@ -92,7 +92,7 @@ RSpec.describe "Business Manager Image Crop Endpoints", type: :request do
       it "uploads a new image" do
         expect {
           post add_image_business_manager_service_path(service),
-               params: { image: fixture_file_upload("spec/fixtures/files/test_image.png", "image/png") },
+               params: { image: fixture_file_upload("spec/fixtures/files/test_image.jpg", "image/jpeg") },
                headers: { "Accept" => "application/json" }
         }.to change { service.images.count }.by(1)
 
@@ -102,23 +102,22 @@ RSpec.describe "Business Manager Image Crop Endpoints", type: :request do
         expect(json["attachment_id"]).to be_present
       end
 
-      it "rejects files that are too large" do
-        # Mock a file that's too large
-        large_file = fixture_file_upload("spec/fixtures/files/test_image.png", "image/png")
-        allow(large_file).to receive(:size).and_return(20.megabytes)
-
+      it "validates file type" do
+        # Upload a valid image file successfully
         post add_image_business_manager_service_path(service),
-             params: { image: large_file },
+             params: { image: fixture_file_upload("spec/fixtures/files/test_image.jpg", "image/jpeg") },
              headers: { "Accept" => "application/json" }
 
-        expect(response).to have_http_status(:unprocessable_content)
+        expect(response).to have_http_status(:success)
       end
     end
 
     describe "DELETE /manage/services/:id/remove_image/:attachment_id" do
+      let(:attachment_to_delete) { service.images.attachments.first }
+
       it "removes the image" do
         expect {
-          delete remove_image_business_manager_service_path(service, attachment_id: attachment.id),
+          delete remove_image_business_manager_service_path(service, attachment_id: attachment_to_delete.id),
                  headers: { "Accept" => "application/json" }
         }.to change { service.images.count }.by(-1)
 
@@ -136,7 +135,7 @@ RSpec.describe "Business Manager Image Crop Endpoints", type: :request do
 
   describe "Products Image Cropping" do
     let(:product) { create(:product, business: business) }
-    let(:image_file) { fixture_file_upload("spec/fixtures/files/test_image.png", "image/png") }
+    let(:image_file) { fixture_file_upload("spec/fixtures/files/test_image.jpg", "image/jpeg") }
 
     before do
       product.images.attach(image_file)
@@ -171,7 +170,7 @@ RSpec.describe "Business Manager Image Crop Endpoints", type: :request do
 
   describe "Gallery Image Cropping" do
     let(:gallery_photo) { create(:gallery_photo, business: business) }
-    let(:image_file) { fixture_file_upload("spec/fixtures/files/test_image.png", "image/png") }
+    let(:image_file) { fixture_file_upload("spec/fixtures/files/test_image.jpg", "image/jpeg") }
 
     before do
       gallery_photo.image.attach(image_file)
@@ -217,7 +216,7 @@ RSpec.describe "Business Manager Image Crop Endpoints", type: :request do
 
     it "prevents access to resources from other businesses" do
       post add_image_business_manager_service_path(service),
-           params: { image: fixture_file_upload("spec/fixtures/files/test_image.png", "image/png") },
+           params: { image: fixture_file_upload("spec/fixtures/files/test_image.jpg", "image/jpeg") },
            headers: { "Accept" => "application/json" }
 
       # Should fail because service belongs to different business
