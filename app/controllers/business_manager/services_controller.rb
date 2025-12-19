@@ -1,4 +1,6 @@
 class BusinessManager::ServicesController < BusinessManager::BaseController
+  include ImageCroppable
+
   # Ensure user is authenticated and acting within their current business context
   # BaseController handles authentication and setting @current_business
 
@@ -299,33 +301,39 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
     def crop_image
       attachment_id = params[:attachment_id]
       crop_data = params[:crop_data]
+      redirect_path = edit_business_manager_service_path(@service)
 
       unless crop_data.present?
-        respond_to do |format|
-          format.html { redirect_to edit_business_manager_service_path(@service), alert: 'No crop data provided' }
-          format.json { render json: { error: 'No crop data provided' }, status: :unprocessable_content }
-        end
-        return
+        return render_crop_error('No crop data provided', redirect_path)
       end
 
       attachment = @service.images.attachments.find_by(id: attachment_id)
 
       unless attachment
         respond_to do |format|
-          format.html { redirect_to edit_business_manager_service_path(@service), alert: 'Image not found' }
+          format.html { redirect_to redirect_path, alert: 'Image not found' }
           format.json { render json: { error: 'Image not found' }, status: :not_found }
         end
         return
       end
 
-      # Parse crop data if it's a string
-      crop_params = crop_data.is_a?(String) ? JSON.parse(crop_data) : crop_data.to_unsafe_h
+      # Validate that the attachment is a valid image
+      unless valid_image_for_crop?(attachment)
+        return render_crop_error('Invalid image type', redirect_path)
+      end
+
+      # Parse crop data using the concern's secure method (replaces to_unsafe_h)
+      crop_params = parse_crop_params(crop_data)
+
+      if crop_params.blank?
+        return render_crop_error('Invalid crop data format', redirect_path)
+      end
 
       result = ImageCropService.crop(attachment, crop_params)
 
       if result
         respond_to do |format|
-          format.html { redirect_to edit_business_manager_service_path(@service), notice: 'Image cropped successfully' }
+          format.html { redirect_to redirect_path, notice: 'Image cropped successfully' }
           format.json do
             attachment.reload
             render json: {
@@ -336,22 +344,11 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
           end
         end
       else
-        respond_to do |format|
-          format.html { redirect_to edit_business_manager_service_path(@service), alert: 'Failed to crop image' }
-          format.json { render json: { error: 'Failed to crop image' }, status: :unprocessable_content }
-        end
-      end
-    rescue JSON::ParserError => e
-      respond_to do |format|
-        format.html { redirect_to edit_business_manager_service_path(@service), alert: 'Invalid crop data format' }
-        format.json { render json: { error: 'Invalid crop data format' }, status: :unprocessable_content }
+        render_crop_error('Failed to crop image', redirect_path)
       end
     rescue StandardError => e
       Rails.logger.error "[SERVICES] Failed to crop image: #{e.message}"
-      respond_to do |format|
-        format.html { redirect_to edit_business_manager_service_path(@service), alert: 'Failed to crop image' }
-        format.json { render json: { error: e.message }, status: :unprocessable_content }
-      end
+      render_crop_error('Failed to crop image', redirect_path)
     end
 
   private
@@ -457,35 +454,12 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
     return false
   end
 
-  # Apply crop transformations to existing service images
+  # Apply crop transformations to existing service images using ImageCroppable concern
   def process_image_crops
     crop_data_hash = params.dig(:service, :images_crop_data)
     return unless crop_data_hash.present?
 
-    crop_data_hash.each do |attachment_id, crop_json|
-      next if crop_json.blank?
-
-      begin
-        crop_data = crop_json.is_a?(String) ? JSON.parse(crop_json) : crop_json
-        attachment = @service.images.attachments.find_by(id: attachment_id)
-
-        unless attachment
-          Rails.logger.warn "[SERVICES] Image attachment #{attachment_id} not found for service #{@service.id}"
-          next
-        end
-
-        result = ImageCropService.crop(attachment, crop_data)
-        if result
-          Rails.logger.info "[SERVICES] Successfully cropped image #{attachment_id} for service #{@service.id}"
-        else
-          Rails.logger.warn "[SERVICES] Crop operation returned false for image #{attachment_id}"
-        end
-      rescue JSON::ParserError => e
-        Rails.logger.error "[SERVICES] Invalid crop data JSON for attachment #{attachment_id}: #{e.message}"
-      rescue StandardError => e
-        Rails.logger.error "[SERVICES] Crop error for attachment #{attachment_id}: #{e.message}"
-      end
-    end
+    process_multi_image_crops(@service, :images, crop_data_hash)
   end
 
   # Helper to permit dynamic slot hashes

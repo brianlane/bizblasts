@@ -53,12 +53,16 @@ class ImageCropService
 
   # Apply crop transformation, raising on failure
   # @return [ActiveStorage::Attachment] The updated attachment
-  # @raise [CropError] on failure
+  # @raise [AttachmentNotFoundError] when attachment is missing
+  # @raise [InvalidParamsError] when crop params are invalid
+  # @raise [CropError] on processing failure
   def call!
-    raise InvalidParamsError, errors.join(", ") unless valid?
+    validate! # Raises AttachmentNotFoundError or InvalidParamsError if invalid
 
     process_crop
     @attachment
+  rescue AttachmentNotFoundError, InvalidParamsError
+    raise # Re-raise specific errors
   rescue StandardError => e
     raise CropError, "Failed to crop image: #{e.message}"
   end
@@ -143,6 +147,7 @@ class ImageCropService
   end
 
   # Validate inputs before processing
+  # @raise [AttachmentNotFoundError] when attachment is missing (for call!)
   def valid?
     @errors = []
 
@@ -170,6 +175,24 @@ class ImageCropService
     end
 
     @errors.empty?
+  end
+
+  # Validate and raise AttachmentNotFoundError if missing
+  # Used by call! for explicit error handling
+  def validate!
+    unless attachment_present?
+      raise AttachmentNotFoundError, "No image attached"
+    end
+
+    unless @attachment.blob&.image?
+      raise InvalidParamsError, "Attachment is not an image"
+    end
+
+    unless valid?
+      raise InvalidParamsError, @errors.join(", ")
+    end
+
+    true
   end
 
   # Check if attachment is present (handles both Attached and Attachment)

@@ -259,13 +259,13 @@ Rails.application.routes.draw do
           patch :update_position
           patch :move_up
           patch :move_down
-          get 'manage_availability'
-          patch 'manage_availability'
+          get :manage_availability
+          patch :manage_availability, action: :manage_availability
           patch :clear_availability
-          # Async image management
+          # Async image management (consistent named route style)
           post :add_image
-          delete 'remove_image/:attachment_id', action: :remove_image, as: :remove_image
-          post 'crop_image/:attachment_id', action: :crop_image, as: :crop_image
+          delete :remove_image, path: 'remove_image/:attachment_id'
+          post :crop_image, path: 'crop_image/:attachment_id'
         end
         resources :service_variants, except: [:show]
       end
@@ -274,10 +274,10 @@ Rails.application.routes.draw do
           patch :update_position
           patch :move_up
           patch :move_down
-          # Async image management
+          # Async image management (consistent named route style)
           post :add_image
-          delete 'remove_image/:attachment_id', action: :remove_image, as: :remove_image
-          post 'crop_image/:attachment_id', action: :crop_image, as: :crop_image
+          delete :remove_image, path: 'remove_image/:attachment_id'
+          post :crop_image, path: 'crop_image/:attachment_id'
         end
       end
       

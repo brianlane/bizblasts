@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class BusinessManager::Settings::BusinessController < BusinessManager::BaseController
+  include ImageCroppable
+
   before_action :set_business
   before_action :authorize_business_settings # Pundit authorization
 
@@ -423,17 +425,8 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
     end
   end
 
-  # Apply crop transformation to uploaded logo
+  # Apply crop transformation to uploaded logo using ImageCroppable concern
   def process_logo_crop(crop_data)
-    return unless @business.logo.attached? && crop_data.present?
-
-    begin
-      result = ImageCropService.crop(@business.logo, crop_data)
-      unless result
-        Rails.logger.warn "[BUSINESS_SETTINGS] Logo crop failed for business #{@business.id}"
-      end
-    rescue StandardError => e
-      Rails.logger.error "[BUSINESS_SETTINGS] Logo crop error for business #{@business.id}: #{e.message}"
-    end
+    process_single_image_crop(@business, :logo, crop_data)
   end
 end 

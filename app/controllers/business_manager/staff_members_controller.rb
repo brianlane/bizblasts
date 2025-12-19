@@ -1,4 +1,6 @@
 class BusinessManager::StaffMembersController < BusinessManager::BaseController
+  include ImageCroppable
+
   # Ensure user is authenticated and acting within their current business context
   # BaseController handles authentication and setting @current_business
 
@@ -296,18 +298,9 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
     )
   end
 
-  # Apply crop transformation to uploaded photo
+  # Apply crop transformation to uploaded photo using ImageCroppable concern
   def process_photo_crop(staff_member, crop_data)
-    return unless staff_member.photo.attached? && crop_data.present?
-
-    begin
-      result = ImageCropService.crop(staff_member.photo, crop_data)
-      unless result
-        Rails.logger.warn "[STAFF_MEMBER] Photo crop failed for staff member #{staff_member.id}"
-      end
-    rescue StandardError => e
-      Rails.logger.error "[STAFF_MEMBER] Photo crop error for staff member #{staff_member.id}: #{e.message}"
-    end
+    process_single_image_crop(staff_member, :photo, crop_data)
   end
 
   # Helper to permit dynamic keys (slot indices) mapping to start/end times

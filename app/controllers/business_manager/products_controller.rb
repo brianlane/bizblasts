@@ -1,5 +1,7 @@
 module BusinessManager
   class ProductsController < BaseController # Inherit from your base controller for this namespace
+    include ImageCroppable
+
     before_action :set_product, only: [:show, :edit, :update, :destroy, :update_position, :move_up, :move_down, :add_image, :remove_image, :crop_image]
 
     # GET /manage/products
@@ -217,16 +219,27 @@ module BusinessManager
         return
       end
 
+      # Validate that the attachment is a valid image
+      unless valid_image_for_crop?(attachment)
+        render json: { success: false, error: "Invalid image type" }, status: :unprocessable_entity
+        return
+      end
+
       crop_data = params[:crop_data]
       unless crop_data.present?
         render json: { success: false, error: "No crop data provided" }, status: :unprocessable_entity
         return
       end
 
-      begin
-        # Parse crop data if it's a JSON string
-        crop_params = crop_data.is_a?(String) ? JSON.parse(crop_data) : crop_data.to_unsafe_h
+      # Parse crop data using the concern's secure method (replaces to_unsafe_h)
+      crop_params = parse_crop_params(crop_data)
 
+      if crop_params.blank?
+        render json: { success: false, error: "Invalid crop data format" }, status: :unprocessable_entity
+        return
+      end
+
+      begin
         result = ImageCropService.crop(attachment, crop_params)
 
         if result
@@ -240,8 +253,6 @@ module BusinessManager
         else
           render json: { success: false, error: "Crop operation failed" }, status: :unprocessable_entity
         end
-      rescue JSON::ParserError => e
-        render json: { success: false, error: "Invalid crop data format" }, status: :unprocessable_entity
       rescue StandardError => e
         Rails.logger.error "[PRODUCTS] Image crop error: #{e.message}"
         render json: { success: false, error: "Crop failed: #{e.message}" }, status: :unprocessable_entity
@@ -304,34 +315,12 @@ module BusinessManager
       return false
     end
 
-    # Process crop data for individual product images
+    # Process crop data for individual product images using ImageCroppable concern
     def process_image_crops
       crop_data_hash = params.dig(:product, :images_crop_data)
       return unless crop_data_hash.present?
 
-      # Handle both hash format and array of JSON strings
-      crop_data_hash.each do |attachment_id, crop_json|
-        next if crop_json.blank?
-
-        begin
-          crop_data = crop_json.is_a?(String) ? JSON.parse(crop_json) : crop_json
-          next if crop_data.blank?
-
-          # Find the attachment by ID
-          attachment = @product.images.attachments.find_by(id: attachment_id)
-          next unless attachment
-
-          # Apply crop using ImageCropService
-          result = ImageCropService.crop(attachment, crop_data)
-          unless result
-            Rails.logger.warn "[PRODUCTS] Image crop failed for attachment #{attachment_id}"
-          end
-        rescue JSON::ParserError => e
-          Rails.logger.error "[PRODUCTS] Invalid crop data JSON for attachment #{attachment_id}: #{e.message}"
-        rescue StandardError => e
-          Rails.logger.error "[PRODUCTS] Image crop error for attachment #{attachment_id}: #{e.message}"
-        end
-      end
+      process_multi_image_crops(@product, :images, crop_data_hash)
     end
   end
 end 

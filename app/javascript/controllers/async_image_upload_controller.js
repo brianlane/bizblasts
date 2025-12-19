@@ -29,7 +29,9 @@ export default class extends Controller {
     cropUrlPrefix: String,   // URL prefix for cropping images (append attachment_id)
     maxFileSize: { type: Number, default: 15728640 }, // 15MB
     maxFiles: { type: Number, default: 10 },
-    allowedTypes: { type: String, default: "image/png,image/jpeg,image/gif,image/webp,image/heic,image/heif" }
+    allowedTypes: { type: String, default: "image/png,image/jpeg,image/gif,image/webp,image/heic,image/heif" },
+    maxRetries: { type: Number, default: 3 },         // Number of retry attempts
+    retryDelay: { type: Number, default: 1000 }       // Initial delay in ms (doubles each retry)
   }
 
   connect() {
@@ -108,14 +110,20 @@ export default class extends Controller {
     return validFiles
   }
 
-  // Upload a single file
-  async uploadFile(file) {
+  // Upload a single file with retry logic
+  async uploadFile(file, retryCount = 0) {
     if (!this.uploadUrlValue) {
       console.error("No upload URL configured")
+      this.showStatus('Upload not configured. Please refresh and try again.', 'error')
       return
     }
 
-    this.showStatus(`Uploading ${file.name}...`, 'info')
+    const isRetry = retryCount > 0
+    const statusMessage = isRetry
+      ? `Retrying upload of ${file.name} (attempt ${retryCount + 1}/${this.maxRetriesValue})...`
+      : `Uploading ${file.name}...`
+
+    this.showStatus(statusMessage, 'info')
     this.setButtonLoading(true)
 
     const formData = new FormData()
@@ -136,15 +144,80 @@ export default class extends Controller {
         this.addImageToList(result)
         this.showStatus(`${file.name} uploaded successfully`, 'success')
       } else {
-        const error = await response.json()
-        throw new Error(error.error || 'Upload failed')
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = this.getReadableErrorMessage(response.status, errorData)
+        throw new Error(errorMessage)
       }
     } catch (error) {
       console.error('Upload error:', error)
+
+      // Check if we should retry (network errors or 5xx errors)
+      if (this.shouldRetry(error, retryCount)) {
+        const delay = this.retryDelayValue * Math.pow(2, retryCount) // Exponential backoff
+        this.showStatus(`Upload failed. Retrying in ${delay / 1000}s...`, 'warning')
+
+        await this.sleep(delay)
+        return this.uploadFile(file, retryCount + 1)
+      }
+
       this.showStatus(`Failed to upload ${file.name}: ${error.message}`, 'error')
     } finally {
       this.setButtonLoading(false)
     }
+  }
+
+  // Convert HTTP error codes to user-friendly messages
+  getReadableErrorMessage(status, errorData) {
+    if (errorData && errorData.error) {
+      return errorData.error
+    }
+
+    switch (status) {
+      case 400:
+        return 'Invalid file. Please check the file and try again.'
+      case 401:
+        return 'Session expired. Please refresh the page and try again.'
+      case 403:
+        return 'Permission denied. You may not have access to upload files.'
+      case 413:
+        return 'File is too large. Maximum file size is 15MB.'
+      case 422:
+        return 'Invalid file type or corrupted file.'
+      case 429:
+        return 'Too many uploads. Please wait a moment and try again.'
+      case 500:
+      case 502:
+      case 503:
+      case 504:
+        return 'Server temporarily unavailable. Please try again shortly.'
+      default:
+        return `Upload failed (error ${status}). Please try again.`
+    }
+  }
+
+  // Determine if we should retry based on error type
+  shouldRetry(error, retryCount) {
+    if (retryCount >= this.maxRetriesValue) {
+      return false
+    }
+
+    // Retry on network errors or timeout
+    if (error.name === 'TypeError' || error.message.includes('network') || error.message.includes('fetch')) {
+      return true
+    }
+
+    // Retry on server errors (5xx)
+    if (error.message.includes('5')) {
+      return true
+    }
+
+    // Don't retry on client errors (4xx) - these are permanent failures
+    return false
+  }
+
+  // Sleep helper for retry delay
+  sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms))
   }
 
   // Add uploaded image to the list
@@ -265,6 +338,7 @@ export default class extends Controller {
     const statusClasses = {
       info: 'text-blue-600 bg-blue-50 border-blue-200',
       success: 'text-green-600 bg-green-50 border-green-200',
+      warning: 'text-yellow-600 bg-yellow-50 border-yellow-200',
       error: 'text-red-600 bg-red-50 border-red-200'
     }
 
@@ -272,11 +346,18 @@ export default class extends Controller {
     this.uploadStatusTarget.textContent = message
     this.uploadStatusTarget.classList.remove('hidden')
 
-    // Auto-hide success messages
+    // Auto-hide success messages after 3 seconds
     if (type === 'success') {
       setTimeout(() => {
         this.uploadStatusTarget.classList.add('hidden')
       }, 3000)
+    }
+
+    // Auto-hide warning messages after 5 seconds
+    if (type === 'warning') {
+      setTimeout(() => {
+        this.uploadStatusTarget.classList.add('hidden')
+      }, 5000)
     }
   }
 
