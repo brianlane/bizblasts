@@ -243,6 +243,8 @@ module BusinessManager
         result = ImageCropService.crop(attachment, crop_params)
 
         if result
+          # Reload attachment to get fresh blob URLs after crop replaced the blob
+          attachment.reload
           # Return updated thumbnail URL
           render json: {
             success: true,

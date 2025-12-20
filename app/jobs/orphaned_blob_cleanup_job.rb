@@ -59,11 +59,16 @@ class OrphanedBlobCleanupJob < ApplicationJob
       .left_outer_joins(:attachments)
       .where(active_storage_attachments: { id: nil })
       .where("active_storage_blobs.created_at < ?", ORPHAN_AGE_THRESHOLD.ago)
-      .limit(BATCH_SIZE)
 
-    stats[:orphaned_blobs_found] = orphaned_blobs.count
+    # Get total count before limiting
+    total_orphaned = orphaned_blobs.count
+    stats[:orphaned_blobs_found] = [total_orphaned, BATCH_SIZE].min
 
+    # Use in_batches with a limit to respect BATCH_SIZE
+    # find_each ignores limit(), so we manually limit iterations
+    processed = 0
     orphaned_blobs.find_each do |blob|
+      break if processed >= BATCH_SIZE
       Rails.logger.info "[OrphanedBlobCleanupJob] Found orphaned blob: #{blob.id} (#{blob.filename})" if verbose
 
       next if dry_run
@@ -71,10 +76,12 @@ class OrphanedBlobCleanupJob < ApplicationJob
       begin
         blob.purge
         stats[:orphaned_blobs_deleted] += 1
+        processed += 1
         Rails.logger.debug "[OrphanedBlobCleanupJob] Purged blob #{blob.id}"
       rescue StandardError => e
         stats[:errors] << { blob_id: blob.id, error: e.message }
         Rails.logger.error "[OrphanedBlobCleanupJob] Failed to purge blob #{blob.id}: #{e.message}"
+        processed += 1
       end
     end
   end
@@ -87,11 +94,16 @@ class OrphanedBlobCleanupJob < ApplicationJob
     orphaned_variants = ActiveStorage::VariantRecord
       .left_outer_joins(:blob)
       .where(active_storage_blobs: { id: nil })
-      .limit(BATCH_SIZE)
 
-    stats[:orphaned_variants_found] = orphaned_variants.count
+    # Get total count before limiting
+    total_orphaned = orphaned_variants.count
+    stats[:orphaned_variants_found] = [total_orphaned, BATCH_SIZE].min
 
+    # Use find_each with manual limit to respect BATCH_SIZE
+    processed = 0
     orphaned_variants.find_each do |variant|
+      break if processed >= BATCH_SIZE
+
       Rails.logger.info "[OrphanedBlobCleanupJob] Found orphaned variant: #{variant.id}" if verbose
 
       next if dry_run
@@ -99,10 +111,12 @@ class OrphanedBlobCleanupJob < ApplicationJob
       begin
         variant.destroy
         stats[:orphaned_variants_deleted] += 1
+        processed += 1
         Rails.logger.debug "[OrphanedBlobCleanupJob] Deleted variant record #{variant.id}"
       rescue StandardError => e
         stats[:errors] << { variant_id: variant.id, error: e.message }
         Rails.logger.error "[OrphanedBlobCleanupJob] Failed to delete variant #{variant.id}: #{e.message}"
+        processed += 1
       end
     end
   end

@@ -298,19 +298,6 @@ RSpec.describe "Client::Bookings", type: :request do
         expect(booking.booking_product_add_ons.count).to eq(0)
       end
 
-      it "prevents adding standard (non-service) product types via controller filtering" do
-        # Note: Product type restriction (service/mixed only) is enforced at controller level
-        # The model allows any product type (business managers can add standard products)
-        # This test verifies that standard products aren't shown in the UI for clients
-        # In practice, clients can't access standard product IDs because they're filtered out in the edit view
-        # If a client somehow gets a standard product ID, the model will allow it (for flexibility)
-        # but the client UI (edit.html.erb) only shows service/mixed products via @available_products filter
-
-        # This test is kept as documentation of the design decision:
-        # Controller-level filtering for UX, model-level validation for security and data integrity
-        skip "Product type restriction is now enforced at controller/UI level, not model level"
-      end
-
       it "allows valid product variant additions" do
         valid_params = {
           booking: {
