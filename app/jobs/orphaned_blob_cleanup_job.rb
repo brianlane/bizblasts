@@ -69,6 +69,8 @@ class OrphanedBlobCleanupJob < ApplicationJob
     processed = 0
     orphaned_blobs.find_each do |blob|
       break if processed >= BATCH_SIZE
+      processed += 1
+
       Rails.logger.info "[OrphanedBlobCleanupJob] Found orphaned blob: #{blob.id} (#{blob.filename})" if verbose
 
       next if dry_run
@@ -76,12 +78,10 @@ class OrphanedBlobCleanupJob < ApplicationJob
       begin
         blob.purge
         stats[:orphaned_blobs_deleted] += 1
-        processed += 1
         Rails.logger.debug "[OrphanedBlobCleanupJob] Purged blob #{blob.id}"
       rescue StandardError => e
         stats[:errors] << { blob_id: blob.id, error: e.message }
         Rails.logger.error "[OrphanedBlobCleanupJob] Failed to purge blob #{blob.id}: #{e.message}"
-        processed += 1
       end
     end
   end
@@ -103,6 +103,7 @@ class OrphanedBlobCleanupJob < ApplicationJob
     processed = 0
     orphaned_variants.find_each do |variant|
       break if processed >= BATCH_SIZE
+      processed += 1
 
       Rails.logger.info "[OrphanedBlobCleanupJob] Found orphaned variant: #{variant.id}" if verbose
 
@@ -111,12 +112,10 @@ class OrphanedBlobCleanupJob < ApplicationJob
       begin
         variant.destroy
         stats[:orphaned_variants_deleted] += 1
-        processed += 1
         Rails.logger.debug "[OrphanedBlobCleanupJob] Deleted variant record #{variant.id}"
       rescue StandardError => e
         stats[:errors] << { variant_id: variant.id, error: e.message }
         Rails.logger.error "[OrphanedBlobCleanupJob] Failed to delete variant #{variant.id}: #{e.message}"
-        processed += 1
       end
     end
   end

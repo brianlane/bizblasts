@@ -210,16 +210,29 @@ class ImageCropService
   end
 
   # Apply the crop transformation
+  # Order: crop → rotate → flip
+  # Cropper.js returns coordinates based on the original (unrotated) image,
+  # so we must crop first before applying rotation/flip transformations.
   def process_crop
     @attachment.blob.open do |tempfile|
       pipeline = ImageProcessing::MiniMagick.source(tempfile)
 
-      # Apply rotation first if specified
+      # Apply crop FIRST - using ImageMagick crop format
+      # Cropper.js getData() returns coordinates relative to the natural/original image,
+      # so we must crop before any rotation/flip to get the correct region.
+      # For ImageMagick, crop is WIDTHxHEIGHT+X+Y
+      crop_geometry = "#{@crop_params[:width]}x#{@crop_params[:height]}+#{@crop_params[:x]}+#{@crop_params[:y]}"
+      pipeline = pipeline.custom { |cmd| cmd.crop(crop_geometry) }
+
+      # Remove potential offset from crop operation
+      pipeline = pipeline.custom { |cmd| cmd.repage.+ }
+
+      # Apply rotation after crop if specified
       if @crop_params[:rotate] != 0
         pipeline = pipeline.rotate(@crop_params[:rotate])
       end
 
-      # Apply flip transformations
+      # Apply flip transformations after crop and rotation
       if @crop_params[:scaleX] == -1
         pipeline = pipeline.flop # Horizontal flip
       end
@@ -227,14 +240,6 @@ class ImageCropService
       if @crop_params[:scaleY] == -1
         pipeline = pipeline.flip # Vertical flip
       end
-
-      # Apply crop - using ImageMagick crop format
-      # For ImageMagick, crop is WIDTHxHEIGHT+X+Y
-      crop_geometry = "#{@crop_params[:width]}x#{@crop_params[:height]}+#{@crop_params[:x]}+#{@crop_params[:y]}"
-      pipeline = pipeline.custom { |cmd| cmd.crop(crop_geometry) }
-
-      # Remove potential offset from crop operation
-      pipeline = pipeline.custom { |cmd| cmd.repage.+ }
 
       # Resize if resulting image is larger than max dimension
       pipeline = pipeline.resize_to_limit(MAX_DIMENSION, MAX_DIMENSION)
