@@ -11,6 +11,8 @@ RSpec.describe "Business Manager Image Crop Endpoints", type: :request do
     host! "#{business.subdomain}.lvh.me"
     # Mock ImageCropService to avoid dependency on ImageMagick in CI
     allow(ImageCropService).to receive(:crop).and_return(true)
+    # Also mock crop_attached_image which is used by gallery_controller
+    allow(ImageCropService).to receive(:crop_attached_image).and_return({ success: true })
   end
 
   describe "Services Image Cropping" do

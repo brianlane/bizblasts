@@ -228,7 +228,17 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       unless image_file.present?
         respond_to do |format|
           format.html { redirect_to edit_business_manager_service_path(@service), alert: 'No image file provided' }
-          format.json { render json: { error: 'No image file provided' }, status: :unprocessable_content }
+          format.json { render json: { success: false, error: 'No image provided' }, status: :unprocessable_content }
+        end
+        return
+      end
+
+      # Validate file type
+      allowed_types = %w[image/png image/jpeg image/gif image/webp image/heic image/heif]
+      unless allowed_types.include?(image_file.content_type)
+        respond_to do |format|
+          format.html { redirect_to edit_business_manager_service_path(@service), alert: 'Invalid file type. Allowed: PNG, JPEG, GIF, WebP, HEIC, HEIF' }
+          format.json { render json: { success: false, error: 'Invalid file type. Allowed: PNG, JPEG, GIF, WebP, HEIC, HEIF' }, status: :unprocessable_content }
         end
         return
       end
@@ -237,7 +247,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       if image_file.size > 15.megabytes
         respond_to do |format|
           format.html { redirect_to edit_business_manager_service_path(@service), alert: 'Image too large (max 15MB)' }
-          format.json { render json: { error: 'Image too large (max 15MB)' }, status: :unprocessable_content }
+          format.json { render json: { success: false, error: 'File too large. Maximum size is 15MB.' }, status: :unprocessable_content }
         end
         return
       end
@@ -248,23 +258,31 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       # Get the newly attached image
       new_attachment = @service.images.attachments.last
 
-      respond_to do |format|
-        format.html { redirect_to edit_business_manager_service_path(@service), notice: 'Image uploaded successfully' }
-        format.json do
-          render json: {
-            success: true,
-            attachment_id: new_attachment.id,
-            filename: new_attachment.filename.to_s,
-            thumbnail_url: rails_public_blob_url(new_attachment.representation(resize_to_limit: [120, 120])),
-            full_url: rails_public_blob_url(new_attachment)
-          }
+      # Verify attachment was persisted successfully
+      if new_attachment&.persisted?
+        respond_to do |format|
+          format.html { redirect_to edit_business_manager_service_path(@service), notice: 'Image uploaded successfully' }
+          format.json do
+            render json: {
+              success: true,
+              attachment_id: new_attachment.id,
+              filename: new_attachment.filename.to_s,
+              thumbnail_url: rails_public_blob_url(new_attachment.representation(resize_to_limit: [120, 120])),
+              full_url: rails_public_blob_url(new_attachment)
+            }
+          end
+        end
+      else
+        respond_to do |format|
+          format.html { redirect_to edit_business_manager_service_path(@service), alert: 'Failed to save image' }
+          format.json { render json: { success: false, error: 'Failed to save image' }, status: :unprocessable_content }
         end
       end
     rescue StandardError => e
       Rails.logger.error "[SERVICES] Failed to upload image: #{e.message}"
       respond_to do |format|
         format.html { redirect_to edit_business_manager_service_path(@service), alert: 'Failed to upload image' }
-        format.json { render json: { error: e.message }, status: :unprocessable_content }
+        format.json { render json: { success: false, error: "Upload failed: #{e.message}" }, status: :unprocessable_content }
       end
     end
 
