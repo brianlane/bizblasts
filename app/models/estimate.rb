@@ -12,6 +12,8 @@ class Estimate < ApplicationRecord
 
   has_one_attached :pdf # Generated PDF attachment
   has_one :client_document, as: :documentable, dependent: :destroy
+  has_many :job_attachments, as: :attachable, dependent: :destroy
+  has_many_attached :photos # Direct photo attachments during creation
 
   accepts_nested_attributes_for :estimate_items, allow_destroy: true,
     reject_if: ->(attrs) {

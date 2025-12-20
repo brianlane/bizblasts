@@ -1,0 +1,187 @@
+# frozen_string_literal: true
+
+class JobFormSubmission < ApplicationRecord
+  include TenantScoped
+
+  acts_as_tenant(:business)
+  belongs_to :business
+  belongs_to :booking
+  belongs_to :job_form_template
+  belongs_to :staff_member, optional: true
+  belongs_to :submitted_by_user, class_name: 'User', optional: true
+  belongs_to :approved_by_user, class_name: 'User', optional: true
+
+  # Photo attachments for photo-type fields
+  has_many_attached :photos do |attachable|
+    attachable.variant :thumb, resize_to_fill: [200, 200]
+    attachable.variant :medium, resize_to_limit: [800, 800]
+    attachable.variant :large, resize_to_limit: [1600, 1600]
+  end
+
+  # File attachments for general uploads
+  has_many_attached :files
+
+  # Status enum
+  enum :status, {
+    draft: 0,
+    submitted: 1,
+    approved: 2,
+    requires_revision: 3
+  }
+
+  # Validations
+  validates :business, presence: true
+  validates :booking, presence: true
+  validates :job_form_template, presence: true
+  validates :status, presence: true
+  validate :same_business_validation
+  validate :validate_required_fields, on: :submit
+
+  # Scopes
+  scope :recent, -> { order(created_at: :desc) }
+  scope :pending_review, -> { where(status: :submitted) }
+  scope :completed, -> { where(status: [:approved, :requires_revision]) }
+  scope :for_booking, ->(booking_id) { where(booking_id: booking_id) }
+  scope :for_template, ->(template_id) { where(job_form_template_id: template_id) }
+
+  # Callbacks
+  before_save :set_submitted_at, if: :will_be_submitted?
+  before_save :set_approved_at, if: :will_be_approved?
+
+  # Define ransackable attributes for ActiveAdmin
+  def self.ransackable_attributes(auth_object = nil)
+    %w[id business_id booking_id job_form_template_id staff_member_id status submitted_at approved_at created_at updated_at]
+  end
+
+  def self.ransackable_associations(auth_object = nil)
+    %w[business booking job_form_template staff_member submitted_by_user approved_by_user photos_attachments files_attachments]
+  end
+
+  # Get response for a specific field
+  def response_for(field_id)
+    responses[field_id.to_s]
+  end
+
+  # Set response for a specific field
+  def set_response(field_id, value)
+    self.responses ||= {}
+    self.responses[field_id.to_s] = value
+  end
+
+  # Get all responses with field labels
+  def responses_with_labels
+    template_fields = job_form_template&.form_fields || []
+    template_fields.map do |field|
+      {
+        field_id: field['id'],
+        label: field['label'],
+        type: field['type'],
+        required: field['required'],
+        value: response_for(field['id'])
+      }
+    end
+  end
+
+  # Check if all required fields are filled
+  def all_required_fields_filled?
+    template_fields = job_form_template&.form_fields || []
+    required_fields = template_fields.select { |f| f['required'] }
+
+    required_fields.all? do |field|
+      value = response_for(field['id'])
+      value.present?
+    end
+  end
+
+  # Calculate completion percentage
+  def completion_percentage
+    template_fields = job_form_template&.form_fields || []
+    return 100 if template_fields.empty?
+
+    filled_count = template_fields.count { |f| response_for(f['id']).present? }
+    ((filled_count.to_f / template_fields.length) * 100).round
+  end
+
+  # Submit the form
+  def submit!(user: nil)
+    return false unless all_required_fields_filled?
+
+    self.submitted_by_user = user if user
+    self.status = :submitted
+    save
+  end
+
+  # Approve the form
+  def approve!(user:)
+    return false unless submitted?
+
+    self.approved_by_user = user
+    self.status = :approved
+    save
+  end
+
+  # Request revision
+  def request_revision!(user:, notes: nil)
+    return false unless submitted?
+
+    self.approved_by_user = user
+    self.notes = notes if notes.present?
+    self.status = :requires_revision
+    save
+  end
+
+  # Check if this submission is editable
+  def editable?
+    draft? || requires_revision?
+  end
+
+  # Get display name
+  def display_name
+    "#{job_form_template&.name} - #{booking&.service_name} (#{status.humanize})"
+  end
+
+  private
+
+  def same_business_validation
+    return unless booking.present? && job_form_template.present?
+
+    if booking.business_id != job_form_template.business_id
+      errors.add(:job_form_template, 'must belong to the same business as the booking')
+    end
+
+    if business_id != booking.business_id
+      errors.add(:business, 'must match the booking business')
+    end
+  end
+
+  def validate_required_fields
+    return unless status == 'submitted' || status_was == 'draft'
+    return if all_required_fields_filled?
+
+    template_fields = job_form_template&.form_fields || []
+    required_fields = template_fields.select { |f| f['required'] }
+
+    required_fields.each do |field|
+      value = response_for(field['id'])
+      unless value.present?
+        errors.add(:base, "#{field['label']} is required")
+      end
+    end
+  end
+
+  def will_be_submitted?
+    status_changed? && submitted?
+  end
+
+  def will_be_approved?
+    status_changed? && approved?
+  end
+
+  def set_submitted_at
+    self.submitted_at ||= Time.current
+  end
+
+  def set_approved_at
+    self.approved_at = Time.current
+  end
+end

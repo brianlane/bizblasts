@@ -1,0 +1,149 @@
+<%# Job Forms Section for Booking Show Page %>
+<%# Usage: render 'business_manager/bookings/job_forms', booking: @booking %>
+
+<% service = booking.service %>
+<% return unless service %>
+
+<% required_forms = service.service_job_forms.includes(:job_form_template).where(job_form_templates: { active: true }) %>
+<% submissions = booking.job_form_submissions.includes(:job_form_template, :submitted_by_user).recent %>
+
+<% if required_forms.any? || submissions.any? %>
+  <div class="mt-8 bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+      <div class="flex justify-between items-center">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Job Forms & Checklists</h2>
+        <% if submissions.any? %>
+          <%= link_to by_booking_business_manager_job_form_submissions_path(booking_id: booking.id),
+                class: "text-sm text-blue-600 hover:text-blue-800" do %>
+            View All Submissions →
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="px-6 py-4">
+      <% if required_forms.any? %>
+        <!-- Required Forms Section -->
+        <div class="mb-6">
+          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Required Forms</h3>
+
+          <div class="space-y-3">
+            <% %w[before_service during_service after_service].each do |timing| %>
+              <% timing_forms = required_forms.select { |sjf| sjf.timing == timing } %>
+              <% next if timing_forms.empty? %>
+
+              <div class="border-l-4 <%= timing_border_class(timing) %> pl-4 py-2">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                  <%= timing.humanize %>
+                </p>
+
+                <% timing_forms.each do |service_job_form| %>
+                  <% template = service_job_form.job_form_template %>
+                  <% next unless template %>
+
+                  <%# Check if this form has been submitted for this booking %>
+                  <% existing_submission = submissions.find { |s| s.job_form_template_id == template.id } %>
+
+                  <div class="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                    <div class="flex items-center">
+                      <% if existing_submission %>
+                        <% if existing_submission.approved? %>
+                          <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                          </svg>
+                        <% elsif existing_submission.requires_revision? %>
+                          <svg class="w-5 h-5 text-yellow-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                          </svg>
+                        <% else %>
+                          <svg class="w-5 h-5 text-blue-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                          </svg>
+                        <% end %>
+                      <% else %>
+                        <svg class="w-5 h-5 text-gray-300 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                        </svg>
+                      <% end %>
+
+                      <div>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">
+                          <%= template.name %>
+                        </p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                          <%= template.form_type.humanize %> &bull;
+                          <%= template.form_fields.length %> fields
+                          <% if existing_submission %>
+                            &bull; <%= existing_submission.status.humanize %>
+                          <% end %>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                      <% if existing_submission %>
+                        <%= link_to business_manager_job_form_submission_path(existing_submission),
+                              class: "px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition" do %>
+                          View
+                        <% end %>
+                        <% if existing_submission.requires_revision? || existing_submission.draft? %>
+                          <%= link_to fill_form_business_manager_booking_path(booking, template_id: template.id, submission_id: existing_submission.id),
+                                class: "px-3 py-1.5 text-sm bg-yellow-100 text-yellow-800 rounded-lg hover:bg-yellow-200 transition" do %>
+                            Edit
+                          <% end %>
+                        <% end %>
+                      <% else %>
+                        <%= link_to fill_form_business_manager_booking_path(booking, template_id: template.id),
+                              class: "px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition" do %>
+                          Fill Form
+                        <% end %>
+                      <% end %>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <!-- Recent Submissions -->
+      <% if submissions.any? %>
+        <div>
+          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Recent Submissions</h3>
+          <div class="space-y-2">
+            <% submissions.limit(5).each do |submission| %>
+              <div class="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                <div>
+                  <p class="text-sm font-medium text-gray-900 dark:text-white">
+                    <%= submission.job_form_template&.name %>
+                  </p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">
+                    by <%= submission.submitted_by_user&.full_name || 'Unknown' %> &bull;
+                    <%= time_ago_in_words(submission.submitted_at || submission.created_at) %> ago
+                  </p>
+                </div>
+                <% status_classes = {
+                  'draft' => 'bg-gray-100 text-gray-800',
+                  'submitted' => 'bg-yellow-100 text-yellow-800',
+                  'approved' => 'bg-green-100 text-green-800',
+                  'requires_revision' => 'bg-red-100 text-red-800'
+                } %>
+                <span class="px-2 py-1 text-xs font-semibold rounded-full <%= status_classes[submission.status] %>">
+                  <%= submission.status.humanize %>
+                </span>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <% if required_forms.empty? && submissions.empty? %>
+        <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+          No job forms are assigned to this service.
+        </p>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+

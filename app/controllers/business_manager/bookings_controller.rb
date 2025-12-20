@@ -4,7 +4,7 @@ module BusinessManager
   class BookingsController < BaseController
     before_action :authenticate_user!
     before_action :require_business_staff!
-    before_action :set_booking, only: [:show, :edit, :update, :confirm, :cancel, :reschedule, :update_schedule, :refund]
+    before_action :set_booking, only: [:show, :edit, :update, :confirm, :cancel, :reschedule, :update_schedule, :refund, :fill_form, :submit_form]
     
     # GET /manage/bookings
     def index
@@ -320,6 +320,73 @@ module BusinessManager
         flash.now[:alert] = "There was a problem rescheduling the booking."
         render :reschedule
       end
+    end
+    
+    # GET /manage/bookings/:id/fill_form
+    # Render a job form for staff to fill out
+    def fill_form
+      @template = current_business.job_form_templates.find(params[:template_id])
+      
+      # Find or create a submission for this booking and template
+      @submission = if params[:submission_id].present?
+        @booking.job_form_submissions.find(params[:submission_id])
+      else
+        @booking.job_form_submissions.find_or_initialize_by(
+          job_form_template: @template,
+          business: current_business
+        )
+      end
+      
+      # Set default values for new submissions
+      if @submission.new_record?
+        @submission.staff_member = current_user.staff_member
+        @submission.status = :draft
+        @submission.responses = {}
+      end
+    rescue ActiveRecord::RecordNotFound
+      redirect_to business_manager_booking_path(@booking), alert: 'Form template not found.'
+    end
+    
+    # POST /manage/bookings/:id/submit_form
+    # Save job form submission
+    def submit_form
+      @template = current_business.job_form_templates.find(params[:template_id])
+      
+      @submission = if params[:submission_id].present?
+        @booking.job_form_submissions.find(params[:submission_id])
+      else
+        @booking.job_form_submissions.new(
+          job_form_template: @template,
+          business: current_business,
+          staff_member: current_user.staff_member
+        )
+      end
+      
+      # Update responses from form submission
+      if params[:responses].present?
+        @submission.responses = params[:responses].to_unsafe_h
+      end
+      
+      # Determine if we're saving as draft or submitting
+      if params[:commit] == 'Save as Draft' || params[:save_draft].present?
+        @submission.status = :draft
+      else
+        @submission.status = :submitted
+        @submission.submitted_by_user = current_user
+      end
+      
+      if @submission.save
+        if @submission.submitted?
+          redirect_to business_manager_booking_path(@booking), notice: 'Form submitted successfully.'
+        else
+          redirect_to business_manager_booking_path(@booking), notice: 'Draft saved.'
+        end
+      else
+        flash.now[:alert] = @submission.errors.full_messages.join(', ')
+        render :fill_form, status: :unprocessable_entity
+      end
+    rescue ActiveRecord::RecordNotFound
+      redirect_to business_manager_booking_path(@booking), alert: 'Form template not found.'
     end
     
     # GET /manage/available-slots

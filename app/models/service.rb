@@ -23,6 +23,11 @@ class Service < ApplicationRecord
   # Promotion associations
   has_many :promotion_services, dependent: :destroy
   has_many :promotions, through: :promotion_services
+
+  # Job Forms and Attachments
+  has_many :service_job_forms, dependent: :destroy
+  has_many :job_form_templates, through: :service_job_forms
+  has_many :job_attachments, as: :attachable, dependent: :destroy
   
   # Subscription associations
   has_many :customer_subscriptions, dependent: :destroy

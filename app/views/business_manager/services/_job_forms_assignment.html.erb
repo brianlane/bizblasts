@@ -1,0 +1,159 @@
+<%# Job Form Templates Assignment Partial for Services %>
+<%# Usage: render 'business_manager/services/job_forms_assignment', form: form, service: @service %>
+
+<% available_templates = @current_business.job_form_templates.active.ordered %>
+<% assigned_forms = service.service_job_forms.includes(:job_form_template) %>
+
+<div class="border-t pt-6 mt-6">
+  <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Job Forms & Checklists</h3>
+  <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Assign forms that staff must complete when performing this service.</p>
+
+  <% if available_templates.any? %>
+    <!-- Currently Assigned Forms -->
+    <% if service.persisted? && assigned_forms.any? %>
+      <div class="mb-6">
+        <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Currently Assigned</h4>
+        <div class="space-y-2">
+          <% assigned_forms.each do |service_job_form| %>
+            <% template = service_job_form.job_form_template %>
+            <% next unless template %>
+            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div class="flex items-center">
+                <svg class="w-5 h-5 text-blue-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+                <div>
+                  <p class="text-sm font-medium text-gray-900 dark:text-white"><%= template.name %></p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">
+                    <%= template.form_type.humanize %> &bull;
+                    <%= service_job_form.timing.humanize %> &bull;
+                    <%= template.form_fields.length %> fields
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center space-x-2">
+                <%= link_to business_manager_job_form_template_path(template), class: "text-blue-600 hover:text-blue-800 text-sm", target: "_blank" do %>
+                  View
+                <% end %>
+                <%= button_to business_manager_service_service_job_form_path(service, service_job_form),
+                      method: :delete,
+                      data: { confirm: "Remove this form from the service?" },
+                      class: "text-red-500 hover:text-red-700 text-sm" do %>
+                  Remove
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Add Form Assignment -->
+    <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+      <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+        <%= assigned_forms.any? ? 'Add Another Form' : 'Assign a Form' %>
+      </h4>
+
+      <% if service.persisted? %>
+        <!-- For existing services, use a form to add the assignment -->
+        <%= form_with url: business_manager_service_service_job_forms_path(service), method: :post, local: true, class: "space-y-4" do |f| %>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Form Template <span class="text-red-500">*</span></label>
+              <% unassigned_templates = available_templates.reject { |t| assigned_forms.map(&:job_form_template_id).include?(t.id) } %>
+              <% if unassigned_templates.any? %>
+                <%= select_tag :job_form_template_id,
+                      options_for_select(unassigned_templates.map { |t| ["#{t.name} (#{t.form_type.humanize})", t.id] }),
+                      class: "block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm",
+                      required: true %>
+              <% else %>
+                <p class="text-sm text-gray-500 dark:text-gray-400 py-2">All available forms are already assigned.</p>
+              <% end %>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">When to Complete <span class="text-red-500">*</span></label>
+              <%= select_tag :timing,
+                    options_for_select(ServiceJobForm.timings.keys.map { |t| [t.humanize, t] }),
+                    class: "block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm",
+                    required: true %>
+            </div>
+          </div>
+
+          <% if unassigned_templates.any? %>
+            <div class="flex justify-end">
+              <%= submit_tag "Assign Form",
+                    class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition cursor-pointer text-sm font-medium" %>
+            </div>
+          <% end %>
+        <% end %>
+      <% else %>
+        <!-- For new services, use nested attributes -->
+        <div data-controller="service-job-forms">
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Save the service first to assign job forms, or select forms to assign on creation:
+          </p>
+
+          <div class="space-y-3" data-service-job-forms-target="container">
+            <!-- Template for adding forms -->
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Form Template</label>
+              <select data-service-job-forms-target="templateSelect" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm">
+                <option value="">Select a form...</option>
+                <% available_templates.each do |template| %>
+                  <option value="<%= template.id %>" data-name="<%= template.name %>" data-type="<%= template.form_type.humanize %>">
+                    <%= template.name %> (<%= template.form_type.humanize %>)
+                  </option>
+                <% end %>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">When to Complete</label>
+              <select data-service-job-forms-target="timingSelect" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm">
+                <% ServiceJobForm.timings.keys.each do |timing| %>
+                  <option value="<%= timing %>"><%= timing.humanize %></option>
+                <% end %>
+              </select>
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <button type="button" data-action="service-job-forms#addForm" class="px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition cursor-pointer">
+              + Add Form
+            </button>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Timing Explanation -->
+    <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg">
+      <h5 class="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">When to Complete Options:</h5>
+      <ul class="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+        <li><strong>Before Service:</strong> Staff completes this before starting the job (e.g., pre-inspection checklist)</li>
+        <li><strong>During Service:</strong> Staff completes while performing the job (e.g., task checklist)</li>
+        <li><strong>After Service:</strong> Staff completes after finishing the job (e.g., completion report)</li>
+      </ul>
+    </div>
+  <% else %>
+    <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-6 text-center">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+      </svg>
+      <h4 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No job form templates</h4>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Create form templates first to assign them to services.</p>
+      <div class="mt-4">
+        <%= link_to new_business_manager_job_form_template_path, class: "inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm" do %>
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Create Template
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>

@@ -1,0 +1,228 @@
+<div class="container mx-auto px-4 py-6">
+  <div class="mb-6">
+    <%= link_to business_manager_booking_path(@booking), class: "inline-flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white" do %>
+      <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+      Back to Booking
+    <% end %>
+  </div>
+
+  <!-- Booking Context -->
+  <div class="bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-sm font-medium text-blue-800 dark:text-blue-200">Filling form for booking:</p>
+        <p class="text-blue-700 dark:text-blue-300">
+          <strong><%= @booking.service&.name %></strong> -
+          <%= @booking.tenant_customer&.full_name %> -
+          <%= @booking.start_time&.strftime('%B %d, %Y at %I:%M %p') %>
+        </p>
+      </div>
+      <% if @submission.persisted? && @submission.draft? %>
+        <span class="px-3 py-1 text-sm font-semibold rounded-full bg-gray-100 text-gray-800">Draft</span>
+      <% elsif @submission.persisted? && @submission.requires_revision? %>
+        <span class="px-3 py-1 text-sm font-semibold rounded-full bg-yellow-100 text-yellow-800">Needs Revision</span>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+    <!-- Form Header -->
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-xl font-bold text-gray-900 dark:text-white"><%= @template.name %></h1>
+          <% if @template.description.present? %>
+            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400"><%= @template.description %></p>
+          <% end %>
+        </div>
+        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+          <%= @template.form_type.humanize %>
+        </span>
+      </div>
+    </div>
+
+    <!-- Revision Notes (if requires revision) -->
+    <% if @submission.persisted? && @submission.requires_revision? && @submission.notes.present? %>
+      <div class="px-6 py-4 bg-yellow-50 dark:bg-yellow-900 border-b border-yellow-200 dark:border-yellow-700">
+        <div class="flex">
+          <svg class="w-5 h-5 text-yellow-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+          </svg>
+          <div>
+            <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">Revision Requested</h3>
+            <p class="mt-1 text-sm text-yellow-700 dark:text-yellow-300"><%= @submission.notes %></p>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Form Fields -->
+    <%= form_with url: submit_form_business_manager_booking_path(@booking, template_id: @template.id, submission_id: @submission.persisted? ? @submission.id : nil),
+                  method: :post,
+                  local: true,
+                  class: "px-6 py-6" do |f| %>
+      <% if @template.form_fields.any? %>
+        <div class="space-y-6">
+          <% @template.form_fields.sort_by { |field| field['position'] || 0 }.each do |field| %>
+            <% field_id = field['id'] %>
+            <% field_value = @submission.response_for(field_id) %>
+            
+            <div class="field-group">
+              <label for="responses_<%= field_id %>" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <%= field['label'] %>
+                <% if field['required'] %>
+                  <span class="text-red-500">*</span>
+                <% end %>
+              </label>
+
+              <% case field['type'] %>
+              <% when 'checkbox' %>
+                <div class="flex items-center">
+                  <input type="hidden" name="responses[<%= field_id %>]" value="false">
+                  <input type="checkbox"
+                         name="responses[<%= field_id %>]"
+                         id="responses_<%= field_id %>"
+                         value="true"
+                         <%= 'checked' if field_value == true || field_value == 'true' %>
+                         class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded">
+                  <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Check to confirm</span>
+                </div>
+
+              <% when 'text' %>
+                <input type="text"
+                       name="responses[<%= field_id %>]"
+                       id="responses_<%= field_id %>"
+                       value="<%= field_value %>"
+                       placeholder="<%= field['placeholder'] %>"
+                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                       <%= 'required' if field['required'] %>>
+
+              <% when 'textarea' %>
+                <textarea name="responses[<%= field_id %>]"
+                          id="responses_<%= field_id %>"
+                          rows="4"
+                          placeholder="<%= field['placeholder'] %>"
+                          class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                          <%= 'required' if field['required'] %>><%= field_value %></textarea>
+
+              <% when 'number' %>
+                <input type="number"
+                       name="responses[<%= field_id %>]"
+                       id="responses_<%= field_id %>"
+                       value="<%= field_value %>"
+                       placeholder="<%= field['placeholder'] || '0' %>"
+                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                       <%= 'required' if field['required'] %>>
+
+              <% when 'date' %>
+                <input type="date"
+                       name="responses[<%= field_id %>]"
+                       id="responses_<%= field_id %>"
+                       value="<%= field_value %>"
+                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                       <%= 'required' if field['required'] %>>
+
+              <% when 'time' %>
+                <input type="time"
+                       name="responses[<%= field_id %>]"
+                       id="responses_<%= field_id %>"
+                       value="<%= field_value %>"
+                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                       <%= 'required' if field['required'] %>>
+
+              <% when 'select' %>
+                <select name="responses[<%= field_id %>]"
+                        id="responses_<%= field_id %>"
+                        class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        <%= 'required' if field['required'] %>>
+                  <option value="">Select an option...</option>
+                  <% field['options']&.each do |option| %>
+                    <option value="<%= option %>" <%= 'selected' if field_value == option %>><%= option %></option>
+                  <% end %>
+                </select>
+
+              <% when 'photo' %>
+                <div class="mt-1">
+                  <% if field_value.present? %>
+                    <div class="mb-3">
+                      <p class="text-sm text-gray-500 mb-2">Current photo:</p>
+                      <% if field_value.is_a?(Array) %>
+                        <div class="flex flex-wrap gap-2">
+                          <% field_value.each do |photo_url| %>
+                            <%= image_tag photo_url, class: "h-24 w-24 object-cover rounded-lg border" %>
+                          <% end %>
+                        </div>
+                      <% else %>
+                        <%= image_tag field_value, class: "h-32 object-cover rounded-lg border" %>
+                      <% end %>
+                    </div>
+                  <% end %>
+                  <input type="file"
+                         name="responses[<%= field_id %>]"
+                         id="responses_<%= field_id %>"
+                         accept="image/*"
+                         class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900 dark:file:text-blue-200"
+                         <%= 'required' if field['required'] && field_value.blank? %>>
+                  <p class="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 10MB</p>
+                </div>
+
+              <% when 'signature' %>
+                <div class="mt-1" data-controller="signature-pad">
+                  <% if field_value.present? %>
+                    <div class="mb-3">
+                      <p class="text-sm text-gray-500 mb-2">Current signature:</p>
+                      <img src="<%= field_value %>" alt="Signature" class="h-16 border rounded-lg">
+                    </div>
+                  <% end %>
+                  <div class="border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white" style="height: 150px;">
+                    <canvas data-signature-pad-target="canvas" class="w-full h-full"></canvas>
+                  </div>
+                  <input type="hidden" name="responses[<%= field_id %>]" data-signature-pad-target="hidden" value="<%= field_value %>">
+                  <div class="mt-2 flex justify-end">
+                    <button type="button" data-action="signature-pad#clear" class="text-sm text-gray-500 hover:text-gray-700 cursor-pointer">
+                      Clear Signature
+                    </button>
+                  </div>
+                </div>
+
+              <% else %>
+                <input type="text"
+                       name="responses[<%= field_id %>]"
+                       id="responses_<%= field_id %>"
+                       value="<%= field_value %>"
+                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                       <%= 'required' if field['required'] %>>
+              <% end %>
+
+              <% if field['help_text'].present? %>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400"><%= field['help_text'] %></p>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Submit Buttons -->
+        <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <button type="submit" name="save_draft" value="true" class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer">
+            Save as Draft
+          </button>
+          <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition cursor-pointer">
+            Submit Form
+          </button>
+        </div>
+      <% else %>
+        <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          <p class="mt-2">This form template has no fields defined.</p>
+          <%= link_to "Back to Booking", business_manager_booking_path(@booking), class: "mt-4 inline-block text-blue-600 hover:text-blue-800" %>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+</div>
+

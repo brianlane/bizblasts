@@ -91,11 +91,17 @@
         
         <%= render partial: 'shared/refund_button', locals: { record: @booking, refund_path: refund_business_manager_booking_path(@booking) } %>
 
-        <%= link_to "Edit Notes", edit_business_manager_booking_path(@booking), 
+        <%= link_to "Edit Notes", edit_business_manager_booking_path(@booking),
               class: "inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary" %>
       </div>
     </div>
   </div>
+
+  <%# Job Forms & Checklists Section %>
+  <%= render 'business_manager/bookings/job_forms', booking: @booking %>
+
+  <%# Job Attachments Section (photos, instructions for this booking) %>
+  <%= render 'business_manager/job_attachments/attachment_manager', attachable: @booking %>
 </div>
 
 <!-- Removed custom cancellation script in favor of Rails UJS --> 

@@ -255,11 +255,93 @@
     </div>
   </div>
 
+  <!-- Photos Section -->
+  <div class="mb-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Photos</h3>
+    
+    <!-- Existing Photos (for edit mode) -->
+    <% if @estimate.persisted? && @estimate.photos.attached? %>
+      <div class="mb-4">
+        <h4 class="text-sm font-medium text-gray-700 mb-2">Current Photos</h4>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <% @estimate.photos.each do |photo| %>
+            <div class="relative group">
+              <%= image_tag photo.variant(resize_to_limit: [200, 200]), 
+                    class: "w-full h-32 object-cover rounded-lg border border-gray-200" %>
+              <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity rounded-lg flex items-center justify-center">
+                <%= link_to rails_blob_path(photo, disposition: "attachment"), 
+                      class: "opacity-0 group-hover:opacity-100 p-2 bg-white rounded-full shadow-lg",
+                      title: "Download" do %>
+                  <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                  </svg>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+    
+    <!-- Upload new photos -->
+    <div class="bg-gray-50 p-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors">
+      <%= f.label :photos, "Add Photos", class: "block text-gray-700 text-sm font-bold mb-3" %>
+      
+      <div class="text-center">
+        <%= f.file_field :photos, multiple: true,
+              accept: "image/png,image/jpeg,image/gif,image/webp,image/heic,image/heif",
+              data: {
+                max_file_size: 15728640,
+                max_files: 10,
+                allowed_types: "image/png,image/jpeg,image/gif,image/webp,image/heic,image/heif"
+              },
+              class: "hidden",
+              id: "estimate_photos_input" %>
+        
+        <button type="button" id="estimate-photo-button"
+                class="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-primary text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer"
+                onclick="document.getElementById('estimate_photos_input').click()">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+          </svg>
+          Choose Photos
+        </button>
+        
+        <div id="estimate-photo-selection" class="mt-3 text-sm text-gray-600 font-medium">
+          No photos selected
+        </div>
+        
+        <p class="mt-2 text-xs text-gray-500">
+          PNG, JPG, GIF, WebP or HEIC up to 15MB each. Maximum 10 files.
+        </p>
+      </div>
+    </div>
+    
+    <script>
+      document.getElementById('estimate_photos_input').addEventListener('change', function(e) {
+        const display = document.getElementById('estimate-photo-selection');
+        const files = e.target.files;
+        if (files.length === 0) {
+          display.textContent = 'No photos selected';
+        } else if (files.length === 1) {
+          display.textContent = files[0].name;
+        } else {
+          display.textContent = files.length + ' photos selected';
+        }
+      });
+    </script>
+  </div>
+
+  <!-- Job Attachments Section (detailed attachments with types - for existing estimates) -->
+  <% if @estimate.persisted? %>
+    <%= render 'business_manager/job_attachments/attachment_manager', attachable: @estimate %>
+  <% end %>
+
   <!-- Form Actions -->
   <div class="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
-    <%= link_to 'Cancel', business_manager_estimates_path, 
+    <%= link_to 'Cancel', business_manager_estimates_path,
           class: 'inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary' %>
-    <%= f.submit (@estimate.persisted? ? 'Update Estimate' : 'Create Estimate'), 
+    <%= f.submit (@estimate.persisted? ? 'Update Estimate' : 'Create Estimate'),
           class: 'inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary' %>
      </div>
  <% end %> 

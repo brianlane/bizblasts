@@ -26,6 +26,8 @@ class Booking < ApplicationRecord
   has_one :client_document, as: :documentable, dependent: :nullify
   has_many :booking_product_add_ons, dependent: :destroy
   has_many :calendar_event_mappings, dependent: :destroy
+  has_many :job_form_submissions, dependent: :destroy
+  has_many :job_attachments, as: :attachable, dependent: :destroy
   has_many :add_on_product_variants, through: :booking_product_add_ons, source: :product_variant
   accepts_nested_attributes_for :booking_product_add_ons, allow_destroy: true,
                                 reject_if: proc { |attributes| attributes['quantity'].to_i <= 0 || attributes['product_variant_id'].blank? }

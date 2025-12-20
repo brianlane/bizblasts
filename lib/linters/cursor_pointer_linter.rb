@@ -65,7 +65,7 @@ class CursorPointerLinter
   def check_file(file_path)
     return unless File.exist?(file_path)
 
-    content = File.read(file_path)
+    content = read_utf8(file_path)
     lines = content.lines
     
     # Extract CSS styles from the file to check for cursor: pointer
@@ -174,7 +174,7 @@ class CursorPointerLinter
     # Try Rails helper format first (class: "...")
     if new_line.gsub!(/class:\s*["']([^"']*)["']/, "class: \"#{new_classes}\"")
       lines[line_number - 1] = new_line
-      File.write(file_path, lines.join)
+      File.write(file_path, lines.join, encoding: Encoding::UTF_8)
       puts "✅ Fixed: #{file_path}:#{line_number}" if @verbose
       return
     end
@@ -182,7 +182,7 @@ class CursorPointerLinter
     # Try HTML format (class="...")
     if new_line.gsub!(/class=["']([^"']*)["']/, "class=\"#{new_classes}\"")
       lines[line_number - 1] = new_line
-      File.write(file_path, lines.join)
+      File.write(file_path, lines.join, encoding: Encoding::UTF_8)
       puts "✅ Fixed: #{file_path}:#{line_number}" if @verbose
       return
     end
@@ -214,6 +214,13 @@ class CursorPointerLinter
     puts "\n💡 To automatically fix these issues, run:"
     puts "    ruby lib/linters/cursor_pointer_linter.rb --fix"
     puts "\n📋 Or add cursor-pointer manually to the class attributes above."
+  end
+
+  def read_utf8(file_path)
+    raw = File.binread(file_path)
+    raw
+      .force_encoding(Encoding::UTF_8)
+      .encode(Encoding::UTF_8, invalid: :replace, undef: :replace, replace: '')
   end
 end
 

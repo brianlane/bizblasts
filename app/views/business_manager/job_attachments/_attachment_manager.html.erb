@@ -1,0 +1,161 @@
+<%# Job Attachments Manager Partial %>
+<%# Usage: render 'business_manager/job_attachments/attachment_manager', attachable: @service %>
+<%# Or: render 'business_manager/job_attachments/attachment_manager', attachable: @estimate %>
+
+<% attachable_type = attachable.class.name.underscore %>
+<% attachable_id = attachable.id %>
+<% existing_attachments = attachable.job_attachments.includes(:file_attachment).ordered %>
+
+<div class="border-t pt-6 mt-6" data-controller="job-attachments" data-job-attachments-attachable-type-value="<%= attachable_type %>" data-job-attachments-attachable-id-value="<%= attachable_id %>">
+  <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Job Attachments</h3>
+  <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Add photos, instructions, and reference files for this <%= attachable_type.humanize.downcase %>.</p>
+
+  <!-- Existing Attachments -->
+  <% if existing_attachments.any? %>
+    <div class="mb-6" data-job-attachments-target="existingList">
+      <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Current Attachments</h4>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <% existing_attachments.each do |attachment| %>
+          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-white dark:bg-gray-800" data-attachment-id="<%= attachment.id %>">
+            <div class="flex items-start space-x-3">
+              <!-- Thumbnail/Icon -->
+              <div class="flex-shrink-0">
+                <% if attachment.file.attached? && attachment.file.content_type&.start_with?('image/') %>
+                  <% if attachment.file.variable? %>
+                    <%= image_tag rails_public_blob_url(attachment.file.representation(resize_to_limit: [80, 80])),
+                          class: "w-16 h-16 object-cover rounded-lg",
+                          alt: attachment.title || attachment.file.filename.to_s %>
+                  <% else %>
+                    <%= image_tag rails_public_blob_url(attachment.file),
+                          class: "w-16 h-16 object-cover rounded-lg",
+                          alt: attachment.title || attachment.file.filename.to_s %>
+                  <% end %>
+                <% else %>
+                  <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                <% end %>
+              </div>
+
+              <!-- Details -->
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  <%= attachment.title.presence || attachment.file&.filename&.to_s || 'Untitled' %>
+                </p>
+                <div class="flex flex-wrap gap-1 mt-1">
+                  <span class="px-1.5 py-0.5 text-xs rounded-full <%= attachment_type_badge_class(attachment.attachment_type) %>">
+                    <%= attachment.attachment_type.humanize %>
+                  </span>
+                  <% if attachment.visibility_customer_visible? %>
+                    <span class="px-1.5 py-0.5 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                      Customer visible
+                    </span>
+                  <% end %>
+                </div>
+                <% if attachment.description.present? %>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate"><%= attachment.description %></p>
+                <% end %>
+              </div>
+
+              <!-- Actions -->
+              <div class="flex-shrink-0 flex space-x-1">
+                <%= link_to rails_blob_path(attachment.file, disposition: "attachment"), class: "p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300", title: "Download" do %>
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                <% end %>
+                <%= button_to polymorphic_path([:business_manager, attachable, attachment]),
+                      method: :delete,
+                      data: { confirm: "Are you sure you want to delete this attachment?" },
+                      class: "p-1 text-red-400 hover:text-red-600",
+                      title: "Delete" do %>
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Add New Attachment Form -->
+  <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+    <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Add New Attachment</h4>
+
+    <%= form_with url: polymorphic_path([:business_manager, attachable, :job_attachments]),
+          method: :post,
+          local: true,
+          multipart: true,
+          class: "space-y-4",
+          data: { job_attachments_target: "form" } do |f| %>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- File Upload -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">File <span class="text-red-500">*</span></label>
+          <%= file_field_tag :file,
+                accept: "image/*,application/pdf,.doc,.docx,.txt",
+                class: "block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900 dark:file:text-blue-200",
+                required: true %>
+          <p class="text-xs text-gray-500 mt-1">Images, PDFs, or documents up to 15MB</p>
+        </div>
+
+        <!-- Attachment Type -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type <span class="text-red-500">*</span></label>
+          <%= select_tag :attachment_type,
+                options_for_select(JobAttachment.attachment_types.keys.map { |t| [t.humanize, t] }),
+                class: "block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm",
+                required: true %>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Title -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
+          <%= text_field_tag :title, nil,
+                class: "block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm",
+                placeholder: "Optional title for this attachment" %>
+        </div>
+
+        <!-- Visibility -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Visibility</label>
+          <%= select_tag :visibility,
+                options_for_select(JobAttachment.visibilities.keys.map { |v| [v.humanize, v] }),
+                class: "block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm" %>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+        <%= text_area_tag :description, nil,
+              rows: 2,
+              class: "block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm",
+              placeholder: "Optional description for this attachment" %>
+      </div>
+
+      <div class="flex justify-end">
+        <%= submit_tag "Add Attachment",
+              class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition cursor-pointer text-sm font-medium" %>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Quick Upload Dropzone -->
+  <div class="mt-4 p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
+       data-job-attachments-target="dropzone">
+    <svg class="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+    </svg>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Drag and drop files here for quick upload</p>
+  </div>
+</div>
+
