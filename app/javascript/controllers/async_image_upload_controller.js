@@ -244,6 +244,8 @@ export default class extends Controller {
 
     const removeUrl = `${this.removeUrlPrefixValue}/${imageData.attachment_id}`
     const cropUrl = `${this.cropUrlPrefixValue}/${imageData.attachment_id}`
+    // Escape filename to prevent XSS attacks
+    const safeFilename = this.escapeHtml(imageData.filename)
 
     div.innerHTML = `
       <div class="flex flex-col sm:flex-row sm:items-center p-4 gap-4">
@@ -253,8 +255,8 @@ export default class extends Controller {
                id="thumbnail_${imageData.attachment_id}" />
         </div>
         <div class="flex-grow min-w-0">
-          <p class="text-sm font-medium text-gray-700 mb-3 truncate" title="${imageData.filename}">
-            ${imageData.filename}
+          <p class="text-sm font-medium text-gray-700 mb-3 truncate" title="${safeFilename}">
+            ${safeFilename}
           </p>
           <div class="space-y-3 sm:space-y-2">
             <div class="flex flex-wrap gap-2">
@@ -396,5 +398,13 @@ export default class extends Controller {
   getCSRFToken() {
     const metaTag = document.querySelector('meta[name="csrf-token"]')
     return metaTag ? metaTag.content : ''
+  }
+
+  // Escape HTML to prevent XSS attacks
+  escapeHtml(text) {
+    if (!text) return ''
+    const div = document.createElement('div')
+    div.textContent = text
+    return div.innerHTML
   }
 }
