@@ -3,8 +3,10 @@
 module BusinessManager
   # Controller for managing business gallery photos and videos
   class GalleryController < BusinessManager::BaseController
+    include ImageCroppable
+
     before_action :set_business
-    before_action :set_gallery_photo, only: %i[update_photo destroy_photo]
+    before_action :set_gallery_photo, only: %i[update_photo destroy_photo crop_photo]
 
     # GET /manage/gallery
     def index
@@ -151,6 +153,50 @@ module BusinessManager
           format.json { render json: { error: 'Failed to remove video' }, status: :unprocessable_content }
         end
       end
+    end
+
+    # POST /manage/gallery/photos/:id/crop
+    def crop_photo
+      crop_data = params[:crop_data]
+
+      unless crop_data.present?
+        return render_crop_error('No crop data provided', business_manager_gallery_index_path)
+      end
+
+      # Validate that the attachment is an image
+      unless @gallery_photo.image.attached? && valid_image_for_crop?(@gallery_photo.image)
+        return render_crop_error('Invalid or missing image attachment', business_manager_gallery_index_path)
+      end
+
+      # Parse crop data using the concern's secure method (replaces to_unsafe_h)
+      crop_params = parse_crop_params(crop_data)
+
+      if crop_params.blank?
+        return render_crop_error('Invalid crop data format', business_manager_gallery_index_path)
+      end
+
+      result = ImageCropService.crop_attached_image(
+        @gallery_photo,
+        :image,
+        crop_params
+      )
+
+      if result[:success]
+        respond_to do |format|
+          format.html { redirect_to business_manager_gallery_index_path, notice: 'Photo cropped successfully' }
+          format.json do
+            render json: {
+              success: true,
+              image_url: @gallery_photo.image_url(:medium)
+            }
+          end
+        end
+      else
+        render_crop_error(result[:error], business_manager_gallery_index_path)
+      end
+    rescue StandardError => e
+      Rails.logger.error "Failed to crop gallery photo: #{e.message}"
+      render_crop_error('Failed to crop photo', business_manager_gallery_index_path)
     end
 
     private

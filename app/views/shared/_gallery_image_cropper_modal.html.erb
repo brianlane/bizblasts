@@ -1,0 +1,168 @@
+<%#
+  Gallery Image Cropper Modal
+
+  A modal for cropping existing images in a gallery. Works with the
+  gallery-image-cropper Stimulus controller.
+
+  Usage:
+    render 'shared/gallery_image_cropper_modal',
+        modal_id: "product_gallery_cropper",
+        aspect_ratio: 1,
+        lock_aspect_ratio: false,
+        available_ratios: ["free", "1:1", "4:3"]
+%>
+<% modal_id ||= "gallery_image_cropper_modal" %>
+<% aspect_ratio ||= 1 %>
+<% lock_aspect_ratio ||= false %>
+<% available_ratios ||= ["free", "1:1"] %>
+
+<div id="<%= modal_id %>"
+     class="hidden fixed inset-0 z-50 overflow-y-auto"
+     data-gallery-image-cropper-target="modal"
+     aria-labelledby="gallery-cropper-title"
+     role="dialog"
+     aria-modal="true">
+
+  <!-- Backdrop -->
+  <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity"
+       data-action="click->gallery-image-cropper#cancelCrop"></div>
+
+  <!-- Modal Panel -->
+  <div class="flex min-h-full items-center justify-center p-4">
+    <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden"
+         data-action="click->gallery-image-cropper#stopPropagation">
+
+      <!-- Header -->
+      <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+        <div class="flex items-center justify-between">
+          <h3 id="gallery-cropper-title" class="text-lg font-semibold text-gray-900">
+            Crop Image
+          </h3>
+          <button type="button"
+                  class="text-gray-400 hover:text-gray-600 transition-colors"
+                  data-action="click->gallery-image-cropper#cancelCrop">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Cropper Area - Responsive height for mobile -->
+      <div class="p-2 sm:p-4 bg-gray-900 overflow-hidden relative">
+        <div class="cropper-container-wrapper w-full h-[250px] sm:h-[350px] md:h-[400px] relative"
+             style="overflow: hidden; contain: strict;">
+          <img data-gallery-image-cropper-target="preview"
+               class="block max-w-full max-h-full"
+               style="display: block; max-width: 100%; max-height: 100%;"
+               src=""
+               alt="Image to crop">
+        </div>
+      </div>
+
+      <!-- Controls - Mobile optimized layout -->
+      <div class="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 bg-gray-50 relative z-10">
+        <div class="flex flex-col gap-4">
+
+          <% unless lock_aspect_ratio %>
+            <!-- Aspect Ratio Selector - Horizontal scroll on mobile -->
+            <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+              <span class="text-sm font-medium text-gray-700 shrink-0">Aspect Ratio:</span>
+              <div class="flex gap-1 overflow-x-auto pb-1 sm:pb-0 -mx-1 px-1">
+                <% available_ratios.each do |ratio| %>
+                  <%
+                    ratio_value = case ratio
+                    when "free" then 0
+                    when "1:1" then 1
+                    when "16:9" then 1.7778
+                    when "4:3" then 1.3333
+                    when "3:2" then 1.5
+                    else 0
+                    end
+                    is_active = ratio_value == aspect_ratio
+                  %>
+                  <button type="button"
+                          class="px-3 py-2 text-sm font-medium rounded-md transition-colors border whitespace-nowrap touch-manipulation
+                                 <%= is_active ? 'bg-primary text-white border-primary' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 active:bg-gray-100' %>"
+                          data-gallery-image-cropper-target="aspectRatio"
+                          data-action="click->gallery-image-cropper#setAspectRatio"
+                          data-ratio="<%= ratio_value %>"
+                          <%= 'data-active="true"' if is_active %>>
+                    <%= ratio == "free" ? "Free" : ratio %>
+                  </button>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+
+          <!-- Zoom and Rotate Controls - Grouped for mobile -->
+          <div class="flex flex-wrap items-center justify-center sm:justify-between gap-3">
+            <!-- Zoom Controls -->
+            <div class="flex items-center gap-2 sm:gap-3">
+              <button type="button"
+                      class="p-2.5 sm:p-2 rounded-md bg-white border border-gray-300 hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
+                      data-action="click->gallery-image-cropper#zoomOut"
+                      title="Zoom Out">
+                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"/>
+                </svg>
+              </button>
+              <input type="range"
+                     min="0.1" max="3" step="0.1" value="1"
+                     class="w-20 sm:w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer touch-manipulation"
+                     data-gallery-image-cropper-target="zoomRange"
+                     data-action="input->gallery-image-cropper#zoomTo">
+              <button type="button"
+                      class="p-2.5 sm:p-2 rounded-md bg-white border border-gray-300 hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
+                      data-action="click->gallery-image-cropper#zoomIn"
+                      title="Zoom In">
+                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Rotate Controls -->
+            <div class="flex items-center gap-2">
+              <button type="button"
+                      class="p-2.5 sm:p-2 rounded-md bg-white border border-gray-300 hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
+                      data-action="click->gallery-image-cropper#rotateLeft"
+                      title="Rotate Left">
+                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                </svg>
+              </button>
+              <button type="button"
+                      class="p-2.5 sm:p-2 rounded-md bg-white border border-gray-300 hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
+                      data-action="click->gallery-image-cropper#rotateRight"
+                      title="Rotate Right">
+                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Actions - Mobile optimized -->
+      <div class="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 relative z-10 bg-white">
+        <button type="button"
+                class="order-3 sm:order-1 px-4 py-2.5 sm:py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
+                data-action="click->gallery-image-cropper#resetCrop">
+          Reset
+        </button>
+        <button type="button"
+                class="order-2 sm:order-2 px-4 py-2.5 sm:py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
+                data-action="click->gallery-image-cropper#cancelCrop">
+          Cancel
+        </button>
+        <button type="button"
+                class="order-1 sm:order-3 px-4 py-2.5 sm:py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 active:bg-primary/80 transition-colors touch-manipulation"
+                data-action="click->gallery-image-cropper#applyCrop">
+          Apply Crop
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

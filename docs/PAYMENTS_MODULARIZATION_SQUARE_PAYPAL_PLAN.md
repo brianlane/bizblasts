@@ -317,3 +317,4 @@ Implementation approach:
 - Refunds work for all providers where supported.
 - No domain code calls provider SDKs directly (only provider adapters).
 - Tests cover provider selection and webhook reconciliation.
+

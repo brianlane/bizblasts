@@ -142,66 +142,29 @@
       </div>
       <div class="p-6">
         <div class="space-y-6">
-          <div>
-            <%= form.label :logo, "Business Logo", class: "block text-sm font-medium text-gray-700 mb-3" %>
-            <% if @business.logo.attached? %>
-              <div class="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                  <%= image_tag rails_public_blob_url(@business.logo.variant(resize_to_limit: [120, 120])), 
-                        class: "h-24 w-24 object-contain rounded-lg bg-white border border-gray-200 mx-auto sm:mx-0" %>
-                  <div class="text-center sm:text-left">
-                    <p class="text-sm font-medium text-gray-900">Current Logo</p>
-                    <p class="text-xs text-gray-500 mt-1">Upload a new file to replace</p>
-                  </div>
-                </div>
-              </div>
-              <div class="flex items-center gap-2 mb-4">
-                <%= form.check_box :remove_logo,
-                      class: "focus:ring-primary h-4 w-4 text-primary border-gray-300 rounded cursor-pointer" %>
-                <%= form.label :remove_logo,
-                      "Remove current logo",
-                      class: "text-sm text-gray-700 cursor-pointer" %>
-              </div>
-              <p class="text-xs text-gray-500 mb-4">
-                Selecting this option deletes the current logo when you save.
-              </p>
-            <% end %>
-            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors">
-              <%= form.file_field :logo, 
-                    class: "block w-full text-sm text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-light file:text-primary hover:file:bg-light cursor-pointer",            
-                    accept: "image/png,image/jpeg,image/gif,image/webp,image/heic,image/heif",
-                    data: { allowed_types: "image/png,image/jpeg,image/gif,image/webp,image/heic,image/heif" },
-                    onchange: "validateBusinessLogo(this)" %>
-              <p class="mt-2 text-xs text-gray-500 text-center">
-                <span class="font-medium">Click to upload</span> or drag and drop<br>
-                PNG, JPEG, GIF, WebP, HEIC, HEIF up to 15MB • Square format recommended • HEIC files automatically converted to JPEG
-              </p>
-              
-              <script>
-                function validateBusinessLogo(input) {
-                  const file = input.files[0];
-                  if (!file) return;
-                  
-                  // Check file size (15MB = 15 * 1024 * 1024 bytes)
-                  if (file.size > 15 * 1024 * 1024) {
-                    alert('Logo must be less than 15MB. Please choose a smaller file.');
-                    input.value = '';
-                    return;
-                  }
-                  
-                  // Check file type - get from data attribute or fallback
-                  const allowedTypes = input.dataset.allowedTypes ? 
-                    input.dataset.allowedTypes.split(',') :
-                    ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];                                     
-                  if (!allowedTypes.includes(file.type)) {
-                    alert('Logo must be PNG, JPEG, GIF, WebP, HEIC, or HEIF format.');                                                                         
-                    input.value = '';
-                    return;
-                  }
-                }
-              </script>
+          <% if @business.logo.attached? %>
+            <div class="flex items-center gap-2 mb-4">
+              <%= form.check_box :remove_logo,
+                    class: "focus:ring-primary h-4 w-4 text-primary border-gray-300 rounded cursor-pointer" %>
+              <%= form.label :remove_logo,
+                    "Remove current logo",
+                    class: "text-sm text-gray-700 cursor-pointer" %>
             </div>
-          </div>
+            <p class="text-xs text-gray-500 mb-4">
+              Selecting this option deletes the current logo when you save.
+            </p>
+          <% end %>
+
+          <%= render 'shared/simple_image_cropper_field',
+              form: form,
+              field_name: :logo,
+              crop_field_name: :logo_crop_data,
+              label: "Business Logo",
+              viewport_size: 280,
+              accept: "image/png,image/jpeg,image/gif,image/webp,image/heic,image/heif",
+              preview_size: "w-24 h-24",
+              existing_image: @business.logo,
+              helper_text: "Square format required. PNG, JPEG, GIF, WebP, HEIC up to 15MB." %>
         </div>
       </div>
     </div>

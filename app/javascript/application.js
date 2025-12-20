@@ -130,6 +130,10 @@ import GalleryManagerController from './controllers/gallery_manager_controller';
 import GalleryLightboxController from './controllers/gallery_lightbox_controller';
 import GalleryCarouselController from './controllers/gallery_carousel_controller';
 import HeroVideoController from './controllers/hero_video_controller';
+import ImageCropperController from './controllers/image_cropper_controller';
+import GalleryImageCropperController from './controllers/gallery_image_cropper_controller';
+import AsyncImageUploadController from './controllers/async_image_upload_controller';
+import SimpleImageCropperController from './controllers/simple_image_cropper_controller';
 
 application.register('page-editor', PageEditorController);
 application.register('theme-editor', ThemeEditorController);
@@ -154,6 +158,10 @@ application.register('gallery-manager', GalleryManagerController);
 application.register('gallery-lightbox', GalleryLightboxController);
 application.register('gallery-carousel', GalleryCarouselController);
 application.register('hero-video', HeroVideoController);
+application.register('image-cropper', ImageCropperController);
+application.register('gallery-image-cropper', GalleryImageCropperController);
+application.register('async-image-upload', AsyncImageUploadController);
+application.register('simple-image-cropper', SimpleImageCropperController);
 
 // Additional controllers for estimates feature
 import DatePickerController from "./controllers/date_picker_controller"
@@ -194,7 +202,7 @@ function autoDiscoverControllers() {
       'navbar', 'dropdown', 'customer-dropdown', 'product-variants', 'service-form', 'sortable', 'hello',
       'service-variants', 'dropdown-updater', 'service-availability', 'google-business-search', 'qr-payment',
       'place-id-lookup', 'enhanced-layout-selector', 'photo-upload', 'gallery-manager', 'gallery-lightbox', 'gallery-carousel',
-      'hero-video', 'date-picker', 'dynamic-line-items', 'estimate-line-items', 'signature-pad', 'rental-durations',
+      'hero-video', 'image-cropper', 'gallery-image-cropper', 'async-image-upload', 'simple-image-cropper', 'date-picker', 'dynamic-line-items', 'estimate-line-items', 'signature-pad', 'rental-durations',
       'rental-pricing', 'import-progress'
     ]);
     
@@ -267,3 +275,6 @@ import './domain_status_checker';
 import './cart';
 import 'trix';
 import '@rails/actiontext';
+
+// Cropper.js CSS for image cropping
+import 'cropperjs/dist/cropper.css';

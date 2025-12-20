@@ -4,6 +4,9 @@ class Product < ApplicationRecord
   include TenantScoped
   include DurationFormatting
 
+  # Virtual attribute for storing crop data for gallery images (keyed by attachment ID)
+  attr_accessor :images_crop_data
+
   # Document template for products (terms, agreements, etc.)
   belongs_to :document_template, optional: true
   

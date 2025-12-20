@@ -1,4 +1,6 @@
 class BusinessManager::StaffMembersController < BusinessManager::BaseController
+  include ImageCroppable
+
   # Ensure user is authenticated and acting within their current business context
   # BaseController handles authentication and setting @current_business
 
@@ -54,6 +56,10 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
     @staff_member.user = @user
 
     if @staff_member.save
+      # Apply crop transformation if photo was uploaded with crop data
+      if @staff_member.photo.attached? && staff_member_params[:photo_crop_data].present?
+        process_photo_crop(@staff_member, staff_member_params[:photo_crop_data])
+      end
       redirect_to business_manager_staff_member_path(@staff_member), notice: 'Staff member was successfully created.'
     else
       # Preserve nested user data on failure so form can re-render the new-user fields
@@ -79,6 +85,10 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
     end
 
     if @staff_member.update(update_params)
+      # Apply crop transformation if photo was uploaded with crop data
+      if @staff_member.photo.attached? && update_params[:photo_crop_data].present?
+        process_photo_crop(@staff_member, update_params[:photo_crop_data])
+      end
       redirect_to business_manager_staff_member_path(@staff_member), notice: 'Staff member was successfully updated.'
     else
       render :edit, status: :unprocessable_content
@@ -274,6 +284,7 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
       :phone,
       :position,
       :photo,
+      :photo_crop_data,
       :active,
       :bio,
       :notes,
@@ -285,6 +296,11 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
       service_ids: [],
       user_attributes: [:id, :first_name, :last_name, :email, :password, :password_confirmation]
     )
+  end
+
+  # Apply crop transformation to uploaded photo using ImageCroppable concern
+  def process_photo_crop(staff_member, crop_data)
+    process_single_image_crop(staff_member, :photo, crop_data)
   end
 
   # Helper to permit dynamic keys (slot indices) mapping to start/end times

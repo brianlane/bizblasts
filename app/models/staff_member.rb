@@ -11,7 +11,7 @@ class StaffMember < ApplicationRecord
     attachable.variant :medium, resize_to_limit: [300, 300], quality: 85
   end
   # Virtual attribute for selecting user role (staff or manager)
-  attr_accessor :user_role
+  attr_accessor :user_role, :photo_crop_data
   accepts_nested_attributes_for :user, reject_if: :all_blank
   has_many :bookings, dependent: :restrict_with_error
   has_many :services_staff_members, dependent: :destroy
