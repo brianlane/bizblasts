@@ -224,8 +224,8 @@ class ImageCropService
       crop_geometry = "#{@crop_params[:width]}x#{@crop_params[:height]}+#{@crop_params[:x]}+#{@crop_params[:y]}"
       pipeline = pipeline.custom { |cmd| cmd.crop(crop_geometry) }
 
-      # Remove potential offset from crop operation
-      pipeline = pipeline.custom { |cmd| cmd.repage.+ }
+      # Remove potential offset from crop operation (+repage resets virtual canvas)
+      pipeline = pipeline.custom { |cmd| cmd.+.repage }
 
       # Apply rotation after crop if specified
       if @crop_params[:rotate] != 0
