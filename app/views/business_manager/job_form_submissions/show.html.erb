@@ -168,7 +168,9 @@
           </div>
           <% if @job_form_submission.approved_at %>
             <div>
-              <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Approved At</p>
+              <p class="text-xs font-medium text-gray-500 dark:text-gray-400">
+                <%= @job_form_submission.requires_revision? ? 'Revision Requested At' : 'Approved At' %>
+              </p>
               <p class="text-sm text-gray-900 dark:text-white">
                 <%= @job_form_submission.approved_at.strftime('%B %d, %Y at %I:%M %p') %>
               </p>
@@ -176,7 +178,9 @@
           <% end %>
           <% if @job_form_submission.approved_by_user %>
             <div>
-              <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Approved By</p>
+              <p class="text-xs font-medium text-gray-500 dark:text-gray-400">
+                <%= @job_form_submission.requires_revision? ? 'Revision Requested By' : 'Approved By' %>
+              </p>
               <p class="text-sm text-gray-900 dark:text-white">
                 <%= @job_form_submission.approved_by_user.full_name %>
               </p>
