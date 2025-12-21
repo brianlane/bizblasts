@@ -6,7 +6,7 @@ class BusinessManager::JobFormSubmissionsController < BusinessManager::BaseContr
   # GET /manage/job_form_submissions
   def index
     @job_form_submissions = current_business.job_form_submissions
-                                            .includes(:booking, :job_form_template, :staff_member, :submitted_by_user)
+                                            .includes({ booking: :service }, :job_form_template, :staff_member, :submitted_by_user)
                                             .recent
 
     # Filter by status
@@ -100,5 +100,6 @@ class BusinessManager::JobFormSubmissionsController < BusinessManager::BaseContr
     @job_form_submission = current_business.job_form_submissions.find(params[:id])
   rescue ActiveRecord::RecordNotFound
     redirect_to business_manager_job_form_submissions_path, alert: 'Submission not found.'
+    return
   end
 end

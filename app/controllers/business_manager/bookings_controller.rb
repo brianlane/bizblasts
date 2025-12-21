@@ -5,6 +5,7 @@ module BusinessManager
     before_action :authenticate_user!
     before_action :require_business_staff!
     before_action :set_booking, only: [:show, :edit, :update, :confirm, :cancel, :reschedule, :update_schedule, :refund, :fill_form, :submit_form]
+    before_action :set_form_template_and_submission, only: [:fill_form, :submit_form]
     
     # GET /manage/bookings
     def index
@@ -325,24 +326,7 @@ module BusinessManager
     # GET /manage/bookings/:id/fill_form
     # Render a job form for staff to fill out
     def fill_form
-      @template = current_business.job_form_templates.find(params[:template_id])
-      
-      # Find or create a submission for this booking and template
-      @submission = if params[:submission_id].present?
-        submission = @booking.job_form_submissions.find(params[:submission_id])
-        # Verify the submission belongs to the requested template
-        if submission.job_form_template_id != @template.id
-          redirect_to business_manager_booking_path(@booking), alert: 'Form template mismatch.'
-          return
-        end
-        submission
-      else
-        @booking.job_form_submissions.find_or_initialize_by(
-          job_form_template: @template,
-          business: current_business
-        )
-      end
-      
+      # Template and submission are set by before_action
       # Set default values for new submissions
       if @submission.new_record?
         @submission.staff_member = current_user.staff_member
@@ -351,71 +335,59 @@ module BusinessManager
       elsif !@submission.editable?
         # Prevent editing of submitted or approved forms
         redirect_to business_manager_booking_path(@booking), alert: 'This form submission cannot be edited.'
-        return
       end
-    rescue ActiveRecord::RecordNotFound
-      redirect_to business_manager_booking_path(@booking), alert: 'Form template not found.'
     end
     
     # POST /manage/bookings/:id/submit_form
     # Save job form submission
     def submit_form
-      @template = current_business.job_form_templates.find(params[:template_id])
-      
-      @submission = if params[:submission_id].present?
-        submission = @booking.job_form_submissions.find(params[:submission_id])
-        # Verify the submission belongs to the requested template
-        if submission.job_form_template_id != @template.id
-          redirect_to business_manager_booking_path(@booking), alert: 'Form template mismatch.'
-          return
-        end
-        submission
-      else
-        @booking.job_form_submissions.new(
-          job_form_template: @template,
-          business: current_business,
-          staff_member: current_user.staff_member
-        )
-      end
-      
+      # Template and submission are set by before_action
       # Prevent modifying non-editable submissions (submitted/approved)
       if @submission.persisted? && !@submission.editable?
         redirect_to business_manager_booking_path(@booking), alert: 'This form submission cannot be modified.'
         return
       end
-      
-      # Update responses from form submission, handling file uploads separately
-      # Start with existing responses to preserve photo references that weren't re-uploaded
-      responses_hash = (@submission.responses || {}).dup
-      
-      if params[:responses].present?
-        params[:responses].each do |field_id, value|
-          if value.is_a?(ActionDispatch::Http::UploadedFile)
-            # Handle file uploads by attaching to the submission
-            blob = ActiveStorage::Blob.create_and_upload!(
-              io: value,
-              filename: value.original_filename,
-              content_type: value.content_type
-            )
-            @submission.photos.attach(blob)
-            # Store a reference to the attachment using blob's signed_id for unique lookup
-            responses_hash[field_id] = { 'type' => 'photo', 'attached' => true, 'filename' => value.original_filename, 'blob_signed_id' => blob.signed_id }
-          else
-            responses_hash[field_id] = value
+
+      # Wrap in transaction to ensure atomicity of file uploads and save
+      save_result = ActiveRecord::Base.transaction do
+        # Update responses from form submission, handling file uploads separately
+        # Start with existing responses to preserve photo references that weren't re-uploaded
+        responses_hash = (@submission.responses || {}).dup
+
+        if params[:responses].present?
+          params[:responses].each do |field_id, value|
+            if value.is_a?(ActionDispatch::Http::UploadedFile)
+              # Handle file uploads by attaching to the submission with error handling
+              begin
+                blob = ActiveStorage::Blob.create_and_upload!(
+                  io: value,
+                  filename: value.original_filename,
+                  content_type: value.content_type
+                )
+                @submission.photos.attach(blob)
+                # Store a reference to the attachment using blob's signed_id for unique lookup
+                responses_hash[field_id] = { 'type' => 'photo', 'attached' => true, 'filename' => value.original_filename, 'blob_signed_id' => blob.signed_id }
+              rescue ActiveStorage::IntegrityError, ActiveStorage::FileNotFoundError => e
+                @submission.errors.add(:base, "Failed to upload file: #{e.message}")
+                raise ActiveRecord::Rollback
+              end
+            else
+              responses_hash[field_id] = value
+            end
           end
         end
+        @submission.responses = responses_hash
+
+        # Determine if we're saving as draft or submitting
+        if params[:commit] == 'Save as Draft' || params[:save_draft].present?
+          @submission.status = :draft
+          @submission.save
+        else
+          # Use submit! method which properly validates required fields
+          @submission.submit!(user: current_user)
+        end
       end
-      @submission.responses = responses_hash
-      
-      # Determine if we're saving as draft or submitting
-      if params[:commit] == 'Save as Draft' || params[:save_draft].present?
-        @submission.status = :draft
-        save_result = @submission.save
-      else
-        # Use submit! method which properly validates required fields
-        save_result = @submission.submit!(user: current_user)
-      end
-      
+
       if save_result
         if @submission.submitted?
           redirect_to business_manager_booking_path(@booking), notice: 'Form submitted successfully.'
@@ -426,8 +398,6 @@ module BusinessManager
         flash.now[:alert] = @submission.errors.full_messages.join(', ')
         render :fill_form, status: :unprocessable_entity
       end
-    rescue ActiveRecord::RecordNotFound
-      redirect_to business_manager_booking_path(@booking), alert: 'Form template not found.'
     end
     
     # GET /manage/available-slots
@@ -634,6 +604,37 @@ module BusinessManager
           next
         end
       end
+    end
+
+    # Set the form template and submission for fill_form and submit_form actions
+    def set_form_template_and_submission
+      @template = current_business.job_form_templates.find(params[:template_id])
+
+      # Find or create a submission for this booking and template
+      @submission = if params[:submission_id].present?
+        submission = @booking.job_form_submissions.find(params[:submission_id])
+        # Verify the submission belongs to the requested template
+        if submission.job_form_template_id != @template.id
+          redirect_to business_manager_booking_path(@booking), alert: 'Form template mismatch.'
+          return
+        end
+        submission
+      else
+        if action_name == 'fill_form'
+          @booking.job_form_submissions.find_or_initialize_by(
+            job_form_template: @template,
+            business: current_business
+          )
+        else
+          @booking.job_form_submissions.new(
+            job_form_template: @template,
+            business: current_business,
+            staff_member: current_user.staff_member
+          )
+        end
+      end
+    rescue ActiveRecord::RecordNotFound
+      redirect_to business_manager_booking_path(@booking), alert: 'Form template not found.'
     end
   end
 end 

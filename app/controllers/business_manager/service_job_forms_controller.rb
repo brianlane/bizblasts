@@ -30,12 +30,14 @@ class BusinessManager::ServiceJobFormsController < BusinessManager::BaseControll
     @service = current_business.services.find(params[:service_id])
   rescue ActiveRecord::RecordNotFound
     redirect_to business_manager_services_path, alert: 'Service not found.'
+    return
   end
 
   def set_service_job_form
     @service_job_form = @service.service_job_forms.find(params[:id])
   rescue ActiveRecord::RecordNotFound
     redirect_to edit_business_manager_service_path(@service), alert: 'Job form assignment not found.'
+    return
   end
 
   def service_job_form_params

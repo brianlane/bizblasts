@@ -26,6 +26,7 @@ class JobFormTemplate < ApplicationRecord
   validates :form_type, presence: true
   validates :position, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validate :validate_fields_structure
+  validate :validate_active_template_has_fields
 
   # Scopes
   scope :ordered, -> { order(:position, :name) }
@@ -177,5 +178,12 @@ class JobFormTemplate < ApplicationRecord
         errors.add(:fields, "field '#{field['label']}' of type 'select' must have options array")
       end
     end
+  end
+
+  def validate_active_template_has_fields
+    return unless active?
+    return if form_fields.present? && form_fields.any?
+
+    errors.add(:base, 'Active templates must have at least one form field')
   end
 end

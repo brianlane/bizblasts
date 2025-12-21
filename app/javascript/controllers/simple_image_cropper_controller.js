@@ -402,11 +402,19 @@ export default class extends Controller {
           })
         }
         
+        let cacheBustAttempted = false
         imageEl.onerror = () => {
           console.error('[Cropper] Display image failed to load')
-          // Try one more time with a cache-busting parameter
-          const bustUrl = imageUrl + (imageUrl.includes('?') ? '&' : '?') + '_t=' + Date.now()
-          imageEl.src = bustUrl
+          // Try one more time with a cache-busting parameter (limit to one retry)
+          if (!cacheBustAttempted) {
+            cacheBustAttempted = true
+            const bustUrl = imageUrl + (imageUrl.includes('?') ? '&' : '?') + '_t=' + Date.now()
+            imageEl.src = bustUrl
+          } else {
+            console.error('[Cropper] Cache-bust retry also failed')
+            this.closeModal()
+            alert('Failed to load image for cropping. The image may be inaccessible.')
+          }
         }
       } else {
         console.error('[Cropper] Image element not found in modal')

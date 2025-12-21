@@ -27,7 +27,7 @@ class Service < ApplicationRecord
   # Job Forms and Attachments
   has_many :service_job_forms, dependent: :destroy
   has_many :job_form_templates, through: :service_job_forms
-  has_many :job_attachments, as: :attachable, dependent: :destroy
+  has_many :job_attachments, as: :attachable, dependent: :nullify
   
   # Subscription associations
   has_many :customer_subscriptions, dependent: :destroy

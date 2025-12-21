@@ -104,6 +104,7 @@ class BusinessManager::JobFormTemplatesController < BusinessManager::BaseControl
     @job_form_template = current_business.job_form_templates.find(params[:id])
   rescue ActiveRecord::RecordNotFound
     redirect_to business_manager_job_form_templates_path, alert: 'Template not found.'
+    return
   end
 
   def job_form_template_params

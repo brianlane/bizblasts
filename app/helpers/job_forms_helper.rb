@@ -1,58 +1,50 @@
 # frozen_string_literal: true
 
 module JobFormsHelper
+  # CSS class constants for consistency
+  STATUS_BADGE_CLASSES = {
+    'draft' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+    'submitted' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+    'approved' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+    'requires_revision' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+  }.freeze
+
+  TIMING_BORDER_CLASSES = {
+    'before_service' => 'border-yellow-400',
+    'during_service' => 'border-blue-400',
+    'after_service' => 'border-green-400'
+  }.freeze
+
+  TIMING_BACKGROUND_CLASSES = {
+    'before_service' => 'bg-yellow-50 dark:bg-yellow-900',
+    'during_service' => 'bg-blue-50 dark:bg-blue-900',
+    'after_service' => 'bg-green-50 dark:bg-green-900'
+  }.freeze
+
+  TIMING_LABELS = {
+    'before_service' => 'Before Service',
+    'during_service' => 'During Service',
+    'after_service' => 'After Service'
+  }.freeze
+
   # Returns CSS classes for job form submission status badges
   def submission_status_badge_class(status)
-    case status.to_s
-    when 'draft'
-      'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-    when 'submitted'
-      'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-    when 'approved'
-      'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-    when 'requires_revision'
-      'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-    else
-      'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-    end
+    STATUS_BADGE_CLASSES[status.to_s] || STATUS_BADGE_CLASSES['draft']
   end
 
   # Returns CSS classes for timing section borders
   def timing_border_class(timing)
-    case timing.to_s
-    when 'before_service'
-      'border-yellow-400'
-    when 'during_service'
-      'border-blue-400'
-    when 'after_service'
-      'border-green-400'
-    else
-      'border-gray-400'
-    end
+    TIMING_BORDER_CLASSES[timing.to_s] || 'border-gray-400'
   end
 
   # Returns CSS classes for timing section backgrounds
   def timing_background_class(timing)
-    case timing.to_s
-    when 'before_service'
-      'bg-yellow-50 dark:bg-yellow-900'
-    when 'during_service'
-      'bg-blue-50 dark:bg-blue-900'
-    when 'after_service'
-      'bg-green-50 dark:bg-green-900'
-    else
-      'bg-gray-50 dark:bg-gray-900'
-    end
+    TIMING_BACKGROUND_CLASSES[timing.to_s] || 'bg-gray-50 dark:bg-gray-900'
   end
 
   # Human-readable timing display
   def timing_display(timing)
-    case timing.to_s
-    when 'before_service' then 'Before Service'
-    when 'during_service' then 'During Service'
-    when 'after_service' then 'After Service'
-    else timing.to_s.humanize
-    end
+    TIMING_LABELS[timing.to_s] || timing.to_s.humanize
   end
 
   # Resolves a photo field value to actual image URL(s) from Active Storage
