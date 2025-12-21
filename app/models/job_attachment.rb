@@ -70,7 +70,7 @@ class JobAttachment < ApplicationRecord
   # Check if the attachment is an image
   def image?
     return false unless file.attached?
-    file.content_type.start_with?('image/')
+    file.content_type&.start_with?('image/')
   end
 
   # Check if the attachment is a PDF
