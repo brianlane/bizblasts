@@ -329,7 +329,13 @@ module BusinessManager
       
       # Find or create a submission for this booking and template
       @submission = if params[:submission_id].present?
-        @booking.job_form_submissions.find(params[:submission_id])
+        submission = @booking.job_form_submissions.find(params[:submission_id])
+        # Verify the submission belongs to the requested template
+        if submission.job_form_template_id != @template.id
+          redirect_to business_manager_booking_path(@booking), alert: 'Form template mismatch.'
+          return
+        end
+        submission
       else
         @booking.job_form_submissions.find_or_initialize_by(
           job_form_template: @template,
@@ -357,7 +363,13 @@ module BusinessManager
       @template = current_business.job_form_templates.find(params[:template_id])
       
       @submission = if params[:submission_id].present?
-        @booking.job_form_submissions.find(params[:submission_id])
+        submission = @booking.job_form_submissions.find(params[:submission_id])
+        # Verify the submission belongs to the requested template
+        if submission.job_form_template_id != @template.id
+          redirect_to business_manager_booking_path(@booking), alert: 'Form template mismatch.'
+          return
+        end
+        submission
       else
         @booking.job_form_submissions.new(
           job_form_template: @template,

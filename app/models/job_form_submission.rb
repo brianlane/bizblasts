@@ -111,7 +111,7 @@ class JobFormSubmission < ApplicationRecord
     template_fields = job_form_template&.form_fields || []
     return 100 if template_fields.empty?
 
-    filled_count = template_fields.count { |f| response_for(f['id']).present? }
+    filled_count = template_fields.count { |f| field_value_present?(response_for(f['id']), f['type']) }
     ((filled_count.to_f / template_fields.length) * 100).round
   end
 
@@ -194,7 +194,7 @@ class JobFormSubmission < ApplicationRecord
 
     required_fields.each do |field|
       value = response_for(field['id'])
-      unless value.present?
+      unless field_value_present?(value, field['type'])
         errors.add(:base, "#{field['label']} is required")
       end
     end
