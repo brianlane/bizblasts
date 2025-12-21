@@ -335,6 +335,7 @@ module BusinessManager
       elsif !@submission.editable?
         # Prevent editing of submitted or approved forms
         redirect_to business_manager_booking_path(@booking), alert: 'This form submission cannot be edited.'
+        return
       end
     end
     

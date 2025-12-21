@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_20_000004) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_21_174304) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -946,6 +946,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_20_000004) do
     t.index ["approved_by_user_id"], name: "index_job_form_submissions_on_approved_by_user_id"
     t.index ["booking_id", "job_form_template_id"], name: "idx_job_form_submissions_booking_template"
     t.index ["booking_id"], name: "index_job_form_submissions_on_booking_id"
+    t.index ["business_id", "status"], name: "index_job_form_submissions_on_business_and_status"
     t.index ["business_id", "status"], name: "index_job_form_submissions_on_business_id_and_status"
     t.index ["business_id"], name: "index_job_form_submissions_on_business_id"
     t.index ["job_form_template_id"], name: "index_job_form_submissions_on_job_form_template_id"
