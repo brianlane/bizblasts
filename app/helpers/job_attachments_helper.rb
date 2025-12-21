@@ -29,3 +29,4 @@ module JobAttachmentsHelper
     end
   end
 end
+

@@ -67,11 +67,18 @@ class BusinessManager::JobFormTemplatesController < BusinessManager::BaseControl
 
   # PATCH /manage/job_form_templates/:id/toggle_active
   def toggle_active
-    @job_form_template.update(active: !@job_form_template.active)
-
-    respond_to do |format|
-      format.html { redirect_to business_manager_job_form_templates_path, notice: "Template #{@job_form_template.active? ? 'activated' : 'deactivated'} successfully." }
-      format.json { render json: { active: @job_form_template.active } }
+    new_active_state = !@job_form_template.active
+    
+    if @job_form_template.update(active: new_active_state)
+      respond_to do |format|
+        format.html { redirect_to business_manager_job_form_templates_path, notice: "Template #{new_active_state ? 'activated' : 'deactivated'} successfully." }
+        format.json { render json: { active: @job_form_template.active } }
+      end
+    else
+      respond_to do |format|
+        format.html { redirect_to business_manager_job_form_templates_path, alert: "Failed to update template: #{@job_form_template.errors.full_messages.join(', ')}" }
+        format.json { render json: { error: @job_form_template.errors.full_messages }, status: :unprocessable_entity }
+      end
     end
   end
 

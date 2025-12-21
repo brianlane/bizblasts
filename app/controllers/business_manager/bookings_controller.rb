@@ -363,20 +363,22 @@ module BusinessManager
       end
       
       # Update responses from form submission, handling file uploads separately
+      # Start with existing responses to preserve photo references that weren't re-uploaded
+      responses_hash = (@submission.responses || {}).dup
+      
       if params[:responses].present?
-        responses_hash = {}
         params[:responses].each do |field_id, value|
           if value.is_a?(ActionDispatch::Http::UploadedFile)
             # Handle file uploads by attaching to the submission
             @submission.photos.attach(value)
             # Store a reference to the attachment in responses
-            responses_hash[field_id] = { type: 'photo', attached: true, filename: value.original_filename }
+            responses_hash[field_id] = { 'type' => 'photo', 'attached' => true, 'filename' => value.original_filename }
           else
             responses_hash[field_id] = value
           end
         end
-        @submission.responses = responses_hash
       end
+      @submission.responses = responses_hash
       
       # Determine if we're saving as draft or submitting
       if params[:commit] == 'Save as Draft' || params[:save_draft].present?

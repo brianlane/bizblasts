@@ -104,11 +104,28 @@ class JobFormSubmission < ApplicationRecord
 
   # Submit the form
   def submit!(user: nil)
-    return false unless all_required_fields_filled?
+    unless all_required_fields_filled?
+      # Add validation errors for missing required fields
+      add_required_field_errors
+      return false
+    end
 
     self.submitted_by_user = user if user
     self.status = :submitted
     save
+  end
+
+  # Add validation errors for missing required fields
+  def add_required_field_errors
+    template_fields = job_form_template&.form_fields || []
+    required_fields = template_fields.select { |f| f['required'] }
+
+    required_fields.each do |field|
+      value = response_for(field['id'])
+      unless value.present?
+        errors.add(:base, "#{field['label']} is required")
+      end
+    end
   end
 
   # Approve the form

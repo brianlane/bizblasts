@@ -658,3 +658,4 @@ app/controllers/business_manager/gallery_controller.rb
 - Crop presets per business
 - Undo/redo in cropper
 
+

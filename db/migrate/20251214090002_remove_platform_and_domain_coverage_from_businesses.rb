@@ -26,3 +26,4 @@ class RemovePlatformAndDomainCoverageFromBusinesses < ActiveRecord::Migration[7.
 end
 
 
+
