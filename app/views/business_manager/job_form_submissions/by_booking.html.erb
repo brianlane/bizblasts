@@ -68,7 +68,12 @@
                         <% if response[:type] == 'checkbox' %>
                           <%= response[:value] ? '✓ Yes' : '✗ No' %>
                         <% elsif response[:type] == 'photo' %>
-                          <span class="text-blue-600"><%= response[:value].is_a?(Array) ? "#{response[:value].length} photos" : '1 photo' %></span>
+                          <% photo_url = resolve_photo_value(response[:value], submission, response[:field_id]) %>
+                          <% if photo_url.present? %>
+                            <span class="text-blue-600"><%= photo_url.is_a?(Array) ? "#{photo_url.length} photos" : '1 photo' %></span>
+                          <% else %>
+                            <span class="text-gray-400">-</span>
+                          <% end %>
                         <% else %>
                           <%= response[:value].to_s.truncate(30).presence || '-' %>
                         <% end %>
