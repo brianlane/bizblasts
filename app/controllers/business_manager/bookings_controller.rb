@@ -626,18 +626,14 @@ module BusinessManager
         end
         submission
       else
-        if action_name == 'fill_form'
-          @booking.job_form_submissions.find_or_initialize_by(
-            job_form_template: @template,
-            business: current_business
-          )
-        else
-          @booking.job_form_submissions.new(
-            job_form_template: @template,
-            business: current_business,
-            staff_member: current_user.staff_member
-          )
-        end
+        # Use find_or_initialize_by for both actions to prevent duplicate submissions
+        submission = @booking.job_form_submissions.find_or_initialize_by(
+          job_form_template: @template,
+          business: current_business
+        )
+        # Set staff_member if this is a new record
+        submission.staff_member ||= current_user.staff_member
+        submission
       end
     rescue ActiveRecord::RecordNotFound
       redirect_to business_manager_booking_path(@booking), alert: 'Form template not found.'
