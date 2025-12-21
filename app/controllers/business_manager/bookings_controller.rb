@@ -370,9 +370,14 @@ module BusinessManager
         params[:responses].each do |field_id, value|
           if value.is_a?(ActionDispatch::Http::UploadedFile)
             # Handle file uploads by attaching to the submission
-            @submission.photos.attach(value)
-            # Store a reference to the attachment in responses
-            responses_hash[field_id] = { 'type' => 'photo', 'attached' => true, 'filename' => value.original_filename }
+            blob = ActiveStorage::Blob.create_and_upload!(
+              io: value,
+              filename: value.original_filename,
+              content_type: value.content_type
+            )
+            @submission.photos.attach(blob)
+            # Store a reference to the attachment using blob's signed_id for unique lookup
+            responses_hash[field_id] = { 'type' => 'photo', 'attached' => true, 'filename' => value.original_filename, 'blob_signed_id' => blob.signed_id }
           else
             responses_hash[field_id] = value
           end

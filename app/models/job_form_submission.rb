@@ -172,7 +172,8 @@ class JobFormSubmission < ApplicationRecord
   end
 
   def validate_required_fields
-    return unless status == 'submitted' || status_was == 'draft'
+    # Only validate required fields when transitioning to submitted status
+    return unless status == 'submitted' && status_changed?
     return if all_required_fields_filled?
 
     template_fields = job_form_template&.form_fields || []

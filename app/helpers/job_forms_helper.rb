@@ -62,9 +62,18 @@ module JobFormsHelper
 
     # If it's a hash with type 'photo', look up from Active Storage
     if field_value.is_a?(Hash) && field_value['type'] == 'photo'
+      # Prefer blob_signed_id for unique lookup (handles duplicate filenames)
+      if field_value['blob_signed_id'].present? && submission.photos.attached?
+        blob = ActiveStorage::Blob.find_signed(field_value['blob_signed_id'])
+        if blob
+          attachment = submission.photos.find { |p| p.blob_id == blob.id }
+          return rails_blob_url(attachment, only_path: true) if attachment
+        end
+      end
+      
+      # Fallback to filename lookup for legacy data
       filename = field_value['filename']
       if filename.present? && submission.photos.attached?
-        # Find the photo by filename
         photo = submission.photos.find { |p| p.filename.to_s == filename }
         return rails_blob_url(photo, only_path: true) if photo
       end
