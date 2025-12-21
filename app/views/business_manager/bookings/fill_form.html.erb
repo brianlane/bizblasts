@@ -63,6 +63,7 @@
     <%= form_with url: submit_form_business_manager_booking_path(@booking, template_id: @template.id, submission_id: @submission.persisted? ? @submission.id : nil),
                   method: :post,
                   local: true,
+                  multipart: true,
                   class: "px-6 py-6" do |f| %>
       <% if @template.form_fields.any? %>
         <div class="space-y-6">

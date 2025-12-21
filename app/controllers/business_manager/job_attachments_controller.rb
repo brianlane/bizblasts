@@ -60,9 +60,11 @@ class BusinessManager::JobAttachmentsController < BusinessManager::BaseControlle
 
   # POST /manage/job_attachments/reorder
   def reorder
-    params[:attachment_ids].each_with_index do |id, index|
-      attachment = @attachable.job_attachments.find_by(id: id)
-      attachment&.update_column(:position, index)
+    if params[:attachment_ids].present?
+      params[:attachment_ids].each_with_index do |id, index|
+        attachment = @attachable.job_attachments.find_by(id: id)
+        attachment&.update_column(:position, index)
+      end
     end
 
     respond_to do |format|
@@ -85,6 +87,7 @@ class BusinessManager::JobAttachmentsController < BusinessManager::BaseControlle
       @attachable_type = 'Booking'
     else
       redirect_to business_manager_dashboard_path, alert: 'Invalid attachment context.'
+      return
     end
   end
 
