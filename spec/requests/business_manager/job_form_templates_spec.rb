@@ -164,7 +164,7 @@ RSpec.describe 'BusinessManager::JobFormTemplates', type: :request do
   end
 
   describe 'PATCH /manage/job_form_templates/:id/toggle_active' do
-    let(:template) { create(:job_form_template, business: business, active: true) }
+    let(:template) { create(:job_form_template, :active_with_fields, business: business) }
 
     it 'toggles the active status' do
       patch toggle_active_business_manager_job_form_template_path(template)

@@ -42,7 +42,7 @@ RSpec.describe JobFormTemplate, type: :model do
 
   describe 'scopes' do
     let!(:business) { create(:business) }
-    let!(:active_template) { create(:job_form_template, business: business, active: true, position: 1) }
+    let!(:active_template) { create(:job_form_template, :active_with_fields, business: business, position: 1) }
     let!(:inactive_template) { create(:job_form_template, business: business, active: false, position: 0) }
 
     describe '.ordered' do

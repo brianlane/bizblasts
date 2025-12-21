@@ -380,13 +380,18 @@ module BusinessManager
         @submission.responses = responses_hash
 
         # Determine if we're saving as draft or submitting
-        if params[:commit] == 'Save as Draft' || params[:save_draft].present?
+        result = if params[:commit] == 'Save as Draft' || params[:save_draft].present?
           @submission.status = :draft
           @submission.save
         else
           # Use submit! method which properly validates required fields
           @submission.submit!(user: current_user)
         end
+
+        # Trigger rollback if save/submit failed to prevent orphaned photo attachments
+        raise ActiveRecord::Rollback unless result
+
+        result
       end
 
       if save_result

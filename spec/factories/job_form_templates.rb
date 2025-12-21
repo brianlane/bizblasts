@@ -6,9 +6,13 @@ FactoryBot.define do
     name { Faker::Lorem.words(number: 3).join(' ').titleize }
     description { Faker::Lorem.paragraph }
     form_type { :checklist }
-    active { true }
+    active { false }  # Default to inactive to avoid requiring fields
     position { nil }
     fields { { 'fields' => [] } }
+
+    trait :active do
+      active { true }
+    end
 
     trait :inactive do
       active { false }
@@ -89,6 +93,24 @@ FactoryBot.define do
               'id' => SecureRandom.uuid,
               'type' => 'signature',
               'label' => 'Customer Signature',
+              'required' => true,
+              'position' => 0
+            }
+          ]
+        }
+      end
+    end
+
+    # Convenience trait for active templates with fields (most common use case)
+    trait :active_with_fields do
+      active { true }
+      fields do
+        {
+          'fields' => [
+            {
+              'id' => SecureRandom.uuid,
+              'type' => 'checkbox',
+              'label' => 'Task completed',
               'required' => true,
               'position' => 0
             }

@@ -20,7 +20,7 @@ RSpec.describe 'Job Form Templates Management', type: :system do
     end
 
     it 'shows active and inactive status' do
-      active_template = create(:job_form_template, business: business, name: 'Active Form', active: true)
+      active_template = create(:job_form_template, :active_with_fields, business: business, name: 'Active Form')
       inactive_template = create(:job_form_template, business: business, name: 'Inactive Form', active: false)
 
       visit business_manager_job_form_templates_path
@@ -37,6 +37,7 @@ RSpec.describe 'Job Form Templates Management', type: :system do
       fill_in 'Name', with: 'Pre-Service Checklist'
       fill_in 'Description', with: 'Checklist before starting service'
       select 'Checklist', from: 'Form type'
+      uncheck 'Active' # Uncheck active since we're not adding form fields
 
       click_button 'Create Template'
 
@@ -84,7 +85,7 @@ RSpec.describe 'Job Form Templates Management', type: :system do
   end
 
   describe 'toggling active status' do
-    let!(:template) { create(:job_form_template, business: business, name: 'Toggle Test', active: true) }
+    let!(:template) { create(:job_form_template, :active_with_fields, business: business, name: 'Toggle Test') }
 
     it 'toggles template active status' do
       visit business_manager_job_form_templates_path
