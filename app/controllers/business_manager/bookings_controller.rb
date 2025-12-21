@@ -342,6 +342,10 @@ module BusinessManager
         @submission.staff_member = current_user.staff_member
         @submission.status = :draft
         @submission.responses = {}
+      elsif !@submission.editable?
+        # Prevent editing of submitted or approved forms
+        redirect_to business_manager_booking_path(@booking), alert: 'This form submission cannot be edited.'
+        return
       end
     rescue ActiveRecord::RecordNotFound
       redirect_to business_manager_booking_path(@booking), alert: 'Form template not found.'
@@ -360,6 +364,12 @@ module BusinessManager
           business: current_business,
           staff_member: current_user.staff_member
         )
+      end
+      
+      # Prevent modifying non-editable submissions (submitted/approved)
+      if @submission.persisted? && !@submission.editable?
+        redirect_to business_manager_booking_path(@booking), alert: 'This form submission cannot be modified.'
+        return
       end
       
       # Update responses from form submission, handling file uploads separately

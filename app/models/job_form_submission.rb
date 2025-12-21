@@ -89,8 +89,21 @@ class JobFormSubmission < ApplicationRecord
 
     required_fields.all? do |field|
       value = response_for(field['id'])
-      value.present?
+      field_value_present?(value, field['type'])
     end
+  end
+
+  # Check if a field value is considered "present" based on field type
+  # Handles checkbox fields specially since "false" string should not count as filled
+  def field_value_present?(value, field_type)
+    return false if value.blank?
+    
+    # For checkbox fields, the string "false" means unchecked
+    if field_type == 'checkbox'
+      return ActiveModel::Type::Boolean.new.cast(value) == true
+    end
+    
+    true
   end
 
   # Calculate completion percentage
@@ -122,7 +135,7 @@ class JobFormSubmission < ApplicationRecord
 
     required_fields.each do |field|
       value = response_for(field['id'])
-      unless value.present?
+      unless field_value_present?(value, field['type'])
         errors.add(:base, "#{field['label']} is required")
       end
     end
