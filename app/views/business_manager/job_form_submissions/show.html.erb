@@ -67,18 +67,19 @@
                       <% end %>
 
                     <% when 'photo' %>
-                      <% if response[:value].present? %>
-                        <% if response[:value].is_a?(Array) %>
+                      <% photo_url = resolve_photo_value(response[:value], @job_form_submission, response[:field_id]) %>
+                      <% if photo_url.present? %>
+                        <% if photo_url.is_a?(Array) %>
                           <div class="flex flex-wrap gap-2 mt-2">
-                            <% response[:value].each do |photo_url| %>
-                              <%= link_to photo_url, target: "_blank" do %>
-                                <img src="<%= photo_url %>" alt="Photo" class="h-24 w-24 object-cover rounded-lg border">
+                            <% photo_url.each do |url| %>
+                              <%= link_to url, target: "_blank" do %>
+                                <img src="<%= url %>" alt="Photo" class="h-24 w-24 object-cover rounded-lg border">
                               <% end %>
                             <% end %>
                           </div>
                         <% else %>
-                          <%= link_to response[:value], target: "_blank" do %>
-                            <img src="<%= response[:value] %>" alt="Photo" class="h-32 object-cover rounded-lg border">
+                          <%= link_to photo_url, target: "_blank" do %>
+                            <img src="<%= photo_url %>" alt="Photo" class="h-32 object-cover rounded-lg border">
                           <% end %>
                         <% end %>
                       <% else %>

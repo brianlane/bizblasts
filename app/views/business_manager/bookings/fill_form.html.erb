@@ -147,17 +147,18 @@
 
               <% when 'photo' %>
                 <div class="mt-1">
-                  <% if field_value.present? %>
+                  <% photo_url = resolve_photo_value(field_value, @submission, field_id) %>
+                  <% if photo_url.present? %>
                     <div class="mb-3">
                       <p class="text-sm text-gray-500 mb-2">Current photo:</p>
-                      <% if field_value.is_a?(Array) %>
+                      <% if photo_url.is_a?(Array) %>
                         <div class="flex flex-wrap gap-2">
-                          <% field_value.each do |photo_url| %>
-                            <%= image_tag photo_url, class: "h-24 w-24 object-cover rounded-lg border" %>
+                          <% photo_url.each do |url| %>
+                            <%= image_tag url, class: "h-24 w-24 object-cover rounded-lg border" %>
                           <% end %>
                         </div>
                       <% else %>
-                        <%= image_tag field_value, class: "h-32 object-cover rounded-lg border" %>
+                        <%= image_tag photo_url, class: "h-32 object-cover rounded-lg border" %>
                       <% end %>
                     </div>
                   <% end %>
@@ -166,7 +167,7 @@
                          id="responses_<%= field_id %>"
                          accept="image/*"
                          class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900 dark:file:text-blue-200"
-                         <%= 'required' if field['required'] && field_value.blank? %>>
+                         <%= 'required' if field['required'] && photo_url.blank? %>>
                   <p class="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 10MB</p>
                 </div>
 

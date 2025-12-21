@@ -55,6 +55,36 @@ module JobFormsHelper
     end
   end
 
+  # Resolves a photo field value to actual image URL(s) from Active Storage
+  # Returns nil if no photo found, a URL string, or array of URL strings
+  def resolve_photo_value(field_value, submission, field_id = nil)
+    return nil if field_value.blank?
+
+    # If it's a hash with type 'photo', look up from Active Storage
+    if field_value.is_a?(Hash) && field_value['type'] == 'photo'
+      filename = field_value['filename']
+      if filename.present? && submission.photos.attached?
+        # Find the photo by filename
+        photo = submission.photos.find { |p| p.filename.to_s == filename }
+        return rails_blob_url(photo, only_path: true) if photo
+      end
+      return nil
+    end
+
+    # If it's already a URL string, return as-is (legacy data)
+    if field_value.is_a?(String) && field_value.start_with?('http', '/')
+      return field_value
+    end
+
+    # If it's an array, resolve each element
+    if field_value.is_a?(Array)
+      urls = field_value.map { |v| resolve_photo_value(v, submission, field_id) }.compact
+      return urls.presence
+    end
+
+    nil
+  end
+
   # Returns icon class/path for field types
   def field_type_icon(field_type)
     case field_type.to_s
