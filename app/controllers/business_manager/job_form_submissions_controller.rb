@@ -24,12 +24,22 @@ class BusinessManager::JobFormSubmissionsController < BusinessManager::BaseContr
       @job_form_submissions = @job_form_submissions.for_template(params[:template_id])
     end
 
-    # Filter by date range
+    # Filter by date range (with error handling for invalid dates)
     if params[:from_date].present?
-      @job_form_submissions = @job_form_submissions.where('created_at >= ?', params[:from_date].to_date.beginning_of_day)
+      begin
+        from_date = Date.parse(params[:from_date])
+        @job_form_submissions = @job_form_submissions.where('created_at >= ?', from_date.beginning_of_day)
+      rescue Date::Error, ArgumentError
+        # Invalid date format - ignore this filter
+      end
     end
     if params[:to_date].present?
-      @job_form_submissions = @job_form_submissions.where('created_at <= ?', params[:to_date].to_date.end_of_day)
+      begin
+        to_date = Date.parse(params[:to_date])
+        @job_form_submissions = @job_form_submissions.where('created_at <= ?', to_date.end_of_day)
+      rescue Date::Error, ArgumentError
+        # Invalid date format - ignore this filter
+      end
     end
 
     @job_form_submissions = @job_form_submissions.page(params[:page]) if @job_form_submissions.respond_to?(:page)

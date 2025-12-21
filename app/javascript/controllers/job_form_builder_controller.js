@@ -139,8 +139,10 @@ export default class extends Controller {
       const optionsTextarea = item.querySelector('[data-field="options"]')
       const requiredCheckbox = item.querySelector('[data-field="required"]')
 
+      // Preserve existing field ID if present, otherwise generate a new one
+      const existingFieldId = item.dataset.fieldId
       const field = {
-        id: this.generateFieldId(),
+        id: existingFieldId || this.generateFieldId(),
         position: index,
         label: labelInput?.value || '',
         type: typeSelect?.value || 'text',

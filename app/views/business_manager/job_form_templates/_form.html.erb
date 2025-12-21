@@ -71,7 +71,7 @@
       <div data-job-form-builder-target="fieldsContainer" class="space-y-4">
         <% if @job_form_template.form_fields.any? %>
           <% @job_form_template.form_fields.sort_by { |field| field['position'] || 0 }.each_with_index do |field, index| %>
-            <div class="field-item border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900" data-job-form-builder-target="fieldItem" data-position="<%= index %>">
+            <div class="field-item border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900" data-job-form-builder-target="fieldItem" data-position="<%= index %>" data-field-id="<%= field['id'] %>">
               <div class="flex items-start justify-between mb-3">
                 <div class="flex items-center cursor-move" data-job-form-builder-target="dragHandle">
                   <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

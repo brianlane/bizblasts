@@ -362,9 +362,20 @@ module BusinessManager
         )
       end
       
-      # Update responses from form submission
+      # Update responses from form submission, handling file uploads separately
       if params[:responses].present?
-        @submission.responses = params[:responses].to_unsafe_h
+        responses_hash = {}
+        params[:responses].each do |field_id, value|
+          if value.is_a?(ActionDispatch::Http::UploadedFile)
+            # Handle file uploads by attaching to the submission
+            @submission.photos.attach(value)
+            # Store a reference to the attachment in responses
+            responses_hash[field_id] = { type: 'photo', attached: true, filename: value.original_filename }
+          else
+            responses_hash[field_id] = value
+          end
+        end
+        @submission.responses = responses_hash
       end
       
       # Determine if we're saving as draft or submitting
