@@ -9,7 +9,7 @@ FactoryBot.define do
     description { Faker::Lorem.paragraph }
     instructions { Faker::Lorem.paragraph }
     visibility { :internal }
-    position { 0 }
+    position { nil }
 
     trait :after_photo do
       attachment_type { :after_photo }

@@ -370,12 +370,13 @@ module BusinessManager
       # Determine if we're saving as draft or submitting
       if params[:commit] == 'Save as Draft' || params[:save_draft].present?
         @submission.status = :draft
+        save_result = @submission.save
       else
-        @submission.status = :submitted
-        @submission.submitted_by_user = current_user
+        # Use submit! method which properly validates required fields
+        save_result = @submission.submit!(user: current_user)
       end
       
-      if @submission.save
+      if save_result
         if @submission.submitted?
           redirect_to business_manager_booking_path(@booking), notice: 'Form submitted successfully.'
         else

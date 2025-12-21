@@ -7,6 +7,7 @@ RSpec.describe 'BusinessManager::JobFormTemplates', type: :request do
   let(:user) { create(:user, :manager, business: business) }
 
   before do
+    host! "#{business.subdomain}.lvh.me"
     sign_in user
     ActsAsTenant.current_tenant = business
   end
@@ -162,25 +163,25 @@ RSpec.describe 'BusinessManager::JobFormTemplates', type: :request do
     end
   end
 
-  describe 'POST /manage/job_form_templates/:id/toggle_active' do
+  describe 'PATCH /manage/job_form_templates/:id/toggle_active' do
     let(:template) { create(:job_form_template, business: business, active: true) }
 
     it 'toggles the active status' do
-      post toggle_active_business_manager_job_form_template_path(template)
+      patch toggle_active_business_manager_job_form_template_path(template)
 
       template.reload
       expect(template.active).to be false
     end
 
     it 'redirects back' do
-      post toggle_active_business_manager_job_form_template_path(template)
+      patch toggle_active_business_manager_job_form_template_path(template)
 
       expect(response).to redirect_to(business_manager_job_form_templates_path)
     end
   end
 
   describe 'POST /manage/job_form_templates/:id/duplicate' do
-    let(:template) { create(:job_form_template, :with_fields, business: business, name: 'Original') }
+    let!(:template) { create(:job_form_template, :with_fields, business: business, name: 'Original') }
 
     it 'creates a duplicate template' do
       expect {
@@ -215,12 +216,16 @@ RSpec.describe 'BusinessManager::JobFormTemplates', type: :request do
 
   describe 'authorization' do
     let(:other_business) { create(:business) }
-    let(:other_template) { create(:job_form_template, business: other_business) }
+    let(:other_template) do
+      ActsAsTenant.without_tenant do
+        create(:job_form_template, business: other_business)
+      end
+    end
 
-    it 'cannot access templates from other businesses' do
-      expect {
-        get business_manager_job_form_template_path(other_template)
-      }.to raise_error(ActiveRecord::RecordNotFound)
+    it 'redirects when accessing templates from other businesses' do
+      get business_manager_job_form_template_path(other_template)
+
+      expect(response).to redirect_to(business_manager_job_form_templates_path)
     end
   end
 end

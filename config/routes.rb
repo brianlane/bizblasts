@@ -268,7 +268,11 @@ Rails.application.routes.draw do
           post :crop_image, path: 'crop_image/:attachment_id'
         end
         resources :service_variants, except: [:show]
-        resources :job_attachments, only: [:create, :destroy]
+        resources :job_attachments, only: [:index, :create, :update, :destroy], controller: 'job_attachments' do
+          collection do
+            post :reorder
+          end
+        end
         resources :service_job_forms, only: [:create, :destroy]
       end
       resources :products do
@@ -343,6 +347,11 @@ Rails.application.routes.draw do
         collection do
           get '/available-slots', to: 'bookings#available_slots', as: :available_slots
         end
+        resources :job_attachments, only: [:index, :create, :update, :destroy], controller: 'job_attachments' do
+          collection do
+            post :reorder
+          end
+        end
       end
 
       # Add route for available slots in business manager context
@@ -360,7 +369,11 @@ Rails.application.routes.draw do
           get :versions
           patch 'restore_version/:version_id', action: :restore_version, as: :restore_version
         end
-        resources :job_attachments, only: [:create, :destroy]
+        resources :job_attachments, only: [:index, :create, :update, :destroy], controller: 'job_attachments' do
+          collection do
+            post :reorder
+          end
+        end
       end
 
       # Business transactions management (unified orders and invoices)
@@ -406,31 +419,6 @@ Rails.application.routes.draw do
         end
         collection do
           get :by_booking
-        end
-      end
-
-      # Job Attachments - Nested under resources that support them
-      resources :services do
-        resources :job_attachments, only: [:index, :create, :update, :destroy], controller: 'job_attachments' do
-          collection do
-            post :reorder
-          end
-        end
-      end
-
-      resources :estimates do
-        resources :job_attachments, only: [:index, :create, :update, :destroy], controller: 'job_attachments' do
-          collection do
-            post :reorder
-          end
-        end
-      end
-
-      resources :bookings do
-        resources :job_attachments, only: [:index, :create, :update, :destroy], controller: 'job_attachments' do
-          collection do
-            post :reorder
-          end
         end
       end
 

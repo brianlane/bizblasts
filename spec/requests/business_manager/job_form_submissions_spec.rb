@@ -10,6 +10,7 @@ RSpec.describe 'BusinessManager::JobFormSubmissions', type: :request do
   let(:template) { create(:job_form_template, :with_fields, business: business) }
 
   before do
+    host! "#{business.subdomain}.lvh.me"
     sign_in user
     ActsAsTenant.current_tenant = business
   end
@@ -157,9 +158,21 @@ RSpec.describe 'BusinessManager::JobFormSubmissions', type: :request do
 
   describe 'authorization' do
     let(:other_business) { create(:business) }
-    let(:other_booking) { create(:booking, business: other_business) }
-    let(:other_template) { create(:job_form_template, business: other_business) }
-    let(:other_submission) { create(:job_form_submission, business: other_business, booking: other_booking, job_form_template: other_template) }
+    let(:other_booking) do
+      ActsAsTenant.without_tenant do
+        create(:booking, business: other_business)
+      end
+    end
+    let(:other_template) do
+      ActsAsTenant.without_tenant do
+        create(:job_form_template, business: other_business)
+      end
+    end
+    let(:other_submission) do
+      ActsAsTenant.without_tenant do
+        create(:job_form_submission, business: other_business, booking: other_booking, job_form_template: other_template)
+      end
+    end
 
     it 'redirects when accessing submissions from other businesses' do
       get business_manager_job_form_submission_path(other_submission)

@@ -41,8 +41,8 @@ RSpec.describe JobAttachment, type: :model do
     let!(:before_photo) { create(:job_attachment, business: business, attachable: service, attachment_type: :before_photo) }
     let!(:after_photo) { create(:job_attachment, :after_photo, business: business, attachable: service) }
     let!(:instruction) { create(:job_attachment, :instruction, business: business, attachable: service) }
-    let!(:internal_attachment) { create(:job_attachment, business: business, attachable: service, visibility: :internal) }
-    let!(:visible_attachment) { create(:job_attachment, :customer_visible, business: business, attachable: service) }
+    let!(:internal_attachment) { create(:job_attachment, :general, business: business, attachable: service, visibility: :internal) }
+    let!(:visible_attachment) { create(:job_attachment, :general, :customer_visible, business: business, attachable: service) }
 
     describe '.photos' do
       it 'returns before and after photos' do

@@ -55,7 +55,7 @@ class JobAttachment < ApplicationRecord
   scope :internal_only, -> { where(visibility: :internal) }
 
   # Callbacks
-  before_create :set_position_to_end, unless: :position?
+  before_validation :set_position_to_end, on: :create, if: -> { position.nil? }
   after_commit :process_image, on: [:create, :update], if: :image?
 
   # Define ransackable attributes for ActiveAdmin
@@ -126,6 +126,6 @@ class JobAttachment < ApplicationRecord
 
   def process_image
     return unless file.attached? && image?
-    ProcessImageJob.perform_later(file.id)
+    ProcessImageJob.perform_later(file.attachment.id)
   end
 end

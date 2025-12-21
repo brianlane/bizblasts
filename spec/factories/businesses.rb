@@ -127,6 +127,12 @@ FactoryBot.define do
       sequence(:stripe_account_id) { |n| "acct_test#{n}" }
     end
 
+    trait :with_owner do
+      after(:create) do |business|
+        create(:user, :manager, business: business)
+      end
+    end
+
     trait :with_custom_domain do
       host_type { 'custom_domain' }
       status { 'cname_active' }

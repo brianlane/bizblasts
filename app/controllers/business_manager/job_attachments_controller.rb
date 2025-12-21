@@ -2,7 +2,7 @@
 
 class BusinessManager::JobAttachmentsController < BusinessManager::BaseController
   before_action :set_attachable
-  before_action :set_job_attachment, only: [:show, :update, :destroy]
+  before_action :set_job_attachment, only: [:update, :destroy]
 
   # GET /manage/job_attachments
   def index

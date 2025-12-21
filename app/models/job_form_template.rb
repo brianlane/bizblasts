@@ -33,7 +33,7 @@ class JobFormTemplate < ApplicationRecord
   scope :inactive, -> { where(active: false) }
 
   # Callbacks
-  before_create :set_position_to_end, unless: :position?
+  before_validation :set_position_to_end, on: :create, if: -> { position.nil? }
   before_save :normalize_fields
 
   # Define ransackable attributes for ActiveAdmin
@@ -53,6 +53,20 @@ class JobFormTemplate < ApplicationRecord
   # Set fields from structured array
   def form_fields=(field_array)
     self.fields = { 'fields' => field_array }
+  end
+
+  # Virtual attribute for JSON form fields (used by the form builder)
+  attr_accessor :form_fields_json
+
+  # Override form_fields_json= to also set form_fields
+  def form_fields_json=(json_string)
+    @form_fields_json = json_string
+    if json_string.present?
+      parsed = json_string.is_a?(String) ? JSON.parse(json_string) : json_string
+      self.form_fields = parsed
+    end
+  rescue JSON::ParserError
+    @form_fields_json = json_string
   end
 
   # Add a new field to the form

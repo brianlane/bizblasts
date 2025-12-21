@@ -8,6 +8,7 @@ RSpec.describe 'BusinessManager::JobAttachments', type: :request do
   let(:service) { create(:service, business: business) }
 
   before do
+    host! "#{business.subdomain}.lvh.me"
     sign_in user
     ActsAsTenant.current_tenant = business
   end
@@ -278,12 +279,17 @@ RSpec.describe 'BusinessManager::JobAttachments', type: :request do
 
   describe 'authorization' do
     let(:other_business) { create(:business) }
-    let(:other_service) { create(:service, business: other_business) }
+    let(:other_service) do
+      # Create service without tenant to avoid ActsAsTenant overriding the business
+      ActsAsTenant.without_tenant do
+        create(:service, business: other_business)
+      end
+    end
 
-    it 'raises error when accessing attachments from other businesses' do
-      expect {
-        get business_manager_service_job_attachments_path(other_service)
-      }.to raise_error(ActiveRecord::RecordNotFound)
+    it 'returns 404 when accessing attachments from other businesses' do
+      get business_manager_service_job_attachments_path(other_service)
+
+      expect(response).to have_http_status(:not_found)
     end
   end
 end

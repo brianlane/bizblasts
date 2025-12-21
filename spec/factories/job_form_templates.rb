@@ -7,7 +7,7 @@ FactoryBot.define do
     description { Faker::Lorem.paragraph }
     form_type { :checklist }
     active { true }
-    position { 0 }
+    position { nil }
     fields { { 'fields' => [] } }
 
     trait :inactive do

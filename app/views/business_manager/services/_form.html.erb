@@ -132,18 +132,6 @@
     <% end %>
   </div>
 
-  <!-- Job Forms & Checklists Section -->
-  <% if service.persisted? %>
-    <div id="job-forms">
-      <%= render 'business_manager/services/job_forms_assignment', form: form, service: service %>
-    </div>
-  <% end %>
-
-  <!-- Job Attachments Section (before/after photos, instructions) -->
-  <% if service.persisted? %>
-    <%= render 'business_manager/job_attachments/attachment_manager', attachable: service %>
-  <% end %>
-
   <div class="mb-4">
     <%= form.check_box :subscription_enabled, class: "form-checkbox h-5 w-5 text-primary rounded focus:ring-primary", id: "service_subscription_enabled" %>
     <%= form.label :subscription_enabled, "Enable subscriptions", class: "ml-2 text-gray-700 text-sm font-bold" %>
@@ -796,6 +784,18 @@
             class: "inline-flex items-center justify-center px-6 py-3 bg-primary text-white font-bold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer") %>
     </div>
   </div>
+<% end %>
+
+<!-- Job Forms & Checklists Section (Outside main form to avoid nested forms) -->
+<% if service.persisted? %>
+  <div id="job-forms">
+    <%= render 'business_manager/services/job_forms_assignment', form: nil, service: service %>
+  </div>
+<% end %>
+
+<!-- Job Attachments Section (Outside main form to avoid nested forms) -->
+<% if service.persisted? %>
+  <%= render 'business_manager/job_attachments/attachment_manager', attachable: service %>
 <% end %>
 
 <%# Form behavior now handled by Stimulus controller %>

@@ -9,6 +9,7 @@ RSpec.describe 'BusinessManager::ServiceJobForms', type: :request do
   let(:template) { create(:job_form_template, business: business) }
 
   before do
+    host! "#{business.subdomain}.lvh.me"
     sign_in user
     ActsAsTenant.current_tenant = business
   end
@@ -73,7 +74,11 @@ RSpec.describe 'BusinessManager::ServiceJobForms', type: :request do
 
     context 'with template from different business' do
       let(:other_business) { create(:business) }
-      let(:other_template) { create(:job_form_template, business: other_business) }
+      let(:other_template) do
+        ActsAsTenant.without_tenant do
+          create(:job_form_template, business: other_business)
+        end
+      end
 
       it 'does not create the assignment' do
         expect {
@@ -104,15 +109,19 @@ RSpec.describe 'BusinessManager::ServiceJobForms', type: :request do
 
   describe 'authorization' do
     let(:other_business) { create(:business) }
-    let(:other_service) { create(:service, business: other_business) }
+    let(:other_service) do
+      ActsAsTenant.without_tenant do
+        create(:service, business: other_business)
+      end
+    end
 
     it 'redirects when accessing services from other businesses' do
-      expect {
-        post business_manager_service_service_job_forms_path(other_service), params: {
-          job_form_template_id: template.id,
-          timing: 'before_service'
-        }
-      }.to raise_error(ActiveRecord::RecordNotFound)
+      post business_manager_service_service_job_forms_path(other_service), params: {
+        job_form_template_id: template.id,
+        timing: 'before_service'
+      }
+
+      expect(response).to redirect_to(business_manager_services_path)
     end
   end
 end
