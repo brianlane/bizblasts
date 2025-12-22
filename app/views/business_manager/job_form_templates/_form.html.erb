@@ -1,4 +1,4 @@
-<%= form_with model: [:business_manager, @job_form_template], local: true, class: "space-y-6", data: { controller: "job-form-builder" } do |f| %>
+<%= form_with model: [:business_manager, @job_form_template], local: true, class: "space-y-6", data: { controller: "job-form-builder", action: "submit->job-form-builder#beforeSubmit" } do |f| %>
   <% if @job_form_template.errors.any? %>
     <div class="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-lg p-4">
       <div class="flex">
@@ -134,7 +134,7 @@
   <!-- Form Actions -->
   <div class="flex justify-end space-x-3">
     <%= link_to "Cancel", @job_form_template.persisted? ? business_manager_job_form_template_path(@job_form_template) : business_manager_job_form_templates_path, class: "px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition" %>
-    <%= f.submit @job_form_template.persisted? ? "Update Template" : "Create Template", class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition cursor-pointer", data: { action: "job-form-builder#beforeSubmit" } %>
+    <%= f.submit @job_form_template.persisted? ? "Update Template" : "Create Template", class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition cursor-pointer" %>
   </div>
 <% end %>
 

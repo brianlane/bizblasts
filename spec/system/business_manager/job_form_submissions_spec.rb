@@ -24,8 +24,12 @@ RSpec.describe 'Job Form Submissions Management', type: :system do
     end
 
     it 'shows summary stats' do
-      draft = create(:job_form_submission, business: business, booking: booking, job_form_template: template, status: :draft)
-      submitted = create(:job_form_submission, :submitted, business: business, booking: booking, job_form_template: template)
+      # Create different bookings for each submission (unique constraint per booking+template)
+      booking1 = create(:booking, business: business, service: service)
+      booking2 = create(:booking, business: business, service: service)
+
+      draft = create(:job_form_submission, business: business, booking: booking1, job_form_template: template, status: :draft)
+      submitted = create(:job_form_submission, :submitted, business: business, booking: booking2, job_form_template: template)
 
       visit business_manager_job_form_submissions_path
 

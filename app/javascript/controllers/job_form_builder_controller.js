@@ -18,10 +18,12 @@ export default class extends Controller {
     this.fieldsContainerTarget.appendChild(template)
     this.updateFieldNumbers()
     this.toggleEmptyState()
-    this.initializeDragAndDrop()
+
+    // Only initialize drag-and-drop for the newly added field
+    const newField = this.fieldsContainerTarget.lastElementChild
+    this.initializeDragAndDropForItem(newField)
 
     // Focus on the label input of the new field
-    const newField = this.fieldsContainerTarget.lastElementChild
     const labelInput = newField.querySelector('[data-field="label"]')
     if (labelInput) {
       labelInput.focus()
@@ -76,54 +78,63 @@ export default class extends Controller {
   initializeDragAndDrop() {
     const container = this.fieldsContainerTarget
     const items = container.querySelectorAll('.field-item')
+    items.forEach(item => this.initializeDragAndDropForItem(item))
+  }
 
-    items.forEach(item => {
-      const handle = item.querySelector('[data-job-form-builder-target="dragHandle"]')
-      if (handle) {
-        handle.setAttribute('draggable', true)
+  initializeDragAndDropForItem(item) {
+    // Skip if already initialized (check for a marker attribute)
+    if (item.dataset.dragInitialized === 'true') {
+      return
+    }
+    item.dataset.dragInitialized = 'true'
 
-        handle.addEventListener('dragstart', (e) => {
-          item.classList.add('opacity-50')
-          e.dataTransfer.effectAllowed = 'move'
-          e.dataTransfer.setData('text/plain', item.dataset.position)
-        })
+    const container = this.fieldsContainerTarget
+    const handle = item.querySelector('[data-job-form-builder-target="dragHandle"]')
 
-        handle.addEventListener('dragend', () => {
-          item.classList.remove('opacity-50')
-        })
-      }
+    if (handle) {
+      handle.setAttribute('draggable', true)
 
-      item.addEventListener('dragover', (e) => {
-        e.preventDefault()
-        e.dataTransfer.dropEffect = 'move'
-        item.classList.add('border-blue-500')
+      handle.addEventListener('dragstart', (e) => {
+        item.classList.add('opacity-50')
+        e.dataTransfer.effectAllowed = 'move'
+        e.dataTransfer.setData('text/plain', item.dataset.position)
       })
 
-      item.addEventListener('dragleave', () => {
-        item.classList.remove('border-blue-500')
+      handle.addEventListener('dragend', () => {
+        item.classList.remove('opacity-50')
       })
+    }
 
-      item.addEventListener('drop', (e) => {
-        e.preventDefault()
-        item.classList.remove('border-blue-500')
+    item.addEventListener('dragover', (e) => {
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'move'
+      item.classList.add('border-blue-500')
+    })
 
-        const fromIndex = parseInt(e.dataTransfer.getData('text/plain'))
-        const toIndex = parseInt(item.dataset.position)
+    item.addEventListener('dragleave', () => {
+      item.classList.remove('border-blue-500')
+    })
 
-        if (fromIndex !== toIndex) {
-          const items = Array.from(container.querySelectorAll('.field-item'))
-          const fromItem = items[fromIndex]
-          const toItem = items[toIndex]
+    item.addEventListener('drop', (e) => {
+      e.preventDefault()
+      item.classList.remove('border-blue-500')
 
-          if (fromIndex < toIndex) {
-            toItem.after(fromItem)
-          } else {
-            toItem.before(fromItem)
-          }
+      const fromIndex = parseInt(e.dataTransfer.getData('text/plain'))
+      const toIndex = parseInt(item.dataset.position)
 
-          this.updateFieldNumbers()
+      if (fromIndex !== toIndex) {
+        const items = Array.from(container.querySelectorAll('.field-item'))
+        const fromItem = items[fromIndex]
+        const toItem = items[toIndex]
+
+        if (fromIndex < toIndex) {
+          toItem.after(fromItem)
+        } else {
+          toItem.before(fromItem)
         }
-      })
+
+        this.updateFieldNumbers()
+      }
     })
   }
 
