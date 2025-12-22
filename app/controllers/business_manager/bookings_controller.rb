@@ -361,9 +361,10 @@ module BusinessManager
               # Handle file uploads by attaching to the submission with error handling
               begin
                 # Purge old photo if this field already has one (prevents storage leak)
+                # Use purge_later to avoid data loss on rollback (purge is not transactional)
                 if responses_hash[field_id].is_a?(Hash) && responses_hash[field_id]['blob_signed_id'].present?
                   old_blob = ActiveStorage::Blob.find_signed(responses_hash[field_id]['blob_signed_id'])
-                  old_blob.purge if old_blob
+                  old_blob.purge_later if old_blob
                 end
 
                 blob = ActiveStorage::Blob.create_and_upload!(
