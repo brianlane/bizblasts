@@ -349,6 +349,9 @@ module BusinessManager
         return
       end
 
+      # Track old blobs to purge AFTER transaction commits (prevents data loss on rollback)
+      old_blobs_to_purge = []
+
       # Wrap in transaction to ensure atomicity of file uploads and save
       save_result = ActiveRecord::Base.transaction do
         # Update responses from form submission, handling file uploads separately
@@ -360,11 +363,12 @@ module BusinessManager
             if value.is_a?(ActionDispatch::Http::UploadedFile)
               # Handle file uploads by attaching to the submission with error handling
               begin
-                # Purge old photo if this field already has one (prevents storage leak)
-                # Use purge_later to avoid data loss on rollback (purge is not transactional)
+                # Track old photo for deletion AFTER successful save (prevents storage leak)
+                # Don't purge inside transaction - if transaction rolls back but job already ran,
+                # user loses both old photo (deleted) and new photo (not saved)
                 if responses_hash[field_id].is_a?(Hash) && responses_hash[field_id]['blob_signed_id'].present?
                   old_blob = ActiveStorage::Blob.find_signed(responses_hash[field_id]['blob_signed_id'])
-                  old_blob.purge_later if old_blob
+                  old_blobs_to_purge << old_blob if old_blob
                 end
 
                 blob = ActiveStorage::Blob.create_and_upload!(
@@ -402,6 +406,10 @@ module BusinessManager
       end
 
       if save_result
+        # Only purge old blobs AFTER transaction commits successfully
+        # This prevents data loss if transaction rolled back
+        old_blobs_to_purge.each(&:purge_later)
+
         if @submission.submitted?
           redirect_to business_manager_booking_path(@booking), notice: 'Form submitted successfully.'
         else
