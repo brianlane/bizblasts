@@ -43,7 +43,7 @@ class JobFormSubmission < ApplicationRecord
   validates :job_form_template_id, uniqueness: { scope: :booking_id,
                                                    message: 'submission already exists for this booking' }
   validate :same_business_validation
-  validate :validate_required_fields, on: :submit
+  validate :validate_required_fields
 
   # Scopes
   scope :recent, -> { order(created_at: :desc) }

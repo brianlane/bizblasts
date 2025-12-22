@@ -13,6 +13,31 @@ FactoryBot.define do
       status { :submitted }
       submitted_at { Time.current }
       association :submitted_by_user, factory: :user
+
+      # Automatically fill required fields to pass validation
+      after(:build) do |submission|
+        template_fields = submission.job_form_template&.form_fields || []
+        required_fields = template_fields.select { |f| f['required'] }
+
+        required_fields.each do |field|
+          next if submission.responses[field['id']].present?
+
+          case field['type']
+          when 'checkbox'
+            submission.responses[field['id']] = true
+          when 'text', 'textarea'
+            submission.responses[field['id']] = 'Test response'
+          when 'number'
+            submission.responses[field['id']] = 1
+          when 'select'
+            submission.responses[field['id']] = field['options']&.first || 'Option 1'
+          when 'date'
+            submission.responses[field['id']] = Date.current.to_s
+          when 'time'
+            submission.responses[field['id']] = '10:00'
+          end
+        end
+      end
     end
 
     trait :approved do

@@ -123,13 +123,35 @@ export default class extends Controller {
     const indicator = document.createElement('div')
     indicator.id = 'upload-indicator'
     indicator.className = 'fixed bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center space-x-2'
-    indicator.innerHTML = `
-      <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-      </svg>
-      <span>Uploading ${fileName}...</span>
-    `
+
+    // Create SVG spinner safely
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    svg.setAttribute('class', 'animate-spin h-5 w-5 text-white')
+    svg.setAttribute('fill', 'none')
+    svg.setAttribute('viewBox', '0 0 24 24')
+
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+    circle.setAttribute('class', 'opacity-25')
+    circle.setAttribute('cx', '12')
+    circle.setAttribute('cy', '12')
+    circle.setAttribute('r', '10')
+    circle.setAttribute('stroke', 'currentColor')
+    circle.setAttribute('stroke-width', '4')
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+    path.setAttribute('class', 'opacity-75')
+    path.setAttribute('fill', 'currentColor')
+    path.setAttribute('d', 'M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z')
+
+    svg.appendChild(circle)
+    svg.appendChild(path)
+
+    // Create text span safely using textContent to prevent XSS
+    const span = document.createElement('span')
+    span.textContent = `Uploading ${fileName}...` // Safe: textContent escapes HTML
+
+    indicator.appendChild(svg)
+    indicator.appendChild(span)
     document.body.appendChild(indicator)
   }
 
