@@ -28,6 +28,9 @@ class Service < ApplicationRecord
   has_many :service_job_forms, dependent: :destroy
   has_many :job_form_templates, through: :service_job_forms
   has_many :job_attachments, as: :attachable, dependent: :nullify
+
+  # Allow creating service_job_forms when creating/updating services
+  accepts_nested_attributes_for :service_job_forms, reject_if: :all_blank, allow_destroy: true
   
   # Subscription associations
   has_many :customer_subscriptions, dependent: :destroy
