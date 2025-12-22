@@ -189,8 +189,10 @@ application.register("import-progress", ImportProgressController)
 // Job Forms controllers
 import JobFormBuilderController from "./controllers/job_form_builder_controller"
 import ServiceJobFormsController from "./controllers/service_job_forms_controller"
+import JobAttachmentsController from "./controllers/job_attachments_controller"
 application.register("job-form-builder", JobFormBuilderController)
 application.register("service-job-forms", ServiceJobFormsController)
+application.register("job-attachments", JobAttachmentsController)
 
 // Auto-discovery for additional controllers (compatible approach)
 // This will automatically discover and register any controllers not manually registered above
@@ -209,7 +211,7 @@ function autoDiscoverControllers() {
       'service-variants', 'dropdown-updater', 'service-availability', 'google-business-search', 'qr-payment',
       'place-id-lookup', 'enhanced-layout-selector', 'photo-upload', 'gallery-manager', 'gallery-lightbox', 'gallery-carousel',
       'hero-video', 'image-cropper', 'gallery-image-cropper', 'async-image-upload', 'simple-image-cropper', 'date-picker', 'dynamic-line-items', 'estimate-line-items', 'signature-pad', 'rental-durations',
-      'rental-pricing', 'import-progress'
+      'rental-pricing', 'import-progress', 'job-form-builder', 'service-job-forms', 'job-attachments'
     ]);
     
     // Dynamically import and register each controller
