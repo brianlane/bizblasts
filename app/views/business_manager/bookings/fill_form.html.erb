@@ -182,9 +182,9 @@
                   <div class="border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white" style="height: 150px;">
                     <canvas data-signature-pad-target="canvas" class="w-full h-full"></canvas>
                   </div>
-                  <input type="hidden" name="responses[<%= field_id %>]" data-signature-pad-target="hidden" value="<%= field_value %>">
+                  <input type="hidden" name="responses[<%= field_id %>]" data-signature-pad-target="signatureData" value="<%= field_value %>">
                   <div class="mt-2 flex justify-end">
-                    <button type="button" data-action="signature-pad#clear" class="text-sm text-gray-500 hover:text-gray-700 cursor-pointer">
+                    <button type="button" data-action="signature-pad#clearSignature" class="text-sm text-gray-500 hover:text-gray-700 cursor-pointer">
                       Clear Signature
                     </button>
                   </div>

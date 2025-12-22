@@ -186,6 +186,12 @@ application.register("rental-pricing", RentalPricingController)
 import ImportProgressController from "./controllers/import_progress_controller"
 application.register("import-progress", ImportProgressController)
 
+// Job Forms controllers
+import JobFormBuilderController from "./controllers/job_form_builder_controller"
+import ServiceJobFormsController from "./controllers/service_job_forms_controller"
+application.register("job-form-builder", JobFormBuilderController)
+application.register("service-job-forms", ServiceJobFormsController)
+
 // Auto-discovery for additional controllers (compatible approach)
 // This will automatically discover and register any controllers not manually registered above
 function autoDiscoverControllers() {
