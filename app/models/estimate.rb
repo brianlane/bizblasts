@@ -15,6 +15,10 @@ class Estimate < ApplicationRecord
   has_many :job_attachments, as: :attachable, dependent: :nullify
   has_many_attached :photos # Direct photo attachments during creation
 
+  # Server-side file upload validation
+  validates :photos, **FileUploadSecurity.image_validation_options
+  validate :photos_count_validation
+
   accepts_nested_attributes_for :estimate_items, allow_destroy: true,
     reject_if: ->(attrs) {
       # For labor items, check hours instead of qty
@@ -332,6 +336,15 @@ class Estimate < ApplicationRecord
 
       max_position += 1
       item.position = max_position
+    end
+  end
+
+  # Validate photo attachment count (max 10 files)
+  def photos_count_validation
+    return unless photos.attached?
+
+    if photos.count > 10
+      errors.add(:photos, 'cannot exceed 10 files')
     end
   end
 end

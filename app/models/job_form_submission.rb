@@ -21,6 +21,12 @@ class JobFormSubmission < ApplicationRecord
   # File attachments for general uploads
   has_many_attached :files
 
+  # Server-side file upload validation
+  validates :photos, **FileUploadSecurity.image_validation_options
+  validates :files, size: { less_than: FileUploadSecurity::MAX_IMAGE_SIZE, message: 'must be less than 15MB' }
+  validate :photos_count_validation
+  validate :files_count_validation
+
   # Status enum
   enum :status, {
     draft: 0,
@@ -216,5 +222,23 @@ class JobFormSubmission < ApplicationRecord
 
   def set_approved_at
     self.approved_at = Time.current
+  end
+
+  # Validate photo attachment count (max 10 files)
+  def photos_count_validation
+    return unless photos.attached?
+
+    if photos.count > 10
+      errors.add(:photos, 'cannot exceed 10 files')
+    end
+  end
+
+  # Validate file attachment count (max 10 files)
+  def files_count_validation
+    return unless files.attached?
+
+    if files.count > 10
+      errors.add(:files, 'cannot exceed 10 files')
+    end
   end
 end
