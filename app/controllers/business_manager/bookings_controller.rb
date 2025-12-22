@@ -360,6 +360,12 @@ module BusinessManager
             if value.is_a?(ActionDispatch::Http::UploadedFile)
               # Handle file uploads by attaching to the submission with error handling
               begin
+                # Purge old photo if this field already has one (prevents storage leak)
+                if responses_hash[field_id].is_a?(Hash) && responses_hash[field_id]['blob_signed_id'].present?
+                  old_blob = ActiveStorage::Blob.find_signed(responses_hash[field_id]['blob_signed_id'])
+                  old_blob.purge if old_blob
+                end
+
                 blob = ActiveStorage::Blob.create_and_upload!(
                   io: value,
                   filename: value.original_filename,
@@ -368,7 +374,7 @@ module BusinessManager
                 @submission.photos.attach(blob)
                 # Store a reference to the attachment using blob's signed_id for unique lookup
                 responses_hash[field_id] = { 'type' => 'photo', 'attached' => true, 'filename' => value.original_filename, 'blob_signed_id' => blob.signed_id }
-              rescue ActiveStorage::IntegrityError, ActiveStorage::FileNotFoundError => e
+              rescue ActiveStorage::IntegrityError, ActiveStorage::FileNotFoundError, ActiveSupport::MessageVerifier::InvalidSignature => e
                 @submission.errors.add(:base, "Failed to upload file: #{e.message}")
                 raise ActiveRecord::Rollback
               end
