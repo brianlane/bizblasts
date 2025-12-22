@@ -636,7 +636,8 @@ module BusinessManager
         submission
       end
     rescue ActiveRecord::RecordNotFound
-      redirect_to business_manager_booking_path(@booking), alert: 'Form template not found.'
+      redirect_to business_manager_booking_path(@booking), alert: 'Form template or submission not found.'
+      return
     end
   end
 end 

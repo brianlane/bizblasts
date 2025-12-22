@@ -4,7 +4,7 @@
 <% service = booking.service %>
 <% return unless service %>
 
-<% required_forms = service.service_job_forms.includes(:job_form_template).where(job_form_templates: { active: true }) %>
+<% required_forms = service.service_job_forms.includes(:job_form_template).where(required: true, job_form_templates: { active: true }) %>
 <% submissions = booking.job_form_submissions.includes(:job_form_template, :submitted_by_user).recent %>
 
 <% if required_forms.any? || submissions.any? %>
