@@ -248,8 +248,10 @@ export default class extends Controller {
     }
 
     if (!imageUrl || !cropUrl) {
-      console.error("Missing image URL or crop URL")
-      console.error("Button dataset:", button.dataset)
+      if (this.isDevEnvironment()) {
+        console.error("Missing image URL or crop URL")
+        console.error("Button dataset:", button.dataset)
+      }
       alert("Missing image URL or crop URL - check data attributes on button")
       return
     }
@@ -257,15 +259,19 @@ export default class extends Controller {
     // Get modal with fallback methods
     const modal = this.getModal()
     if (!modal) {
-      console.error("Modal not found! Attempted fallback search also failed.")
-      console.error("Controller element:", this.element)
-      console.error("hasModalTarget:", this.hasModalTarget)
+      if (this.isDevEnvironment()) {
+        console.error("Modal not found! Attempted fallback search also failed.")
+        console.error("Controller element:", this.element)
+        console.error("hasModalTarget:", this.hasModalTarget)
+      }
       
       // Try one more time after a brief delay (for Turbo timing issues)
       setTimeout(() => {
         const delayedModal = this.getModal()
         if (delayedModal) {
-          console.log("Modal found after delay, retrying...")
+          if (this.isDevEnvironment()) {
+            console.log("Modal found after delay, retrying...")
+          }
           this.currentCropUrl = cropUrl
           this.resetState()
           this.showModal(delayedModal)
@@ -330,7 +336,9 @@ export default class extends Controller {
     // Get modal and open it
     const modal = this.getModal()
     if (!modal) {
-      console.error("Modal not found for file upload cropping")
+      if (this.isDevEnvironment()) {
+        console.error("Modal not found for file upload cropping")
+      }
       alert("Cropper modal not found. Please refresh the page.")
       return
     }
@@ -362,17 +370,21 @@ export default class extends Controller {
   }
 
   loadImage(imageUrl) {
-    console.log('[Cropper] Loading image:', imageUrl)
-    
+    if (this.isDevEnvironment()) {
+      console.log('[Cropper] Loading image:', imageUrl)
+    }
+
     // For S3/CloudFront URLs, we need to try loading without CORS first
     // because S3 may not have CORS headers configured
     const img = new Image()
-    
+
     // Store the URL for later use
     this._currentLoadingUrl = imageUrl
 
     const handleSuccess = () => {
-      console.log('[Cropper] Image loaded successfully:', img.naturalWidth, 'x', img.naturalHeight)
+      if (this.isDevEnvironment()) {
+        console.log('[Cropper] Image loaded successfully:', img.naturalWidth, 'x', img.naturalHeight)
+      }
       
       this.imageNaturalSize = { width: img.naturalWidth, height: img.naturalHeight }
       
@@ -393,53 +405,71 @@ export default class extends Controller {
             setTimeout(() => {
               this.syncZoomSlider()
             }, 100)
-            
-            console.log('[Cropper] Cropper initialized:', {
-              viewportSize: this.viewportSize(),
-              imageSize: this.imageNaturalSize,
-              zoom: this.zoom
-            })
+
+            if (this.isDevEnvironment()) {
+              console.log('[Cropper] Cropper initialized:', {
+                viewportSize: this.viewportSize(),
+                imageSize: this.imageNaturalSize,
+                zoom: this.zoom
+              })
+            }
           })
         }
         
         let cacheBustAttempted = false
         imageEl.onerror = () => {
-          console.error('[Cropper] Display image failed to load')
+          if (this.isDevEnvironment()) {
+            console.error('[Cropper] Display image failed to load')
+          }
           // Try one more time with a cache-busting parameter (limit to one retry)
           if (!cacheBustAttempted) {
             cacheBustAttempted = true
             const bustUrl = imageUrl + (imageUrl.includes('?') ? '&' : '?') + '_t=' + Date.now()
             imageEl.src = bustUrl
           } else {
-            console.error('[Cropper] Cache-bust retry also failed')
+            if (this.isDevEnvironment()) {
+              console.error('[Cropper] Cache-bust retry also failed')
+            }
             this.closeModal()
             alert('Failed to load image for cropping. The image may be inaccessible.')
           }
         }
       } else {
-        console.error('[Cropper] Image element not found in modal')
+        if (this.isDevEnvironment()) {
+          console.error('[Cropper] Image element not found in modal')
+        }
         this.closeModal()
         alert('Failed to initialize cropper. Please try again.')
       }
     }
 
     const handleError = (e) => {
-      console.error('[Cropper] Pre-load failed:', e?.type || e, 'URL:', imageUrl)
-      
+      if (this.isDevEnvironment()) {
+        console.error('[Cropper] Pre-load failed:', e?.type || e, 'URL:', imageUrl)
+      }
+
       // Try without crossOrigin
       if (img.crossOrigin) {
-        console.log('[Cropper] Retrying without CORS...')
+        if (this.isDevEnvironment()) {
+          console.log('[Cropper] Retrying without CORS...')
+        }
         const retryImg = new Image()
         retryImg.onload = handleSuccess
         retryImg.onerror = (retryError) => {
-          console.error('[Cropper] Retry without CORS also failed:', retryError?.type || retryError)
-          
+          if (this.isDevEnvironment()) {
+            console.error('[Cropper] Retry without CORS also failed:', retryError?.type || retryError)
+          }
+
           // Last resort: try to load directly in the image element
-          console.log('[Cropper] Attempting direct load in display element...')
+          if (this.isDevEnvironment()) {
+            console.log('[Cropper] Attempting direct load in display element...')
+          }
           const imageEl = this.getImage()
           if (imageEl) {
             imageEl.onload = () => {
-              console.log('[Cropper] Direct load succeeded')
+              if (this.isDevEnvironment()) {
+                console.log('[Cropper] Direct load succeeded')
+              }
               this.imageNaturalSize = { width: imageEl.naturalWidth, height: imageEl.naturalHeight }
               this.imageLoaded = true
               this.waitForModalRender(() => {
@@ -450,7 +480,9 @@ export default class extends Controller {
               })
             }
             imageEl.onerror = () => {
-              console.error('[Cropper] All load attempts failed')
+              if (this.isDevEnvironment()) {
+                console.error('[Cropper] All load attempts failed')
+              }
               this.closeModal()
               alert('Failed to load image for cropping. The image may be inaccessible.')
             }
@@ -885,7 +917,9 @@ export default class extends Controller {
 
     // SERVER MODE: Send crop data to server endpoint
     if (!this.currentCropUrl) {
-      console.error('No crop URL specified for server mode')
+      if (this.isDevEnvironment()) {
+        console.error('No crop URL specified for server mode')
+      }
       return
     }
 
@@ -911,7 +945,9 @@ export default class extends Controller {
         throw new Error(error.error || 'Failed to crop image')
       }
     } catch (error) {
-      console.error('Crop failed:', error)
+      if (this.isDevEnvironment()) {
+        console.error('Crop failed:', error)
+      }
       alert(error.message || 'Failed to apply crop. Please try again.')
     } finally {
       button.disabled = false

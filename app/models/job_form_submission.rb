@@ -34,6 +34,8 @@ class JobFormSubmission < ApplicationRecord
   validates :booking, presence: true
   validates :job_form_template, presence: true
   validates :status, presence: true
+  validates :job_form_template_id, uniqueness: { scope: :booking_id,
+                                                   message: 'submission already exists for this booking' }
   validate :same_business_validation
   validate :validate_required_fields, on: :submit
 
