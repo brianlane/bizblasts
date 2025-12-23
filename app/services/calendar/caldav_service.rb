@@ -4,21 +4,23 @@ require 'httparty'
 require 'icalendar'
 require 'net/http'
 require 'uri'
+require 'resolv'
 
 module Calendar
   class CaldavService < BaseService
     include HTTParty
-    
+
     attr_reader :username, :password, :server_url
-    
+
     def initialize(calendar_connection)
       super(calendar_connection)
       @username = calendar_connection.caldav_username
       @password = calendar_connection.caldav_password
       @server_url = calendar_connection.caldav_url
       @calendar_url = nil
-      
+
       validate_credentials
+      validate_server_url
     end
     
     # Override OAuth-specific methods from BaseService
@@ -210,7 +212,29 @@ module Calendar
       end
       true
     end
-    
+
+    # Validate server URL to prevent SSRF attacks
+    def validate_server_url
+      return true if @server_url.blank? # Will be caught by other validations
+
+      begin
+        # Allow both http and https for CalDAV (some servers use http in local networks)
+        Security::SsrfProtection.validate_url!(@server_url, allowed_protocols: ['http', 'https'])
+        true
+      rescue Security::SsrfProtection::SsrfError => e
+        add_error(:invalid_server_url, "CalDAV server URL is invalid or blocked: #{e.message}")
+        false
+      end
+    end
+
+    # Validate URL before making HTTP request (prevents DNS rebinding attacks)
+    def validate_request_url(url)
+      Security::SsrfProtection.validate_url!(url, allowed_protocols: ['http', 'https'])
+    rescue Security::SsrfProtection::SsrfError => e
+      add_error(:blocked_request, "Request blocked for security: #{e.message}")
+      raise
+    end
+
     def validate_connection
       return false unless super
       return false unless validate_credentials
@@ -383,6 +407,9 @@ module Calendar
     end
     
     def put_request(url, body, is_new_event = false)
+      # Validate URL to prevent SSRF attacks
+      validate_request_url(url)
+
       HTTParty.put(
         url,
         body: body,
@@ -391,8 +418,11 @@ module Calendar
         timeout: 30
       )
     end
-    
+
     def delete_request(url)
+      # Validate URL to prevent SSRF attacks
+      validate_request_url(url)
+
       HTTParty.delete(
         url,
         basic_auth: auth_credentials,
@@ -401,38 +431,44 @@ module Calendar
     end
     
     def propfind_request(url, body, depth = '1')
+      # Validate URL to prevent SSRF attacks
+      validate_request_url(url)
+
       uri = URI(url)
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = uri.scheme == 'https'
       http.read_timeout = 30
-      
+
       path = uri.path.empty? ? '/' : uri.path
       request = Net::HTTPGenericRequest.new('PROPFIND', true, true, path)
       request.basic_auth(@username, @password)
       request.body = body
-      
+
       propfind_headers(depth).each do |key, value|
         request[key] = value
       end
-      
+
       http.request(request)
     end
-    
+
     def report_request(url, body)
+      # Validate URL to prevent SSRF attacks
+      validate_request_url(url)
+
       uri = URI(url)
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = uri.scheme == 'https'
       http.read_timeout = 30
-      
+
       path = uri.path.empty? ? '/' : uri.path
       request = Net::HTTPGenericRequest.new('REPORT', true, true, path)
       request.basic_auth(@username, @password)
       request.body = body
-      
+
       report_headers.each do |key, value|
         request[key] = value
       end
-      
+
       http.request(request)
     end
     
