@@ -87,6 +87,15 @@ RSpec.describe JobFormSubmission, type: :model do
     it 'returns nil for non-existent field' do
       expect(submission.response_for('non-existent-id')).to be_nil
     end
+
+    it 'handles nil responses without crashing (database NULL case)' do
+      # Simulate a submission loaded from DB with NULL responses column
+      submission.responses = nil
+
+      # Should not raise NoMethodError
+      expect { submission.response_for('any-field') }.not_to raise_error
+      expect(submission.response_for('any-field')).to be_nil
+    end
   end
 
   describe '#set_response' do
@@ -208,6 +217,17 @@ RSpec.describe JobFormSubmission, type: :model do
       result = submission.responses_with_labels
       expect(result.first[:label]).to eq(field['label'])
       expect(result.first[:value]).to eq('test value')
+    end
+
+    it 'handles nil responses without crashing' do
+      submission.responses = nil
+
+      # Should not raise NoMethodError
+      expect { submission.responses_with_labels }.not_to raise_error
+
+      result = submission.responses_with_labels
+      expect(result).to be_an(Array)
+      expect(result.first[:value]).to be_nil
     end
   end
 end

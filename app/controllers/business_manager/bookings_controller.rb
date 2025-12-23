@@ -337,6 +337,9 @@ module BusinessManager
         redirect_to business_manager_booking_path(@booking), alert: 'This form submission cannot be edited.'
         return
       end
+
+      # Ensure responses is always initialized (handles existing submissions with NULL responses)
+      @submission.responses ||= {}
     end
     
     # POST /manage/bookings/:id/submit_form

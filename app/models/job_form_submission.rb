@@ -66,8 +66,9 @@ class JobFormSubmission < ApplicationRecord
   end
 
   # Get response for a specific field
+  # Uses safe navigation to handle nil responses (can happen for existing submissions loaded from DB)
   def response_for(field_id)
-    responses[field_id.to_s]
+    responses&.[](field_id.to_s)
   end
 
   # Set response for a specific field
