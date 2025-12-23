@@ -8,6 +8,17 @@ class Business::RegistrationsController < Users::RegistrationsController
   # Overrides Devise default to build the associated business for the form
   def new
     build_resource({}) # Builds the User resource
+    
+    # Pre-fill from OAuth data if present (user came from Google OAuth)
+    if session[:omniauth_data].present?
+      oauth_data = session[:omniauth_data]
+      resource.email = oauth_data[:email]
+      resource.first_name = oauth_data[:first_name]
+      resource.last_name = oauth_data[:last_name]
+      resource.provider = oauth_data[:provider]
+      resource.uid = oauth_data[:uid]
+    end
+    
     resource.build_business # Builds the nested Business resource
     respond_with resource
   end
@@ -17,6 +28,23 @@ class Business::RegistrationsController < Users::RegistrationsController
     user_params = sign_up_params.except(:business_attributes)
     raw_business_params = params.require(:user).fetch(:business_attributes, {})
     processed_business_params = process_business_host_params(raw_business_params)
+    
+    # Handle OAuth user - add provider/uid from session if present
+    oauth_data = session[:omniauth_data]
+    if oauth_data.present?
+      user_params = user_params.merge(
+        provider: oauth_data[:provider],
+        uid: oauth_data[:uid]
+      )
+      # OAuth users don't need to provide password in form - generate one
+      unless user_params[:password].present?
+        random_password = Devise.friendly_token[0, 20]
+        user_params = user_params.merge(
+          password: random_password,
+          password_confirmation: random_password
+        )
+      end
+    end
 
     # If the submitted industry is not recognised, notify the user that we defaulted to "Other".
     submitted_industry = raw_business_params[:industry]
@@ -214,6 +242,9 @@ class Business::RegistrationsController < Users::RegistrationsController
     if transaction_successful && resource.persisted?
       # Success path
       Rails.logger.info "[REGISTRATION] Transaction successful. Business ##{resource.business_id} created immediately."
+      
+      # Clear OAuth session data if present
+      session.delete(:omniauth_data)
 
       # Record policy acceptances after successful creation
       record_policy_acceptances(resource, params[:policy_acceptances]) if params[:policy_acceptances]

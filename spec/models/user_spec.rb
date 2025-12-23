@@ -461,4 +461,129 @@ RSpec.describe User, type: :model do
       end
     end
   end
+
+  describe '.from_omniauth' do
+    let(:auth) { google_oauth_hash(email: 'oauth@example.com', first_name: 'OAuth', last_name: 'User', uid: '12345') }
+
+    context 'when user does not exist' do
+      it 'builds a new user with OAuth data' do
+        user = User.from_omniauth(auth)
+        
+        expect(user).not_to be_persisted
+        expect(user.email).to eq('oauth@example.com')
+        expect(user.first_name).to eq('OAuth')
+        expect(user.last_name).to eq('User')
+        expect(user.provider).to eq('google_oauth2')
+        expect(user.uid).to eq('12345')
+        expect(user.role).to eq('client')
+      end
+
+      it 'sets role to manager when registration_type is business' do
+        user = User.from_omniauth(auth, nil, 'business')
+        
+        expect(user.role).to eq('manager')
+      end
+
+      it 'sets role to client when registration_type is client' do
+        user = User.from_omniauth(auth, nil, 'client')
+        
+        expect(user.role).to eq('client')
+      end
+
+      it 'generates a random password for OAuth users' do
+        user = User.from_omniauth(auth)
+        
+        expect(user.encrypted_password).not_to be_blank
+      end
+    end
+
+    context 'when user exists with matching provider/uid' do
+      let!(:existing_user) { create(:user, email: 'different@example.com', provider: 'google_oauth2', uid: '12345') }
+
+      it 'returns the existing user' do
+        user = User.from_omniauth(auth)
+        
+        expect(user).to eq(existing_user)
+        expect(user).to be_persisted
+      end
+    end
+
+    context 'when user exists with matching email but no provider/uid' do
+      let!(:existing_user) { create(:user, email: 'oauth@example.com', provider: nil, uid: nil) }
+
+      it 'links the OAuth account to the existing user' do
+        user = User.from_omniauth(auth)
+        
+        expect(user).to eq(existing_user)
+        expect(user.provider).to eq('google_oauth2')
+        expect(user.uid).to eq('12345')
+      end
+    end
+
+    context 'when signed_in_resource is provided' do
+      let!(:signed_in_user) { create(:user, email: 'signed_in@example.com') }
+
+      it 'links the OAuth account to the signed-in user' do
+        user = User.from_omniauth(auth, signed_in_user)
+        
+        expect(user).to eq(signed_in_user)
+        expect(user.provider).to eq('google_oauth2')
+        expect(user.uid).to eq('12345')
+      end
+    end
+  end
+
+  describe '#oauth_user?' do
+    it 'returns true when provider and uid are present' do
+      user = build(:user, provider: 'google_oauth2', uid: '12345')
+      expect(user.oauth_user?).to be true
+    end
+
+    it 'returns false when provider is nil' do
+      user = build(:user, provider: nil, uid: '12345')
+      expect(user.oauth_user?).to be false
+    end
+
+    it 'returns false when uid is nil' do
+      user = build(:user, provider: 'google_oauth2', uid: nil)
+      expect(user.oauth_user?).to be false
+    end
+
+    it 'returns false when both are nil' do
+      user = build(:user, provider: nil, uid: nil)
+      expect(user.oauth_user?).to be false
+    end
+  end
+
+  describe '#password_required? (private method)' do
+    context 'for OAuth users' do
+      let(:user) { build(:user, provider: 'google_oauth2', uid: '12345') }
+
+      it 'returns false when no password is being set' do
+        user.password = nil
+        user.password_confirmation = nil
+        expect(user.send(:password_required?)).to be false
+      end
+
+      it 'returns true when password is being set' do
+        user.password = 'newpassword'
+        expect(user.send(:password_required?)).to be true
+      end
+    end
+
+    context 'for regular users' do
+      let(:user) { build(:user, provider: nil, uid: nil) }
+
+      it 'returns true for new records' do
+        expect(user.send(:password_required?)).to be true
+      end
+
+      it 'returns false for persisted records without password change' do
+        user.save!
+        user.password = nil
+        user.password_confirmation = nil
+        expect(user.send(:password_required?)).to be false
+      end
+    end
+  end
 end

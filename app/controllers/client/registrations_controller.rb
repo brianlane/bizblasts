@@ -3,10 +3,14 @@
 # Handles client user sign-ups.
 class Client::RegistrationsController < Users::RegistrationsController
   before_action :configure_sign_up_params, only: [:create]
+  before_action :prefill_from_oauth, only: [:new]
 
   def create
     super do |resource|
       if resource.persisted?
+        # Clear OAuth session data if present
+        session.delete(:omniauth_data)
+        
         # Process referral code if provided
         if params[:user][:referral_code].present?
           process_referral_signup(resource, params[:user][:referral_code])
@@ -16,6 +20,19 @@ class Client::RegistrationsController < Users::RegistrationsController
         record_policy_acceptances(resource, params[:policy_acceptances]) if params[:policy_acceptances]
       end
     end
+  end
+  
+  private
+  
+  def prefill_from_oauth
+    return unless session[:omniauth_data].present?
+    
+    oauth_data = session[:omniauth_data]
+    resource.email = oauth_data[:email]
+    resource.first_name = oauth_data[:first_name]
+    resource.last_name = oauth_data[:last_name]
+    resource.provider = oauth_data[:provider]
+    resource.uid = oauth_data[:uid]
   end
 
   protected

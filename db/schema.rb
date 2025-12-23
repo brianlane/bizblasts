@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_22_014513) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_23_202350) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -959,7 +959,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_22_014513) do
     t.bigint "business_id", null: false
     t.datetime "created_at", null: false
     t.text "description"
-    t.jsonb "fields", default: {"fields" => []}, null: false
+    t.jsonb "fields", default: {"fields"=>[]}, null: false
     t.integer "form_type", default: 0, null: false
     t.string "name", null: false
     t.integer "position", default: 0, null: false
@@ -1160,7 +1160,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_22_014513) do
     t.index ["tenant_customer_id", "created_at"], name: "index_orders_on_tenant_customer_id_and_created_at"
     t.index ["tenant_customer_id"], name: "index_orders_on_tenant_customer_id"
     t.index ["tip_amount"], name: "index_orders_on_tip_amount"
-    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying, 'paid'::character varying, 'cancelled'::character varying, 'shipped'::character varying, 'refunded'::character varying, 'processing'::character varying, 'completed'::character varying, 'business_deleted'::character varying]::text[])", name: "status_enum_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying::text, 'paid'::character varying::text, 'cancelled'::character varying::text, 'shipped'::character varying::text, 'refunded'::character varying::text, 'processing'::character varying::text, 'completed'::character varying::text, 'business_deleted'::character varying::text])", name: "status_enum_check"
   end
 
   create_table "page_sections", force: :cascade do |t|
@@ -1579,7 +1579,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_22_014513) do
     t.index ["business_id", "status"], name: "index_rental_bookings_on_business_id_and_status"
     t.index ["business_id"], name: "index_rental_bookings_on_business_id"
     t.index ["deposit_authorization_id"], name: "index_rental_bookings_on_deposit_authorization_id"
-    t.index ["end_time"], name: "index_rental_bookings_on_end_time_for_overdue", where: "((status)::text = ANY ((ARRAY['checked_out'::character varying, 'overdue'::character varying])::text[]))"
+    t.index ["end_time"], name: "index_rental_bookings_on_end_time_for_overdue", where: "((status)::text = ANY (ARRAY[('checked_out'::character varying)::text, ('overdue'::character varying)::text]))"
     t.index ["guest_access_token"], name: "index_rental_bookings_on_guest_access_token", unique: true
     t.index ["location_id"], name: "index_rental_bookings_on_location_id"
     t.index ["product_id", "start_time", "end_time"], name: "idx_on_product_id_start_time_end_time_f527c29028"
@@ -2138,6 +2138,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_22_014513) do
     t.boolean "phone_marketing_opt_out", default: false, null: false
     t.boolean "phone_opt_in", default: false, null: false
     t.datetime "phone_opt_in_at"
+    t.string "provider"
     t.string "referral_source_code"
     t.datetime "remember_created_at"
     t.boolean "requires_policy_acceptance", default: false
@@ -2147,6 +2148,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_22_014513) do
     t.string "session_token"
     t.integer "sign_in_count", default: 0, null: false
     t.bigint "staff_member_id"
+    t.string "uid"
     t.string "unconfirmed_email"
     t.string "unsubscribe_token"
     t.datetime "unsubscribed_at"
@@ -2156,6 +2158,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_22_014513) do
     t.index ["email", "role"], name: "index_users_on_email_and_role"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["last_sign_in_at"], name: "index_users_on_last_sign_in_at"
+    t.index ["provider", "uid"], name: "index_users_on_provider_and_uid", unique: true, where: "(provider IS NOT NULL)"
     t.index ["requires_policy_acceptance"], name: "index_users_on_requires_policy_acceptance"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
     t.index ["session_token"], name: "index_users_on_session_token"
