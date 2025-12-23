@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_17_210239) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_22_014513) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -910,6 +910,65 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_17_210239) do
     t.index ["tip_amount"], name: "index_invoices_on_tip_amount"
   end
 
+  create_table "job_attachments", force: :cascade do |t|
+    t.bigint "attachable_id", null: false
+    t.string "attachable_type", null: false
+    t.integer "attachment_type", default: 0, null: false
+    t.bigint "business_id", null: false
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.text "instructions"
+    t.integer "position", default: 0, null: false
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.bigint "uploaded_by_user_id"
+    t.integer "visibility", default: 0, null: false
+    t.index ["attachable_type", "attachable_id"], name: "index_job_attachments_on_attachable_type_and_attachable_id"
+    t.index ["business_id", "attachment_type"], name: "index_job_attachments_on_business_id_and_attachment_type"
+    t.index ["business_id"], name: "index_job_attachments_on_business_id"
+    t.index ["uploaded_by_user_id"], name: "index_job_attachments_on_uploaded_by_user_id"
+  end
+
+  create_table "job_form_submissions", force: :cascade do |t|
+    t.datetime "approved_at"
+    t.bigint "approved_by_user_id"
+    t.bigint "booking_id", null: false
+    t.bigint "business_id", null: false
+    t.datetime "created_at", null: false
+    t.bigint "job_form_template_id", null: false
+    t.text "notes"
+    t.jsonb "responses", default: {}, null: false
+    t.bigint "staff_member_id"
+    t.integer "status", default: 0, null: false
+    t.datetime "submitted_at"
+    t.bigint "submitted_by_user_id"
+    t.datetime "updated_at", null: false
+    t.index ["approved_by_user_id"], name: "index_job_form_submissions_on_approved_by_user_id"
+    t.index ["booking_id", "job_form_template_id"], name: "idx_job_form_submissions_booking_template_unique", unique: true
+    t.index ["booking_id"], name: "index_job_form_submissions_on_booking_id"
+    t.index ["business_id", "status"], name: "index_job_form_submissions_on_business_and_status"
+    t.index ["business_id", "status"], name: "index_job_form_submissions_on_business_id_and_status"
+    t.index ["business_id"], name: "index_job_form_submissions_on_business_id"
+    t.index ["job_form_template_id"], name: "index_job_form_submissions_on_job_form_template_id"
+    t.index ["staff_member_id"], name: "index_job_form_submissions_on_staff_member_id"
+    t.index ["submitted_by_user_id"], name: "index_job_form_submissions_on_submitted_by_user_id"
+  end
+
+  create_table "job_form_templates", force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.bigint "business_id", null: false
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.jsonb "fields", default: {"fields" => []}, null: false
+    t.integer "form_type", default: 0, null: false
+    t.string "name", null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["business_id", "active"], name: "index_job_form_templates_on_business_id_and_active"
+    t.index ["business_id", "form_type"], name: "index_job_form_templates_on_business_id_and_form_type"
+    t.index ["business_id"], name: "index_job_form_templates_on_business_id"
+  end
+
   create_table "line_items", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "lineable_id", null: false
@@ -1549,6 +1608,18 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_17_210239) do
     t.index ["rental_booking_id", "report_type"], name: "idx_on_rental_booking_id_report_type_8fb05c2c2e"
     t.index ["rental_booking_id"], name: "index_rental_condition_reports_on_rental_booking_id"
     t.index ["staff_member_id"], name: "index_rental_condition_reports_on_staff_member_id"
+  end
+
+  create_table "service_job_forms", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "job_form_template_id", null: false
+    t.boolean "required", default: false, null: false
+    t.bigint "service_id", null: false
+    t.integer "timing", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["job_form_template_id"], name: "index_service_job_forms_on_job_form_template_id"
+    t.index ["service_id", "job_form_template_id"], name: "idx_service_job_forms_unique", unique: true
+    t.index ["service_id"], name: "index_service_job_forms_on_service_id"
   end
 
   create_table "service_templates", force: :cascade do |t|
@@ -2217,6 +2288,15 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_17_210239) do
   add_foreign_key "invoices", "shipping_methods"
   add_foreign_key "invoices", "tax_rates"
   add_foreign_key "invoices", "tenant_customers", on_delete: :cascade
+  add_foreign_key "job_attachments", "businesses"
+  add_foreign_key "job_attachments", "users", column: "uploaded_by_user_id"
+  add_foreign_key "job_form_submissions", "bookings"
+  add_foreign_key "job_form_submissions", "businesses"
+  add_foreign_key "job_form_submissions", "job_form_templates"
+  add_foreign_key "job_form_submissions", "staff_members"
+  add_foreign_key "job_form_submissions", "users", column: "approved_by_user_id"
+  add_foreign_key "job_form_submissions", "users", column: "submitted_by_user_id"
+  add_foreign_key "job_form_templates", "businesses"
   add_foreign_key "line_items", "product_variants"
   add_foreign_key "line_items", "services", on_delete: :nullify
   add_foreign_key "line_items", "staff_members", on_delete: :nullify
@@ -2288,6 +2368,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_17_210239) do
   add_foreign_key "rental_bookings", "tenant_customers"
   add_foreign_key "rental_condition_reports", "rental_bookings"
   add_foreign_key "rental_condition_reports", "staff_members"
+  add_foreign_key "service_job_forms", "job_form_templates"
+  add_foreign_key "service_job_forms", "services"
   add_foreign_key "service_variants", "services"
   add_foreign_key "services", "businesses", on_delete: :cascade
   add_foreign_key "services", "document_templates"

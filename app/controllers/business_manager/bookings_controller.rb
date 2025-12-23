@@ -4,7 +4,8 @@ module BusinessManager
   class BookingsController < BaseController
     before_action :authenticate_user!
     before_action :require_business_staff!
-    before_action :set_booking, only: [:show, :edit, :update, :confirm, :cancel, :reschedule, :update_schedule, :refund]
+    before_action :set_booking, only: [:show, :edit, :update, :confirm, :cancel, :reschedule, :update_schedule, :refund, :fill_form, :submit_form]
+    before_action :set_form_template_and_submission, only: [:fill_form, :submit_form]
     
     # GET /manage/bookings
     def index
@@ -322,6 +323,107 @@ module BusinessManager
       end
     end
     
+    # GET /manage/bookings/:id/fill_form
+    # Render a job form for staff to fill out
+    def fill_form
+      # Template and submission are set by before_action
+      # Set default values for new submissions
+      if @submission.new_record?
+        @submission.staff_member = current_user.staff_member
+        @submission.status = :draft
+        @submission.responses = {}
+      elsif !@submission.editable?
+        # Prevent editing of submitted or approved forms
+        redirect_to business_manager_booking_path(@booking), alert: 'This form submission cannot be edited.'
+        return
+      end
+
+      # Ensure responses is always initialized (handles existing submissions with NULL responses)
+      @submission.responses ||= {}
+    end
+    
+    # POST /manage/bookings/:id/submit_form
+    # Save job form submission
+    def submit_form
+      # Template and submission are set by before_action
+      # Prevent modifying non-editable submissions (submitted/approved)
+      if @submission.persisted? && !@submission.editable?
+        redirect_to business_manager_booking_path(@booking), alert: 'This form submission cannot be modified.'
+        return
+      end
+
+      # Track old blobs to purge AFTER transaction commits (prevents data loss on rollback)
+      old_blobs_to_purge = []
+
+      # Wrap in transaction to ensure atomicity of file uploads and save
+      save_result = ActiveRecord::Base.transaction do
+        # Update responses from form submission, handling file uploads separately
+        # Start with existing responses to preserve photo references that weren't re-uploaded
+        responses_hash = (@submission.responses || {}).dup
+
+        if params[:responses].present?
+          params[:responses].each do |field_id, value|
+            if value.is_a?(ActionDispatch::Http::UploadedFile)
+              # Handle file uploads by attaching to the submission with error handling
+              begin
+                # Track old photo for deletion AFTER successful save (prevents storage leak)
+                # Don't purge inside transaction - if transaction rolls back but job already ran,
+                # user loses both old photo (deleted) and new photo (not saved)
+                if responses_hash[field_id].is_a?(Hash) && responses_hash[field_id]['blob_signed_id'].present?
+                  old_blob = ActiveStorage::Blob.find_signed(responses_hash[field_id]['blob_signed_id'])
+                  old_blobs_to_purge << old_blob if old_blob
+                end
+
+                blob = ActiveStorage::Blob.create_and_upload!(
+                  io: value,
+                  filename: value.original_filename,
+                  content_type: value.content_type
+                )
+                @submission.photos.attach(blob)
+                # Store a reference to the attachment using blob's signed_id for unique lookup
+                responses_hash[field_id] = { 'type' => 'photo', 'attached' => true, 'filename' => value.original_filename, 'blob_signed_id' => blob.signed_id }
+              rescue ActiveStorage::IntegrityError, ActiveStorage::FileNotFoundError, ActiveSupport::MessageVerifier::InvalidSignature => e
+                @submission.errors.add(:base, "Failed to upload file: #{e.message}")
+                raise ActiveRecord::Rollback
+              end
+            else
+              responses_hash[field_id] = value
+            end
+          end
+        end
+        @submission.responses = responses_hash
+
+        # Determine if we're saving as draft or submitting
+        result = if params[:commit] == 'Save as Draft' || params[:save_draft].present?
+          @submission.status = :draft
+          @submission.save
+        else
+          # Use submit! method which properly validates required fields
+          @submission.submit!(user: current_user)
+        end
+
+        # Trigger rollback if save/submit failed to prevent orphaned photo attachments
+        raise ActiveRecord::Rollback unless result
+
+        result
+      end
+
+      if save_result
+        # Only purge old blobs AFTER transaction commits successfully
+        # This prevents data loss if transaction rolled back
+        old_blobs_to_purge.each(&:purge_later)
+
+        if @submission.submitted?
+          redirect_to business_manager_booking_path(@booking), notice: 'Form submitted successfully.'
+        else
+          redirect_to business_manager_booking_path(@booking), notice: 'Draft saved.'
+        end
+      else
+        flash.now[:alert] = @submission.errors.full_messages.join(', ')
+        render :fill_form, status: :unprocessable_entity
+      end
+    end
+    
     # GET /manage/available-slots
     # This action shows available booking slots for a specific staff member and service
     def available_slots
@@ -526,6 +628,33 @@ module BusinessManager
           next
         end
       end
+    end
+
+    # Set the form template and submission for fill_form and submit_form actions
+    def set_form_template_and_submission
+      @template = current_business.job_form_templates.find(params[:template_id])
+
+      # Find or create a submission for this booking and template
+      @submission = if params[:submission_id].present?
+        submission = @booking.job_form_submissions.find(params[:submission_id])
+        # Verify the submission belongs to the requested template
+        if submission.job_form_template_id != @template.id
+          redirect_to business_manager_booking_path(@booking), alert: 'Form template mismatch.'
+          return
+        end
+        submission
+      else
+        # Use find_or_initialize_by for both actions to prevent duplicate submissions
+        submission = @booking.job_form_submissions.find_or_initialize_by(
+          job_form_template: @template,
+          business: current_business
+        )
+        # Set staff_member if this is a new record
+        submission.staff_member ||= current_user.staff_member
+        submission
+      end
+    rescue ActiveRecord::RecordNotFound
+      redirect_to business_manager_booking_path(@booking), alert: 'Form template or submission not found.'
     end
   end
 end 

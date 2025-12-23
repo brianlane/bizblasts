@@ -237,6 +237,7 @@ class BusinessManager::EstimatesController < BusinessManager::BaseController
       :tenant_customer_id, :proposed_start_time, :proposed_end_time,
       :first_name, :last_name, :email, :phone, :address, :city, :state, :zip,
       :customer_notes, :internal_notes, :required_deposit, :valid_for_days,
+      photos: [],
       tenant_customer_attributes: [:id, :first_name, :last_name, :email, :phone, :address],
       estimate_items_attributes: [
         :id, :item_type, :service_id, :product_id, :product_variant_id,

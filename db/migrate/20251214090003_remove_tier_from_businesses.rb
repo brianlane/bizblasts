@@ -6,4 +6,3 @@ class RemoveTierFromBusinesses < ActiveRecord::Migration[7.1]
   end
 end
 
-

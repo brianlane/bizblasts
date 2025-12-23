@@ -190,6 +190,9 @@ class Business < ApplicationRecord
   has_many :estimates, dependent: :destroy
   has_many :client_documents, dependent: :destroy
   has_many :document_templates, dependent: :destroy
+  has_many :job_form_templates, dependent: :destroy
+  has_many :job_form_submissions, dependent: :destroy
+  has_many :job_attachments, dependent: :destroy
   
   # Referral and Loyalty system associations
   has_one :referral_program, dependent: :destroy

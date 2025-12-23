@@ -268,6 +268,12 @@ Rails.application.routes.draw do
           post :crop_image, path: 'crop_image/:attachment_id'
         end
         resources :service_variants, except: [:show]
+        resources :job_attachments, only: [:index, :create, :update, :destroy], controller: 'job_attachments' do
+          collection do
+            post :reorder
+          end
+        end
+        resources :service_job_forms, only: [:create, :destroy]
       end
       resources :products do
         member do
@@ -335,9 +341,16 @@ Rails.application.routes.draw do
           patch 'refund'
           get 'reschedule'
           patch 'update_schedule'
+          get 'fill_form'
+          post 'submit_form'
         end
         collection do
           get '/available-slots', to: 'bookings#available_slots', as: :available_slots
+        end
+        resources :job_attachments, only: [:index, :create, :update, :destroy], controller: 'job_attachments' do
+          collection do
+            post :reorder
+          end
         end
       end
 
@@ -355,6 +368,11 @@ Rails.application.routes.draw do
           post :duplicate
           get :versions
           patch 'restore_version/:version_id', action: :restore_version, as: :restore_version
+        end
+        resources :job_attachments, only: [:index, :create, :update, :destroy], controller: 'job_attachments' do
+          collection do
+            post :reorder
+          end
         end
       end
 
@@ -381,6 +399,26 @@ Rails.application.routes.draw do
         member do
           get :send_document
           post :create_and_send
+        end
+      end
+
+      # Job Forms - Internal forms and checklists for staff
+      resources :job_form_templates do
+        member do
+          patch :toggle_active
+          post :duplicate
+          get :preview
+        end
+      end
+
+      # Job Form Submissions - View and manage completed forms
+      resources :job_form_submissions, only: [:index, :show] do
+        member do
+          patch :approve
+          patch :request_revision
+        end
+        collection do
+          get :by_booking
         end
       end
 

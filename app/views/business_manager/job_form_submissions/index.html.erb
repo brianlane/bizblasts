@@ -1,0 +1,171 @@
+<div class="container mx-auto px-4 py-6">
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Form Submissions</h1>
+      <p class="text-gray-600 dark:text-gray-400 mt-1">Review and manage form submissions from your team</p>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+      <div class="flex items-center">
+        <div class="flex-shrink-0 p-3 rounded-full bg-yellow-100 dark:bg-yellow-900">
+          <svg class="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <div class="ml-4">
+          <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Pending Review</p>
+          <p class="text-2xl font-semibold text-gray-900 dark:text-white"><%= @pending_count %></p>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+      <div class="flex items-center">
+        <div class="flex-shrink-0 p-3 rounded-full bg-green-100 dark:bg-green-900">
+          <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <div class="ml-4">
+          <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Completed</p>
+          <p class="text-2xl font-semibold text-gray-900 dark:text-white"><%= @completed_count %></p>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+      <div class="flex items-center">
+        <div class="flex-shrink-0 p-3 rounded-full bg-blue-100 dark:bg-blue-900">
+          <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+        </div>
+        <div class="ml-4">
+          <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Submissions</p>
+          <p class="text-2xl font-semibold text-gray-900 dark:text-white"><%= @job_form_submissions.respond_to?(:total_count) ? @job_form_submissions.total_count : @job_form_submissions.count %></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4 mb-6">
+    <%= form_tag business_manager_job_form_submissions_path, method: :get, class: "flex flex-wrap gap-4 items-end" do %>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+        <%= select_tag :status, options_for_select([['All', ''], ['Draft', 'draft'], ['Submitted', 'submitted'], ['Approved', 'approved'], ['Requires Revision', 'requires_revision']], params[:status]), class: "block rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm" %>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Template</label>
+        <%= select_tag :template_id, options_from_collection_for_select(current_business.job_form_templates.ordered, :id, :name, params[:template_id]), { include_blank: 'All Templates', class: "block rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm" } %>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">From Date</label>
+        <%= date_field_tag :from_date, params[:from_date], class: "block rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm" %>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">To Date</label>
+        <%= date_field_tag :to_date, params[:to_date], class: "block rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm" %>
+      </div>
+      <div>
+        <%= submit_tag "Filter", class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition cursor-pointer" %>
+        <% if params[:status].present? || params[:template_id].present? || params[:from_date].present? || params[:to_date].present? %>
+          <%= link_to "Clear", business_manager_job_form_submissions_path, class: "ml-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white" %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Submissions List -->
+  <% if @job_form_submissions.any? %>
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+      <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+        <thead class="bg-gray-50 dark:bg-gray-900">
+          <tr>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Submission</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Booking</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Submitted By</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+            <th scope="col" class="relative px-6 py-3"><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+          <% @job_form_submissions.each do |submission| %>
+            <tr>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                  <div>
+                    <div class="text-sm font-medium text-gray-900 dark:text-white">
+                      <%= link_to submission.job_form_template&.name || 'Unknown Template', business_manager_job_form_submission_path(submission), class: "hover:text-blue-600" %>
+                    </div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                      <%= submission.job_form_template&.form_type&.humanize %>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <% if submission.booking %>
+                  <%= link_to business_manager_booking_path(submission.booking), class: "text-blue-600 hover:text-blue-800" do %>
+                    <div class="text-sm font-medium"><%= submission.booking.service&.name %></div>
+                    <div class="text-xs text-gray-500"><%= submission.booking.start_time&.strftime('%b %d, %Y %I:%M %p') %></div>
+                  <% end %>
+                <% else %>
+                  <span class="text-gray-400">No booking</span>
+                <% end %>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900 dark:text-white">
+                  <%= submission.submitted_by_user&.full_name || submission.staff_member&.user&.full_name || 'Unknown' %>
+                </div>
+                <% if submission.submitted_at %>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">
+                    <%= time_ago_in_words(submission.submitted_at) %> ago
+                  </div>
+                <% end %>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <% status_classes = {
+                  'draft' => 'bg-gray-100 text-gray-800',
+                  'submitted' => 'bg-yellow-100 text-yellow-800',
+                  'approved' => 'bg-green-100 text-green-800',
+                  'requires_revision' => 'bg-red-100 text-red-800'
+                } %>
+                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full <%= status_classes[submission.status] || 'bg-gray-100 text-gray-800' %>">
+                  <%= submission.status.humanize %>
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                <%= submission.created_at.strftime('%b %d, %Y') %>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <%= link_to business_manager_job_form_submission_path(submission), class: "text-blue-600 hover:text-blue-900" do %>
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <% if @job_form_submissions.respond_to?(:total_pages) && @job_form_submissions.total_pages > 1 %>
+      <div class="mt-6">
+        <%= paginate @job_form_submissions %>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+      </svg>
+      <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No submissions yet</h3>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Form submissions will appear here once your team starts filling out forms.</p>
+    </div>
+  <% end %>
+</div>

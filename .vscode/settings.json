@@ -2,5 +2,6 @@
     "github.copilot.enable": {
         "*": false
     },
-    "python.REPL.enableREPLSmartSend": false
+    "python.REPL.enableREPLSmartSend": false,
+    "git.ignoreLimitWarning": true
 }

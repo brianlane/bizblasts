@@ -430,6 +430,7 @@ class BusinessManager::ServicesController < BusinessManager::BaseController
       images: [], # Allow new image uploads
       images_attributes: [:id, :primary, :position, :_destroy],
       service_variants_attributes: [:id, :name, :duration, :price, :active, :position, :_destroy],
+      service_job_forms_attributes: [:id, :job_form_template_id, :timing, :required, :_destroy], # Allow job form assignment
       availability: {},
       images_crop_data: {} # Allow crop data for gallery images
     )

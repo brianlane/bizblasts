@@ -1,4 +1,4 @@
 web: env RUBY_DEBUG_OPEN=true bin/rails server
-css: /bin/bash -c "source $HOME/.rvm/scripts/rvm && rvm use 3.4.3 && bundle exec tailwindcss --watch -i ./app/assets/tailwind/application.css -o ./app/assets/builds/tailwind.css --cwd ."
+css: bundle exec tailwindcss --watch -i ./app/assets/tailwind/application.css -o ./app/assets/builds/tailwind.css --cwd .
 js: /bin/bash -lc "bun build ./app/javascript/application.js --outdir ./app/assets/builds --watch --no-clear-screen"
 worker: bin/jobs

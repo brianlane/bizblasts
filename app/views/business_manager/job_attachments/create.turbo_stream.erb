@@ -1,0 +1,56 @@
+<%= turbo_stream.append "job-attachments-list" do %>
+  <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-white dark:bg-gray-800" data-attachment-id="<%= @job_attachment.id %>">
+    <div class="flex items-start space-x-3">
+      <!-- Thumbnail/Icon -->
+      <div class="flex-shrink-0">
+        <% if @job_attachment.file.attached? && @job_attachment.file.content_type&.start_with?('image/') %>
+          <% if @job_attachment.file.variable? %>
+            <%= image_tag rails_public_blob_url(@job_attachment.file.representation(resize_to_limit: [80, 80])),
+                  class: "w-16 h-16 object-cover rounded-lg",
+                  alt: @job_attachment.title || @job_attachment.file.filename.to_s %>
+          <% else %>
+            <%= image_tag rails_public_blob_url(@job_attachment.file),
+                  class: "w-16 h-16 object-cover rounded-lg",
+                  alt: @job_attachment.title || @job_attachment.file.filename.to_s %>
+          <% end %>
+        <% else %>
+          <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Details -->
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+          <%= @job_attachment.title.presence || @job_attachment.file&.filename&.to_s || 'Untitled' %>
+        </p>
+        <div class="flex flex-wrap gap-1 mt-1">
+          <span class="px-1.5 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+            <%= @job_attachment.attachment_type.humanize %>
+          </span>
+          <span class="px-1.5 py-0.5 text-xs rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+            <%= number_to_human_size(@job_attachment.file.byte_size) if @job_attachment.file.attached? %>
+          </span>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex-shrink-0">
+        <%= button_to "Delete",
+              business_manager_job_attachment_path(@job_attachment, service_id: @attachable.id if @attachable.is_a?(Service), estimate_id: @attachable.id if @attachable.is_a?(Estimate), booking_id: @attachable.id if @attachable.is_a?(Booking)),
+              method: :delete,
+              data: { turbo_confirm: "Are you sure?" },
+              class: "text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300" %>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<%= turbo_stream.update "attachment-upload-indicator" do %>
+  <div class="p-3 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-lg text-sm">
+    Attachment uploaded successfully!
+  </div>
+<% end %>
