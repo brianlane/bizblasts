@@ -15,13 +15,13 @@ module Users
     # Skip tenant requirement for OAuth callbacks (they come from external providers)
     skip_before_action :set_tenant, raise: false
 
-    # OmniAuth handles CSRF via state parameter. We limit CSRF skipping to non-GET HTML requests.
-    skip_before_action :verify_authenticity_token,
-                        only: [:google_oauth2, :failure],
-                        if: -> { request.format&.html? && !request.get? }
-
     # Google OAuth2 callback
     # GET/POST /users/auth/google_oauth2/callback
+    def google_oauth2
+      handle_oauth_callback("Google")
+    end
+
+    # Handle OAuth failures
     def google_oauth2
       handle_oauth_callback("Google")
     end
