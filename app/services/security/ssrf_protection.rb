@@ -12,6 +12,10 @@ module Security
   # Usage:
   #   Security::SsrfProtection.validate_url!(user_provided_url)
   #
+  # NOTE: This module also provides validate_path_not_absolute! to mitigate
+  # GHSA-c8v7-pv9q-f8rw - httparty SSRF vulnerability where absolute URLs
+  # in path parameters bypass base_uri configuration.
+  #
   class SsrfProtection
     class SsrfError < StandardError; end
 
@@ -32,6 +36,14 @@ module Security
       '169.254.169.254',               # AWS, Azure, GCP metadata
       'metadata.google.internal',      # GCP metadata
       '100.100.100.200'                # Alibaba Cloud metadata
+    ].freeze
+
+    # Patterns that indicate an absolute URL embedded in a path
+    # Used to detect httparty SSRF bypass attempts
+    ABSOLUTE_URL_PATTERNS = [
+      %r{^/+https?://}i,           # //http:// or /https://
+      %r{^https?://}i,             # http:// or https://
+      %r{^//[^/]}                  # Protocol-relative URL //example.com
     ].freeze
 
     # Validate a URL for SSRF vulnerabilities
@@ -132,6 +144,41 @@ module Security
       validate_hostname!(validated_uri.host)
 
       yield(validated_uri)
+    end
+
+    # Validate that a path doesn't contain absolute URL patterns
+    # This prevents SSRF attacks via httparty's absolute URL bypass
+    # See: GHSA-c8v7-pv9q-f8rw
+    #
+    # @param path [String] The path to validate
+    # @raise [SsrfError] If the path contains absolute URL patterns
+    # @return [Boolean] True if valid
+    def self.validate_path_not_absolute!(path)
+      raise SsrfError, 'Path cannot be nil' if path.nil?
+
+      ABSOLUTE_URL_PATTERNS.each do |pattern|
+        if path.match?(pattern)
+          raise SsrfError, "Absolute URL detected in path (potential SSRF bypass): #{path.truncate(100)}"
+        end
+      end
+
+      true
+    end
+
+    # Combined validation for paths that will be appended to a base URL
+    # Validates the path isn't absolute and the final URL is safe
+    #
+    # @param base_url [String] The base URL
+    # @param path [String] The path to append
+    # @param allowed_protocols [Array<String>] Allowed protocols
+    # @return [URI] The validated combined URI
+    def self.validate_url_with_path!(base_url, path, allowed_protocols: ['https'])
+      # First, ensure path doesn't contain absolute URL
+      validate_path_not_absolute!(path)
+
+      # Then validate the combined URL
+      combined_url = "#{base_url.chomp('/')}#{path}"
+      validate_url!(combined_url, allowed_protocols: allowed_protocols)
     end
   end
 end

@@ -22,11 +22,6 @@ module Users
     end
 
     # Handle OAuth failures
-    def google_oauth2
-      handle_oauth_callback("Google")
-    end
-
-    # Handle OAuth failures
     def failure
       error_message = request.env["omniauth.error.type"]&.to_s&.humanize || "Unknown error"
       Rails.logger.warn "[OmniAuth] Authentication failure: #{error_message}"

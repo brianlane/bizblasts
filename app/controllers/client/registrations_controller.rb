@@ -23,16 +23,31 @@ class Client::RegistrationsController < Users::RegistrationsController
   end
 
   def create
+    # Handle OAuth user - merge provider/uid from session if present
+    oauth_data = session[:omniauth_data]
+    if oauth_data.present?
+      # Merge OAuth provider and uid from session
+      params[:user][:provider] = oauth_data[:provider]
+      params[:user][:uid] = oauth_data[:uid]
+
+      # OAuth users don't need to provide password in form - generate one
+      unless params[:user][:password].present?
+        random_password = Devise.friendly_token[0, 20]
+        params[:user][:password] = random_password
+        params[:user][:password_confirmation] = random_password
+      end
+    end
+
     super do |resource|
       if resource.persisted?
         # Clear OAuth session data if present
         session.delete(:omniauth_data)
-        
+
         # Process referral code if provided
         if params[:user][:referral_code].present?
           process_referral_signup(resource, params[:user][:referral_code])
         end
-        
+
         # Record policy acceptances after successful creation
         record_policy_acceptances(resource, params[:policy_acceptances]) if params[:policy_acceptances]
       end
@@ -45,6 +60,7 @@ class Client::RegistrationsController < Users::RegistrationsController
   def configure_sign_up_params
     devise_parameter_sanitizer.permit(:sign_up, keys: [
       :first_name, :last_name, :referral_code, :phone, :bizblasts_notification_consent,
+      :provider, :uid, # OAuth parameters
       policy_acceptances: {}
     ])
     # Role is automatically set to client by default in the model

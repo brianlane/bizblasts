@@ -264,4 +264,121 @@ RSpec.describe Security::SsrfProtection do
       expect(result).to eq('http')
     end
   end
+
+  describe '.validate_path_not_absolute!' do
+    # Tests for GHSA-c8v7-pv9q-f8rw - httparty SSRF bypass via absolute URLs in path
+    context 'with valid relative paths' do
+      it 'accepts simple relative path' do
+        expect(described_class.validate_path_not_absolute!('/api/v1/users')).to be true
+      end
+
+      it 'accepts path with query string' do
+        expect(described_class.validate_path_not_absolute!('/api/v1/users?page=1')).to be true
+      end
+
+      it 'accepts path with fragment' do
+        expect(described_class.validate_path_not_absolute!('/page#section')).to be true
+      end
+
+      it 'accepts empty path' do
+        expect(described_class.validate_path_not_absolute!('')).to be true
+      end
+    end
+
+    context 'with absolute URL patterns (SSRF bypass attempts)' do
+      it 'rejects path starting with http://' do
+        expect {
+          described_class.validate_path_not_absolute!('http://evil.com/steal')
+        }.to raise_error(Security::SsrfProtection::SsrfError, /Absolute URL detected/)
+      end
+
+      it 'rejects path starting with https://' do
+        expect {
+          described_class.validate_path_not_absolute!('https://evil.com/steal')
+        }.to raise_error(Security::SsrfProtection::SsrfError, /Absolute URL detected/)
+      end
+
+      it 'rejects path with leading slashes and http://' do
+        expect {
+          described_class.validate_path_not_absolute!('//http://evil.com')
+        }.to raise_error(Security::SsrfProtection::SsrfError, /Absolute URL detected/)
+      end
+
+      it 'rejects path with /https://' do
+        expect {
+          described_class.validate_path_not_absolute!('/https://evil.com/steal')
+        }.to raise_error(Security::SsrfProtection::SsrfError, /Absolute URL detected/)
+      end
+
+      it 'rejects protocol-relative URL (//example.com)' do
+        expect {
+          described_class.validate_path_not_absolute!('//evil.com/steal')
+        }.to raise_error(Security::SsrfProtection::SsrfError, /Absolute URL detected/)
+      end
+
+      it 'rejects case variations of http' do
+        expect {
+          described_class.validate_path_not_absolute!('HTTP://evil.com/steal')
+        }.to raise_error(Security::SsrfProtection::SsrfError, /Absolute URL detected/)
+      end
+
+      it 'rejects case variations of https' do
+        expect {
+          described_class.validate_path_not_absolute!('HTTPS://evil.com/steal')
+        }.to raise_error(Security::SsrfProtection::SsrfError, /Absolute URL detected/)
+      end
+    end
+
+    context 'with invalid input' do
+      it 'rejects nil path' do
+        expect {
+          described_class.validate_path_not_absolute!(nil)
+        }.to raise_error(Security::SsrfProtection::SsrfError, /Path cannot be nil/)
+      end
+    end
+
+    context 'with tricky edge cases' do
+      it 'allows path that contains http but is not a URL' do
+        expect(described_class.validate_path_not_absolute!('/api/http_status')).to be true
+      end
+
+      it 'allows path that contains https but is not a URL' do
+        expect(described_class.validate_path_not_absolute!('/api/https_endpoint')).to be true
+      end
+
+      it 'allows double slash in middle of path' do
+        expect(described_class.validate_path_not_absolute!('/api//v1/users')).to be true
+      end
+    end
+  end
+
+  describe '.validate_url_with_path!' do
+    it 'validates combined URL from base and path' do
+      allow(Resolv).to receive(:getaddresses).with('api.example.com').and_return(['93.184.216.34'])
+
+      uri = described_class.validate_url_with_path!('https://api.example.com', '/v1/users')
+      expect(uri.to_s).to eq('https://api.example.com/v1/users')
+    end
+
+    it 'rejects if path contains absolute URL' do
+      expect {
+        described_class.validate_url_with_path!('https://api.example.com', 'https://evil.com/steal')
+      }.to raise_error(Security::SsrfProtection::SsrfError, /Absolute URL detected/)
+    end
+
+    it 'rejects if combined URL resolves to private IP' do
+      allow(Resolv).to receive(:getaddresses).with('internal.local').and_return(['192.168.1.1'])
+
+      expect {
+        described_class.validate_url_with_path!('https://internal.local', '/api/v1')
+      }.to raise_error(Security::SsrfProtection::SsrfError, /Access to private IP/)
+    end
+
+    it 'handles base URL with trailing slash' do
+      allow(Resolv).to receive(:getaddresses).with('api.example.com').and_return(['93.184.216.34'])
+
+      uri = described_class.validate_url_with_path!('https://api.example.com/', '/v1/users')
+      expect(uri.to_s).to eq('https://api.example.com/v1/users')
+    end
+  end
 end

@@ -83,7 +83,7 @@ RSpec.describe 'Authentication', type: :system do
   describe 'client sign up' do
     it 'allows a new client to sign up' do
       visit new_client_registration_path
-      within('form') do
+      within("form[action='#{client_registration_path}']") do
         fill_in 'First name', with: 'New'
         fill_in 'Last name', with: 'Client'
         fill_in 'Email', with: 'newclient@example.com'
@@ -98,9 +98,9 @@ RSpec.describe 'Authentication', type: :system do
     
     it 'shows errors with invalid registration information' do
       visit new_client_registration_path
-      within('form') do
+      within("form[action='#{client_registration_path}']") do
         # Just click the first button which should be the submit button
-        first('input[type="submit"]').click 
+        first('input[type="submit"]').click
       end
       expect(page).to have_content('errors prohibited this user from being saved')
       expect(page).to have_content("Email can't be blank")
