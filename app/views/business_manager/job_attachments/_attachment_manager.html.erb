@@ -14,7 +14,7 @@
   <% if existing_attachments.any? %>
     <div class="mb-6" data-job-attachments-target="existingList">
       <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Current Attachments</h4>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div id="job-attachments-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <% existing_attachments.each do |attachment| %>
           <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-white dark:bg-gray-800" data-attachment-id="<%= attachment.id %>">
             <div class="flex items-start space-x-3">
@@ -81,6 +81,14 @@
             </div>
           </div>
         <% end %>
+      </div>
+    </div>
+  <% else %>
+    <!-- Empty state - hidden container for Turbo Stream appends -->
+    <div class="mb-6" data-job-attachments-target="existingList">
+      <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Current Attachments</h4>
+      <div id="job-attachments-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Attachments will be appended here via Turbo Streams -->
       </div>
     </div>
   <% end %>

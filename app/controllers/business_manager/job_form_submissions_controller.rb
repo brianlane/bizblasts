@@ -6,7 +6,7 @@ class BusinessManager::JobFormSubmissionsController < BusinessManager::BaseContr
   # GET /manage/job_form_submissions
   def index
     @job_form_submissions = current_business.job_form_submissions
-                                            .includes({ booking: :service }, :job_form_template, :staff_member, :submitted_by_user)
+                                            .includes({ booking: [:service, :business] }, :job_form_template, :staff_member, :submitted_by_user)
                                             .recent
 
     # Filter by status
@@ -30,7 +30,7 @@ class BusinessManager::JobFormSubmissionsController < BusinessManager::BaseContr
         from_date = Date.parse(params[:from_date])
         @job_form_submissions = @job_form_submissions.where('created_at >= ?', from_date.beginning_of_day)
       rescue Date::Error, ArgumentError
-        # Invalid date format - ignore this filter
+        flash.now[:alert] = "Invalid 'from' date format. Please use YYYY-MM-DD."
       end
     end
     if params[:to_date].present?
@@ -38,7 +38,7 @@ class BusinessManager::JobFormSubmissionsController < BusinessManager::BaseContr
         to_date = Date.parse(params[:to_date])
         @job_form_submissions = @job_form_submissions.where('created_at <= ?', to_date.end_of_day)
       rescue Date::Error, ArgumentError
-        # Invalid date format - ignore this filter
+        flash.now[:alert] = "Invalid 'to' date format. Please use YYYY-MM-DD."
       end
     end
 
@@ -100,6 +100,5 @@ class BusinessManager::JobFormSubmissionsController < BusinessManager::BaseContr
     @job_form_submission = current_business.job_form_submissions.find(params[:id])
   rescue ActiveRecord::RecordNotFound
     redirect_to business_manager_job_form_submissions_path, alert: 'Submission not found.'
-    return
   end
 end

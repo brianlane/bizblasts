@@ -23,11 +23,13 @@ class BusinessManager::JobAttachmentsController < BusinessManager::BaseControlle
     if @job_attachment.save
       respond_to do |format|
         format.html { redirect_back fallback_location: polymorphic_path([:business_manager, @attachable]), notice: 'Attachment uploaded successfully.' }
+        format.turbo_stream
         format.json { render json: attachment_json(@job_attachment), status: :created }
       end
     else
       respond_to do |format|
         format.html { redirect_back fallback_location: polymorphic_path([:business_manager, @attachable]), alert: @job_attachment.errors.full_messages.join(', ') }
+        format.turbo_stream { render turbo_stream: turbo_stream.replace('attachment-errors', partial: 'shared/flash', locals: { flash: { alert: @job_attachment.errors.full_messages.join(', ') } }) }
         format.json { render json: { errors: @job_attachment.errors.full_messages }, status: :unprocessable_entity }
       end
     end

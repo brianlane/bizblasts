@@ -102,15 +102,18 @@ class JobFormSubmission < ApplicationRecord
   end
 
   # Check if a field value is considered "present" based on field type
-  # Handles checkbox fields specially since "false" string should not count as filled
+  # Handles checkbox fields specially since "false" string should not count as filled.
+  # For required checkbox fields, this means the checkbox MUST be checked (true) to pass validation.
+  # This is the intended behavior - an unchecked required checkbox will fail validation.
   def field_value_present?(value, field_type)
     return false if value.blank?
-    
-    # For checkbox fields, the string "false" means unchecked
+
+    # For checkbox fields, only a checked (true) checkbox counts as "present"
+    # The string "false" means unchecked and will not satisfy required field validation
     if field_type == 'checkbox'
       return ActiveModel::Type::Boolean.new.cast(value) == true
     end
-    
+
     true
   end
 

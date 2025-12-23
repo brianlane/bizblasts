@@ -30,6 +30,15 @@ class JobAttachment < ApplicationRecord
     customer_visible: 1   # Customer can also see
   }, prefix: true
 
+  # Allowed file types for attachments
+  ALLOWED_CONTENT_TYPES = %w[
+    image/jpeg image/png image/gif image/webp image/heic image/heif
+    application/pdf
+    application/msword application/vnd.openxmlformats-officedocument.wordprocessingml.document
+    application/vnd.ms-excel application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+    text/plain text/csv
+  ].freeze
+
   # Validations
   validates :business, presence: true
   validates :attachable, presence: true
@@ -100,15 +109,7 @@ class JobAttachment < ApplicationRecord
   def validate_file_type
     return unless file.attached?
 
-    allowed_types = %w[
-      image/jpeg image/png image/gif image/webp image/heic image/heif
-      application/pdf
-      application/msword application/vnd.openxmlformats-officedocument.wordprocessingml.document
-      application/vnd.ms-excel application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
-      text/plain text/csv
-    ]
-
-    unless allowed_types.include?(file.content_type)
+    unless ALLOWED_CONTENT_TYPES.include?(file.content_type)
       errors.add(:file, 'must be an image, PDF, document, or spreadsheet')
     end
   end

@@ -84,14 +84,22 @@ export default class extends Controller {
         method: 'POST',
         headers: {
           'X-CSRF-Token': csrfToken,
-          'Accept': 'application/json'
+          'Accept': 'text/vnd.turbo-stream.html, application/json'
         },
         body: formData
       })
 
       if (response.ok) {
-        const data = await response.json()
-        this.addAttachmentToList(data)
+        const contentType = response.headers.get('content-type')
+        if (contentType && contentType.includes('turbo-stream')) {
+          // Turbo Stream response - let Turbo handle it
+          const html = await response.text()
+          Turbo.renderStreamMessage(html)
+        } else {
+          // JSON response - show success message
+          const data = await response.json()
+          this.showSuccessMessage('Attachment uploaded successfully!')
+        }
         this.hideUploadingIndicator()
       } else {
         const errorData = await response.json()
@@ -162,10 +170,18 @@ export default class extends Controller {
     }
   }
 
-  addAttachmentToList(attachment) {
-    // Reload the page to show the new attachment
-    // In a more advanced implementation, we'd dynamically add the attachment to the DOM
-    window.location.reload()
+  showSuccessMessage(message) {
+    // Create a temporary success message
+    const successDiv = document.createElement('div')
+    successDiv.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg'
+    successDiv.textContent = message
+
+    document.body.appendChild(successDiv)
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+      successDiv.remove()
+    }, 3000)
   }
 }
 
