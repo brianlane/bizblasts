@@ -3,7 +3,24 @@
 # Handles client user sign-ups.
 class Client::RegistrationsController < Users::RegistrationsController
   before_action :configure_sign_up_params, only: [:create]
-  before_action :prefill_from_oauth, only: [:new]
+
+  # GET /resource/sign_up
+  # Overrides Devise default to prefill OAuth data before rendering the form
+  def new
+    build_resource({}) # Builds the User resource
+
+    # Pre-fill from OAuth data if present (user came from Google OAuth)
+    if session[:omniauth_data].present?
+      oauth_data = session[:omniauth_data]
+      resource.email = oauth_data[:email]
+      resource.first_name = oauth_data[:first_name]
+      resource.last_name = oauth_data[:last_name]
+      resource.provider = oauth_data[:provider]
+      resource.uid = oauth_data[:uid]
+    end
+
+    respond_with resource
+  end
 
   def create
     super do |resource|
@@ -20,19 +37,6 @@ class Client::RegistrationsController < Users::RegistrationsController
         record_policy_acceptances(resource, params[:policy_acceptances]) if params[:policy_acceptances]
       end
     end
-  end
-  
-  private
-  
-  def prefill_from_oauth
-    return unless session[:omniauth_data].present?
-    
-    oauth_data = session[:omniauth_data]
-    resource.email = oauth_data[:email]
-    resource.first_name = oauth_data[:first_name]
-    resource.last_name = oauth_data[:last_name]
-    resource.provider = oauth_data[:provider]
-    resource.uid = oauth_data[:uid]
   end
 
   protected
