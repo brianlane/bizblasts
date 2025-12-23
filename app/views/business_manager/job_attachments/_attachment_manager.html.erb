@@ -4,7 +4,7 @@
 
 <% attachable_type = attachable.class.name.underscore %>
 <% attachable_id = attachable.id %>
-<% existing_attachments = attachable.job_attachments.includes(:file_attachment).ordered %>
+<% existing_attachments = attachable.job_attachments.includes(file_attachment: :blob).ordered %>
 
 <div class="border-t pt-6 mt-6" data-controller="job-attachments" data-job-attachments-attachable-type-value="<%= attachable_type %>" data-job-attachments-attachable-id-value="<%= attachable_id %>">
   <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Job Attachments</h3>
