@@ -20,7 +20,7 @@ class Client::RegistrationsController < Users::RegistrationsController
     params.require(:user)
 
     # Handle OAuth data from session (if present and valid)
-    process_oauth_data_for_submission(
+    params[:user] = process_oauth_data_for_submission(
       params_hash: params[:user],
       registration_path: new_client_registration_path
     )
