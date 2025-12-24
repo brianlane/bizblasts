@@ -162,7 +162,9 @@ class User < ApplicationRecord
 
     # If user is already signed in, link their account
     if signed_in_resource.present?
-      signed_in_resource.update!(provider: provider, uid: uid)
+      # Use validate: false to avoid triggering full validation during OAuth linking
+      # We're only setting provider/uid, so full validation isn't needed
+      signed_in_resource.update(provider: provider, uid: uid, validate: false)
       return signed_in_resource
     end
 
@@ -174,7 +176,9 @@ class User < ApplicationRecord
     user = User.find_by(email: email)
     if user.present?
       # Link Google account to existing user
-      user.update!(provider: provider, uid: uid)
+      # Use validate: false to avoid triggering full validation during OAuth linking
+      # We're only setting provider/uid, so full validation isn't needed
+      user.update(provider: provider, uid: uid, validate: false)
       return user
     end
 
