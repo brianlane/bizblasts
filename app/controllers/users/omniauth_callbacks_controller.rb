@@ -97,7 +97,7 @@ module Users
         session[:omniauth_data_timestamp] = Time.current.iso8601
         flash[:notice] = "Please complete your business information to finish registration."
         redirect_to new_business_registration_path
-      else
+      when "client"
         # Client registration - save user directly
         @user.skip_confirmation_notification! # We'll send confirmation email
         
@@ -121,6 +121,21 @@ module Users
           session[:omniauth_data_timestamp] = Time.current.iso8601
           redirect_to new_client_registration_path, alert: "Could not complete registration: #{@user.errors.full_messages.first}"
         end
+      else
+        # No registration_type specified - user must choose account type
+        # Store OAuth data for after they choose
+        session[:omniauth_data] = {
+          provider: @user.provider,
+          uid: @user.uid,
+          email: @user.email,
+          first_name: @user.first_name,
+          last_name: @user.last_name
+        }
+        session[:omniauth_data_timestamp] = Time.current.iso8601
+
+        Rails.logger.info "[OmniAuth] New user needs to choose account type: #{@user.email}"
+        flash[:notice] = "Please choose how you'd like to sign up: as a Client or create a Business account."
+        redirect_to root_path
       end
     end
 
