@@ -45,7 +45,16 @@
     <%= link_to "Didn't receive unlock instructions?", new_unlock_path(resource_name), class: "block text-sm text-gray-600 hover:text-primary transition-colors" %>
   <% end %>
 
-  <%- if devise_mapping.omniauthable? && resource_name != :passwordless_user %>
+  <%
+    # Only show OAuth buttons if:
+    # 1. The mapping supports OmniAuth
+    # 2. Not on passwordless user page
+    # 3. The omniauth_authorize_path helper is available
+    show_oauth = devise_mapping.omniauthable? &&
+                 resource_name != :passwordless_user &&
+                 defined?(omniauth_authorize_path)
+  %>
+  <%- if show_oauth %>
     <div class="space-y-2">
       <%- resource_class.omniauth_providers.each do |provider| %>
         <%= button_to "Sign in with #{OmniAuth::Utils.camelize(provider)}", omniauth_authorize_path(resource_name, provider), data: { turbo: false }, class: "cursor-pointer w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors" %>

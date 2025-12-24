@@ -47,6 +47,13 @@ module Users
     # Generic handler for OAuth callbacks
     def handle_oauth_callback(provider_name)
       auth = request.env["omniauth.auth"]
+
+      # Validate auth is present before accessing it
+      unless auth.present?
+        Rails.logger.error "[OmniAuth] Auth data missing from request.env[\"omniauth.auth\"] for #{provider_name}"
+        redirect_to new_user_session_path, alert: "Authentication failed. Please try again." and return
+      end
+
       registration_type = session.delete(:omniauth_registration_type)
       return_url = session.delete(:omniauth_return_url)
       origin_host = session.delete(:omniauth_origin_host)

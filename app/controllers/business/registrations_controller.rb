@@ -13,15 +13,23 @@ class Business::RegistrationsController < Users::RegistrationsController
     # Only use OAuth data if it was recently set (within last 10 minutes)
     if session[:omniauth_data].present? && session[:omniauth_data_timestamp].present?
       # Check if OAuth data is fresh (less than 10 minutes old)
-      if Time.current - Time.parse(session[:omniauth_data_timestamp]) < 10.minutes
-        oauth_data = session[:omniauth_data]
-        resource.email = oauth_data[:email]
-        resource.first_name = oauth_data[:first_name]
-        resource.last_name = oauth_data[:last_name]
-        resource.provider = oauth_data[:provider]
-        resource.uid = oauth_data[:uid]
-      else
-        # Clear stale OAuth data
+      begin
+        timestamp = Time.iso8601(session[:omniauth_data_timestamp])
+        if Time.current - timestamp < 10.minutes
+          oauth_data = session[:omniauth_data]
+          resource.email = oauth_data[:email]
+          resource.first_name = oauth_data[:first_name]
+          resource.last_name = oauth_data[:last_name]
+          resource.provider = oauth_data[:provider]
+          resource.uid = oauth_data[:uid]
+        else
+          # Clear stale OAuth data
+          session.delete(:omniauth_data)
+          session.delete(:omniauth_data_timestamp)
+        end
+      rescue ArgumentError => e
+        # Timestamp is malformed or corrupted - clear OAuth data
+        Rails.logger.warn "[REGISTRATION] Malformed OAuth timestamp: #{e.message}"
         session.delete(:omniauth_data)
         session.delete(:omniauth_data_timestamp)
       end
@@ -42,21 +50,29 @@ class Business::RegistrationsController < Users::RegistrationsController
     oauth_data = session[:omniauth_data]
     if oauth_data.present? && session[:omniauth_data_timestamp].present?
       # Check if OAuth data is fresh (less than 10 minutes old)
-      if Time.current - Time.parse(session[:omniauth_data_timestamp]) < 10.minutes
-        user_params = user_params.merge(
-          provider: oauth_data[:provider],
-          uid: oauth_data[:uid]
-        )
-        # OAuth users don't need to provide password in form - generate one
-        unless user_params[:password].present?
-          random_password = Devise.friendly_token[0, 20]
+      begin
+        timestamp = Time.iso8601(session[:omniauth_data_timestamp])
+        if Time.current - timestamp < 10.minutes
           user_params = user_params.merge(
-            password: random_password,
-            password_confirmation: random_password
+            provider: oauth_data[:provider],
+            uid: oauth_data[:uid]
           )
+          # OAuth users don't need to provide password in form - generate one
+          unless user_params[:password].present?
+            random_password = Devise.friendly_token[0, 20]
+            user_params = user_params.merge(
+              password: random_password,
+              password_confirmation: random_password
+            )
+          end
+        else
+          # Clear stale OAuth data
+          session.delete(:omniauth_data)
+          session.delete(:omniauth_data_timestamp)
         end
-      else
-        # Clear stale OAuth data
+      rescue ArgumentError => e
+        # Timestamp is malformed or corrupted - clear OAuth data
+        Rails.logger.warn "[REGISTRATION] Malformed OAuth timestamp: #{e.message}"
         session.delete(:omniauth_data)
         session.delete(:omniauth_data_timestamp)
       end
