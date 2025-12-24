@@ -61,12 +61,26 @@ class Client::RegistrationsController < Users::RegistrationsController
           # Clear stale OAuth data
           session.delete(:omniauth_data)
           session.delete(:omniauth_data_timestamp)
+
+          # If form was submitted without password (OAuth flow), redirect back with error
+          if params[:user][:password].blank?
+            Rails.logger.info "[REGISTRATION] OAuth session expired - redirecting to re-fill form with password"
+            flash[:alert] = "Your session expired. Please complete the registration form again."
+            redirect_to new_client_registration_path and return
+          end
         end
       rescue ArgumentError => e
         # Timestamp is malformed or corrupted - clear OAuth data
         Rails.logger.warn "[REGISTRATION] Malformed OAuth timestamp: #{e.message}"
         session.delete(:omniauth_data)
         session.delete(:omniauth_data_timestamp)
+
+        # If form was submitted without password (OAuth flow), redirect back with error
+        if params[:user][:password].blank?
+          Rails.logger.info "[REGISTRATION] OAuth session corrupted - redirecting to re-fill form with password"
+          flash[:alert] = "There was an issue with your session. Please complete the registration form again."
+          redirect_to new_client_registration_path and return
+        end
       end
     end
 

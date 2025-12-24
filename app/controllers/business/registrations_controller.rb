@@ -44,7 +44,7 @@ class Business::RegistrationsController < Users::RegistrationsController
     user_params = sign_up_params.except(:business_attributes)
     raw_business_params = params.require(:user).fetch(:business_attributes, {})
     processed_business_params = process_business_host_params(raw_business_params)
-    
+
     # Handle OAuth user - add provider/uid from session if present
     # Only use OAuth data if it was recently set (within last 10 minutes)
     oauth_data = session[:omniauth_data]
@@ -69,12 +69,26 @@ class Business::RegistrationsController < Users::RegistrationsController
           # Clear stale OAuth data
           session.delete(:omniauth_data)
           session.delete(:omniauth_data_timestamp)
+
+          # If form was submitted without password (OAuth flow), redirect back with error
+          if user_params[:password].blank?
+            Rails.logger.info "[REGISTRATION] OAuth session expired - redirecting to re-fill form with password"
+            flash[:alert] = "Your session expired. Please complete the registration form again."
+            redirect_to new_business_registration_path and return
+          end
         end
       rescue ArgumentError => e
         # Timestamp is malformed or corrupted - clear OAuth data
         Rails.logger.warn "[REGISTRATION] Malformed OAuth timestamp: #{e.message}"
         session.delete(:omniauth_data)
         session.delete(:omniauth_data_timestamp)
+
+        # If form was submitted without password (OAuth flow), redirect back with error
+        if user_params[:password].blank?
+          Rails.logger.info "[REGISTRATION] OAuth session corrupted - redirecting to re-fill form with password"
+          flash[:alert] = "There was an issue with your session. Please complete the registration form again."
+          redirect_to new_business_registration_path and return
+        end
       end
     end
 
