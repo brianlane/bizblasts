@@ -39,6 +39,10 @@ class Client::RegistrationsController < Users::RegistrationsController
   end
 
   def create
+    # Ensure params[:user] exists early to prevent NoMethodError
+    # This will raise ActionController::ParameterMissing if :user is missing
+    params.require(:user)
+
     # Handle OAuth user - merge provider/uid from session if present
     # Only use OAuth data if it was recently set (within last 10 minutes)
     oauth_data = session[:omniauth_data]
