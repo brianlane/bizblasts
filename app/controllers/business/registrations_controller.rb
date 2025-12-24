@@ -2,39 +2,15 @@
 
 # Handles business sign-ups (creates User with manager role and associated Business).
 class Business::RegistrationsController < Users::RegistrationsController
+  include OauthRegistration
+
   before_action :configure_sign_up_params, only: [:create]
 
   # GET /resource/sign_up
   # Overrides Devise default to build the associated business for the form
   def new
     build_resource({}) # Builds the User resource
-
-    # Pre-fill from OAuth data if present (user came from Google OAuth)
-    # Only use OAuth data if it was recently set (within last 10 minutes)
-    if session[:omniauth_data].present? && session[:omniauth_data_timestamp].present?
-      # Check if OAuth data is fresh (less than 10 minutes old)
-      begin
-        timestamp = Time.iso8601(session[:omniauth_data_timestamp])
-        if Time.current - timestamp < 10.minutes
-          oauth_data = session[:omniauth_data]
-          resource.email = oauth_data[:email]
-          resource.first_name = oauth_data[:first_name]
-          resource.last_name = oauth_data[:last_name]
-          resource.provider = oauth_data[:provider]
-          resource.uid = oauth_data[:uid]
-        else
-          # Clear stale OAuth data
-          session.delete(:omniauth_data)
-          session.delete(:omniauth_data_timestamp)
-        end
-      rescue ArgumentError => e
-        # Timestamp is malformed or corrupted - clear OAuth data
-        Rails.logger.warn "[REGISTRATION] Malformed OAuth timestamp: #{e.message}"
-        session.delete(:omniauth_data)
-        session.delete(:omniauth_data_timestamp)
-      end
-    end
-
+    prefill_from_oauth_data(resource)
     resource.build_business # Builds the nested Business resource
     respond_with resource
   end
@@ -45,52 +21,12 @@ class Business::RegistrationsController < Users::RegistrationsController
     raw_business_params = params.require(:user).fetch(:business_attributes, {})
     processed_business_params = process_business_host_params(raw_business_params)
 
-    # Handle OAuth user - add provider/uid from session if present
-    # Only use OAuth data if it was recently set (within last 10 minutes)
-    oauth_data = session[:omniauth_data]
-    if oauth_data.present? && session[:omniauth_data_timestamp].present?
-      # Check if OAuth data is fresh (less than 10 minutes old)
-      begin
-        timestamp = Time.iso8601(session[:omniauth_data_timestamp])
-        if Time.current - timestamp < 10.minutes
-          user_params = user_params.merge(
-            provider: oauth_data[:provider],
-            uid: oauth_data[:uid]
-          )
-          # OAuth users don't need to provide password in form - generate one
-          unless user_params[:password].present?
-            random_password = Devise.friendly_token[0, 20]
-            user_params = user_params.merge(
-              password: random_password,
-              password_confirmation: random_password
-            )
-          end
-        else
-          # Clear stale OAuth data
-          session.delete(:omniauth_data)
-          session.delete(:omniauth_data_timestamp)
-
-          # If form was submitted without password (OAuth flow), redirect back with error
-          if user_params[:password].blank?
-            Rails.logger.info "[REGISTRATION] OAuth session expired - redirecting to re-fill form with password"
-            flash[:alert] = "Your session expired. Please complete the registration form again."
-            redirect_to new_business_registration_path and return
-          end
-        end
-      rescue ArgumentError => e
-        # Timestamp is malformed or corrupted - clear OAuth data
-        Rails.logger.warn "[REGISTRATION] Malformed OAuth timestamp: #{e.message}"
-        session.delete(:omniauth_data)
-        session.delete(:omniauth_data_timestamp)
-
-        # If form was submitted without password (OAuth flow), redirect back with error
-        if user_params[:password].blank?
-          Rails.logger.info "[REGISTRATION] OAuth session corrupted - redirecting to re-fill form with password"
-          flash[:alert] = "There was an issue with your session. Please complete the registration form again."
-          redirect_to new_business_registration_path and return
-        end
-      end
-    end
+    # Handle OAuth data from session (if present and valid)
+    user_params = process_oauth_data_for_submission(
+      user_params: user_params,
+      registration_path: new_business_registration_path
+    )
+    return if performed? # Redirect was triggered by OAuth session expiry
 
     # If the submitted industry is not recognised, notify the user that we defaulted to "Other".
     submitted_industry = raw_business_params[:industry]
@@ -288,10 +224,9 @@ class Business::RegistrationsController < Users::RegistrationsController
     if transaction_successful && resource.persisted?
       # Success path
       Rails.logger.info "[REGISTRATION] Transaction successful. Business ##{resource.business_id} created immediately."
-      
+
       # Clear OAuth session data if present
-      session.delete(:omniauth_data)
-      session.delete(:omniauth_data_timestamp)
+      clear_oauth_session_data
 
       # Record policy acceptances after successful creation
       record_policy_acceptances(resource, params[:policy_acceptances]) if params[:policy_acceptances]

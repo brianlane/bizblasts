@@ -189,6 +189,14 @@ class User < ApplicationRecord
     # Third, create new user (registration flow)
     # Determine role based on registration context
     # Validate registration_type to prevent privilege escalation
+    #
+    # NOTE: This method returns an UNSAVED User.new record. The controller decides whether to:
+    # - Save immediately (client registration_type)
+    # - Redirect to form for additional info (business registration_type)
+    # - Redirect to choose account type (nil/unknown registration_type)
+    #
+    # We default to :client role for backward compatibility, but the OmniauthCallbacksController
+    # now requires explicit registration_type and will NOT auto-save users with nil type.
     role = case registration_type&.to_s&.downcase
            when 'business', 'manager'
              :manager
