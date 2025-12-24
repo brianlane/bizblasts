@@ -87,6 +87,7 @@ module Users
           first_name: @user.first_name,
           last_name: @user.last_name
         }
+        session[:omniauth_data_timestamp] = Time.current.iso8601
         flash[:notice] = "Please complete your business information to finish registration."
         redirect_to new_business_registration_path
       else
@@ -110,6 +111,7 @@ module Users
             first_name: @user.first_name,
             last_name: @user.last_name
           }
+          session[:omniauth_data_timestamp] = Time.current.iso8601
           redirect_to new_client_registration_path, alert: "Could not complete registration: #{@user.errors.full_messages.first}"
         end
       end

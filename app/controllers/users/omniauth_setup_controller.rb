@@ -15,8 +15,16 @@ module Users
     # Stores context in session and redirects to OAuth provider
     def setup
       # Store registration type (client, business, or nil for sign-in)
+      # Validate to prevent privilege escalation - only allow 'client' and 'business'
       registration_type = params[:registration_type]
-      session[:omniauth_registration_type] = registration_type if registration_type.present?
+      if registration_type.present?
+        # Whitelist only allowed registration types
+        unless ['client', 'business'].include?(registration_type.to_s.downcase)
+          Rails.logger.warn "[OmniauthSetup] Invalid registration_type attempted: #{registration_type}"
+          redirect_to root_path, alert: "Invalid registration type" and return
+        end
+        session[:omniauth_registration_type] = registration_type.to_s.downcase
+      end
 
       # Store return URL for after OAuth
       return_url = params[:return_url].presence || request.referer

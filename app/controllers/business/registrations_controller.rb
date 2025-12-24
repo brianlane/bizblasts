@@ -8,17 +8,25 @@ class Business::RegistrationsController < Users::RegistrationsController
   # Overrides Devise default to build the associated business for the form
   def new
     build_resource({}) # Builds the User resource
-    
+
     # Pre-fill from OAuth data if present (user came from Google OAuth)
-    if session[:omniauth_data].present?
-      oauth_data = session[:omniauth_data]
-      resource.email = oauth_data[:email]
-      resource.first_name = oauth_data[:first_name]
-      resource.last_name = oauth_data[:last_name]
-      resource.provider = oauth_data[:provider]
-      resource.uid = oauth_data[:uid]
+    # Only use OAuth data if it was recently set (within last 10 minutes)
+    if session[:omniauth_data].present? && session[:omniauth_data_timestamp].present?
+      # Check if OAuth data is fresh (less than 10 minutes old)
+      if Time.current - Time.parse(session[:omniauth_data_timestamp]) < 10.minutes
+        oauth_data = session[:omniauth_data]
+        resource.email = oauth_data[:email]
+        resource.first_name = oauth_data[:first_name]
+        resource.last_name = oauth_data[:last_name]
+        resource.provider = oauth_data[:provider]
+        resource.uid = oauth_data[:uid]
+      else
+        # Clear stale OAuth data
+        session.delete(:omniauth_data)
+        session.delete(:omniauth_data_timestamp)
+      end
     end
-    
+
     resource.build_business # Builds the nested Business resource
     respond_with resource
   end
@@ -30,19 +38,27 @@ class Business::RegistrationsController < Users::RegistrationsController
     processed_business_params = process_business_host_params(raw_business_params)
     
     # Handle OAuth user - add provider/uid from session if present
+    # Only use OAuth data if it was recently set (within last 10 minutes)
     oauth_data = session[:omniauth_data]
-    if oauth_data.present?
-      user_params = user_params.merge(
-        provider: oauth_data[:provider],
-        uid: oauth_data[:uid]
-      )
-      # OAuth users don't need to provide password in form - generate one
-      unless user_params[:password].present?
-        random_password = Devise.friendly_token[0, 20]
+    if oauth_data.present? && session[:omniauth_data_timestamp].present?
+      # Check if OAuth data is fresh (less than 10 minutes old)
+      if Time.current - Time.parse(session[:omniauth_data_timestamp]) < 10.minutes
         user_params = user_params.merge(
-          password: random_password,
-          password_confirmation: random_password
+          provider: oauth_data[:provider],
+          uid: oauth_data[:uid]
         )
+        # OAuth users don't need to provide password in form - generate one
+        unless user_params[:password].present?
+          random_password = Devise.friendly_token[0, 20]
+          user_params = user_params.merge(
+            password: random_password,
+            password_confirmation: random_password
+          )
+        end
+      else
+        # Clear stale OAuth data
+        session.delete(:omniauth_data)
+        session.delete(:omniauth_data_timestamp)
       end
     end
 
@@ -245,6 +261,7 @@ class Business::RegistrationsController < Users::RegistrationsController
       
       # Clear OAuth session data if present
       session.delete(:omniauth_data)
+      session.delete(:omniauth_data_timestamp)
 
       # Record policy acceptances after successful creation
       record_policy_acceptances(resource, params[:policy_acceptances]) if params[:policy_acceptances]

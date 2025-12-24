@@ -180,13 +180,14 @@ class User < ApplicationRecord
 
     # Third, create new user (registration flow)
     # Determine role based on registration context
-    role = case registration_type
+    # Validate registration_type to prevent privilege escalation
+    role = case registration_type&.to_s&.downcase
            when 'business', 'manager'
              :manager
-           when 'staff'
-             :staff
            else
-             :client  # Default to client for new OAuth users
+             # Default to client for new OAuth users
+             # Explicitly reject 'staff' or any other unauthorized types
+             :client
            end
 
     # Generate a random password for OAuth users (they can set their own later)

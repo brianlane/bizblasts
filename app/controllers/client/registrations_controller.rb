@@ -10,13 +10,21 @@ class Client::RegistrationsController < Users::RegistrationsController
     build_resource({}) # Builds the User resource
 
     # Pre-fill from OAuth data if present (user came from Google OAuth)
-    if session[:omniauth_data].present?
-      oauth_data = session[:omniauth_data]
-      resource.email = oauth_data[:email]
-      resource.first_name = oauth_data[:first_name]
-      resource.last_name = oauth_data[:last_name]
-      resource.provider = oauth_data[:provider]
-      resource.uid = oauth_data[:uid]
+    # Only use OAuth data if it was recently set (within last 10 minutes)
+    if session[:omniauth_data].present? && session[:omniauth_data_timestamp].present?
+      # Check if OAuth data is fresh (less than 10 minutes old)
+      if Time.current - Time.parse(session[:omniauth_data_timestamp]) < 10.minutes
+        oauth_data = session[:omniauth_data]
+        resource.email = oauth_data[:email]
+        resource.first_name = oauth_data[:first_name]
+        resource.last_name = oauth_data[:last_name]
+        resource.provider = oauth_data[:provider]
+        resource.uid = oauth_data[:uid]
+      else
+        # Clear stale OAuth data
+        session.delete(:omniauth_data)
+        session.delete(:omniauth_data_timestamp)
+      end
     end
 
     respond_with resource
@@ -24,17 +32,25 @@ class Client::RegistrationsController < Users::RegistrationsController
 
   def create
     # Handle OAuth user - merge provider/uid from session if present
+    # Only use OAuth data if it was recently set (within last 10 minutes)
     oauth_data = session[:omniauth_data]
-    if oauth_data.present?
-      # Merge OAuth provider and uid from session
-      params[:user][:provider] = oauth_data[:provider]
-      params[:user][:uid] = oauth_data[:uid]
+    if oauth_data.present? && session[:omniauth_data_timestamp].present?
+      # Check if OAuth data is fresh (less than 10 minutes old)
+      if Time.current - Time.parse(session[:omniauth_data_timestamp]) < 10.minutes
+        # Merge OAuth provider and uid from session
+        params[:user][:provider] = oauth_data[:provider]
+        params[:user][:uid] = oauth_data[:uid]
 
-      # OAuth users don't need to provide password in form - generate one
-      unless params[:user][:password].present?
-        random_password = Devise.friendly_token[0, 20]
-        params[:user][:password] = random_password
-        params[:user][:password_confirmation] = random_password
+        # OAuth users don't need to provide password in form - generate one
+        unless params[:user][:password].present?
+          random_password = Devise.friendly_token[0, 20]
+          params[:user][:password] = random_password
+          params[:user][:password_confirmation] = random_password
+        end
+      else
+        # Clear stale OAuth data
+        session.delete(:omniauth_data)
+        session.delete(:omniauth_data_timestamp)
       end
     end
 
@@ -42,6 +58,7 @@ class Client::RegistrationsController < Users::RegistrationsController
       if resource.persisted?
         # Clear OAuth session data if present
         session.delete(:omniauth_data)
+        session.delete(:omniauth_data_timestamp)
 
         # Process referral code if provided
         if params[:user][:referral_code].present?
