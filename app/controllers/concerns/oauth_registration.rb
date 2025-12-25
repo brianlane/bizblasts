@@ -107,6 +107,9 @@ module OauthRegistration
       flash[:alert] = "Your session expired. Please complete the registration form again."
       redirect_to registration_path and return
     end
+
+    # Return params so registration can proceed normally
+    params_hash || user_params
   end
 
   # Handle corrupted OAuth session
@@ -128,6 +131,9 @@ module OauthRegistration
       flash[:alert] = "There was an issue with your session. Please complete the registration form again."
       redirect_to registration_path and return
     end
+
+    # Return params so registration can proceed normally
+    params_hash || user_params
   end
 
   # Clear OAuth session data
