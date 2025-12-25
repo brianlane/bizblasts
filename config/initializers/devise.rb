@@ -327,6 +327,40 @@ Devise.setup do |config|
     end
   end
 
+  # ==> OmniAuth configuration
+  # Configure OmniAuth providers for social login
+  # Google OAuth2 - uses the same credentials as Calendar integration (GoogleOauthCredentials)
+  # This reuses GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET (or _DEV variants)
+  # Just add the callback URL to your Google OAuth client's authorized redirect URIs:
+  # - Production: https://www.bizblasts.com/users/auth/google_oauth2/callback
+  # - Development: http://lvh.me:3000/users/auth/google_oauth2/callback
+  google_client_id = if Rails.env.development? || Rails.env.test?
+                       ENV['GOOGLE_OAUTH_CLIENT_ID_DEV']
+                     else
+                       ENV['GOOGLE_OAUTH_CLIENT_ID']
+                     end
+  google_client_secret = if Rails.env.development? || Rails.env.test?
+                           ENV['GOOGLE_OAUTH_CLIENT_SECRET_DEV']
+                         else
+                           ENV['GOOGLE_OAUTH_CLIENT_SECRET']
+                         end
+
+  if google_client_id.present? && google_client_secret.present?
+    config.omniauth :google_oauth2,
+                    google_client_id,
+                    google_client_secret,
+                    {
+                      scope: 'email,profile',
+                      prompt: 'select_account',
+                      image_aspect_ratio: 'square',
+                      image_size: 50,
+                      # Skip JWT decoding since we don't need id_token claims
+                      skip_jwt: true,
+                      # Use POST for the callback (required by omniauth-rails_csrf_protection)
+                      provider_ignores_state: false
+                    }
+  end
+
   # ==> Mountable engine configurations
   # When using Devise inside an engine, let's call it `MyEngine`, and this engine
   # is mountable, there are some extra configurations to be taken into account.

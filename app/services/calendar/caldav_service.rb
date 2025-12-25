@@ -109,6 +109,10 @@ module Calendar
     def delete_event(external_event_id)
       return false unless validate_connection
       
+      # Validate external_event_id to prevent SSRF via path injection
+      # See: GHSA-c8v7-pv9q-f8rw - httparty SSRF bypass
+      return false unless validate_event_uid!(external_event_id)
+      
       with_error_handling do
         calendar_urls = discover_calendar_url
         return false unless calendar_urls.present?
@@ -244,6 +248,33 @@ module Calendar
     def generate_event_uid(booking)
       "bizblasts-#{booking.id}-#{SecureRandom.hex(8)}"
     end
+
+    # Validate event UID to prevent SSRF attacks via path injection
+    # Event UIDs should be alphanumeric with hyphens only
+    # See: GHSA-c8v7-pv9q-f8rw - httparty SSRF bypass
+    def validate_event_uid!(event_uid)
+      if event_uid.blank?
+        add_error(:invalid_event_uid, "Event UID cannot be blank")
+        return false
+      end
+
+      # Check for absolute URL patterns that could bypass URL validation
+      begin
+        Security::SsrfProtection.validate_path_not_absolute!("/#{event_uid}")
+      rescue Security::SsrfProtection::SsrfError => e
+        add_error(:ssrf_blocked, "Invalid event UID (potential SSRF): #{e.message}")
+        return false
+      end
+
+      # Event UIDs should only contain safe characters
+      # Allow alphanumeric, hyphens, underscores, and @ (for email-style UIDs)
+      unless event_uid.match?(/\A[\w\-@.]+\z/)
+        add_error(:invalid_event_uid, "Event UID contains invalid characters")
+        return false
+      end
+
+      true
+    end
     
     def select_primary_calendar_for_events(calendar_urls)
       return calendar_urls.first unless calendar_urls.length > 1
@@ -264,6 +295,10 @@ module Calendar
     end
     
     def create_caldav_event(event_uid, ical_data, calendar_url)
+      # Validate event_uid to prevent SSRF via path injection
+      # See: GHSA-c8v7-pv9q-f8rw - httparty SSRF bypass
+      return false unless validate_event_uid!(event_uid)
+      
       # Ensure no double slashes in URL construction
       event_url = "#{calendar_url.chomp('/')}/#{event_uid}.ics"
       response = put_request(event_url, ical_data, true) # true indicates new event
@@ -277,6 +312,9 @@ module Calendar
     end
     
     def update_caldav_event(event_uid, ical_data, calendar_url)
+      # Validate event_uid to prevent SSRF via path injection
+      return false unless validate_event_uid!(event_uid)
+      
       # Ensure no double slashes in URL construction
       event_url = "#{calendar_url.chomp('/')}/#{event_uid}.ics"
       response = put_request(event_url, ical_data, false) # false indicates update, not new

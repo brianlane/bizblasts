@@ -204,11 +204,12 @@ Rails.application.routes.draw do
   
   devise_for :users, skip: [:registrations], controllers: {
     sessions: 'users/sessions',
-    magic_links: 'users/magic_links'
+    magic_links: 'users/magic_links',
+    omniauth_callbacks: 'users/omniauth_callbacks'
   }
 
   namespace :passwordless do
-    devise_for :users, skip: [:registrations], controllers: {
+    devise_for :users, skip: [:registrations, :omniauth_callbacks], controllers: {
       sessions: 'devise/passwordless/sessions'
     }
   end
@@ -248,6 +249,9 @@ Rails.application.routes.draw do
     delete '/users', to: 'users/registrations#destroy'
 
     get '/users/sign_out', to: 'users/sessions#destroy'
+
+    # OAuth setup route - stores registration type before redirecting to OAuth provider
+    post '/users/auth/google_oauth2/setup', to: 'users/omniauth_setup#setup', as: :user_google_oauth2_setup
   end
 
   # Business Manager routes available on both subdomains and custom domains

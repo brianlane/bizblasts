@@ -2,12 +2,15 @@
 
 # Handles business sign-ups (creates User with manager role and associated Business).
 class Business::RegistrationsController < Users::RegistrationsController
+  include OauthRegistration
+
   before_action :configure_sign_up_params, only: [:create]
 
   # GET /resource/sign_up
   # Overrides Devise default to build the associated business for the form
   def new
     build_resource({}) # Builds the User resource
+    prefill_from_oauth_data(resource)
     resource.build_business # Builds the nested Business resource
     respond_with resource
   end
@@ -17,6 +20,13 @@ class Business::RegistrationsController < Users::RegistrationsController
     user_params = sign_up_params.except(:business_attributes)
     raw_business_params = params.require(:user).fetch(:business_attributes, {})
     processed_business_params = process_business_host_params(raw_business_params)
+
+    # Handle OAuth data from session (if present and valid)
+    user_params = process_oauth_data_for_submission(
+      user_params: user_params,
+      registration_path: new_business_registration_path
+    )
+    return if performed? # Redirect was triggered by OAuth session expiry
 
     # If the submitted industry is not recognised, notify the user that we defaulted to "Other".
     submitted_industry = raw_business_params[:industry]
@@ -94,6 +104,7 @@ class Business::RegistrationsController < Users::RegistrationsController
   def configure_sign_up_params
     devise_parameter_sanitizer.permit(:sign_up, keys: [
       :first_name, :last_name, :bizblasts_notification_consent,
+      :provider, :uid, # OAuth parameters
       { sidebar_items: [] }, # Permit sidebar items array
       business_attributes: [
         :name, :industry, :phone, :email, :address, :city, :state, :zip,
@@ -214,6 +225,9 @@ class Business::RegistrationsController < Users::RegistrationsController
     if transaction_successful && resource.persisted?
       # Success path
       Rails.logger.info "[REGISTRATION] Transaction successful. Business ##{resource.business_id} created immediately."
+
+      # Clear OAuth session data if present
+      clear_oauth_session_data
 
       # Record policy acceptances after successful creation
       record_policy_acceptances(resource, params[:policy_acceptances]) if params[:policy_acceptances]

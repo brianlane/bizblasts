@@ -31,8 +31,10 @@ class User < ApplicationRecord
   has_many :referrals_made, class_name: 'Referral', foreign_key: 'referrer_id', dependent: :destroy
   
   # Devise modules - Removed :validatable to use custom email uniqueness
+  # Added :omniauthable for Google sign-in support
   devise :database_authenticatable, :registerable,
-         :recoverable, :rememberable, :confirmable, :trackable, :magic_link_authenticatable # Added :confirmable for email verification and :trackable for login tracking
+         :recoverable, :rememberable, :confirmable, :trackable, :magic_link_authenticatable,
+         :omniauthable, omniauth_providers: [:google_oauth2]
 
   # Encrypt phone numbers with deterministic encryption to allow querying
   encrypts :phone, deterministic: true
@@ -142,6 +144,86 @@ class User < ApplicationRecord
   def self.ransackable_associations(auth_object = nil)
     # Include new associations, correcting the name
     %w[business staff_member client_businesses businesses staff_assignments assigned_services]
+  end
+
+  # OmniAuth: Find or create user from Google OAuth data
+  # Automatically links Google account to existing user with matching email
+  # @param auth [OmniAuth::AuthHash] The authentication data from Google
+  # @param signed_in_resource [User, nil] The currently signed-in user (for account linking)
+  # @param registration_type [String, nil] The type of registration ('client' or 'business')
+  # @return [User] The user record (new or existing)
+  def self.from_omniauth(auth, signed_in_resource = nil, registration_type = nil)
+    # Extract user info from auth hash
+    email = auth.info.email&.downcase&.strip
+    first_name = auth.info.first_name.presence || auth.info.name&.split&.first || 'User'
+    last_name = auth.info.last_name.presence || auth.info.name&.split&.drop(1)&.join(' ') || 'User'
+    provider = auth.provider
+    uid = auth.uid
+
+    # If user is already signed in, link their account
+    if signed_in_resource.present?
+      # Skip validation when linking OAuth account to avoid errors from unrelated validations
+      # We're only setting provider/uid from a trusted OAuth source
+      signed_in_resource.provider = provider
+      signed_in_resource.uid = uid
+      signed_in_resource.save(validate: false)
+      return signed_in_resource
+    end
+
+    # First, try to find by provider and uid (fastest lookup for returning OAuth users)
+    user = User.find_by(provider: provider, uid: uid)
+    return user if user.present?
+
+    # Second, try to find by email (for automatic account linking)
+    user = User.find_by(email: email)
+    if user.present?
+      # Link Google account to existing user
+      # Skip validation when linking OAuth account to avoid errors from unrelated validations
+      # We're only setting provider/uid from a trusted OAuth source
+      user.provider = provider
+      user.uid = uid
+      user.save(validate: false)
+      return user
+    end
+
+    # Third, create new user (registration flow)
+    # Determine role based on registration context
+    # Validate registration_type to prevent privilege escalation
+    #
+    # NOTE: This method returns an UNSAVED User.new record. The controller decides whether to:
+    # - Save immediately (client registration_type)
+    # - Redirect to form for additional info (business registration_type)
+    # - Redirect to choose account type (nil/unknown registration_type)
+    #
+    # We default to :client role for backward compatibility, but the OmniauthCallbacksController
+    # now requires explicit registration_type and will NOT auto-save users with nil type.
+    role = case registration_type&.to_s&.downcase
+           when 'business', 'manager'
+             :manager
+           else
+             # Default to client for new OAuth users
+             # Explicitly reject 'staff' or any other unauthorized types
+             :client
+           end
+
+    # Generate a random password for OAuth users (they can set their own later)
+    random_password = Devise.friendly_token[0, 20]
+
+    User.new(
+      email: email,
+      first_name: first_name,
+      last_name: last_name,
+      provider: provider,
+      uid: uid,
+      password: random_password,
+      password_confirmation: random_password,
+      role: role
+    )
+  end
+
+  # Check if user was created via OAuth
+  def oauth_user?
+    provider.present? && uid.present?
   end
 
   # NOTE: The old :admin role (value 0) is no longer valid.
@@ -678,7 +760,12 @@ class User < ApplicationRecord
   end
 
   # Helper method for conditional password validation (mimics Devise behavior)
+  # OAuth users don't need a password set by them (they have a random one)
   def password_required?
+    # OAuth users: only require password if they're setting one
+    return password.present? || password_confirmation.present? if oauth_user?
+    
+    # Regular users: require password on new record or if setting one
     !persisted? || password.present? || password_confirmation.present?
   end
 

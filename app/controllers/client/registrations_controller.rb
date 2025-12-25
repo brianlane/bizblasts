@@ -2,16 +2,40 @@
 
 # Handles client user sign-ups.
 class Client::RegistrationsController < Users::RegistrationsController
+  include OauthRegistration
+
   before_action :configure_sign_up_params, only: [:create]
 
+  # GET /resource/sign_up
+  # Overrides Devise default to prefill OAuth data before rendering the form
+  def new
+    build_resource({}) # Builds the User resource
+    prefill_from_oauth_data(resource)
+    respond_with resource
+  end
+
   def create
+    # Ensure params[:user] exists early to prevent NoMethodError
+    # This will raise ActionController::ParameterMissing if :user is missing
+    params.require(:user)
+
+    # Handle OAuth data from session (if present and valid)
+    params[:user] = process_oauth_data_for_submission(
+      params_hash: params[:user],
+      registration_path: new_client_registration_path
+    )
+    return if performed? # Redirect was triggered by OAuth session expiry
+
     super do |resource|
       if resource.persisted?
+        # Clear OAuth session data if present
+        clear_oauth_session_data
+
         # Process referral code if provided
         if params[:user][:referral_code].present?
           process_referral_signup(resource, params[:user][:referral_code])
         end
-        
+
         # Record policy acceptances after successful creation
         record_policy_acceptances(resource, params[:policy_acceptances]) if params[:policy_acceptances]
       end
@@ -24,6 +48,7 @@ class Client::RegistrationsController < Users::RegistrationsController
   def configure_sign_up_params
     devise_parameter_sanitizer.permit(:sign_up, keys: [
       :first_name, :last_name, :referral_code, :phone, :bizblasts_notification_consent,
+      :provider, :uid, # OAuth parameters
       policy_acceptances: {}
     ])
     # Role is automatically set to client by default in the model

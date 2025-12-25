@@ -9,6 +9,9 @@ module Quickbooks
     API_HOST = 'https://quickbooks.api.intuit.com'
     DEFAULT_MINORVERSION = 70
 
+    # Error raised when path validation fails (SSRF protection)
+    class InvalidPathError < StandardError; end
+
     def initialize(connection)
       @connection = connection
     end
@@ -32,6 +35,10 @@ module Quickbooks
     private
 
     def request(method, path, query: {}, body: nil)
+      # Validate path to prevent SSRF via absolute URL injection
+      # See: GHSA-c8v7-pv9q-f8rw - httparty ignores base_uri for absolute URLs
+      validate_path!(path)
+
       url = API_HOST + path
 
       headers = {
@@ -50,6 +57,33 @@ module Quickbooks
       end
 
       response.parsed_response
+    end
+
+    # Validate that path is relative and doesn't contain absolute URL injection
+    # This prevents SSRF attacks where httparty follows absolute URLs in path
+    def validate_path!(path)
+      raise InvalidPathError, 'Path cannot be nil' if path.nil?
+
+      # Path must start with / (relative path)
+      unless path.start_with?('/')
+        raise InvalidPathError, "Path must be relative (start with /): #{path}"
+      end
+
+      # Check for absolute URL patterns that could bypass base_uri
+      # httparty will follow these URLs ignoring the configured API_HOST
+      absolute_url_patterns = [
+        %r{^/+https?://}i,           # //http:// or /https://
+        %r{^https?://}i,             # http:// or https://
+        %r{^//[^/]}                  # Protocol-relative URL //example.com
+      ]
+
+      absolute_url_patterns.each do |pattern|
+        if path.match?(pattern)
+          raise InvalidPathError, "Absolute URL detected in path (potential SSRF): #{path}"
+        end
+      end
+
+      true
     end
   end
 
