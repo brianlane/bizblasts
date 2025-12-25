@@ -266,7 +266,8 @@ GEM
     has_scope (0.9.0)
       actionpack (>= 7.0)
       activesupport (>= 7.0)
-    hashie (5.0.0)
+    hashie (5.1.0)
+      logger
     httparty (0.23.2)
       csv
       mini_mime (>= 1.0.0)
@@ -410,7 +411,7 @@ GEM
     omniauth-oauth2 (1.9.0)
       oauth2 (>= 2.0.2, < 3)
       omniauth (~> 2.0)
-    omniauth-rails_csrf_protection (1.0.2)
+    omniauth-rails_csrf_protection (2.0.1)
       actionpack (>= 4.2)
       omniauth (~> 2.0)
     orm_adapter (0.5.0)
@@ -739,7 +740,7 @@ DEPENDENCIES
   microsoft_graph (~> 0.22)
   oauth2 (~> 2.0)
   omniauth-google-oauth2 (~> 1.1)
-  omniauth-rails_csrf_protection (~> 1.0)
+  omniauth-rails_csrf_protection (~> 2.0)
   ostruct
   parallel_tests
   pg (~> 1.6)
@@ -865,7 +866,7 @@ CHECKSUMS
   googleauth (1.16.0) sha256=1e7b5c2ee7edc6a0f5a4a4312c579b3822dc0be2679d6d09ca19d8c7ca5bd5f1
   groupdate (6.7.0) sha256=beaa8d5bf3856814681914a1d4a20e77436a2214b85d0017dc2ea5c355fb6777
   has_scope (0.9.0) sha256=783a93006cf898525bb4899696f1d088c0f6ff897d6df2bf03fdbbe0d0b5124c
-  hashie (5.0.0) sha256=9d6c4e51f2a36d4616cbc8a322d619a162d8f42815a792596039fc95595603da
+  hashie (5.1.0) sha256=c266471896f323c446ea8207f8ffac985d2718df0a0ba98651a3057096ca3870
   httparty (0.23.2) sha256=72d52830ab5862115a3c9a4b16738dd67d9a691ffd796cf86bad8abaa8f1febb
   i18n (1.14.8) sha256=285778639134865c5e0f6269e0b818256017e8cde89993fdfcbfb64d088824a5
   icalendar (2.12.1) sha256=ecff56c550aed551f29ad1faad0da54bf62362dfaf22a428bd7ad782938fe764
@@ -922,7 +923,7 @@ CHECKSUMS
   omniauth (2.1.4) sha256=42a05b0496f0d22e1dd85d42aaf602f064e36bb47a6826a27ab55e5ba608763c
   omniauth-google-oauth2 (1.2.1) sha256=c81c50b680fc3372d0c18147cdaf9764a67ace9e7e4e6afe7b869a01fa1aaedd
   omniauth-oauth2 (1.9.0) sha256=ed15f6d9d20991807ce114cc5b9c1453bce3645b64e51c68c90cff5ff153fee8
-  omniauth-rails_csrf_protection (1.0.2) sha256=1170fd672aff092b9b7ebebc1453559f073ed001e3ce62a1df616e32f8dc5fe0
+  omniauth-rails_csrf_protection (2.0.1) sha256=c6e3204d7e3925bb537cb52d50fdfc9f05293f1a9d87c5d4ab4ca3a39ba8c32d
   orm_adapter (0.5.0) sha256=aa5d0be5d540cbb46d3a93e88061f4ece6a25f6e97d6a47122beb84fe595e9b9
   os (1.1.4) sha256=57816d6a334e7bd6aed048f4b0308226c5fb027433b67d90a9ab435f35108d3f
   ostruct (0.6.3) sha256=95a2ed4a4bd1d190784e666b47b2d3f078e4a9efda2fccf18f84ddc6538ed912
