@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_23_202350) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_26_000006) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -120,6 +120,42 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_23_202350) do
     t.index ["business_id"], name: "index_adp_payroll_export_runs_on_business_id"
     t.index ["status"], name: "index_adp_payroll_export_runs_on_status"
     t.index ["user_id"], name: "index_adp_payroll_export_runs_on_user_id"
+  end
+
+  create_table "analytics_snapshots", force: :cascade do |t|
+    t.integer "avg_session_duration", default: 0
+    t.jsonb "booking_metrics", default: {}
+    t.decimal "bounce_rate", precision: 5, scale: 2, default: "0.0"
+    t.bigint "business_id", null: false
+    t.jsonb "campaign_metrics", default: {}
+    t.decimal "conversion_rate", precision: 5, scale: 2, default: "0.0"
+    t.datetime "created_at", null: false
+    t.jsonb "device_breakdown", default: {}
+    t.jsonb "estimate_metrics", default: {}
+    t.datetime "generated_at", null: false
+    t.jsonb "geo_breakdown", default: {}
+    t.decimal "pages_per_session", precision: 5, scale: 2, default: "0.0"
+    t.date "period_end", null: false
+    t.date "period_start", null: false
+    t.jsonb "product_metrics", default: {}
+    t.jsonb "service_metrics", default: {}
+    t.string "snapshot_type", null: false
+    t.jsonb "top_pages", default: []
+    t.jsonb "top_referrers", default: []
+    t.integer "total_clicks", default: 0
+    t.decimal "total_conversion_value", precision: 12, scale: 2, default: "0.0"
+    t.integer "total_conversions", default: 0
+    t.integer "total_page_views", default: 0
+    t.integer "total_sessions", default: 0
+    t.jsonb "traffic_sources", default: {}
+    t.integer "unique_pages_viewed", default: 0
+    t.integer "unique_visitors", default: 0
+    t.datetime "updated_at", null: false
+    t.index ["business_id", "period_start", "period_end"], name: "idx_on_business_id_period_start_period_end_ddd0d6ef24"
+    t.index ["business_id", "snapshot_type", "period_start", "period_end"], name: "idx_analytics_snapshots_unique_period", unique: true
+    t.index ["business_id", "snapshot_type", "period_start"], name: "idx_analytics_snapshots_business_type_period"
+    t.index ["business_id"], name: "index_analytics_snapshots_on_business_id"
+    t.index ["snapshot_type"], name: "index_analytics_snapshots_on_snapshot_type"
   end
 
   create_table "auth_tokens", force: :cascade do |t|
@@ -439,6 +475,40 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_23_202350) do
     t.datetime "updated_at", null: false
     t.index ["marketing_campaign_id"], name: "index_campaign_recipients_on_marketing_campaign_id"
     t.index ["tenant_customer_id"], name: "index_campaign_recipients_on_tenant_customer_id"
+  end
+
+  create_table "click_events", force: :cascade do |t|
+    t.string "action"
+    t.bigint "business_id", null: false
+    t.string "category"
+    t.integer "click_x"
+    t.integer "click_y"
+    t.string "conversion_type"
+    t.decimal "conversion_value", precision: 10, scale: 2
+    t.datetime "created_at", null: false
+    t.string "element_class"
+    t.string "element_href"
+    t.string "element_identifier"
+    t.string "element_text", limit: 255
+    t.string "element_type", null: false
+    t.boolean "is_conversion", default: false
+    t.string "label"
+    t.string "page_path", null: false
+    t.string "page_title"
+    t.string "session_id", null: false
+    t.bigint "target_id"
+    t.string "target_type"
+    t.datetime "updated_at", null: false
+    t.integer "viewport_height"
+    t.integer "viewport_width"
+    t.string "visitor_fingerprint", null: false
+    t.index ["business_id", "category"], name: "index_click_events_on_business_id_and_category"
+    t.index ["business_id", "created_at"], name: "index_click_events_on_business_id_and_created_at"
+    t.index ["business_id"], name: "index_click_events_on_business_id"
+    t.index ["is_conversion"], name: "index_click_events_on_is_conversion"
+    t.index ["session_id", "created_at"], name: "index_click_events_on_session_id_and_created_at"
+    t.index ["target_type", "target_id"], name: "index_click_events_on_target_type_and_target_id"
+    t.index ["visitor_fingerprint", "created_at"], name: "index_click_events_on_visitor_fingerprint_and_created_at"
   end
 
   create_table "client_businesses", force: :cascade do |t|
@@ -1160,7 +1230,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_23_202350) do
     t.index ["tenant_customer_id", "created_at"], name: "index_orders_on_tenant_customer_id_and_created_at"
     t.index ["tenant_customer_id"], name: "index_orders_on_tenant_customer_id"
     t.index ["tip_amount"], name: "index_orders_on_tip_amount"
-    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying::text, 'paid'::character varying::text, 'cancelled'::character varying::text, 'shipped'::character varying::text, 'refunded'::character varying::text, 'processing'::character varying::text, 'completed'::character varying::text, 'business_deleted'::character varying::text])", name: "status_enum_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying, 'paid'::character varying, 'cancelled'::character varying, 'shipped'::character varying, 'refunded'::character varying, 'processing'::character varying, 'completed'::character varying, 'business_deleted'::character varying]::text[])", name: "status_enum_check"
   end
 
   create_table "page_sections", force: :cascade do |t|
@@ -1196,23 +1266,70 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_23_202350) do
     t.index ["status"], name: "index_page_versions_on_status"
   end
 
+  create_table "page_views", force: :cascade do |t|
+    t.string "browser"
+    t.string "browser_version"
+    t.bigint "business_id", null: false
+    t.string "city"
+    t.string "country"
+    t.datetime "created_at", null: false
+    t.string "device_type"
+    t.boolean "is_bounce", default: false
+    t.boolean "is_entry_page", default: false
+    t.boolean "is_exit_page", default: false
+    t.string "os"
+    t.string "os_version"
+    t.bigint "page_id"
+    t.string "page_path", null: false
+    t.string "page_title"
+    t.string "page_type"
+    t.string "referrer_domain"
+    t.string "referrer_url"
+    t.string "region"
+    t.string "screen_resolution"
+    t.integer "scroll_depth"
+    t.string "session_id", null: false
+    t.integer "time_on_page"
+    t.datetime "updated_at", null: false
+    t.string "utm_campaign"
+    t.string "utm_content"
+    t.string "utm_medium"
+    t.string "utm_source"
+    t.string "utm_term"
+    t.string "visitor_fingerprint", null: false
+    t.index ["business_id", "created_at"], name: "index_page_views_on_business_id_and_created_at"
+    t.index ["business_id", "page_path"], name: "index_page_views_on_business_id_and_page_path"
+    t.index ["business_id"], name: "index_page_views_on_business_id"
+    t.index ["device_type"], name: "index_page_views_on_device_type"
+    t.index ["page_id"], name: "index_page_views_on_page_id"
+    t.index ["referrer_domain"], name: "index_page_views_on_referrer_domain"
+    t.index ["session_id", "created_at"], name: "index_page_views_on_session_id_and_created_at"
+    t.index ["visitor_fingerprint", "created_at"], name: "index_page_views_on_visitor_fingerprint_and_created_at"
+  end
+
   create_table "pages", force: :cascade do |t|
     t.bigint "business_id", null: false
+    t.string "canonical_url"
     t.datetime "created_at", null: false
     t.json "custom_theme_settings", default: {}
     t.datetime "last_viewed_at"
     t.integer "menu_order"
     t.string "meta_description"
+    t.text "og_description"
+    t.string "og_title"
     t.integer "page_type"
     t.decimal "performance_score", precision: 5, scale: 2
     t.integer "priority", default: 0, null: false
     t.boolean "published"
     t.datetime "published_at"
+    t.string "robots_directive", default: "index, follow"
     t.text "seo_keywords"
     t.string "seo_title"
     t.boolean "show_in_menu"
+    t.decimal "sitemap_priority", precision: 2, scale: 1, default: "0.5"
     t.string "slug"
     t.integer "status", default: 1, null: false
+    t.jsonb "structured_data", default: {}
     t.string "template_applied"
     t.string "thumbnail_url"
     t.string "title"
@@ -1579,7 +1696,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_23_202350) do
     t.index ["business_id", "status"], name: "index_rental_bookings_on_business_id_and_status"
     t.index ["business_id"], name: "index_rental_bookings_on_business_id"
     t.index ["deposit_authorization_id"], name: "index_rental_bookings_on_deposit_authorization_id"
-    t.index ["end_time"], name: "index_rental_bookings_on_end_time_for_overdue", where: "((status)::text = ANY (ARRAY[('checked_out'::character varying)::text, ('overdue'::character varying)::text]))"
+    t.index ["end_time"], name: "index_rental_bookings_on_end_time_for_overdue", where: "((status)::text = ANY ((ARRAY['checked_out'::character varying, 'overdue'::character varying])::text[]))"
     t.index ["guest_access_token"], name: "index_rental_bookings_on_guest_access_token", unique: true
     t.index ["location_id"], name: "index_rental_bookings_on_location_id"
     t.index ["product_id", "start_time", "end_time"], name: "idx_on_product_id_start_time_end_time_f527c29028"
@@ -1608,6 +1725,37 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_23_202350) do
     t.index ["rental_booking_id", "report_type"], name: "idx_on_rental_booking_id_report_type_8fb05c2c2e"
     t.index ["rental_booking_id"], name: "index_rental_condition_reports_on_rental_booking_id"
     t.index ["staff_member_id"], name: "index_rental_condition_reports_on_staff_member_id"
+  end
+
+  create_table "seo_configurations", force: :cascade do |t|
+    t.boolean "allow_indexing", default: true
+    t.jsonb "auto_keywords", default: []
+    t.bigint "business_id", null: false
+    t.text "competitor_domains", default: [], array: true
+    t.datetime "created_at", null: false
+    t.string "google_analytics_id"
+    t.string "google_site_verification"
+    t.string "google_tag_manager_id"
+    t.jsonb "keyword_rankings", default: {}
+    t.text "keywords", default: [], array: true
+    t.datetime "last_analysis_at"
+    t.datetime "last_keyword_check_at"
+    t.jsonb "local_business_schema", default: {}
+    t.text "meta_description_template"
+    t.string "meta_title_template"
+    t.text "og_description_template"
+    t.string "og_title_template"
+    t.text "robots_txt_additions"
+    t.integer "seo_score", default: 0
+    t.jsonb "seo_score_breakdown", default: {}
+    t.jsonb "seo_suggestions", default: []
+    t.string "sitemap_changefreq", default: "weekly"
+    t.boolean "sitemap_enabled", default: true
+    t.string "sitemap_priority", default: "0.8"
+    t.text "target_keywords", default: [], array: true
+    t.string "twitter_handle"
+    t.datetime "updated_at", null: false
+    t.index ["business_id"], name: "index_seo_configurations_on_business_id", unique: true
   end
 
   create_table "service_job_forms", force: :cascade do |t|
@@ -2187,6 +2335,47 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_23_202350) do
     t.index ["staff_member_id"], name: "index_video_meeting_connections_on_staff_member_id"
   end
 
+  create_table "visitor_sessions", force: :cascade do |t|
+    t.string "browser"
+    t.bigint "business_id", null: false
+    t.string "city"
+    t.integer "click_count", default: 0
+    t.datetime "conversion_time"
+    t.string "conversion_type"
+    t.decimal "conversion_value", precision: 10, scale: 2
+    t.boolean "converted", default: false
+    t.string "country"
+    t.datetime "created_at", null: false
+    t.string "device_type"
+    t.integer "duration_seconds", default: 0
+    t.string "entry_page"
+    t.string "exit_page"
+    t.string "first_referrer_domain"
+    t.string "first_referrer_url"
+    t.boolean "is_bounce", default: false
+    t.boolean "is_returning_visitor", default: false
+    t.string "os"
+    t.integer "page_view_count", default: 0
+    t.integer "pages_visited", default: 0
+    t.integer "previous_session_count", default: 0
+    t.string "region"
+    t.datetime "session_end"
+    t.string "session_id", null: false
+    t.datetime "session_start", null: false
+    t.datetime "updated_at", null: false
+    t.string "utm_campaign"
+    t.string "utm_medium"
+    t.string "utm_source"
+    t.string "visitor_fingerprint", null: false
+    t.index ["business_id", "converted"], name: "index_visitor_sessions_on_business_id_and_converted"
+    t.index ["business_id", "created_at"], name: "index_visitor_sessions_on_business_id_and_created_at"
+    t.index ["business_id", "session_start"], name: "index_visitor_sessions_on_business_id_and_session_start"
+    t.index ["business_id"], name: "index_visitor_sessions_on_business_id"
+    t.index ["is_bounce"], name: "index_visitor_sessions_on_is_bounce"
+    t.index ["session_id"], name: "index_visitor_sessions_on_session_id", unique: true
+    t.index ["visitor_fingerprint", "created_at"], name: "index_visitor_sessions_on_visitor_fingerprint_and_created_at"
+  end
+
   create_table "website_templates", force: :cascade do |t|
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
@@ -2224,6 +2413,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_23_202350) do
   add_foreign_key "adp_payroll_export_configs", "businesses"
   add_foreign_key "adp_payroll_export_runs", "businesses"
   add_foreign_key "adp_payroll_export_runs", "users"
+  add_foreign_key "analytics_snapshots", "businesses"
   add_foreign_key "auth_tokens", "users"
   add_foreign_key "authentication_bridges", "users"
   add_foreign_key "booking_policies", "businesses", on_delete: :cascade
@@ -2243,6 +2433,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_23_202350) do
   add_foreign_key "calendar_sync_logs", "calendar_event_mappings"
   add_foreign_key "campaign_recipients", "marketing_campaigns"
   add_foreign_key "campaign_recipients", "tenant_customers"
+  add_foreign_key "click_events", "businesses"
   add_foreign_key "client_businesses", "businesses", on_delete: :cascade
   add_foreign_key "client_businesses", "users"
   add_foreign_key "client_document_events", "businesses"
@@ -2329,6 +2520,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_23_202350) do
   add_foreign_key "page_sections", "pages"
   add_foreign_key "page_versions", "pages"
   add_foreign_key "page_versions", "users", column: "created_by_id"
+  add_foreign_key "page_views", "businesses"
+  add_foreign_key "page_views", "pages"
   add_foreign_key "pages", "businesses", on_delete: :cascade
   add_foreign_key "payments", "businesses", on_delete: :cascade
   add_foreign_key "payments", "invoices", on_delete: :nullify
@@ -2371,6 +2564,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_23_202350) do
   add_foreign_key "rental_bookings", "tenant_customers"
   add_foreign_key "rental_condition_reports", "rental_bookings"
   add_foreign_key "rental_condition_reports", "staff_members"
+  add_foreign_key "seo_configurations", "businesses"
   add_foreign_key "service_job_forms", "job_form_templates"
   add_foreign_key "service_job_forms", "services"
   add_foreign_key "service_variants", "services"
@@ -2420,5 +2614,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_23_202350) do
   add_foreign_key "users", "staff_members"
   add_foreign_key "video_meeting_connections", "businesses"
   add_foreign_key "video_meeting_connections", "staff_members"
+  add_foreign_key "visitor_sessions", "businesses"
   add_foreign_key "website_themes", "businesses"
 end

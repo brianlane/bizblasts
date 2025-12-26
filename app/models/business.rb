@@ -252,6 +252,13 @@ class Business < ApplicationRecord
   # Gallery associations
   has_many :gallery_photos, -> { order(:position) }, dependent: :destroy
   
+  # Analytics associations
+  has_many :page_views, dependent: :destroy
+  has_many :click_events, dependent: :destroy
+  has_many :visitor_sessions, dependent: :destroy
+  has_many :analytics_snapshots, dependent: :destroy
+  has_one :seo_configuration, dependent: :destroy
+  
   # Tip configuration helper methods
   def tip_configuration_or_default
     tip_configuration || build_tip_configuration
