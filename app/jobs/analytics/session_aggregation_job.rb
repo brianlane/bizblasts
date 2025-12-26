@@ -26,10 +26,18 @@ module Analytics
 
     def process_business_sessions(business)
       ActsAsTenant.with_tenant(business) do
-        # Find sessions that are still open but inactive
+        # Find sessions that are still open but inactive based on last activity time
+        # A session is inactive if there has been no page view or click event for SESSION_TIMEOUT minutes
+        cutoff_time = SESSION_TIMEOUT.minutes.ago
+
         inactive_sessions = business.visitor_sessions
           .where(session_end: nil)
-          .where('session_start < ?', SESSION_TIMEOUT.minutes.ago)
+          .left_joins(:page_views, :click_events)
+          .group('visitor_sessions.id')
+          .having(
+            'COALESCE(MAX(page_views.created_at), MAX(click_events.created_at), visitor_sessions.session_start) < ?',
+            cutoff_time
+          )
         
         closed_count = 0
         

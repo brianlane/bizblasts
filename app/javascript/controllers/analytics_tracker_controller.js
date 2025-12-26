@@ -28,6 +28,9 @@ export default class extends Controller {
   maxScrollDepth = 0
   isPageVisible = true
 
+  // Bound event handlers (stored for cleanup)
+  boundHandlers = {}
+
   connect() {
     // Respect Do Not Track
     if (this.shouldNotTrack()) {
@@ -123,30 +126,61 @@ export default class extends Controller {
   // ==================== Event Listeners ====================
 
   setupEventListeners() {
+    // Store bound handlers for cleanup
+    this.boundHandlers = {
+      click: this.handleClick.bind(this),
+      scroll: this.handleScroll.bind(this),
+      visibilityChange: this.handleVisibilityChange.bind(this),
+      beforeUnload: this.handleBeforeUnload.bind(this),
+      turboLoad: this.handleTurboLoad.bind(this)
+    }
+
     // Click tracking
     if (this.trackClicksValue) {
-      document.addEventListener("click", this.handleClick.bind(this), true)
+      document.addEventListener("click", this.boundHandlers.click, true)
     }
 
     // Scroll depth tracking
     if (this.trackScrollDepthValue) {
-      window.addEventListener("scroll", this.handleScroll.bind(this), { passive: true })
+      window.addEventListener("scroll", this.boundHandlers.scroll, { passive: true })
     }
 
     // Page visibility for time on page
-    document.addEventListener("visibilitychange", this.handleVisibilityChange.bind(this))
+    document.addEventListener("visibilitychange", this.boundHandlers.visibilityChange)
 
     // Before unload for final event send
-    window.addEventListener("beforeunload", this.handleBeforeUnload.bind(this))
+    window.addEventListener("beforeunload", this.boundHandlers.beforeUnload)
 
     // Handle Turbo navigation
-    document.addEventListener("turbo:before-visit", this.handleBeforeUnload.bind(this))
-    document.addEventListener("turbo:load", this.handleTurboLoad.bind(this))
+    document.addEventListener("turbo:before-visit", this.boundHandlers.beforeUnload)
+    document.addEventListener("turbo:load", this.boundHandlers.turboLoad)
   }
 
   cleanup() {
     if (this.batchTimer) {
       clearInterval(this.batchTimer)
+    }
+
+    // Remove all event listeners to prevent memory leaks
+    if (this.boundHandlers) {
+      if (this.boundHandlers.click) {
+        document.removeEventListener("click", this.boundHandlers.click, true)
+      }
+      if (this.boundHandlers.scroll) {
+        window.removeEventListener("scroll", this.boundHandlers.scroll)
+      }
+      if (this.boundHandlers.visibilityChange) {
+        document.removeEventListener("visibilitychange", this.boundHandlers.visibilityChange)
+      }
+      if (this.boundHandlers.beforeUnload) {
+        window.removeEventListener("beforeunload", this.boundHandlers.beforeUnload)
+        document.removeEventListener("turbo:before-visit", this.boundHandlers.beforeUnload)
+      }
+      if (this.boundHandlers.turboLoad) {
+        document.removeEventListener("turbo:load", this.boundHandlers.turboLoad)
+      }
+
+      this.boundHandlers = {}
     }
   }
 

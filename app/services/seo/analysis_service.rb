@@ -390,21 +390,27 @@ module Seo
 
     def calculate_keyword_relevance(keyword)
       relevance = 50 # Base relevance
-      
-      # Business name match
-      relevance += 20 if keyword.downcase.include?(business.name.to_s.downcase.split.first.to_s)
-      
-      # Location match
-      relevance += 15 if keyword.downcase.include?(business.city.to_s.downcase)
-      
-      # Industry match
+      keyword_lower = keyword.downcase
+
+      # Business name match (guard against empty string which would match everything)
+      business_name_first_word = business.name.to_s.downcase.split.first
+      relevance += 20 if business_name_first_word.present? && keyword_lower.include?(business_name_first_word)
+
+      # Location match (guard against empty string)
+      city_lower = business.city.to_s.downcase
+      relevance += 15 if city_lower.present? && keyword_lower.include?(city_lower)
+
+      # Industry match (guard against empty string)
       industry_name = business.industry&.to_s&.gsub('_', ' ')&.downcase
-      relevance += 15 if keyword.downcase.include?(industry_name.to_s)
-      
-      # Service match
+      relevance += 15 if industry_name.present? && keyword_lower.include?(industry_name)
+
+      # Service match (guard against empty strings)
       service_names = business.services.pluck(:name).map(&:downcase)
-      relevance += 10 if service_names.any? { |s| keyword.downcase.include?(s.split.first.to_s) }
-      
+      relevance += 10 if service_names.any? do |service_name|
+        first_word = service_name.split.first
+        first_word.present? && keyword_lower.include?(first_word)
+      end
+
       [[relevance, 0].max, 100].min
     end
 

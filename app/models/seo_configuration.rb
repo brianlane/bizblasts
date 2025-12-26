@@ -136,6 +136,16 @@ class SeoConfiguration < ApplicationRecord
     end
   end
 
+  # Mark keywords as needing regeneration
+  # Call this externally when business attributes change
+  def mark_keywords_stale!
+    @keywords_stale = true
+  end
+
+  def keywords_stale?
+    @keywords_stale == true
+  end
+
   private
 
   def set_defaults
@@ -161,10 +171,7 @@ class SeoConfiguration < ApplicationRecord
 
   def should_regenerate_keywords?
     return true if auto_keywords.blank?
-    return true if business.name_changed?
-    return true if business.industry_changed?
-    return true if business.city_changed?
-    return true if business.state_changed?
+    return true if keywords_stale?
     false
   end
 
