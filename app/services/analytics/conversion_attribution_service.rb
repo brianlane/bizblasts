@@ -41,16 +41,17 @@ module Analytics
     # @param end_date [Date] End of period
     # @return [Hash] Conversion rates by source
     def conversion_rates_by_source(start_date: 30.days.ago, end_date: Time.current)
-      sessions = business.visitor_sessions.for_period(start_date, end_date)
-      
+      # Materialize the relation to avoid re-executing the query for each source
+      sessions = business.visitor_sessions.for_period(start_date, end_date).to_a
+
       sources = %w[direct organic social referral paid]
       result = {}
-      
+
       sources.each do |source|
         source_sessions = sessions.select { |s| determine_channel(s) == source }
         total = source_sessions.count
         converted = source_sessions.count(&:converted)
-        
+
         result[source] = {
           sessions: total,
           conversions: converted,
@@ -58,7 +59,7 @@ module Analytics
           total_value: source_sessions.sum(&:conversion_value).to_f
         }
       end
-      
+
       result
     end
 

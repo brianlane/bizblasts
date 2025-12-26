@@ -199,31 +199,39 @@ class AnalyticsIngestionJob < ApplicationJob
   end
 
   def find_or_create_session(business, session_id, visitor_fingerprint, data, request_metadata)
+    # First attempt: try to find existing session
     session = business.visitor_sessions.find_by(session_id: session_id)
-    
     return session if session.present?
-    
+
     # Check if this is a returning visitor
     previous_sessions = business.visitor_sessions
       .where(visitor_fingerprint: visitor_fingerprint)
       .count
-    
-    business.visitor_sessions.create!(
-      session_id: session_id,
-      visitor_fingerprint: visitor_fingerprint,
-      session_start: Time.current,
-      device_type: data['device_type'],
-      browser: data['browser'],
-      os: data['os'],
-      country: extract_country(request_metadata),
-      first_referrer_url: data['referrer_url'],
-      first_referrer_domain: data['referrer_domain'],
-      utm_source: data['utm_source'],
-      utm_medium: data['utm_medium'],
-      utm_campaign: data['utm_campaign'],
-      is_returning_visitor: previous_sessions > 0,
-      previous_session_count: previous_sessions
-    )
+
+    # Create session with race condition handling
+    # If another worker created the session between our find and create,
+    # we'll get a RecordNotUnique exception and retry the find
+    begin
+      business.visitor_sessions.create!(
+        session_id: session_id,
+        visitor_fingerprint: visitor_fingerprint,
+        session_start: Time.current,
+        device_type: data['device_type'],
+        browser: data['browser'],
+        os: data['os'],
+        country: extract_country(request_metadata),
+        first_referrer_url: data['referrer_url'],
+        first_referrer_domain: data['referrer_domain'],
+        utm_source: data['utm_source'],
+        utm_medium: data['utm_medium'],
+        utm_campaign: data['utm_campaign'],
+        is_returning_visitor: previous_sessions > 0,
+        previous_session_count: previous_sessions
+      )
+    rescue ActiveRecord::RecordNotUnique
+      # Another worker created the session first - find and return it
+      business.visitor_sessions.find_by!(session_id: session_id)
+    end
   end
 
   def link_to_page(page_view, business, page_path)
