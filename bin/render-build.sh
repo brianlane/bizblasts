@@ -2,6 +2,10 @@
 # exit on error
 set -o errexit
 
+# CRITICAL: Remove bin/bundle immediately to avoid Bundler 4.x binstub issues
+# See: https://github.com/rubygems/rubygems/issues/9218
+rm -f bin/bundle
+
 # Check for required environment variables
 echo "Checking for required environment variables..."
 
@@ -310,11 +314,11 @@ bun run build:js
 # Precompile assets using Rails/Propshaft
 echo "Precompiling assets with Propshaft..."
 
-# Remove stale bin/bundle if it exists (can cause issues with Bundler 4.x)
+# Remove stale bin/bundle to avoid Bundler 4.x binstub issues
 rm -f bin/bundle
 
-# Compile the CSS
-bundle exec rails assets:precompile
+# Compile the CSS - using ruby directly to bypass binstub issues
+ruby -rbundler/setup -S rails assets:precompile
 # bundle exec rails assets:clean
 
 # Print environment information
