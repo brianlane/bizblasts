@@ -158,7 +158,7 @@ class VisitorSession < ApplicationRecord
     update!(
       session_end: Time.current,
       duration_seconds: calculate_duration,
-      is_bounce: page_view_count <= 1
+      is_bounce: (page_view_count || 0) <= 1
     )
   end
 

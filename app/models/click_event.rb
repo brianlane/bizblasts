@@ -20,7 +20,9 @@ class ClickEvent < ApplicationRecord
     cta: 'cta',
     form_submit: 'form_submit',
     image: 'image',
-    card: 'card'
+    card: 'card',
+    other: 'other',
+    conversion: 'conversion'
   }, prefix: true
 
   enum :category, {
@@ -46,7 +48,8 @@ class ClickEvent < ApplicationRecord
     call: 'call',
     email_click: 'email_click',
     share: 'share',
-    download: 'download'
+    download: 'download',
+    convert: 'convert'
   }, prefix: true
 
   # Scopes

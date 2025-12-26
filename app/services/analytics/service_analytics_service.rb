@@ -69,6 +69,8 @@ module Analytics
     # @param limit [Integer] Number of services to return
     # @return [Array<Hash>] Top booked services
     def top_booked_services(start_date: 30.days.ago, end_date: Time.current, limit: 10)
+      completed_status = Booking.statuses[:completed]
+
       business.services
         .joins(:bookings)
         .where(bookings: { created_at: start_date..end_date })
@@ -79,7 +81,7 @@ module Analytics
           'services.price',
           'services.duration',
           'COUNT(bookings.id) as booking_count',
-          'SUM(CASE WHEN bookings.status = 2 THEN 1 ELSE 0 END) as completed_count'
+          "SUM(CASE WHEN bookings.status = #{completed_status} THEN 1 ELSE 0 END) as completed_count"
         )
         .order('booking_count DESC')
         .limit(limit)

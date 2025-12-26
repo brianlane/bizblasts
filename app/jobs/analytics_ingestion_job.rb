@@ -66,7 +66,7 @@ class AnalyticsIngestionJob < ApplicationJob
     session = find_or_create_session(business, session_id, visitor_fingerprint, data, request_metadata)
     
     # Determine if this is an entry page (first page view in session)
-    is_entry = session.page_view_count == 0
+    is_entry = session.page_view_count.to_i == 0
     
     # Create page view record
     page_view = business.page_views.create!(
@@ -142,7 +142,7 @@ class AnalyticsIngestionJob < ApplicationJob
     click_event = business.click_events.create!(
       visitor_fingerprint: visitor_fingerprint,
       session_id: session_id,
-      element_type: data['element_type'] || 'element',
+      element_type: data['element_type'] || 'other',
       element_identifier: data['element_identifier'],
       element_text: data['element_text']&.first(255),
       element_class: data['element_class']&.first(200),

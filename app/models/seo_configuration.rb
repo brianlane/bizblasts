@@ -136,30 +136,6 @@ class SeoConfiguration < ApplicationRecord
     end
   end
 
-  # Generate LocalBusiness schema
-  def generate_local_business_schema
-    {
-      '@context' => 'https://schema.org',
-      '@type' => 'LocalBusiness',
-      'name' => business.name,
-      'description' => business.description,
-      'telephone' => business.phone,
-      'email' => business.email,
-      'address' => {
-        '@type' => 'PostalAddress',
-        'streetAddress' => business.address,
-        'addressLocality' => business.city,
-        'addressRegion' => business.state,
-        'postalCode' => business.zip,
-        'addressCountry' => 'US'
-      },
-      'url' => business.full_url,
-      'image' => business.logo.attached? ? Rails.application.routes.url_helpers.rails_blob_url(business.logo, only_path: false) : nil,
-      'priceRange' => '$$',
-      'openingHours' => format_opening_hours
-    }.compact
-  end
-
   private
 
   def set_defaults
@@ -185,10 +161,10 @@ class SeoConfiguration < ApplicationRecord
 
   def should_regenerate_keywords?
     return true if auto_keywords.blank?
-    return true if business.saved_change_to_name?
-    return true if business.saved_change_to_industry?
-    return true if business.saved_change_to_city?
-    return true if business.saved_change_to_state?
+    return true if business.name_changed?
+    return true if business.industry_changed?
+    return true if business.city_changed?
+    return true if business.state_changed?
     false
   end
 
@@ -224,28 +200,6 @@ class SeoConfiguration < ApplicationRecord
     keywords << "local business #{business.city}"
     
     self.auto_keywords = keywords.uniq.first(50) # Limit to 50 keywords
-  end
-
-  def format_opening_hours
-    return nil unless business.hours.present?
-    
-    days = %w[monday tuesday wednesday thursday friday saturday sunday]
-    hours_strings = []
-    
-    days.each do |day|
-      day_hours = business.hours[day]
-      next unless day_hours.present? && day_hours['open'].present?
-      
-      open_time = day_hours['open']
-      close_time = day_hours['close']
-      
-      if open_time && close_time
-        day_abbr = day.capitalize[0..1]
-        hours_strings << "#{day_abbr} #{open_time}-#{close_time}"
-      end
-    end
-    
-    hours_strings.presence
   end
 
   # Ransack configuration

@@ -100,23 +100,23 @@ class AnalyticsSnapshot < ApplicationRecord
 
   # Instance methods
   def booking_stats
-    booking_metrics.with_indifferent_access
+    (booking_metrics.presence || {}).with_indifferent_access
   end
 
   def product_stats
-    product_metrics.with_indifferent_access
+    (product_metrics.presence || {}).with_indifferent_access
   end
 
   def service_stats
-    service_metrics.with_indifferent_access
+    (service_metrics.presence || {}).with_indifferent_access
   end
 
   def estimate_stats
-    estimate_metrics.with_indifferent_access
+    (estimate_metrics.presence || {}).with_indifferent_access
   end
 
   def traffic_source_stats
-    traffic_sources.with_indifferent_access
+    (traffic_sources.presence || {}).with_indifferent_access
   end
 
   def top_referrer_list
@@ -128,15 +128,15 @@ class AnalyticsSnapshot < ApplicationRecord
   end
 
   def device_stats
-    device_breakdown.with_indifferent_access
+    (device_breakdown.presence || {}).with_indifferent_access
   end
 
   def geo_stats
-    geo_breakdown.with_indifferent_access
+    (geo_breakdown.presence || {}).with_indifferent_access
   end
 
   def campaign_stats
-    campaign_metrics.with_indifferent_access
+    (campaign_metrics.presence || {}).with_indifferent_access
   end
 
   def period_label

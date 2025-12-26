@@ -38,13 +38,14 @@ module Analytics
         seo_config = business.seo_configuration || business.build_seo_configuration
         
         # Update with analysis results
+        # Note: local_business_schema is generated dynamically to avoid storing
+        # business contact info (phone/email) in clear text - see security policy
         seo_config.update!(
           seo_score: analysis[:overall_score],
           seo_score_breakdown: analysis[:score_breakdown],
           seo_suggestions: analysis[:suggestions],
           keyword_rankings: analysis[:current_rankings],
           auto_keywords: seo_service.generate_target_keywords,
-          local_business_schema: Seo::StructuredDataService.new(business).local_business_schema,
           last_analysis_at: Time.current
         )
         
