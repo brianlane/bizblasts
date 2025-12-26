@@ -10,7 +10,7 @@
     <div class="flex items-center gap-2">
       <label class="text-sm text-gray-600">Period:</label>
       <select id="period-selector" 
-              onchange="window.location.href='<%= business_manager_analytics_path %>?period=' + this.value"
+              onchange="changeAnalyticsPeriod(this)"
               class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
         <option value="today" <%= 'selected' if @period == :today %>>Today</option>
         <option value="last_7_days" <%= 'selected' if @period == :last_7_days %>>Last 7 Days</option>
@@ -276,5 +276,26 @@
   .bg-source-referral { background-color: #f59e0b; }
   .bg-source-paid { background-color: #ef4444; }
 </style>
+<script>
+  function changeAnalyticsPeriod(selectElement) {
+    if (!selectElement) return;
+    var value = selectElement.value;
+    // Optional defensive whitelist in case options become dynamic in future
+    var allowed = ['today', 'last_7_days', 'last_30_days', 'last_90_days'];
+    if (allowed.indexOf(value) === -1) {
+      return;
+    }
+    var baseUrl = '<%= business_manager_analytics_path %>';
+    try {
+      var url = new URL(baseUrl, window.location.origin);
+      url.searchParams.set('period', value);
+      window.location.href = url.toString();
+    } catch (e) {
+      // Fallback for older browsers without URL API
+      var separator = baseUrl.indexOf('?') === -1 ? '?' : '&';
+      window.location.href = baseUrl + separator + 'period=' + encodeURIComponent(value);
+    }
+  }
+</script>
 <% end %>
 

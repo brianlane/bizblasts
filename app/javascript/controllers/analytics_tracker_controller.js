@@ -77,11 +77,31 @@ export default class extends Controller {
   }
 
   generateUUID() {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0
-      const v = c === "x" ? r : (r & 0x3 | 0x8)
-      return v.toString(16)
-    })
+    // Use cryptographically secure random values to generate a UUID v4
+    const bytes = new Uint8Array(16)
+    // Prefer window.crypto if available; fall back to globalThis.crypto
+    const cryptoObj = (typeof window !== "undefined" && window.crypto) || (typeof globalThis !== "undefined" && globalThis.crypto)
+    if (!cryptoObj || !cryptoObj.getRandomValues) {
+      throw new Error("Secure random number generator is not available")
+    }
+    cryptoObj.getRandomValues(bytes)
+
+    // Set version (4) and variant (RFC4122) bits
+    bytes[6] = (bytes[6] & 0x0f) | 0x40
+    bytes[8] = (bytes[8] & 0x3f) | 0x80
+
+    const hex = []
+    for (let i = 0; i < bytes.length; i++) {
+      hex.push(bytes[i].toString(16).padStart(2, "0"))
+    }
+
+    return (
+      hex[0] + hex[1] + hex[2] + hex[3] + "-" +
+      hex[4] + hex[5] + "-" +
+      hex[6] + hex[7] + "-" +
+      hex[8] + hex[9] + "-" +
+      hex[10] + hex[11] + hex[12] + hex[13] + hex[14] + hex[15]
+    )
   }
 
   hashCode(str) {
