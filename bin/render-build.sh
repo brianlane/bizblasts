@@ -24,6 +24,10 @@ fi
 
 # Build commands for Render deployment
 echo "Installing dependencies..."
+
+# Remove stale bin/bundle if it exists (can cause issues with Bundler upgrades)
+rm -f bin/bundle
+
 bundle install
 
 # Install system dependencies for headless Chrome
