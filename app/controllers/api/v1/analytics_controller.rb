@@ -79,14 +79,18 @@ module Api
       
       def rate_limited?
         cache_key = "analytics_rate_limit:#{request.remote_ip}"
-        current_count = Rails.cache.read(cache_key).to_i
-        
-        if current_count >= MAX_REQUESTS_PER_MINUTE
-          true
-        else
-          Rails.cache.write(cache_key, current_count + 1, expires_in: 1.minute)
-          false
+
+        # Use increment to preserve TTL (write resets expiration on every call)
+        # increment returns nil if key doesn't exist, so we initialize it first
+        current_count = Rails.cache.increment(cache_key, 1, expires_in: 1.minute)
+
+        # If increment returned nil, key didn't exist - initialize it
+        if current_count.nil?
+          Rails.cache.write(cache_key, 1, expires_in: 1.minute)
+          current_count = 1
         end
+
+        current_count > MAX_REQUESTS_PER_MINUTE
       end
       
       def sanitize_event(event)

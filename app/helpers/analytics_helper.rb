@@ -42,7 +42,7 @@ module AnalyticsHelper
 
   # Get trend indicator class and icon
   def trend_indicator(value, inverse: false)
-    return { class: 'text-gray-500', icon: 'minus', label: 'No change' } if value.zero?
+    return { class: 'text-gray-500', icon: 'minus', label: 'No change' } if value.nil? || value.zero?
     
     is_positive = value > 0
     is_positive = !is_positive if inverse

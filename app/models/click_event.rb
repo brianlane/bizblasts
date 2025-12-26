@@ -106,9 +106,9 @@ class ClickEvent < ApplicationRecord
 
     def conversion_funnel(start_date: 30.days.ago, end_date: Time.current)
       events = for_period(start_date, end_date)
-      
+
       {
-        page_views: events.count,
+        total_clicks: events.count,
         service_clicks: events.service_clicks.count,
         booking_started: events.where(conversion_type: 'booking_started').count,
         booking_completed: events.where(conversion_type: 'booking_completed').count
