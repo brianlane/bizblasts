@@ -74,10 +74,12 @@ module Analytics
     # @return [String] Anonymized IP address
     def anonymize_ip(ip)
       return nil if ip.blank?
-      
+
       if ip.include?(':')
-        # IPv6: zero out last 80 bits (keep first 48 bits)
-        parts = ip.split(':')
+        # IPv6: zero out last 80 bits (keep first 48 bits / 3 segments)
+        # First expand compressed notation (::) to full form
+        expanded = expand_ipv6(ip)
+        parts = expanded.split(':')
         (parts[0..2] + ['0', '0', '0', '0', '0']).join(':')
       else
         # IPv4: zero out last octet
@@ -172,6 +174,24 @@ module Analytics
     end
 
     private
+
+    # Expand compressed IPv6 notation (::) to full 8-segment form
+    # @param ip [String] IPv6 address (may be compressed)
+    # @return [String] Fully expanded IPv6 address
+    def expand_ipv6(ip)
+      return ip unless ip.include?('::')
+
+      # Split by :: to get left and right parts
+      left, right = ip.split('::', 2)
+      left_parts = left.to_s.split(':').reject(&:empty?)
+      right_parts = right.to_s.split(':').reject(&:empty?)
+
+      # Calculate how many zero segments needed to fill to 8 total
+      missing_count = 8 - left_parts.length - right_parts.length
+      zeros = Array.new([missing_count, 0].max, '0')
+
+      (left_parts + zeros + right_parts).join(':')
+    end
 
     def sanitize_page_view_for_export(page_view)
       {

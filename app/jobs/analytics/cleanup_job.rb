@@ -13,12 +13,16 @@ module Analytics
 
     def perform
       Rails.logger.info "[AnalyticsCleanup] Starting analytics cleanup..."
-      
-      cleanup_old_page_views
-      cleanup_old_click_events
-      cleanup_old_sessions
-      cleanup_old_snapshots
-      
+
+      # Bypass tenant scoping since this is a global cleanup job
+      # that should clean up data across all businesses
+      ActsAsTenant.without_tenant do
+        cleanup_old_page_views
+        cleanup_old_click_events
+        cleanup_old_sessions
+        cleanup_old_snapshots
+      end
+
       Rails.logger.info "[AnalyticsCleanup] Analytics cleanup complete"
     end
 
