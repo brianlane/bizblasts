@@ -310,6 +310,9 @@ bun run build:js
 # Precompile assets using Rails/Propshaft
 echo "Precompiling assets with Propshaft..."
 
+# Remove stale bin/bundle if it exists (can cause issues with Bundler 4.x)
+rm -f bin/bundle
+
 # Compile the CSS
 bundle exec rails assets:precompile
 # bundle exec rails assets:clean
