@@ -62,7 +62,10 @@ module Api
         host = request.host.to_s.downcase
         
         # Try to find business by subdomain or hostname
-        if host.include?('lvh.me') || host.include?('bizblasts.com')
+        is_lvh_me = (host == 'lvh.me') || host.end_with?('.lvh.me')
+        is_bizblasts = (host == 'bizblasts.com') || host.end_with?('.bizblasts.com')
+        
+        if is_lvh_me || is_bizblasts
           # Extract subdomain
           subdomain = host.split('.').first
           return nil if subdomain.in?(%w[www api admin])
