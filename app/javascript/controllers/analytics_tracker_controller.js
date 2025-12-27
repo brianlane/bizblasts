@@ -418,8 +418,10 @@ export default class extends Controller {
       this.scrollThrottle = setTimeout(() => {
         const scrollTop = window.pageYOffset || document.documentElement.scrollTop
         const docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight
-        const scrollPercent = Math.round((scrollTop / docHeight) * 100) || 0
-        
+        // Guard against division by zero (content fits in viewport) and Infinity
+        // docHeight=0 produces Infinity which is truthy, so || 0 doesn't catch it
+        const scrollPercent = docHeight > 0 ? Math.round((scrollTop / docHeight) * 100) : 100
+
         if (scrollPercent > this.maxScrollDepth) {
           this.maxScrollDepth = scrollPercent
         }

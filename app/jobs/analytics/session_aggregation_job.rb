@@ -30,12 +30,14 @@ module Analytics
         # A session is inactive if there has been no page view or click event for SESSION_TIMEOUT minutes
         cutoff_time = SESSION_TIMEOUT.minutes.ago
 
+        # Use GREATEST to find the most recent activity across page views AND click events
+        # COALESCE returns first non-NULL, but we need the maximum timestamp
         inactive_sessions = business.visitor_sessions
           .where(session_end: nil)
           .left_joins(:page_views, :click_events)
           .group('visitor_sessions.id')
           .having(
-            'COALESCE(MAX(page_views.created_at), MAX(click_events.created_at), visitor_sessions.session_start) < ?',
+            'GREATEST(COALESCE(MAX(page_views.created_at), visitor_sessions.session_start), COALESCE(MAX(click_events.created_at), visitor_sessions.session_start)) < ?',
             cutoff_time
           )
         
@@ -54,9 +56,13 @@ module Analytics
 
     def close_session(session)
       # Calculate final session metrics
-      last_activity = session.page_views.maximum(:created_at) ||
-                      session.click_events.maximum(:created_at) ||
-                      session.session_start
+      # Use .compact.max to get the LATEST activity, not the first non-nil
+      # (|| returns first non-nil, but we need the maximum timestamp)
+      last_activity = [
+        session.page_views.maximum(:created_at),
+        session.click_events.maximum(:created_at),
+        session.session_start
+      ].compact.max
 
       duration = (last_activity - session.session_start).to_i
       # Guard against nil page_view_count (sessions created but job failed before page view recorded)
