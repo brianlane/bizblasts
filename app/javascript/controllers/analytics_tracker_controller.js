@@ -523,9 +523,17 @@ export default class extends Controller {
 
   // Public method to track conversions from other parts of the app
   trackConversion(type, value = null, metadata = {}) {
+    // Respect Do Not Track - external callers must not bypass privacy settings
+    if (this.shouldNotTrack()) {
+      console.debug("[Analytics] DNT enabled, conversion tracking skipped")
+      return
+    }
+
     const event = {
       type: "conversion",
       timestamp: new Date().toISOString(),
+      session_id: this.sessionId,
+      visitor_fingerprint: this.visitorFingerprint,
       data: {
         page_path: window.location.pathname,
         conversion_type: type,
