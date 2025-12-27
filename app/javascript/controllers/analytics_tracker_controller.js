@@ -378,9 +378,19 @@ export default class extends Controller {
     if (href.includes("/contact") || text.includes("contact")) return "contact"
     if (href.includes("/estimate")) return "estimate"
     if (classes.includes("social") || this.isSocialLink(href)) return "social"
-    if (element.tagName === "A" && !href.startsWith(window.location.origin)) return "external"
-    
+    // Only classify as external if it's an absolute URL to a different origin
+    // Relative URLs (/about), anchors (#section), and empty hrefs are internal navigation
+    if (element.tagName === "A" && this.isExternalLink(href)) return "external"
+
     return "navigation"
+  }
+
+  isExternalLink(href) {
+    if (!href) return false
+    // Only absolute URLs starting with http(s):// can be external
+    if (!href.startsWith("http://") && !href.startsWith("https://")) return false
+    // Check if it's a different origin
+    return !href.startsWith(window.location.origin)
   }
 
   getClickAction(element) {
