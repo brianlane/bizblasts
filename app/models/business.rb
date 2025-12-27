@@ -252,6 +252,13 @@ class Business < ApplicationRecord
   # Gallery associations
   has_many :gallery_photos, -> { order(:position) }, dependent: :destroy
   
+  # Analytics associations
+  has_many :page_views, dependent: :destroy
+  has_many :click_events, dependent: :destroy
+  has_many :visitor_sessions, dependent: :destroy
+  has_many :analytics_snapshots, dependent: :destroy
+  has_one :seo_configuration, dependent: :destroy
+  
   # Tip configuration helper methods
   def tip_configuration_or_default
     tip_configuration || build_tip_configuration
@@ -338,6 +345,7 @@ class Business < ApplicationRecord
   # 3. Invalidate AllowedHostService cache when custom domain configuration changes
   #    This ensures the host validation cache stays in sync with database changes
   after_save :invalidate_allowed_host_cache, if: :custom_domain_cache_invalidation_needed?
+  after_save :mark_seo_keywords_stale, if: :seo_relevant_attributes_changed?
 
   # Find the current tenant
   def self.current
@@ -885,6 +893,19 @@ class Business < ApplicationRecord
   rescue StandardError => e
     Rails.logger.error "[BUSINESS CALLBACK] Unexpected error applying enhanced website layout for business #{safe_identifier_for_logging}: #{e.class.name} - #{e.message}"
     Rails.logger.error e.backtrace.first(5).join("\n")
+  end
+
+  def seo_relevant_attributes_changed?
+    (saved_changes.keys & %w[name industry city state]).any?
+  end
+
+  def mark_seo_keywords_stale
+    return unless seo_configuration.present?
+
+    seo_configuration.mark_keywords_stale!
+    seo_configuration.save! if seo_configuration.persisted?
+  rescue StandardError => e
+    Rails.logger.error "[BUSINESS CALLBACK] Failed to mark SEO keywords stale for business #{safe_identifier_for_logging}: #{e.message}"
   end
 
   # Triggered after *create* for eligible businesses.

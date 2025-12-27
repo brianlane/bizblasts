@@ -58,10 +58,17 @@ RSpec.describe "Business Manager Dashboard", type: :system do
         expect(widget).to have_selector('h3', text: 'Upcoming Appointments (Next 7 Days)')
       end
 
-      # Check for Placeholder Statistics widget
+      # Check for Analytics widget
       within('#website-stats-widget') do
-        expect(page).to have_content("Total Visitors (Last 30d): ---")
-        expect(page).to have_content("Analytics coming soon!")
+        expect(page).to have_content("Website Analytics")
+        expect(page).to have_content("Last 30 days")
+        expect(page).to have_content("Visitors")
+        expect(page).to have_content("Page Views")
+        expect(page).to have_content("Avg Duration")
+        expect(page).to have_content("Bounce Rate")
+        expect(page).to have_content("Conversions")
+        expect(page).to have_content("Conversion Rate")
+        expect(page).to have_link("View Full Analytics", href: business_manager_analytics_path)
       end
 
       # Check for Quick Actions including Services link
