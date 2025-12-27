@@ -317,7 +317,8 @@ export default class extends Controller {
         element_text: this.getElementText(target),
         // Use getAttribute('class') to handle SVG elements where className is SVGAnimatedString
         element_class: target.getAttribute('class')?.substring(0, 200),
-        element_href: target.href || null,
+        // Use getAttribute('href') to handle SVG elements where href is SVGAnimatedString
+        element_href: target.getAttribute('href') || null,
         category: this.getClickCategory(target),
         action: this.getClickAction(target),
         label: target.dataset.analyticsLabel || null,
@@ -364,8 +365,9 @@ export default class extends Controller {
     if (element.dataset.analyticsCategory) return element.dataset.analyticsCategory
 
     // Auto-detect based on context
-    const href = element.href?.toLowerCase() || ""
-    const classes = element.className?.toString().toLowerCase() || ""
+    // Use getAttribute() to handle SVG elements where href/className are SVGAnimatedString objects
+    const href = element.getAttribute('href')?.toLowerCase() || ""
+    const classes = element.getAttribute('class')?.toLowerCase() || ""
     const text = element.textContent?.toLowerCase() || ""
 
     if (href.includes("tel:") || text.includes("call")) return "phone"
