@@ -44,7 +44,8 @@ module Analytics
       # Materialize the relation to avoid re-executing the query for each source
       sessions = business.visitor_sessions.for_period(start_date, end_date).to_a
 
-      sources = %w[direct organic social referral paid]
+      # Include all channels that determine_channel can return
+      sources = %w[direct organic social referral paid email]
       result = {}
 
       sources.each do |source|
@@ -56,7 +57,8 @@ module Analytics
           sessions: total,
           conversions: converted,
           conversion_rate: total > 0 ? (converted.to_f / total * 100).round(2) : 0,
-          total_value: source_sessions.sum(&:conversion_value).to_f
+          # Handle nil conversion_value for non-converted sessions to avoid TypeError
+          total_value: source_sessions.sum { |s| s.conversion_value.to_f }
         }
       end
 

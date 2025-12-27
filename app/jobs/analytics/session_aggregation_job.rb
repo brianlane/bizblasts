@@ -54,12 +54,13 @@ module Analytics
 
     def close_session(session)
       # Calculate final session metrics
-      last_activity = session.page_views.maximum(:created_at) || 
+      last_activity = session.page_views.maximum(:created_at) ||
                       session.click_events.maximum(:created_at) ||
                       session.session_start
-      
+
       duration = (last_activity - session.session_start).to_i
-      is_bounce = session.page_view_count <= 1
+      # Guard against nil page_view_count (sessions created but job failed before page view recorded)
+      is_bounce = (session.page_view_count || 0) <= 1
       
       # Get the exit page
       exit_page = session.page_views.order(created_at: :desc).first&.page_path
