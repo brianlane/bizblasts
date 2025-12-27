@@ -332,7 +332,9 @@ export default class extends Controller {
     if (element.tagName === "A") return "link"
     if (element.tagName === "INPUT" && element.type === "submit") return "form_submit"
     if (element.classList.contains("cta") || element.dataset.cta) return "cta"
-    return "element"
+    // Default to "other" to match the Ruby ClickEvent enum values
+    // (button, link, cta, form_submit, image, card, other, conversion)
+    return "other"
   }
 
   getElementIdentifier(element) {
