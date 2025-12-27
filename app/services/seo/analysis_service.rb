@@ -408,8 +408,8 @@ module Seo
       industry_name = business.industry&.to_s&.gsub('_', ' ')&.downcase
       relevance += 15 if industry_name.present? && keyword_lower.include?(industry_name)
 
-      # Service match (guard against empty strings)
-      service_names = business.services.pluck(:name).map(&:downcase)
+      # Service match (guard against nil/empty strings)
+      service_names = business.services.pluck(:name).compact.map(&:downcase)
       relevance += 10 if service_names.any? do |service_name|
         first_word = service_name.split.first
         first_word.present? && keyword_lower.include?(first_word)
