@@ -152,38 +152,42 @@ module Seo
     # @return [Array<String>] Target keywords
     def generate_target_keywords
       keywords = []
-      
+      city = business.city.presence
+      state = business.state.presence
+
       # Industry + location keywords
       industry_name = business.industry&.to_s&.humanize || 'business'
-      
-      keywords << "#{industry_name} in #{business.city}"
-      keywords << "#{business.city} #{industry_name}"
-      keywords << "best #{industry_name} #{business.city}"
+
       keywords << "#{industry_name} near me"
-      keywords << "#{industry_name} #{business.city} #{business.state}"
-      keywords << "local #{industry_name} #{business.city}"
-      keywords << "affordable #{industry_name} #{business.city}"
-      keywords << "top rated #{industry_name} #{business.city}"
-      
+      if city
+        keywords << "#{industry_name} in #{city}"
+        keywords << "#{city} #{industry_name}"
+        keywords << "best #{industry_name} #{city}"
+        keywords << "local #{industry_name} #{city}"
+        keywords << "affordable #{industry_name} #{city}"
+        keywords << "top rated #{industry_name} #{city}"
+      end
+      keywords << "#{industry_name} #{city} #{state}" if city && state
+
       # Business name keywords
-      keywords << business.name
-      keywords << "#{business.name} #{business.city}"
-      
+      keywords << business.name if business.name.present?
+      keywords << "#{business.name} #{city}" if business.name.present? && city
+
       # Service-specific keywords
       business.services.active.limit(10).each do |service|
-        keywords << "#{service.name} #{business.city}"
         keywords << "#{service.name} near me"
-        keywords << "#{service.name} #{business.state}"
+        keywords << "#{service.name} #{city}" if city
+        keywords << "#{service.name} #{state}" if state
       end
-      
+
       # Industry-specific keywords
       if INDUSTRY_KEYWORDS[business.industry&.to_sym]
         INDUSTRY_KEYWORDS[business.industry.to_sym].each do |term|
-          keywords << "#{term} #{business.city}"
           keywords << "#{term} near me"
+          keywords << "#{term} #{city}" if city
         end
       end
-      
+
       keywords.uniq.first(50)
     end
 

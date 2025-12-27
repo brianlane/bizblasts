@@ -60,19 +60,22 @@ module Api
       
       def find_business_from_request
         host = request.host.to_s.downcase
-        
-        # Try to find business by subdomain or hostname
-        is_lvh_me = (host == 'lvh.me') || host.end_with?('.lvh.me')
-        is_bizblasts = (host == 'bizblasts.com') || host.end_with?('.bizblasts.com')
-        
-        if is_lvh_me || is_bizblasts
-          # Extract subdomain
-          subdomain = host.split('.').first
+
+        # Use TenantHost to check if this is the main domain (no tenant)
+        return nil if TenantHost.main_domain?(host)
+
+        # Check if this is a subdomain on our platform domains
+        host_parts = host.split('.')
+        is_platform_subdomain = host.end_with?('.lvh.me') || host.end_with?('.bizblasts.com')
+
+        if is_platform_subdomain && host_parts.length >= 3
+          # Extract subdomain (e.g., "mybiz" from "mybiz.lvh.me")
+          subdomain = host_parts.first
           return nil if subdomain.in?(%w[www api admin])
-          
+
           Business.find_by(subdomain: subdomain) || Business.find_by(hostname: subdomain)
         else
-          # Custom domain
+          # Custom domain - look up by full hostname
           Business.find_by(hostname: host)
         end
       end

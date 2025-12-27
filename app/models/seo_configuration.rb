@@ -177,35 +177,41 @@ class SeoConfiguration < ApplicationRecord
 
   def generate_auto_keywords
     return unless business.present?
-    
+
     keywords = []
-    
+    city = business.city.presence
+    state = business.state.presence
+
     # Industry keywords
     if business.industry.present?
       industry_name = business.industry.humanize
-      keywords << "#{industry_name} in #{business.city}"
-      keywords << "#{business.city} #{industry_name}"
-      keywords << "best #{industry_name} #{business.city}"
       keywords << "#{industry_name} near me"
-      keywords << "#{industry_name} #{business.state}"
+      if city
+        keywords << "#{industry_name} in #{city}"
+        keywords << "#{city} #{industry_name}"
+        keywords << "best #{industry_name} #{city}"
+      end
+      keywords << "#{industry_name} #{state}" if state
     end
-    
+
     # Business name keywords
     if business.name.present?
       keywords << business.name
-      keywords << "#{business.name} #{business.city}"
+      keywords << "#{business.name} #{city}" if city
     end
-    
+
     # Service keywords
     business.services.active.limit(10).each do |service|
-      keywords << "#{service.name} #{business.city}"
       keywords << "#{service.name} near me"
+      keywords << "#{service.name} #{city}" if city
     end
-    
-    # Location keywords
-    keywords << "#{business.city} #{business.state}"
-    keywords << "local business #{business.city}"
-    
+
+    # Location keywords (only if both city and state present)
+    if city && state
+      keywords << "#{city} #{state}"
+    end
+    keywords << "local business #{city}" if city
+
     self.auto_keywords = keywords.uniq.first(50) # Limit to 50 keywords
   end
 
