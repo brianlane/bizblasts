@@ -274,7 +274,13 @@ export default class extends Controller {
   }
 
   detectBrowserVersion(ua) {
-    const match = ua.match(/(Firefox|Chrome|Safari|Opera|Edge|Edg)\/(\d+)/)
+    // Safari's version is in "Version/X.X" format, not after "Safari/"
+    // Safari UA: "...Version/17.4 Safari/605.1.15" - Safari/605 is WebKit build, not Safari version
+    if (ua.includes("Safari") && !ua.includes("Chrome") && !ua.includes("Chromium")) {
+      const versionMatch = ua.match(/Version\/(\d+)/)
+      if (versionMatch) return versionMatch[1]
+    }
+    const match = ua.match(/(Firefox|Chrome|Opera|Edge|Edg)\/(\d+)/)
     return match ? match[2] : "unknown"
   }
 
@@ -309,7 +315,8 @@ export default class extends Controller {
         element_type: this.getElementType(target),
         element_identifier: this.getElementIdentifier(target),
         element_text: this.getElementText(target),
-        element_class: target.className?.toString().substring(0, 200),
+        // Use getAttribute('class') to handle SVG elements where className is SVGAnimatedString
+        element_class: target.getAttribute('class')?.substring(0, 200),
         element_href: target.href || null,
         category: this.getClickCategory(target),
         action: this.getClickAction(target),
@@ -338,10 +345,12 @@ export default class extends Controller {
   }
 
   getElementIdentifier(element) {
-    return element.id || 
-           element.dataset.analyticsId || 
-           element.name || 
-           element.className?.toString().split(" ")[0] ||
+    // Use getAttribute('class') to handle SVG elements where className is SVGAnimatedString
+    const firstClass = element.getAttribute('class')?.split(" ")[0]
+    return element.id ||
+           element.dataset.analyticsId ||
+           element.name ||
+           firstClass ||
            element.tagName.toLowerCase()
   }
 
