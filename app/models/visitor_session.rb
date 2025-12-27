@@ -162,9 +162,31 @@ class VisitorSession < ApplicationRecord
     )
   end
 
+  # Atomically increments page_view_count and returns the new count.
+  # Uses PostgreSQL RETURNING clause to ensure the returned value reflects
+  # the actual increment, preventing race conditions when concurrent requests
+  # try to determine if this is the first page view.
+  # @return [Integer] The new page_view_count after increment
   def record_page_view!
-    increment!(:page_view_count)
+    result = self.class.connection.execute(
+      sanitize_sql_for_increment(:page_view_count)
+    )
+    new_count = result.first['page_view_count']
+    self.page_view_count = new_count
+    new_count
   end
+
+  private
+
+  def sanitize_sql_for_increment(attribute)
+    self.class.sanitize_sql_array([
+      "UPDATE visitor_sessions SET #{attribute} = COALESCE(#{attribute}, 0) + 1, updated_at = ? WHERE id = ? RETURNING #{attribute}",
+      Time.current,
+      id
+    ])
+  end
+
+  public
 
   def record_click!
     increment!(:click_count)

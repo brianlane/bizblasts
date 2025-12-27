@@ -59,15 +59,20 @@ class AnalyticsIngestionJob < ApplicationJob
     data = event[:data] || {}
     session_id = event[:session_id]
     visitor_fingerprint = event[:visitor_fingerprint]
-    
+
     return unless session_id.present? && visitor_fingerprint.present?
-    
+
     # Ensure visitor session exists
     session = find_or_create_session(business, session_id, visitor_fingerprint, data, request_metadata)
-    
-    # Determine if this is an entry page (first page view in session)
-    is_entry = session.page_view_count.to_i == 0
-    
+
+    # Atomically increment page view count and get the new value.
+    # This prevents race conditions where concurrent requests both read
+    # page_view_count == 0 and both mark their page views as entry pages.
+    new_page_view_count = session.record_page_view!
+
+    # This is an entry page only if this was the first page view (count is now 1)
+    is_entry = new_page_view_count == 1
+
     # Create page view record
     page_view = business.page_views.create!(
       visitor_fingerprint: visitor_fingerprint,
@@ -90,15 +95,12 @@ class AnalyticsIngestionJob < ApplicationJob
       country: extract_country(request_metadata),
       is_entry_page: is_entry
     )
-    
+
     # Update session entry page if this is the first view
     if is_entry
       session.update!(entry_page: data['page_path'])
     end
-    
-    # Increment session page view count
-    session.record_page_view!
-    
+
     # Link to Page model if applicable
     link_to_page(page_view, business, data['page_path'])
   end
