@@ -69,4 +69,4 @@ production:
   analytics_cleanup:
     class: Analytics::CleanupJob
     queue: analytics
-    schedule: at 4am on Sunday
+    schedule: "0 4 * * 0"  # 4am UTC every Sunday (cron format)
