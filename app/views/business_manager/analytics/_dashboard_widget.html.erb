@@ -1,0 +1,46 @@
+<%# Analytics Dashboard Widget - replaces "Coming Soon" placeholder %>
+<% dashboard_service = Analytics::DashboardService.new(@current_business) %>
+<% quick_stats = dashboard_service.quick_stats %>
+
+<div id="website-stats-widget" class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="text-lg sm:text-xl font-semibold">Website Analytics</h3>
+    <span class="text-xs text-gray-500">Last 30 days</span>
+  </div>
+  
+  <!-- Quick Stats Grid -->
+  <div class="grid grid-cols-2 gap-3 mb-4">
+    <div class="text-center p-3 bg-blue-50 rounded-lg">
+      <div class="text-2xl font-bold text-blue-600"><%= number_with_delimiter(quick_stats[:unique_visitors]) %></div>
+      <div class="text-xs text-blue-500">Visitors</div>
+    </div>
+    <div class="text-center p-3 bg-green-50 rounded-lg">
+      <div class="text-2xl font-bold text-green-600"><%= number_with_delimiter(quick_stats[:page_views]) %></div>
+      <div class="text-xs text-green-500">Page Views</div>
+    </div>
+    <div class="text-center p-3 bg-purple-50 rounded-lg">
+      <div class="text-2xl font-bold text-purple-600"><%= quick_stats[:avg_session_duration] %></div>
+      <div class="text-xs text-purple-500">Avg Duration</div>
+    </div>
+    <div class="text-center p-3 bg-indigo-50 rounded-lg">
+      <div class="text-2xl font-bold text-indigo-600"><%= quick_stats[:bounce_rate] %>%</div>
+      <div class="text-xs text-indigo-500">Bounce Rate</div>
+    </div>
+  </div>
+  
+  <!-- Conversion Stats -->
+  <div class="border-t pt-3 mb-3">
+    <div class="flex items-center justify-between">
+      <span class="text-sm text-gray-600">Conversions</span>
+      <span class="text-lg font-bold text-green-600"><%= quick_stats[:conversions] %></span>
+    </div>
+    <div class="flex items-center justify-between mt-1">
+      <span class="text-sm text-gray-600">Conversion Rate</span>
+      <span class="text-lg font-bold text-green-600"><%= quick_stats[:conversion_rate] %>%</span>
+    </div>
+  </div>
+  
+  <%= link_to "View Full Analytics", business_manager_analytics_path, 
+        class: "inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors" %>
+</div>
+

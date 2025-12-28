@@ -142,6 +142,9 @@ Rails.application.routes.draw do
           get :ai_summary
         end
       end
+      
+      # Analytics tracking endpoint
+      post 'analytics/track', to: 'analytics#track'
     end
   end
   
@@ -258,6 +261,19 @@ Rails.application.routes.draw do
   constraints BusinessDomainConstraint do
     namespace :business_manager, path: '/manage' do
       get '/dashboard', to: 'dashboard#index', as: :dashboard
+      
+      # Analytics routes
+      get '/analytics', to: 'analytics#index', as: :analytics
+      get '/analytics/traffic', to: 'analytics#traffic', as: :analytics_traffic
+      get '/analytics/conversions', to: 'analytics#conversions', as: :analytics_conversions
+      get '/analytics/bookings', to: 'analytics#bookings', as: :analytics_bookings
+      get '/analytics/products', to: 'analytics#products', as: :analytics_products
+      get '/analytics/services', to: 'analytics#services', as: :analytics_services
+      get '/analytics/seo', to: 'analytics#seo', as: :analytics_seo
+      get '/analytics/realtime', to: 'analytics#realtime', as: :analytics_realtime
+      get '/analytics/export', to: 'analytics#export', as: :export_analytics
+      post '/analytics/export', to: 'analytics#perform_export', as: :perform_export_analytics
+
       resources :services do
         member do
           patch :update_position

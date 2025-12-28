@@ -1,0 +1,198 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Export Analytics</h1>
+      <p class="text-sm text-gray-600 mt-1">Download your analytics data in CSV or JSON format</p>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="border-b border-gray-200">
+    <nav class="-mb-px flex space-x-4 sm:space-x-8 overflow-x-auto">
+      <%= link_to "Overview", business_manager_analytics_path(period: @period),
+          class: "whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" %>
+      <%= link_to "Traffic", business_manager_analytics_traffic_path(period: @period),
+          class: "whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" %>
+      <%= link_to "Conversions", business_manager_analytics_conversions_path(period: @period),
+          class: "whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" %>
+      <%= link_to "Bookings", business_manager_analytics_bookings_path(period: @period),
+          class: "whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" %>
+      <%= link_to "Services", business_manager_analytics_services_path(period: @period),
+          class: "whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" %>
+      <% if @current_business.products.any? %>
+        <%= link_to "Products", business_manager_analytics_products_path(period: @period),
+            class: "whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" %>
+      <% end %>
+      <%= link_to "SEO", business_manager_analytics_seo_path,
+          class: "whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" %>
+      <%= link_to "Export", business_manager_export_analytics_path,
+          class: "whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-600" %>
+    </nav>
+  </div>
+
+  <!-- Export Form -->
+  <div class="bg-white p-6 rounded-lg shadow">
+    <h2 class="text-lg font-semibold text-gray-900 mb-6">Export Options</h2>
+
+    <%= form_with url: business_manager_perform_export_analytics_path, method: :post, local: true, class: "space-y-6" do |f| %>
+      <!-- Export Type -->
+      <div>
+        <label for="export_type" class="block text-sm font-medium text-gray-700 mb-2">
+          Data Type
+        </label>
+        <select name="export_type" id="export_type"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <% @export_types.each do |type| %>
+            <option value="<%= type %>"><%= type.humanize %></option>
+          <% end %>
+        </select>
+        <p class="mt-1 text-sm text-gray-500">
+          Choose what type of analytics data you want to export.
+        </p>
+      </div>
+
+      <!-- Date Range -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="start_date" class="block text-sm font-medium text-gray-700 mb-2">
+            Start Date
+          </label>
+          <input type="date" name="start_date" id="start_date"
+                 value="<%= 30.days.ago.to_date %>"
+                 max="<%= Date.current %>"
+                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div>
+          <label for="end_date" class="block text-sm font-medium text-gray-700 mb-2">
+            End Date
+          </label>
+          <input type="date" name="end_date" id="end_date"
+                 value="<%= Date.current %>"
+                 max="<%= Date.current %>"
+                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+      </div>
+
+      <!-- Format Selection -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Export Format
+        </label>
+        <div class="flex gap-4">
+          <label class="flex items-center">
+            <input type="radio" name="format_type" value="csv" checked
+                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+            <span class="ml-2 text-sm text-gray-700">CSV</span>
+          </label>
+          <label class="flex items-center">
+            <input type="radio" name="format_type" value="json"
+                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+            <span class="ml-2 text-sm text-gray-700">JSON</span>
+          </label>
+        </div>
+        <p class="mt-1 text-sm text-gray-500">
+          CSV is best for spreadsheet applications. JSON is better for programmatic use.
+        </p>
+      </div>
+
+      <!-- Submit Button -->
+      <div class="pt-4">
+        <button type="submit"
+                class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+          Download Export
+        </button>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Export Types Description -->
+  <div class="bg-white p-6 rounded-lg shadow">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Available Export Types</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <!-- Sessions -->
+      <div class="border border-gray-200 rounded-lg p-4">
+        <div class="flex items-center mb-2">
+          <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <h3 class="font-medium text-gray-900">Sessions</h3>
+        </div>
+        <p class="text-sm text-gray-600">
+          Visitor session data including duration, page views, device info, UTM parameters, and conversion status.
+        </p>
+      </div>
+
+      <!-- Page Views -->
+      <div class="border border-gray-200 rounded-lg p-4">
+        <div class="flex items-center mb-2">
+          <svg class="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+          </svg>
+          <h3 class="font-medium text-gray-900">Page Views</h3>
+        </div>
+        <p class="text-sm text-gray-600">
+          Individual page view events with path, time on page, scroll depth, and referrer information.
+        </p>
+      </div>
+
+      <!-- Clicks -->
+      <div class="border border-gray-200 rounded-lg p-4">
+        <div class="flex items-center mb-2">
+          <svg class="w-5 h-5 text-purple-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/>
+          </svg>
+          <h3 class="font-medium text-gray-900">Clicks</h3>
+        </div>
+        <p class="text-sm text-gray-600">
+          Click event data including element type, category, action, and conversion details.
+        </p>
+      </div>
+
+      <!-- Conversions -->
+      <div class="border border-gray-200 rounded-lg p-4">
+        <div class="flex items-center mb-2">
+          <svg class="w-5 h-5 text-yellow-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <h3 class="font-medium text-gray-900">Conversions</h3>
+        </div>
+        <p class="text-sm text-gray-600">
+          All conversion events with type, value, entry page, and attribution data.
+        </p>
+      </div>
+
+      <!-- Summary -->
+      <div class="border border-gray-200 rounded-lg p-4">
+        <div class="flex items-center mb-2">
+          <svg class="w-5 h-5 text-indigo-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+          <h3 class="font-medium text-gray-900">Summary</h3>
+        </div>
+        <p class="text-sm text-gray-600">
+          Daily aggregated metrics including visitors, page views, bounce rate, conversions, and revenue.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Limits Note -->
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+    <div class="flex">
+      <svg class="w-5 h-5 text-blue-400 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+      </svg>
+      <div>
+        <h3 class="text-sm font-medium text-blue-800">Export Limits</h3>
+        <p class="text-sm text-blue-700 mt-1">
+          Exports are limited to 50,000 records per download. For larger data sets, please use smaller date ranges or contact support.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

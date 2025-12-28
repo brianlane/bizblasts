@@ -45,3 +45,28 @@ production:
     class: OauthFlashMessageCleanupJob
     queue: default
     schedule: every 15 minutes
+
+  # Analytics Jobs
+  # Session aggregation runs hourly to close inactive sessions
+  analytics_session_aggregation:
+    class: Analytics::SessionAggregationJob
+    queue: analytics
+    schedule: every hour
+
+  # Daily snapshot runs at 2am to generate previous day's analytics summary
+  analytics_daily_snapshot:
+    class: Analytics::DailySnapshotJob
+    queue: analytics
+    schedule: at 2am every day
+
+  # SEO analysis runs daily at 3am to update SEO scores and suggestions
+  analytics_seo_analysis:
+    class: Analytics::SeoAnalysisJob
+    queue: analytics
+    schedule: at 3am every day
+
+  # Analytics cleanup runs weekly on Sundays to remove old raw data
+  analytics_cleanup:
+    class: Analytics::CleanupJob
+    queue: analytics
+    schedule: at 4am on Sunday
