@@ -105,8 +105,8 @@ module Analytics
         completed: bookings.completed.count,
         cancelled: bookings.cancelled.count,
         revenue: bookings.completed.joins(:service).sum('services.price').to_f,
-        avg_value: bookings.completed.any? ? 
-          (bookings.completed.joins(:service).sum('services.price').to_f / bookings.completed.count).round(2) : 0
+        avg_value: bookings.completed.joins(:service).any? ?
+          (bookings.completed.joins(:service).sum('services.price').to_f / bookings.completed.joins(:service).count).round(2) : 0
       }
     end
 
