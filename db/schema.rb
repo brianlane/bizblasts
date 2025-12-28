@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_28_000002) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_28_000003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -511,6 +511,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_28_000002) do
     t.index ["session_id", "created_at"], name: "index_click_events_on_session_id_and_created_at"
     t.index ["target_type", "target_id"], name: "index_click_events_on_target_type_and_target_id"
     t.index ["visitor_fingerprint", "created_at"], name: "index_click_events_on_visitor_fingerprint_and_created_at"
+    t.check_constraint "visitor_fingerprint IS NULL OR length(visitor_fingerprint::text) >= 8 AND length(visitor_fingerprint::text) <= 32 AND visitor_fingerprint::text ~ '^[a-f0-9]+$'::text", name: "click_events_visitor_fingerprint_format_check"
   end
 
   create_table "client_businesses", force: :cascade do |t|
@@ -1308,6 +1309,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_28_000002) do
     t.index ["session_id", "created_at"], name: "index_page_views_on_session_id_and_created_at"
     t.index ["session_id", "is_exit_page"], name: "index_page_views_session_exit"
     t.index ["visitor_fingerprint", "created_at"], name: "index_page_views_on_visitor_fingerprint_and_created_at"
+    t.check_constraint "visitor_fingerprint IS NULL OR length(visitor_fingerprint::text) >= 8 AND length(visitor_fingerprint::text) <= 32 AND visitor_fingerprint::text ~ '^[a-f0-9]+$'::text", name: "page_views_visitor_fingerprint_format_check"
   end
 
   create_table "pages", force: :cascade do |t|
@@ -2370,6 +2372,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_28_000002) do
     t.string "utm_medium"
     t.string "utm_source"
     t.string "visitor_fingerprint", null: false
+    t.index "lower((first_referrer_domain)::text)", name: "index_visitor_sessions_on_lower_first_referrer_domain", where: "(first_referrer_domain IS NOT NULL)"
     t.index ["business_id", "converted", "created_at"], name: "index_visitor_sessions_conversion_metrics"
     t.index ["business_id", "converted"], name: "index_visitor_sessions_on_business_id_and_converted"
     t.index ["business_id", "created_at"], name: "index_visitor_sessions_on_business_id_and_created_at"
@@ -2382,6 +2385,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_28_000002) do
     t.index ["session_end"], name: "index_visitor_sessions_on_session_end"
     t.index ["session_id"], name: "index_visitor_sessions_on_session_id", unique: true
     t.index ["visitor_fingerprint", "created_at"], name: "index_visitor_sessions_on_visitor_fingerprint_and_created_at"
+    t.check_constraint "visitor_fingerprint IS NULL OR length(visitor_fingerprint::text) >= 8 AND length(visitor_fingerprint::text) <= 32 AND visitor_fingerprint::text ~ '^[a-f0-9]+$'::text", name: "visitor_fingerprint_format_check"
   end
 
   create_table "website_templates", force: :cascade do |t|

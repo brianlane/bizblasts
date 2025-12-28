@@ -370,11 +370,11 @@ module Seo
     def estimate_keyword_difficulty(keyword)
       # Simplified keyword difficulty estimation
       # In production, this could use external API data
-      
+
       difficulty = 50 # Base difficulty
-      
-      # Location-specific keywords are generally easier
-      difficulty -= 15 if keyword.include?(business.city.to_s)
+
+      # Location-specific keywords are generally easier (guard against empty string matching everything)
+      difficulty -= 15 if business.city.present? && keyword.include?(business.city)
       difficulty -= 10 if keyword.include?('near me')
       
       # Long-tail keywords are easier
@@ -421,11 +421,11 @@ module Seo
     def estimate_search_volume(keyword)
       # Simplified search volume estimation
       # In production, use Google Keyword Planner API
-      
+
       volume = 100 # Base volume
-      
-      # City population factor (simplified)
-      volume *= 2 if keyword.include?(business.city.to_s)
+
+      # City population factor (simplified, guard against empty string matching everything)
+      volume *= 2 if business.city.present? && keyword.include?(business.city)
       
       # "near me" searches are common
       volume *= 3 if keyword.include?('near me')

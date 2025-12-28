@@ -4,7 +4,12 @@ require 'rails_helper'
 
 RSpec.describe Api::V1::AnalyticsController, type: :request do
   let(:business) { create(:business, subdomain: 'testbiz') }
-  
+
+  # Clear rate limit cache between tests to prevent test pollution
+  before do
+    Rails.cache.delete("analytics_rate_limit:127.0.0.1")
+  end
+
   describe 'POST /api/v1/analytics/track' do
     let(:valid_events) do
       [
@@ -29,8 +34,9 @@ RSpec.describe Api::V1::AnalyticsController, type: :request do
         expect {
           post '/api/v1/analytics/track',
                params: { events: valid_events }.to_json,
-               headers: { 
+               headers: {
                  'Content-Type' => 'application/json',
+                 'Accept' => 'application/json',
                  'Host' => 'testbiz.lvh.me'
                }
         }.to have_enqueued_job(AnalyticsIngestionJob)
@@ -45,8 +51,9 @@ RSpec.describe Api::V1::AnalyticsController, type: :request do
         expect {
           post '/api/v1/analytics/track',
                params: { events: valid_events }.to_json,
-               headers: { 
+               headers: {
                  'Content-Type' => 'application/json',
+                 'Accept' => 'application/json',
                  'Host' => 'testbiz.lvh.me',
                  'DNT' => '1'
                }
@@ -62,8 +69,9 @@ RSpec.describe Api::V1::AnalyticsController, type: :request do
         expect {
           post '/api/v1/analytics/track',
                params: { events: valid_events }.to_json,
-               headers: { 
+               headers: {
                  'Content-Type' => 'application/json',
+                 'Accept' => 'application/json',
                  'Host' => 'testbiz.lvh.me',
                  'User-Agent' => 'Googlebot/2.1'
                }
@@ -77,8 +85,9 @@ RSpec.describe Api::V1::AnalyticsController, type: :request do
       it 'returns bad request' do
         post '/api/v1/analytics/track',
              params: { events: 'not_an_array' }.to_json,
-             headers: { 
+             headers: {
                'Content-Type' => 'application/json',
+               'Accept' => 'application/json',
                'Host' => 'testbiz.lvh.me'
              }
 
@@ -88,14 +97,15 @@ RSpec.describe Api::V1::AnalyticsController, type: :request do
 
     context 'rate limiting' do
       it 'returns too many requests after limit exceeded' do
-        # Simulate exceeding rate limit
+        # Simulate exceeding rate limit - must use raw: true for atomic increment
         cache_key = "analytics_rate_limit:127.0.0.1"
-        Rails.cache.write(cache_key, 100, expires_in: 1.minute)
+        Rails.cache.write(cache_key, 101, expires_in: 1.minute, raw: true)
 
         post '/api/v1/analytics/track',
              params: { events: valid_events }.to_json,
-             headers: { 
+             headers: {
                'Content-Type' => 'application/json',
+               'Accept' => 'application/json',
                'Host' => 'testbiz.lvh.me'
              }
 

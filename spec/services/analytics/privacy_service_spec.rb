@@ -106,8 +106,8 @@ RSpec.describe Analytics::PrivacyService, type: :service do
     end
 
     it 'deletes all data for a visitor fingerprint' do
-      fingerprint = 'test-fingerprint-123'
-      
+      fingerprint = 'a1b2c3d4e5f60001'
+
       # Create test data
       create(:page_view, business: business, visitor_fingerprint: fingerprint)
       create(:click_event, business: business, visitor_fingerprint: fingerprint)
@@ -143,13 +143,13 @@ RSpec.describe Analytics::PrivacyService, type: :service do
     end
 
     it 'exports all data for a visitor' do
-      fingerprint = 'export-test-123'
-      
+      fingerprint = 'a1b2c3d4e5f60002'
+
       create(:page_view, business: business, visitor_fingerprint: fingerprint, page_path: '/test')
       create(:visitor_session, business: business, visitor_fingerprint: fingerprint)
-      
+
       export = service.export_visitor_data(fingerprint)
-      
+
       expect(export[:visitor_fingerprint]).to eq(fingerprint)
       expect(export[:page_views]).to be_an(Array)
       expect(export[:sessions]).to be_an(Array)

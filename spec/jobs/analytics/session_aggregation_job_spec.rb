@@ -282,14 +282,23 @@ RSpec.describe Analytics::SessionAggregationJob, type: :job do
         )
         create(:page_view, business: other_business, session_id: other_session.session_id, created_at: 35.minutes.ago)
 
-        # Make first business fail
-        allow_any_instance_of(VisitorSession).to receive(:update!).and_raise(StandardError.new('Test error')).once.and_call_original
+        # Make first business fail by stubbing process_business_sessions for that specific business
+        job_instance = described_class.new
+        call_count = 0
+        allow(job_instance).to receive(:process_business_sessions).and_wrap_original do |method, biz|
+          call_count += 1
+          if biz.id == business.id
+            raise StandardError.new('Test error')
+          else
+            method.call(biz)
+          end
+        end
 
         expect(Rails.logger).to receive(:error).at_least(:once)
 
         # Should not raise error
         expect {
-          described_class.perform_now
+          job_instance.perform
         }.not_to raise_error
       end
     end

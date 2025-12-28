@@ -83,19 +83,16 @@ module Api
       def rate_limited?
         cache_key = "analytics_rate_limit:#{request.remote_ip}"
 
-        # Try to atomically create the key with value 1 (unless_exist prevents race condition)
-        # If write succeeds, this is the first request in this window
-        if Rails.cache.write(cache_key, 1, expires_in: 1.minute, unless_exist: true)
-          return false # First request, not rate limited
-        end
-
-        # Key exists, atomically increment and check limit
+        # Use atomic increment - this is the most reliable approach for rate limiting
+        # increment returns nil if key doesn't exist in some cache stores, so we handle that
         current_count = Rails.cache.increment(cache_key, 1, expires_in: 1.minute)
 
-        # Handle edge case where key expired between write check and increment
+        # If increment returned nil, the key didn't exist - initialize it
+        # This can happen with certain cache backends or if the key expired
         if current_count.nil?
-          Rails.cache.write(cache_key, 1, expires_in: 1.minute)
-          return false
+          # Use raw: true to ensure we're storing an integer that can be incremented
+          Rails.cache.write(cache_key, 1, expires_in: 1.minute, raw: true)
+          return false # First request in this window
         end
 
         current_count > MAX_REQUESTS_PER_MINUTE

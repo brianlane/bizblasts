@@ -28,11 +28,11 @@ RSpec.describe Analytics::DashboardService, type: :service do
 
     context 'with visitor data' do
       before do
-        # Create visitor sessions
-        create(:visitor_session, business: business, visitor_fingerprint: 'v1')
-        create(:visitor_session, business: business, visitor_fingerprint: 'v2')
-        create(:visitor_session, :bounce, business: business, visitor_fingerprint: 'v3')
-        create(:visitor_session, :converted_booking, business: business, visitor_fingerprint: 'v4')
+        # Create visitor sessions with valid hex fingerprints
+        create(:visitor_session, business: business, visitor_fingerprint: 'a1b2c3d4e5f60001')
+        create(:visitor_session, business: business, visitor_fingerprint: 'a1b2c3d4e5f60002')
+        create(:visitor_session, :bounce, business: business, visitor_fingerprint: 'a1b2c3d4e5f60003')
+        create(:visitor_session, :converted_booking, business: business, visitor_fingerprint: 'a1b2c3d4e5f60004')
         
         # Create page views
         5.times { create(:page_view, business: business) }

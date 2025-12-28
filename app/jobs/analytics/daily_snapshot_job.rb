@@ -9,6 +9,10 @@ module Analytics
     # Query timing threshold for logging slow queries (in seconds)
     SLOW_QUERY_THRESHOLD = 1.0
 
+    # Domain patterns for traffic source categorization
+    SEARCH_ENGINE_DOMAINS = %w[google bing yahoo duckduckgo].freeze
+    SOCIAL_NETWORK_DOMAINS = %w[facebook twitter instagram linkedin pinterest tiktok].freeze
+
     def perform(date = nil)
       date ||= Date.yesterday
       Rails.logger.info "[DailySnapshot] Generating snapshots for #{date}..."
@@ -125,7 +129,7 @@ module Analytics
       {
         views: product_clicks.count,
         purchases: orders.where(status: [:completed, :delivered]).count,
-        revenue: orders.where(status: [:completed, :delivered]).sum(:total).to_f,
+        revenue: orders.where(status: [:completed, :delivered]).sum(:total_amount).to_f,
         conversion_rate: product_clicks.count > 0 ?
           (orders.count.to_f / product_clicks.distinct.count(:session_id) * 100).round(2) : 0
       }
@@ -172,15 +176,15 @@ module Analytics
         # Direct traffic - no referrer
         direct = sessions.where(first_referrer_domain: [nil, '']).count
 
-        # Organic traffic - from search engines
-        search_engines = %w[google bing yahoo duckduckgo]
-        organic_conditions = search_engines.map { |se| "LOWER(first_referrer_domain) LIKE '%#{se}%'" }.join(' OR ')
-        organic = sessions.where("(#{organic_conditions}) AND (utm_medium IS NULL OR LOWER(utm_medium) NOT IN ('cpc', 'ppc', 'paid'))").count
+        # Organic traffic - from search engines (using parameterized LIKE patterns)
+        organic = sessions.where(
+          build_domain_like_conditions(SEARCH_ENGINE_DOMAINS)
+        ).where("utm_medium IS NULL OR LOWER(utm_medium) NOT IN ('cpc', 'ppc', 'paid')").count
 
-        # Social traffic - from social networks
-        social_networks = %w[facebook twitter instagram linkedin pinterest tiktok]
-        social_conditions = social_networks.map { |sn| "LOWER(first_referrer_domain) LIKE '%#{sn}%'" }.join(' OR ')
-        social = sessions.where("(#{social_conditions}) AND (utm_medium IS NULL OR LOWER(utm_medium) NOT IN ('cpc', 'ppc', 'paid'))").count
+        # Social traffic - from social networks (using parameterized LIKE patterns)
+        social = sessions.where(
+          build_domain_like_conditions(SOCIAL_NETWORK_DOMAINS)
+        ).where("utm_medium IS NULL OR LOWER(utm_medium) NOT IN ('cpc', 'ppc', 'paid')").count
 
         # Referral - everything else with a referrer
         referral = total - paid - direct - organic - social
@@ -193,6 +197,14 @@ module Analytics
           paid: (paid.to_f / total * 100).round(1)
         }
       end
+    end
+
+    # Build parameterized LIKE conditions for domain matching
+    # Returns an array suitable for ActiveRecord where clause: ["sql", *bindings]
+    def build_domain_like_conditions(domains)
+      conditions = domains.map { "LOWER(first_referrer_domain) LIKE ?" }.join(' OR ')
+      bindings = domains.map { |d| "%#{d}%" }
+      [conditions, *bindings]
     end
 
     def calculate_top_referrers(sessions, limit: 10)

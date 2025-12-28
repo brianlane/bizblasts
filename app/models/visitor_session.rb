@@ -7,8 +7,12 @@ class VisitorSession < ApplicationRecord
   has_many :page_views, primary_key: :session_id, foreign_key: :session_id, dependent: :nullify
   has_many :click_events, primary_key: :session_id, foreign_key: :session_id, dependent: :nullify
 
+  # Fingerprint format: hexadecimal string, 8-32 characters
+  FINGERPRINT_FORMAT = /\A[a-f0-9]{8,32}\z/
+
   # Validations
-  validates :visitor_fingerprint, presence: true
+  validates :visitor_fingerprint, presence: true,
+            format: { with: FINGERPRINT_FORMAT, message: 'must be a valid hexadecimal string (8-32 characters)' }
   validates :session_id, presence: true, uniqueness: true
   validates :session_start, presence: true
 

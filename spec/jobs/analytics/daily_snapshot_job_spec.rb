@@ -5,7 +5,7 @@ require 'rails_helper'
 RSpec.describe Analytics::DailySnapshotJob, type: :job do
   include ActiveJob::TestHelper
 
-  let(:business) { create(:business) }
+  let!(:business) { create(:business) }
   let(:date) { Date.yesterday }
 
   describe '#perform' do
@@ -51,7 +51,7 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
       it 'sets correct snapshot type and dates' do
         described_class.perform_now(date)
 
-        snapshot = AnalyticsSnapshot.last
+        snapshot = business.analytics_snapshots.find_by(period_start: date)
         expect(snapshot.snapshot_type).to eq('daily')
         expect(snapshot.period_start).to eq(date)
         expect(snapshot.period_end).to eq(date)
@@ -60,7 +60,7 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
       it 'calculates visitor metrics' do
         described_class.perform_now(date)
 
-        snapshot = AnalyticsSnapshot.last
+        snapshot = business.analytics_snapshots.find_by(period_start: date)
         expect(snapshot.total_sessions).to be > 0
         expect(snapshot.unique_visitors).to be > 0
       end
@@ -68,7 +68,7 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
       it 'calculates bounce rate' do
         described_class.perform_now(date)
 
-        snapshot = AnalyticsSnapshot.last
+        snapshot = business.analytics_snapshots.find_by(period_start: date)
         expect(snapshot.bounce_rate).to be >= 0
         expect(snapshot.bounce_rate).to be <= 100
       end
@@ -76,7 +76,7 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
       it 'calculates conversion metrics' do
         described_class.perform_now(date)
 
-        snapshot = AnalyticsSnapshot.last
+        snapshot = business.analytics_snapshots.find_by(period_start: date)
         expect(snapshot.total_conversions).to be >= 0
         expect(snapshot.conversion_rate).to be >= 0
       end
@@ -84,7 +84,7 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
       it 'includes traffic source breakdown' do
         described_class.perform_now(date)
 
-        snapshot = AnalyticsSnapshot.last
+        snapshot = business.analytics_snapshots.find_by(period_start: date)
         expect(snapshot.traffic_sources).to be_a(Hash)
         expect(snapshot.traffic_sources.keys).to include('direct', 'organic', 'social', 'referral', 'paid')
       end
@@ -92,14 +92,14 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
       it 'includes device breakdown' do
         described_class.perform_now(date)
 
-        snapshot = AnalyticsSnapshot.last
+        snapshot = business.analytics_snapshots.find_by(period_start: date)
         expect(snapshot.device_breakdown).to be_a(Hash)
       end
 
       it 'includes top pages' do
         described_class.perform_now(date)
 
-        snapshot = AnalyticsSnapshot.last
+        snapshot = business.analytics_snapshots.find_by(period_start: date)
         expect(snapshot.top_pages).to be_an(Array)
       end
     end
@@ -108,7 +108,7 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
       it 'creates a snapshot with zero values' do
         described_class.perform_now(date)
 
-        snapshot = AnalyticsSnapshot.last
+        snapshot = business.analytics_snapshots.find_by(period_start: date)
         expect(snapshot.total_sessions).to eq(0)
         expect(snapshot.total_page_views).to eq(0)
         expect(snapshot.bounce_rate).to eq(0.0)
@@ -138,7 +138,7 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
           described_class.perform_now
         }.to change(AnalyticsSnapshot, :count).by(1)
 
-        snapshot = AnalyticsSnapshot.last
+        snapshot = business.analytics_snapshots.find_by(period_start: date)
         expect(snapshot.period_start).to eq(Date.yesterday)
       end
     end
@@ -197,14 +197,14 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
       it 'calculates booking revenue correctly' do
         described_class.perform_now(date)
 
-        snapshot = AnalyticsSnapshot.last
+        snapshot = business.analytics_snapshots.find_by(period_start: date)
         expect(snapshot.booking_metrics['revenue']).to eq(100.0)
       end
 
       it 'calculates booking counts correctly' do
         described_class.perform_now(date)
 
-        snapshot = AnalyticsSnapshot.last
+        snapshot = business.analytics_snapshots.find_by(period_start: date)
         expect(snapshot.booking_metrics['total']).to eq(2)
         expect(snapshot.booking_metrics['completed']).to eq(1)
         expect(snapshot.booking_metrics['cancelled']).to eq(1)
@@ -217,7 +217,7 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
 
         described_class.perform_now(date)
 
-        snapshot = AnalyticsSnapshot.last
+        snapshot = business.analytics_snapshots.find_by(period_start: date)
         expect(snapshot.booking_metrics['avg_value']).to eq(150.0) # (100 + 200) / 2
       end
     end
@@ -226,7 +226,7 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
       it 'returns zero values' do
         described_class.perform_now(date)
 
-        snapshot = AnalyticsSnapshot.last
+        snapshot = business.analytics_snapshots.find_by(period_start: date)
         expect(snapshot.booking_metrics['total']).to eq(0)
         expect(snapshot.booking_metrics['revenue']).to eq(0.0)
         expect(snapshot.booking_metrics['avg_value']).to eq(0)
@@ -261,7 +261,7 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
       it 'calculates traffic source percentages' do
         described_class.perform_now(date)
 
-        snapshot = AnalyticsSnapshot.last
+        snapshot = business.analytics_snapshots.find_by(period_start: date)
         sources = snapshot.traffic_sources
 
         # Each source should be 20% (5 sessions total, 1 each)

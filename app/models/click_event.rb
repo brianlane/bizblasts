@@ -7,8 +7,12 @@ class ClickEvent < ApplicationRecord
   belongs_to :target, polymorphic: true, optional: true
   belongs_to :visitor_session, primary_key: :session_id, foreign_key: :session_id, optional: true
 
+  # Fingerprint format: hexadecimal string, 8-32 characters
+  FINGERPRINT_FORMAT = /\A[a-f0-9]{8,32}\z/
+
   # Validations
-  validates :visitor_fingerprint, presence: true
+  validates :visitor_fingerprint, presence: true,
+            format: { with: FINGERPRINT_FORMAT, message: 'must be a valid hexadecimal string (8-32 characters)' }
   validates :session_id, presence: true
   validates :element_type, presence: true
   validates :page_path, presence: true

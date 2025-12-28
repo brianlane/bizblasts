@@ -20,6 +20,22 @@ RSpec.describe PageView, type: :model do
       expect(page_view.errors[:visitor_fingerprint]).to be_present
     end
 
+    it 'requires visitor_fingerprint to be a valid hex string' do
+      page_view = build(:page_view, business: business, visitor_fingerprint: 'invalid!')
+      expect(page_view).not_to be_valid
+      expect(page_view.errors[:visitor_fingerprint]).to include('must be a valid hexadecimal string (8-32 characters)')
+    end
+
+    it 'requires visitor_fingerprint to be at least 8 characters' do
+      page_view = build(:page_view, business: business, visitor_fingerprint: 'abc123')
+      expect(page_view).not_to be_valid
+    end
+
+    it 'accepts valid hex fingerprints' do
+      page_view = build(:page_view, business: business, visitor_fingerprint: 'a1b2c3d4e5f60001')
+      expect(page_view).to be_valid
+    end
+
     it 'requires session_id' do
       page_view = build(:page_view, business: business, session_id: nil)
       expect(page_view).not_to be_valid
@@ -72,9 +88,12 @@ RSpec.describe PageView, type: :model do
   end
 
   describe 'class methods' do
+    let(:fingerprint_1) { 'a1b2c3d4e5f60001' }
+    let(:fingerprint_2) { 'a1b2c3d4e5f60002' }
+
     before do
-      3.times { create(:page_view, business: business, visitor_fingerprint: 'visitor1') }
-      2.times { create(:page_view, business: business, visitor_fingerprint: 'visitor2') }
+      3.times { create(:page_view, business: business, visitor_fingerprint: fingerprint_1) }
+      2.times { create(:page_view, business: business, visitor_fingerprint: fingerprint_2) }
     end
 
     describe '.unique_visitors' do
