@@ -192,22 +192,24 @@ module Analytics
 
     def traffic_source_data(date_range)
       sessions = business.visitor_sessions.where(session_start: date_range)
-      
+
       sources = {
-        direct: sessions.where(first_referrer_domain: [nil, '']).count,
+        direct: 0,
         organic: 0,
         social: 0,
         referral: 0,
         paid: 0
       }
-      
-      sessions.where.not(first_referrer_domain: [nil, '']).find_each do |session|
+
+      # Categorize ALL sessions through categorize_source to correctly handle
+      # paid traffic without referrer (e.g., mobile app ad clicks, email clients)
+      sessions.find_each do |session|
         source = categorize_source(session)
         sources[source] += 1
       end
-      
+
       total = sources.values.sum
-      
+
       sources.transform_values do |count|
         {
           count: count,

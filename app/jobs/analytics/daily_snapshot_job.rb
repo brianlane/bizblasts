@@ -173,8 +173,9 @@ module Analytics
         # Paid traffic - has paid UTM medium
         paid = sessions.where("LOWER(utm_medium) IN ('cpc', 'ppc', 'paid')").count
 
-        # Direct traffic - no referrer
-        direct = sessions.where(first_referrer_domain: [nil, '']).count
+        # Direct traffic - no referrer AND not paid (exclude paid sessions without referrer)
+        direct = sessions.where(first_referrer_domain: [nil, ''])
+                         .where("utm_medium IS NULL OR LOWER(utm_medium) NOT IN ('cpc', 'ppc', 'paid')").count
 
         # Organic traffic - from search engines (using parameterized LIKE patterns)
         organic = sessions.where(
