@@ -271,7 +271,9 @@ Rails.application.routes.draw do
       get '/analytics/services', to: 'analytics#services', as: :analytics_services
       get '/analytics/seo', to: 'analytics#seo', as: :analytics_seo
       get '/analytics/realtime', to: 'analytics#realtime', as: :analytics_realtime
-      
+      get '/analytics/export', to: 'analytics#export', as: :export_analytics
+      post '/analytics/export', to: 'analytics#perform_export', as: :perform_export_analytics
+
       resources :services do
         member do
           patch :update_position

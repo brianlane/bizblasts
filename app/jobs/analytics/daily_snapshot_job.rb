@@ -6,19 +6,27 @@ module Analytics
   class DailySnapshotJob < ApplicationJob
     queue_as :analytics
 
+    # Query timing threshold for logging slow queries (in seconds)
+    SLOW_QUERY_THRESHOLD = 1.0
+
     def perform(date = nil)
       date ||= Date.yesterday
       Rails.logger.info "[DailySnapshot] Generating snapshots for #{date}..."
-      
+
+      start_time = Time.current
+      business_count = 0
+
       # Generate snapshot for each active business
       Business.active.find_each do |business|
         generate_snapshot(business, date)
+        business_count += 1
       rescue StandardError => e
         Rails.logger.error "[DailySnapshot] Error generating snapshot for business #{business.id}: #{e.message}"
         Rails.logger.error e.backtrace.first(5).join("\n")
       end
-      
-      Rails.logger.info "[DailySnapshot] Daily snapshot generation complete"
+
+      elapsed = Time.current - start_time
+      Rails.logger.info "[DailySnapshot] Daily snapshot generation complete - #{business_count} businesses in #{elapsed.round(2)}s"
     end
 
     private
@@ -153,15 +161,38 @@ module Analytics
     end
 
     def calculate_traffic_sources(sessions)
-      sources = { direct: 0, organic: 0, social: 0, referral: 0, paid: 0 }
-      
-      sessions.find_each do |session|
-        source = categorize_source(session)
-        sources[source] += 1
+      # Use SQL-based categorization for performance (avoids loading all sessions into memory)
+      timed_query("traffic_sources") do
+        total = sessions.count
+        return { direct: 0, organic: 0, social: 0, referral: 0, paid: 0 } if total.zero?
+
+        # Paid traffic - has paid UTM medium
+        paid = sessions.where("LOWER(utm_medium) IN ('cpc', 'ppc', 'paid')").count
+
+        # Direct traffic - no referrer
+        direct = sessions.where(first_referrer_domain: [nil, '']).count
+
+        # Organic traffic - from search engines
+        search_engines = %w[google bing yahoo duckduckgo]
+        organic_conditions = search_engines.map { |se| "LOWER(first_referrer_domain) LIKE '%#{se}%'" }.join(' OR ')
+        organic = sessions.where("(#{organic_conditions}) AND (utm_medium IS NULL OR LOWER(utm_medium) NOT IN ('cpc', 'ppc', 'paid'))").count
+
+        # Social traffic - from social networks
+        social_networks = %w[facebook twitter instagram linkedin pinterest tiktok]
+        social_conditions = social_networks.map { |sn| "LOWER(first_referrer_domain) LIKE '%#{sn}%'" }.join(' OR ')
+        social = sessions.where("(#{social_conditions}) AND (utm_medium IS NULL OR LOWER(utm_medium) NOT IN ('cpc', 'ppc', 'paid'))").count
+
+        # Referral - everything else with a referrer
+        referral = total - paid - direct - organic - social
+
+        {
+          direct: (direct.to_f / total * 100).round(1),
+          organic: (organic.to_f / total * 100).round(1),
+          social: (social.to_f / total * 100).round(1),
+          referral: ([referral, 0].max.to_f / total * 100).round(1),
+          paid: (paid.to_f / total * 100).round(1)
+        }
       end
-      
-      total = sources.values.sum
-      sources.transform_values { |v| total > 0 ? (v.to_f / total * 100).round(1) : 0 }
     end
 
     def calculate_top_referrers(sessions, limit: 10)
@@ -225,22 +256,17 @@ module Analytics
         end
     end
 
-    def categorize_source(session)
-      if session.utm_medium&.downcase&.in?(%w[cpc ppc paid])
-        :paid
-      elsif session.first_referrer_domain.blank?
-        :direct
-      else
-        domain = session.first_referrer_domain.to_s.downcase
-        
-        if %w[google bing yahoo duckduckgo].any? { |se| domain.include?(se) }
-          :organic
-        elsif %w[facebook twitter instagram linkedin pinterest tiktok].any? { |sn| domain.include?(sn) }
-          :social
-        else
-          :referral
-        end
+    # Helper method to time and log slow queries
+    def timed_query(name)
+      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      result = yield
+      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+
+      if elapsed > SLOW_QUERY_THRESHOLD
+        Rails.logger.warn "[DailySnapshot] Slow query detected: #{name} took #{elapsed.round(3)}s"
       end
+
+      result
     end
   end
 end

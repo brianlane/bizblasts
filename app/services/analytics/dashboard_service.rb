@@ -3,7 +3,12 @@
 module Analytics
   # Service for providing dashboard analytics data
   class DashboardService
+    include Analytics::QueryMonitoring
+
     attr_reader :business
+
+    # Set custom slow query threshold for dashboard (dashboard queries should be fast)
+    self.query_threshold = 0.5
 
     def initialize(business)
       @business = business

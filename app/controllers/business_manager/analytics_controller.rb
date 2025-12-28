@@ -133,11 +133,44 @@ module BusinessManager
     # GET /manage/analytics/realtime
     def realtime
       @realtime = @dashboard_service.realtime_metrics
-      
+
       respond_to do |format|
         format.html
         format.json { render json: @realtime }
       end
+    end
+
+    # GET /manage/analytics/export
+    def export
+      @export_types = Analytics::ExportService.available_export_types
+      @period = params[:period]&.to_sym || :last_30_days
+    end
+
+    # POST /manage/analytics/export
+    def perform_export
+      export_service = Analytics::ExportService.new(@current_business)
+
+      export_type = params[:export_type]&.to_sym
+      format = params[:format_type] || 'csv'
+      start_date = params[:start_date].present? ? Date.parse(params[:start_date]) : 30.days.ago.to_date
+      end_date = params[:end_date].present? ? Date.parse(params[:end_date]) : Date.current
+
+      result = export_service.export(
+        type: export_type,
+        start_date: start_date,
+        end_date: end_date,
+        format: format
+      )
+
+      send_data result[:data],
+                filename: result[:filename],
+                type: result[:content_type],
+                disposition: 'attachment'
+    rescue ArgumentError => e
+      redirect_to business_manager_export_analytics_path, alert: e.message
+    rescue StandardError => e
+      Rails.logger.error "[AnalyticsExport] Error: #{e.message}"
+      redirect_to business_manager_export_analytics_path, alert: 'An error occurred while generating the export.'
     end
 
     private

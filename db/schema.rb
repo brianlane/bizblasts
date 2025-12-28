@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_26_000006) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_28_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -504,8 +504,10 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_26_000006) do
     t.string "visitor_fingerprint", null: false
     t.index ["business_id", "category"], name: "index_click_events_on_business_id_and_category"
     t.index ["business_id", "created_at"], name: "index_click_events_on_business_id_and_created_at"
+    t.index ["business_id", "is_conversion", "created_at"], name: "index_click_events_conversion_metrics"
     t.index ["business_id"], name: "index_click_events_on_business_id"
     t.index ["is_conversion"], name: "index_click_events_on_is_conversion"
+    t.index ["session_id", "category"], name: "index_click_events_session_category"
     t.index ["session_id", "created_at"], name: "index_click_events_on_session_id_and_created_at"
     t.index ["target_type", "target_id"], name: "index_click_events_on_target_type_and_target_id"
     t.index ["visitor_fingerprint", "created_at"], name: "index_click_events_on_visitor_fingerprint_and_created_at"
@@ -1029,7 +1031,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_26_000006) do
     t.bigint "business_id", null: false
     t.datetime "created_at", null: false
     t.text "description"
-    t.jsonb "fields", default: {"fields"=>[]}, null: false
+    t.jsonb "fields", default: {"fields" => []}, null: false
     t.integer "form_type", default: 0, null: false
     t.string "name", null: false
     t.integer "position", default: 0, null: false
@@ -1230,7 +1232,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_26_000006) do
     t.index ["tenant_customer_id", "created_at"], name: "index_orders_on_tenant_customer_id_and_created_at"
     t.index ["tenant_customer_id"], name: "index_orders_on_tenant_customer_id"
     t.index ["tip_amount"], name: "index_orders_on_tip_amount"
-    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying, 'paid'::character varying, 'cancelled'::character varying, 'shipped'::character varying, 'refunded'::character varying, 'processing'::character varying, 'completed'::character varying, 'business_deleted'::character varying]::text[])", name: "status_enum_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying::text, 'paid'::character varying::text, 'cancelled'::character varying::text, 'shipped'::character varying::text, 'refunded'::character varying::text, 'processing'::character varying::text, 'completed'::character varying::text, 'business_deleted'::character varying::text])", name: "status_enum_check"
   end
 
   create_table "page_sections", force: :cascade do |t|
@@ -1304,6 +1306,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_26_000006) do
     t.index ["page_id"], name: "index_page_views_on_page_id"
     t.index ["referrer_domain"], name: "index_page_views_on_referrer_domain"
     t.index ["session_id", "created_at"], name: "index_page_views_on_session_id_and_created_at"
+    t.index ["session_id", "is_exit_page"], name: "index_page_views_session_exit"
     t.index ["visitor_fingerprint", "created_at"], name: "index_page_views_on_visitor_fingerprint_and_created_at"
   end
 
@@ -1696,7 +1699,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_26_000006) do
     t.index ["business_id", "status"], name: "index_rental_bookings_on_business_id_and_status"
     t.index ["business_id"], name: "index_rental_bookings_on_business_id"
     t.index ["deposit_authorization_id"], name: "index_rental_bookings_on_deposit_authorization_id"
-    t.index ["end_time"], name: "index_rental_bookings_on_end_time_for_overdue", where: "((status)::text = ANY ((ARRAY['checked_out'::character varying, 'overdue'::character varying])::text[]))"
+    t.index ["end_time"], name: "index_rental_bookings_on_end_time_for_overdue", where: "((status)::text = ANY (ARRAY[('checked_out'::character varying)::text, ('overdue'::character varying)::text]))"
     t.index ["guest_access_token"], name: "index_rental_bookings_on_guest_access_token", unique: true
     t.index ["location_id"], name: "index_rental_bookings_on_location_id"
     t.index ["product_id", "start_time", "end_time"], name: "idx_on_product_id_start_time_end_time_f527c29028"
@@ -2367,11 +2370,16 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_26_000006) do
     t.string "utm_medium"
     t.string "utm_source"
     t.string "visitor_fingerprint", null: false
+    t.index ["business_id", "converted", "created_at"], name: "index_visitor_sessions_conversion_metrics"
     t.index ["business_id", "converted"], name: "index_visitor_sessions_on_business_id_and_converted"
     t.index ["business_id", "created_at"], name: "index_visitor_sessions_on_business_id_and_created_at"
+    t.index ["business_id", "device_type", "created_at"], name: "index_visitor_sessions_device_metrics"
     t.index ["business_id", "session_start"], name: "index_visitor_sessions_on_business_id_and_session_start"
+    t.index ["business_id", "session_start"], name: "index_visitor_sessions_open_sessions", where: "(session_end IS NULL)"
+    t.index ["business_id", "utm_source", "created_at"], name: "index_visitor_sessions_traffic_source"
     t.index ["business_id"], name: "index_visitor_sessions_on_business_id"
     t.index ["is_bounce"], name: "index_visitor_sessions_on_is_bounce"
+    t.index ["session_end"], name: "index_visitor_sessions_on_session_end"
     t.index ["session_id"], name: "index_visitor_sessions_on_session_id", unique: true
     t.index ["visitor_fingerprint", "created_at"], name: "index_visitor_sessions_on_visitor_fingerprint_and_created_at"
   end
