@@ -49,9 +49,11 @@
     # Only show OAuth buttons if:
     # 1. The mapping supports OmniAuth
     # 2. Not on passwordless user page
-    # 3. The omniauth_authorize_path helper is available
+    # 3. Not on sessions page (which has its own styled Google button)
+    # 4. The omniauth_authorize_path helper is available
     show_oauth = devise_mapping.omniauthable? &&
                  resource_name != :passwordless_user &&
+                 controller_name != 'sessions' &&
                  defined?(omniauth_authorize_path)
   %>
   <%- if show_oauth %>
