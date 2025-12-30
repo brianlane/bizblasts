@@ -1,0 +1,523 @@
+<% content_for :title, "Revenue & Financial Analytics" %>
+
+<div class="analytics-revenue-container">
+  <div class="page-header">
+    <h1>Revenue & Financial Intelligence</h1>
+    <div class="header-actions">
+      <%= link_to "Export CSV", export_business_manager_analytics_revenue_index_path(format: :csv), class: "btn btn-outline cursor-pointer" %>
+    </div>
+  </div>
+
+  <!-- Revenue Forecasting -->
+  <div class="analytics-section">
+    <h2>Revenue Forecast</h2>
+    <div class="forecast-cards">
+      <div class="forecast-card">
+        <h3>30-Day Forecast</h3>
+        <div class="forecast-values">
+          <div class="forecast-item">
+            <span class="label">Conservative</span>
+            <span class="value"><%= number_to_currency(@forecast_30[:conservative]) %></span>
+            <span class="description">Based on 90-day moving average</span>
+          </div>
+          <div class="forecast-item">
+            <span class="label">Optimistic</span>
+            <span class="value"><%= number_to_currency(@forecast_30[:optimistic]) %></span>
+            <span class="description">
+              Including <%= @forecast_30[:trend_direction] %> trend
+              <% if @forecast_30[:trend_direction] == 'up' %>
+                <span class="trend-up">↗</span>
+              <% elsif @forecast_30[:trend_direction] == 'down' %>
+                <span class="trend-down">↘</span>
+              <% else %>
+                <span class="trend-stable">→</span>
+              <% end %>
+            </span>
+          </div>
+          <div class="forecast-item">
+            <span class="label">Confirmed</span>
+            <span class="value"><%= number_to_currency(@forecast_30[:confirmed]) %></span>
+            <span class="description">From scheduled bookings</span>
+          </div>
+        </div>
+        <div class="daily-average">
+          <strong>Daily Average:</strong> <%= number_to_currency(@forecast_30[:daily_average]) %>
+        </div>
+      </div>
+
+      <div class="forecast-card">
+        <h3>60-Day Forecast</h3>
+        <div class="forecast-comparison">
+          <div class="forecast-range">
+            <%= number_to_currency(@forecast_60[:conservative]) %> - <%= number_to_currency(@forecast_60[:optimistic]) %>
+          </div>
+          <div class="confirmed-small">
+            Confirmed: <%= number_to_currency(@forecast_60[:confirmed]) %>
+          </div>
+        </div>
+      </div>
+
+      <div class="forecast-card">
+        <h3>90-Day Forecast</h3>
+        <div class="forecast-comparison">
+          <div class="forecast-range">
+            <%= number_to_currency(@forecast_90[:conservative]) %> - <%= number_to_currency(@forecast_90[:optimistic]) %>
+          </div>
+          <div class="confirmed-small">
+            Confirmed: <%= number_to_currency(@forecast_90[:confirmed]) %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cash Flow Projection -->
+  <div class="analytics-section">
+    <h2>Cash Flow Projection (Next 30 Days)</h2>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <span class="label">Confirmed Revenue</span>
+        <span class="value"><%= number_to_currency(@cash_flow[:confirmed]) %></span>
+        <span class="description">Paid bookings scheduled</span>
+      </div>
+      <div class="metric-card">
+        <span class="label">Pending Invoices</span>
+        <span class="value"><%= number_to_currency(@cash_flow[:pending_invoices]) %></span>
+        <span class="description">Due within 30 days</span>
+      </div>
+      <div class="metric-card">
+        <span class="label">Recurring Subscriptions</span>
+        <span class="value"><%= number_to_currency(@cash_flow[:recurring_subscriptions]) %></span>
+        <span class="description">Expected subscription renewals</span>
+      </div>
+      <div class="metric-card highlight">
+        <span class="label">Total Expected</span>
+        <span class="value"><%= number_to_currency(@cash_flow[:total_expected]) %></span>
+        <span class="description">Confirmed + pending + recurring</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment Aging Report -->
+  <div class="analytics-section">
+    <h2>Payment Aging Report</h2>
+    <%= link_to "View Overdue Invoices", payment_aging_business_manager_analytics_revenue_index_path, class: "btn btn-link cursor-pointer" %>
+
+    <div class="aging-breakdown">
+      <div class="aging-item current">
+        <span class="label">Current (Not Overdue)</span>
+        <span class="value"><%= number_to_currency(@payment_aging[:current]) %></span>
+      </div>
+      <div class="aging-item warning">
+        <span class="label">1-30 Days Overdue</span>
+        <span class="value"><%= number_to_currency(@payment_aging[:days_30]) %></span>
+      </div>
+      <div class="aging-item danger">
+        <span class="label">31-60 Days Overdue</span>
+        <span class="value"><%= number_to_currency(@payment_aging[:days_60]) %></span>
+      </div>
+      <div class="aging-item critical">
+        <span class="label">90+ Days Overdue</span>
+        <span class="value"><%= number_to_currency(@payment_aging[:days_90_plus]) %></span>
+      </div>
+      <div class="aging-total">
+        <span class="label">Total Outstanding</span>
+        <span class="value"><%= number_to_currency(@payment_aging[:total_outstanding]) %></span>
+        <span class="count"><%= @payment_aging[:overdue_count] %> overdue invoices</span>
+      </div>
+    </div>
+
+    <% if @payment_aging[:days_90_plus] > 0 %>
+      <div class="alert alert-warning">
+        <strong>Action Required:</strong> You have <%= number_to_currency(@payment_aging[:days_90_plus]) %> in payments over 90 days past due. Consider collection actions.
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Revenue Breakdown -->
+  <div class="analytics-section">
+    <h2>Revenue by Category (Last 30 Days)</h2>
+    <div class="revenue-breakdown-grid">
+      <div class="breakdown-item">
+        <div class="category-header">
+          <span class="category-name">Bookings</span>
+          <span class="category-percentage"><%= number_to_percentage(@revenue_breakdown[:percentages][:bookings], precision: 1) %></span>
+        </div>
+        <div class="category-value"><%= number_to_currency(@revenue_breakdown[:bookings]) %></div>
+        <div class="category-bar">
+          <div class="bar-fill bookings" style="width: <%= @revenue_breakdown[:percentages][:bookings] %>%"></div>
+        </div>
+      </div>
+
+      <div class="breakdown-item">
+        <div class="category-header">
+          <span class="category-name">Orders</span>
+          <span class="category-percentage"><%= number_to_percentage(@revenue_breakdown[:percentages][:orders], precision: 1) %></span>
+        </div>
+        <div class="category-value"><%= number_to_currency(@revenue_breakdown[:orders]) %></div>
+        <div class="category-bar">
+          <div class="bar-fill orders" style="width: <%= @revenue_breakdown[:percentages][:orders] %>%"></div>
+        </div>
+      </div>
+
+      <div class="breakdown-item">
+        <div class="category-header">
+          <span class="category-name">Subscriptions</span>
+          <span class="category-percentage"><%= number_to_percentage(@revenue_breakdown[:percentages][:subscriptions], precision: 1) %></span>
+        </div>
+        <div class="category-value"><%= number_to_currency(@revenue_breakdown[:subscriptions]) %></div>
+        <div class="category-bar">
+          <div class="bar-fill subscriptions" style="width: <%= @revenue_breakdown[:percentages][:subscriptions] %>%"></div>
+        </div>
+      </div>
+
+      <div class="breakdown-total">
+        <span class="label">Total Revenue</span>
+        <span class="value"><%= number_to_currency(@revenue_breakdown[:total]) %></span>
+      </div>
+    </div>
+
+    <%= link_to "Revenue by Service →", by_service_business_manager_analytics_revenue_index_path, class: "btn btn-link cursor-pointer" %>
+  </div>
+
+  <!-- Refund Analysis -->
+  <div class="analytics-section">
+    <h2>Refund Analysis (Last 30 Days)</h2>
+    <%= link_to "View All Refunds", refunds_business_manager_analytics_revenue_index_path, class: "btn btn-link cursor-pointer" %>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <span class="label">Total Refunds</span>
+        <span class="value"><%= number_to_currency(@refund_analysis[:total_refunds]) %></span>
+        <span class="description"><%= @refund_analysis[:refund_count] %> refunds issued</span>
+      </div>
+      <div class="metric-card <%= @refund_analysis[:refund_rate] > 5 ? 'warning' : '' %>">
+        <span class="label">Refund Rate</span>
+        <span class="value"><%= number_to_percentage(@refund_analysis[:refund_rate], precision: 2) %></span>
+        <span class="description">Of total payments</span>
+      </div>
+      <div class="metric-card">
+        <span class="label">Avg Refund Amount</span>
+        <span class="value"><%= number_to_currency(@refund_analysis[:avg_refund_amount]) %></span>
+      </div>
+      <div class="metric-card">
+        <span class="label">Total Payments</span>
+        <span class="value"><%= number_to_currency(@refund_analysis[:total_payments]) %></span>
+      </div>
+    </div>
+
+    <% if @refund_analysis[:refund_rate] > 5 %>
+      <div class="alert alert-warning">
+        <strong>High Refund Rate:</strong> Your refund rate of <%= number_to_percentage(@refund_analysis[:refund_rate], precision: 1) %> exceeds the 5% threshold. Consider reviewing policies and customer satisfaction.
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<style>
+.analytics-revenue-container {
+  padding: 2rem;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.analytics-section {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.forecast-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.forecast-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.forecast-card h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: #374151;
+}
+
+.forecast-values {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.forecast-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.forecast-item .label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.forecast-item .value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.forecast-item .description {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-top: 0.25rem;
+}
+
+.trend-up {
+  color: #10b981;
+  font-size: 1.2rem;
+}
+
+.trend-down {
+  color: #ef4444;
+  font-size: 1.2rem;
+}
+
+.trend-stable {
+  color: #6b7280;
+  font-size: 1.2rem;
+}
+
+.daily-average {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+  font-size: 0.875rem;
+}
+
+.forecast-comparison {
+  text-align: center;
+}
+
+.forecast-range {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.confirmed-small {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.metric-card {
+  background: #f9fafb;
+  border-radius: 6px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-card.highlight {
+  background: #dbeafe;
+  border: 2px solid #3b82f6;
+}
+
+.metric-card.warning {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+}
+
+.metric-card .label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.metric-card .value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.25rem;
+}
+
+.metric-card .description {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.aging-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.aging-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-radius: 6px;
+  background: #f9fafb;
+}
+
+.aging-item.current {
+  background: #d1fae5;
+  border-left: 4px solid #10b981;
+}
+
+.aging-item.warning {
+  background: #fef3c7;
+  border-left: 4px solid #f59e0b;
+}
+
+.aging-item.danger {
+  background: #fee2e2;
+  border-left: 4px solid #ef4444;
+}
+
+.aging-item.critical {
+  background: #fecaca;
+  border-left: 4px solid #dc2626;
+}
+
+.aging-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  background: #f3f4f6;
+  border-radius: 6px;
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+.aging-total .count {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: normal;
+}
+
+.revenue-breakdown-grid {
+  margin-top: 1rem;
+}
+
+.breakdown-item {
+  margin-bottom: 1.5rem;
+}
+
+.category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.category-name {
+  font-weight: 500;
+  color: #374151;
+}
+
+.category-percentage {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.category-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.category-bar {
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.bar-fill.bookings {
+  background: #3b82f6;
+}
+
+.bar-fill.orders {
+  background: #10b981;
+}
+
+.bar-fill.subscriptions {
+  background: #8b5cf6;
+}
+
+.breakdown-total {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem;
+  background: #f3f4f6;
+  border-radius: 6px;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+
+.alert {
+  padding: 1rem;
+  border-radius: 6px;
+  margin-top: 1rem;
+}
+
+.alert-warning {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  color: #92400e;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 0.875rem;
+}
+
+.btn-outline {
+  border: 1px solid #d1d5db;
+  color: #374151;
+  background: white;
+}
+
+.btn-outline:hover {
+  background: #f9fafb;
+}
+
+.btn-link {
+  color: #3b82f6;
+  padding: 0;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+</style>

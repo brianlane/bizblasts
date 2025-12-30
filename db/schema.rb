@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_28_000003) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_30_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -130,16 +130,23 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_28_000003) do
     t.jsonb "campaign_metrics", default: {}
     t.decimal "conversion_rate", precision: 5, scale: 2, default: "0.0"
     t.datetime "created_at", null: false
+    t.jsonb "customer_metrics", default: {}
     t.jsonb "device_breakdown", default: {}
     t.jsonb "estimate_metrics", default: {}
     t.datetime "generated_at", null: false
     t.jsonb "geo_breakdown", default: {}
+    t.jsonb "inventory_metrics", default: {}
+    t.jsonb "marketing_metrics", default: {}
+    t.jsonb "operational_metrics", default: {}
     t.decimal "pages_per_session", precision: 5, scale: 2, default: "0.0"
     t.date "period_end", null: false
     t.date "period_start", null: false
+    t.jsonb "predictions", default: {}
     t.jsonb "product_metrics", default: {}
     t.jsonb "service_metrics", default: {}
     t.string "snapshot_type", null: false
+    t.jsonb "staff_metrics", default: {}
+    t.jsonb "subscription_metrics", default: {}
     t.jsonb "top_pages", default: []
     t.jsonb "top_referrers", default: []
     t.integer "total_clicks", default: 0
@@ -155,7 +162,14 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_28_000003) do
     t.index ["business_id", "snapshot_type", "period_start", "period_end"], name: "idx_analytics_snapshots_unique_period", unique: true
     t.index ["business_id", "snapshot_type", "period_start"], name: "idx_analytics_snapshots_business_type_period"
     t.index ["business_id"], name: "index_analytics_snapshots_on_business_id"
+    t.index ["customer_metrics"], name: "index_analytics_snapshots_on_customer_metrics", using: :gin
+    t.index ["inventory_metrics"], name: "index_analytics_snapshots_on_inventory_metrics", using: :gin
+    t.index ["marketing_metrics"], name: "index_analytics_snapshots_on_marketing_metrics", using: :gin
+    t.index ["operational_metrics"], name: "index_analytics_snapshots_on_operational_metrics", using: :gin
+    t.index ["predictions"], name: "index_analytics_snapshots_on_predictions", using: :gin
     t.index ["snapshot_type"], name: "index_analytics_snapshots_on_snapshot_type"
+    t.index ["staff_metrics"], name: "index_analytics_snapshots_on_staff_metrics", using: :gin
+    t.index ["subscription_metrics"], name: "index_analytics_snapshots_on_subscription_metrics", using: :gin
   end
 
   create_table "auth_tokens", force: :cascade do |t|
@@ -1150,14 +1164,19 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_28_000003) do
     t.boolean "active", default: true
     t.bigint "business_id", null: false
     t.integer "campaign_type", default: 0
+    t.integer "clicked_count", default: 0
     t.datetime "completed_at"
     t.text "content"
+    t.integer "conversions_count", default: 0
+    t.decimal "cost", precision: 10, scale: 2, default: "0.0"
     t.datetime "created_at", null: false
     t.text "description"
     t.datetime "end_date"
     t.string "name", null: false
+    t.integer "opened_count", default: 0
     t.bigint "promotion_id"
     t.datetime "scheduled_at"
+    t.integer "sent_count", default: 0
     t.jsonb "settings"
     t.datetime "start_date"
     t.datetime "started_at"
@@ -1233,7 +1252,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_28_000003) do
     t.index ["tenant_customer_id", "created_at"], name: "index_orders_on_tenant_customer_id_and_created_at"
     t.index ["tenant_customer_id"], name: "index_orders_on_tenant_customer_id"
     t.index ["tip_amount"], name: "index_orders_on_tip_amount"
-    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying::text, 'paid'::character varying::text, 'cancelled'::character varying::text, 'shipped'::character varying::text, 'refunded'::character varying::text, 'processing'::character varying::text, 'completed'::character varying::text, 'business_deleted'::character varying::text])", name: "status_enum_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying, 'paid'::character varying, 'cancelled'::character varying, 'shipped'::character varying, 'refunded'::character varying, 'processing'::character varying, 'completed'::character varying, 'business_deleted'::character varying]::text[])", name: "status_enum_check"
   end
 
   create_table "page_sections", force: :cascade do |t|
@@ -1456,6 +1475,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_28_000003) do
   end
 
   create_table "product_variants", force: :cascade do |t|
+    t.decimal "cost_price", precision: 10, scale: 2
     t.datetime "created_at", null: false
     t.string "name", null: false
     t.jsonb "options"
@@ -1478,6 +1498,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_28_000003) do
     t.boolean "allow_hourly_rental", default: true
     t.boolean "allow_weekly_rental", default: true
     t.bigint "business_id", null: false
+    t.decimal "cost_price", precision: 10, scale: 2
     t.datetime "created_at", null: false
     t.text "description"
     t.bigint "document_template_id"
@@ -1701,7 +1722,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_28_000003) do
     t.index ["business_id", "status"], name: "index_rental_bookings_on_business_id_and_status"
     t.index ["business_id"], name: "index_rental_bookings_on_business_id"
     t.index ["deposit_authorization_id"], name: "index_rental_bookings_on_deposit_authorization_id"
-    t.index ["end_time"], name: "index_rental_bookings_on_end_time_for_overdue", where: "((status)::text = ANY (ARRAY[('checked_out'::character varying)::text, ('overdue'::character varying)::text]))"
+    t.index ["end_time"], name: "index_rental_bookings_on_end_time_for_overdue", where: "((status)::text = ANY ((ARRAY['checked_out'::character varying, 'overdue'::character varying])::text[]))"
     t.index ["guest_access_token"], name: "index_rental_bookings_on_guest_access_token", unique: true
     t.index ["location_id"], name: "index_rental_bookings_on_location_id"
     t.index ["product_id", "start_time", "end_time"], name: "idx_on_product_id_start_time_end_time_f527c29028"
@@ -1793,6 +1814,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_28_000003) do
 
   create_table "service_variants", force: :cascade do |t|
     t.boolean "active", default: true
+    t.decimal "cost_price", precision: 10, scale: 2
     t.datetime "created_at", null: false
     t.integer "duration", null: false
     t.string "name", null: false
@@ -1811,6 +1833,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_28_000003) do
     t.jsonb "availability", default: {}, null: false
     t.jsonb "availability_settings"
     t.bigint "business_id", null: false
+    t.decimal "cost_price", precision: 10, scale: 2
     t.datetime "created_at", null: false
     t.bigint "created_from_estimate_id"
     t.text "description"

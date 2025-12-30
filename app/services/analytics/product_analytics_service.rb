@@ -39,9 +39,9 @@ module Analytics
     # @return [Array<Hash>] Top products with metrics
     def top_products(start_date: 30.days.ago, end_date: Time.current, limit: 10)
       # Get product sales from line items
+      order_ids = business.orders.where(created_at: start_date..end_date).pluck(:id)
       product_sales = LineItem
-        .joins(:order)
-        .where(orders: { business_id: business.id, created_at: start_date..end_date })
+        .where(lineable_type: 'Order', lineable_id: order_ids)
         .where(item_type: 'Product')
         .group(:item_id)
         .select(
@@ -78,10 +78,10 @@ module Analytics
     # @return [Hash] Revenue and sales by category
     def revenue_by_category(orders)
       # Get line items with product info
+      order_ids = orders.pluck(:id)
       category_sales = LineItem
-        .joins(:order)
+        .where(lineable_type: 'Order', lineable_id: order_ids)
         .joins("LEFT JOIN products ON line_items.item_id = products.id AND line_items.item_type = 'Product'")
-        .where(orders: { business_id: business.id })
         .where(item_type: 'Product')
         .group('products.category')
         .select(
@@ -160,7 +160,7 @@ module Analytics
       business.orders
         .where(created_at: start_date..end_date)
         .group("DATE(created_at)")
-        .select("DATE(created_at) as date, COUNT(*) as orders, SUM(total) as revenue")
+        .select("DATE(created_at) as date, COUNT(*) as orders, SUM(total_amount) as revenue")
         .map do |row|
           {
             date: row.date,
@@ -187,27 +187,27 @@ module Analytics
     end
 
     def calculate_total_revenue(orders)
-      orders.where(status: [:completed, :delivered]).sum(:total).to_f
+      orders.where(status: [:completed, :delivered]).sum(:total_amount).to_f
     end
 
     def calculate_average_order_value(orders)
       completed = orders.where(status: [:completed, :delivered])
       return 0.0 if completed.count.zero?
-      
-      (completed.sum(:total).to_f / completed.count).round(2)
+
+      (completed.sum(:total_amount).to_f / completed.count).round(2)
     end
 
     def calculate_total_items_sold(orders)
+      order_ids = orders.pluck(:id)
       LineItem
-        .joins(:order)
-        .where(orders: { id: orders.pluck(:id) })
+        .where(lineable_type: 'Order', lineable_id: order_ids)
         .sum(:quantity)
     end
 
     def calculate_unique_products_sold(orders)
+      order_ids = orders.pluck(:id)
       LineItem
-        .joins(:order)
-        .where(orders: { id: orders.pluck(:id) }, item_type: 'Product')
+        .where(lineable_type: 'Order', lineable_id: order_ids, item_type: 'Product')
         .distinct
         .count(:item_id)
     end

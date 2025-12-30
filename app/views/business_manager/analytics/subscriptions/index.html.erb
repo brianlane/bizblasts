@@ -1,0 +1,306 @@
+<div class="container mx-auto px-4 py-8">
+  <div class="flex justify-between items-center mb-8">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">Subscription Analytics</h1>
+      <p class="text-gray-600 mt-1">Monthly recurring revenue and subscription health</p>
+    </div>
+    <%= link_to "Export Data", export_business_manager_analytics_subscriptions_path(format: :csv),
+                class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" %>
+  </div>
+
+  <!-- Key Metrics -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-600">MRR</p>
+          <p class="text-3xl font-bold text-green-600"><%= number_to_currency(@metrics_summary[:mrr]) %></p>
+        </div>
+        <div class="bg-green-100 p-3 rounded-full">
+          <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+      </div>
+      <p class="text-sm mt-2">
+        <span class="<%= @metrics_summary[:mrr_growth_rate] >= 0 ? 'text-green-600' : 'text-red-600' %> font-medium">
+          <%= @metrics_summary[:mrr_growth_rate] >= 0 ? '+' : '' %><%= @metrics_summary[:mrr_growth_rate] %>%
+        </span>
+        <span class="text-gray-500">growth</span>
+      </p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-600">ARR</p>
+          <p class="text-3xl font-bold text-blue-600"><%= number_to_currency(@metrics_summary[:arr]) %></p>
+        </div>
+        <div class="bg-blue-100 p-3 rounded-full">
+          <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+          </svg>
+        </div>
+      </div>
+      <p class="text-sm text-gray-500 mt-2">Annual Recurring Revenue</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-600">Active Subscriptions</p>
+          <p class="text-3xl font-bold text-purple-600"><%= @metrics_summary[:active_subscriptions] %></p>
+        </div>
+        <div class="bg-purple-100 p-3 rounded-full">
+          <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
+        </div>
+      </div>
+      <p class="text-sm text-gray-500 mt-2"><%= @metrics_summary[:active_customers] %> customers</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-600">Churn Rate</p>
+          <p class="text-3xl font-bold text-red-600"><%= @metrics_summary[:customer_churn_rate] %>%</p>
+        </div>
+        <div class="bg-red-100 p-3 rounded-full">
+          <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
+          </svg>
+        </div>
+      </div>
+      <p class="text-sm text-gray-500 mt-2">Last 30 days</p>
+    </div>
+  </div>
+
+  <!-- MRR Breakdown -->
+  <div class="bg-white rounded-lg shadow mb-8">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-xl font-semibold text-gray-900">MRR Movement This Month</h2>
+    </div>
+    <div class="p-6">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-6">
+        <div class="text-center">
+          <div class="text-sm text-gray-600 mb-2">New MRR</div>
+          <div class="text-3xl font-bold text-green-600"><%= number_to_currency(@mrr_breakdown[:new_mrr]) %></div>
+        </div>
+        <div class="text-center">
+          <div class="text-sm text-gray-600 mb-2">Expansion MRR</div>
+          <div class="text-3xl font-bold text-blue-600"><%= number_to_currency(@mrr_breakdown[:expansion_mrr]) %></div>
+        </div>
+        <div class="text-center">
+          <div class="text-sm text-gray-600 mb-2">Contraction MRR</div>
+          <div class="text-3xl font-bold text-orange-600"><%= number_to_currency(@mrr_breakdown[:contraction_mrr]) %></div>
+        </div>
+        <div class="text-center">
+          <div class="text-sm text-gray-600 mb-2">Churned MRR</div>
+          <div class="text-3xl font-bold text-red-600"><%= number_to_currency(@mrr_breakdown[:churned_mrr]) %></div>
+        </div>
+        <div class="text-center bg-gray-50 rounded-lg p-4">
+          <div class="text-sm text-gray-600 mb-2">Net New MRR</div>
+          <div class="text-3xl font-bold <%= @mrr_breakdown[:net_new_mrr] >= 0 ? 'text-green-600' : 'text-red-600' %>">
+            <%= number_to_currency(@mrr_breakdown[:net_new_mrr]) %>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 pt-6 border-t border-gray-200">
+        <h3 class="text-sm font-medium text-gray-700 mb-3">MRR Breakdown</h3>
+        <div class="space-y-3">
+          <div>
+            <div class="flex justify-between text-sm mb-1">
+              <span class="text-gray-600">New Subscriptions</span>
+              <span class="font-medium text-green-600"><%= number_to_currency(@mrr_breakdown[:new_mrr]) %></span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <% total_movement = @mrr_breakdown[:new_mrr] + @mrr_breakdown[:expansion_mrr] + @mrr_breakdown[:contraction_mrr] + @mrr_breakdown[:churned_mrr] %>
+              <% new_pct = total_movement > 0 ? (@mrr_breakdown[:new_mrr] / total_movement * 100).round(1) : 0 %>
+              <div class="bg-green-600 h-2 rounded-full" style="width: <%= [new_pct, 100].min %>%"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between text-sm mb-1">
+              <span class="text-gray-600">Expansions (Upgrades)</span>
+              <span class="font-medium text-blue-600"><%= number_to_currency(@mrr_breakdown[:expansion_mrr]) %></span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <% expansion_pct = total_movement > 0 ? (@mrr_breakdown[:expansion_mrr] / total_movement * 100).round(1) : 0 %>
+              <div class="bg-blue-600 h-2 rounded-full" style="width: <%= [expansion_pct, 100].min %>%"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between text-sm mb-1">
+              <span class="text-gray-600">Contractions (Downgrades)</span>
+              <span class="font-medium text-orange-600"><%= number_to_currency(@mrr_breakdown[:contraction_mrr]) %></span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <% contraction_pct = total_movement > 0 ? (@mrr_breakdown[:contraction_mrr] / total_movement * 100).round(1) : 0 %>
+              <div class="bg-orange-600 h-2 rounded-full" style="width: <%= [contraction_pct, 100].min %>%"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between text-sm mb-1">
+              <span class="text-gray-600">Cancellations</span>
+              <span class="font-medium text-red-600"><%= number_to_currency(@mrr_breakdown[:churned_mrr]) %></span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <% churned_pct = total_movement > 0 ? (@mrr_breakdown[:churned_mrr] / total_movement * 100).round(1) : 0 %>
+              <div class="bg-red-600 h-2 rounded-full" style="width: <%= [churned_pct, 100].min %>%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MRR Trend Chart -->
+  <div class="bg-white rounded-lg shadow mb-8">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-semibold text-gray-900">MRR Trend (Last 12 Months)</h2>
+        <%= link_to "View Details", mrr_trend_business_manager_analytics_subscriptions_path,
+                    class: "text-blue-600 hover:text-blue-800 font-medium" %>
+      </div>
+    </div>
+    <div class="p-6">
+      <div class="grid grid-cols-6 md:grid-cols-12 gap-2">
+        <% @mrr_trend.each do |month_data| %>
+          <div class="text-center">
+            <div class="text-xs text-gray-500 mb-1"><%= month_data[:month].split(' ').first %></div>
+            <div class="bg-blue-100 rounded-lg p-2">
+              <div class="text-xs font-bold text-blue-900"><%= number_to_currency(month_data[:mrr], precision: 0) %></div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- At-Risk Subscriptions -->
+  <div class="bg-white rounded-lg shadow mb-8">
+    <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-red-50 to-orange-50">
+      <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+        <svg class="w-5 h-5 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        At-Risk Subscriptions
+        <span class="ml-3 px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">
+          <%= @at_risk.size %>
+        </span>
+      </h2>
+    </div>
+    <div class="p-6">
+      <% if @at_risk.present? && @at_risk.any? %>
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-yellow-800">Retention Action Required</h3>
+              <div class="mt-2 text-sm text-yellow-700">
+                <p>These subscriptions have low health scores. Consider proactive outreach to prevent cancellation.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Billing</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Active</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Health Score</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <% @at_risk.each do |sub| %>
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900"><%= sub[:customer_name] %></div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <%= number_to_currency(sub[:subscription_price]) %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <%= sub[:billing_interval].capitalize %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <%= sub[:days_active] %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                      <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                        <div class="<%= sub[:health_score] < 30 ? 'bg-red-600' : sub[:health_score] < 50 ? 'bg-yellow-500' : 'bg-green-600' %> h-2 rounded-full"
+                             style="width: <%= sub[:health_score] %>%"></div>
+                      </div>
+                      <span class="text-sm text-gray-900"><%= sub[:health_score] %></span>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                      <%= sub[:status] == 'critical' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800' %>">
+                      <%= sub[:status].upcase %>
+                    </span>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <div class="text-center py-8">
+          <svg class="w-12 h-12 mx-auto text-green-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <p class="text-gray-600">No subscriptions at risk!</p>
+          <p class="text-sm text-gray-500 mt-1">All subscriptions have healthy scores</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Expansion Revenue -->
+  <div class="bg-white rounded-lg shadow">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-semibold text-gray-900">Expansion Revenue (Last 30 Days)</h2>
+        <%= link_to "View Details", expansion_business_manager_analytics_subscriptions_path,
+                    class: "text-blue-600 hover:text-blue-800 font-medium" %>
+      </div>
+    </div>
+    <div class="p-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-blue-50 rounded-lg p-6">
+          <p class="text-sm text-blue-700 font-medium mb-2">Total Expansion MRR</p>
+          <p class="text-3xl font-bold text-blue-900"><%= number_to_currency(@expansion[:total_expansion]) %></p>
+          <p class="text-xs text-blue-600 mt-2">From upgrades and add-ons</p>
+        </div>
+
+        <div class="bg-green-50 rounded-lg p-6">
+          <p class="text-sm text-green-700 font-medium mb-2">Expansion Count</p>
+          <p class="text-3xl font-bold text-green-900"><%= @expansion[:expansion_count] %></p>
+          <p class="text-xs text-green-600 mt-2">Upgrades this month</p>
+        </div>
+
+        <div class="bg-purple-50 rounded-lg p-6">
+          <p class="text-sm text-purple-700 font-medium mb-2">Avg Expansion</p>
+          <p class="text-3xl font-bold text-purple-900"><%= number_to_currency(@expansion[:avg_expansion]) %></p>
+          <p class="text-xs text-purple-600 mt-2">Per upgrade</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

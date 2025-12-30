@@ -1,0 +1,290 @@
+<div class="container mx-auto px-4 py-8">
+  <!-- Header -->
+  <div class="flex justify-between items-center mb-8">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">Anomaly Detection</h1>
+      <p class="text-gray-600 mt-1">Unusual patterns and outliers in your business metrics</p>
+    </div>
+    <%= link_to "← Back to Predictive Analytics", business_manager_analytics_predictive_index_path,
+                class: "text-blue-600 hover:text-blue-800 font-medium" %>
+  </div>
+
+  <!-- Alert Summary -->
+  <% if @anomalies.present? && @anomalies.any? %>
+    <div class="bg-red-50 border-l-4 border-red-400 p-6 mb-8 rounded-lg">
+      <div class="flex items-start">
+        <div class="flex-shrink-0">
+          <svg class="h-6 w-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+        </div>
+        <div class="ml-3 flex-1">
+          <h3 class="text-lg font-medium text-red-800">Anomalies Detected</h3>
+          <p class="text-sm text-red-700 mt-1">
+            <%= @anomalies.count %> unusual patterns detected across your metrics. Review and investigate these to identify potential issues or opportunities.
+          </p>
+          <div class="mt-3 flex space-x-4">
+            <span class="text-sm text-red-700">
+              <strong><%= @anomaly_summary[:critical] %></strong> Critical
+            </span>
+            <span class="text-sm text-red-700">
+              <strong><%= @anomaly_summary[:high] %></strong> High
+            </span>
+            <span class="text-sm text-red-700">
+              <strong><%= @anomaly_summary[:medium] %></strong> Medium
+            </span>
+            <span class="text-sm text-red-700">
+              <strong><%= @anomaly_summary[:low] %></strong> Low
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% else %>
+    <div class="bg-green-50 border-l-4 border-green-400 p-6 mb-8 rounded-lg">
+      <div class="flex items-start">
+        <div class="flex-shrink-0">
+          <svg class="h-6 w-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-lg font-medium text-green-800">No Anomalies Detected</h3>
+          <p class="text-sm text-green-700 mt-1">
+            All metrics are within expected ranges. Your business is operating normally.
+          </p>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Anomaly Categories -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-sm text-gray-600">Revenue Anomalies</p>
+        <div class="bg-green-100 p-2 rounded-lg">
+          <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+      </div>
+      <p class="text-3xl font-bold text-gray-900"><%= @category_counts[:revenue] || 0 %></p>
+      <p class="text-sm text-gray-500 mt-1">Unusual revenue patterns</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-sm text-gray-600">Booking Anomalies</p>
+        <div class="bg-blue-100 p-2 rounded-lg">
+          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+        </div>
+      </div>
+      <p class="text-3xl font-bold text-gray-900"><%= @category_counts[:bookings] || 0 %></p>
+      <p class="text-sm text-gray-500 mt-1">Unexpected booking trends</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-sm text-gray-600">Customer Anomalies</p>
+        <div class="bg-purple-100 p-2 rounded-lg">
+          <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
+        </div>
+      </div>
+      <p class="text-3xl font-bold text-gray-900"><%= @category_counts[:customers] || 0 %></p>
+      <p class="text-sm text-gray-500 mt-1">Unusual customer behavior</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-sm text-gray-600">Operational Anomalies</p>
+        <div class="bg-yellow-100 p-2 rounded-lg">
+          <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+        </div>
+      </div>
+      <p class="text-3xl font-bold text-gray-900"><%= @category_counts[:operations] || 0 %></p>
+      <p class="text-sm text-gray-500 mt-1">Operational irregularities</p>
+    </div>
+  </div>
+
+  <!-- Detected Anomalies List -->
+  <% if @anomalies.present? && @anomalies.any? %>
+    <div class="space-y-4 mb-8">
+      <% @anomalies.group_by { |a| a[:severity] }.sort_by { |severity, _| ['critical', 'high', 'medium', 'low'].index(severity.to_s) || 999 }.each do |severity, anomalies_group| %>
+        <div class="bg-white rounded-lg shadow">
+          <div class="px-6 py-4 border-b border-gray-200 <%= severity == 'critical' ? 'bg-red-50' : severity == 'high' ? 'bg-orange-50' : severity == 'medium' ? 'bg-yellow-50' : 'bg-blue-50' %>">
+            <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+              <%= anomaly_severity_badge(severity) %>
+              <span class="ml-3"><%= severity.to_s.titleize %> Priority Anomalies</span>
+              <span class="ml-3 px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm font-medium">
+                <%= anomalies_group.count %>
+              </span>
+            </h2>
+          </div>
+          <div class="p-6">
+            <div class="space-y-6">
+              <% anomalies_group.each do |anomaly| %>
+                <div class="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                  <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                      <div class="flex items-center">
+                        <h3 class="text-lg font-semibold text-gray-900"><%= anomaly[:title] %></h3>
+                        <span class="ml-3 px-2 py-1 text-xs font-medium rounded <%= anomaly[:category] == 'revenue' ? 'bg-green-100 text-green-800' : anomaly[:category] == 'bookings' ? 'bg-blue-100 text-blue-800' : anomaly[:category] == 'customers' ? 'bg-purple-100 text-purple-800' : 'bg-yellow-100 text-yellow-800' %>">
+                          <%= anomaly[:category].to_s.titleize %>
+                        </span>
+                      </div>
+                      <p class="text-sm text-gray-600 mt-2"><%= anomaly[:description] %></p>
+                    </div>
+                    <div class="text-right ml-4">
+                      <div class="text-sm text-gray-500">Detected</div>
+                      <div class="text-sm font-medium text-gray-900"><%= relative_time_description(anomaly[:detected_days_ago]) %></div>
+                    </div>
+                  </div>
+
+                  <!-- Metric Details -->
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 rounded-lg p-4 mb-4">
+                    <div>
+                      <div class="text-xs text-gray-500 mb-1">Current Value</div>
+                      <div class="text-lg font-bold text-gray-900">
+                        <% if anomaly[:metric_type] == 'currency' %>
+                          <%= number_to_currency(anomaly[:current_value]) %>
+                        <% elsif anomaly[:metric_type] == 'percentage' %>
+                          <%= number_to_percentage(anomaly[:current_value], precision: 1) %>
+                        <% else %>
+                          <%= anomaly[:current_value] %>
+                        <% end %>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="text-xs text-gray-500 mb-1">Expected Range</div>
+                      <div class="text-lg font-medium text-gray-700">
+                        <% if anomaly[:metric_type] == 'currency' %>
+                          <%= number_to_currency(anomaly[:expected_min]) %> - <%= number_to_currency(anomaly[:expected_max]) %>
+                        <% elsif anomaly[:metric_type] == 'percentage' %>
+                          <%= number_to_percentage(anomaly[:expected_min], precision: 1) %> - <%= number_to_percentage(anomaly[:expected_max], precision: 1) %>
+                        <% else %>
+                          <%= anomaly[:expected_min] %> - <%= anomaly[:expected_max] %>
+                        <% end %>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="text-xs text-gray-500 mb-1">Deviation</div>
+                      <div class="text-lg font-bold <%= anomaly[:deviation_percent] >= 0 ? 'text-green-600' : 'text-red-600' %>">
+                        <%= anomaly[:deviation_percent] >= 0 ? '+' : '' %><%= anomaly[:deviation_percent].round(1) %>%
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Possible Causes -->
+                  <div class="mb-4">
+                    <h4 class="text-sm font-medium text-gray-900 mb-2">Possible Causes:</h4>
+                    <ul class="list-disc list-inside space-y-1">
+                      <% anomaly[:possible_causes].each do |cause| %>
+                        <li class="text-sm text-gray-600"><%= cause %></li>
+                      <% end %>
+                    </ul>
+                  </div>
+
+                  <!-- Recommended Actions -->
+                  <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+                    <h4 class="text-sm font-medium text-blue-900 mb-2 flex items-center">
+                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                      </svg>
+                      Recommended Actions
+                    </h4>
+                    <ul class="space-y-1">
+                      <% anomaly[:recommended_actions].each do |action| %>
+                        <li class="text-sm text-blue-800">• <%= action %></li>
+                      <% end %>
+                    </ul>
+                  </div>
+
+                  <!-- Action Buttons -->
+                  <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+                    <div class="flex space-x-2">
+                      <button class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">
+                        View Details
+                      </button>
+                      <button class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">
+                        Mark as Investigated
+                      </button>
+                    </div>
+                    <button class="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 cursor-pointer">
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <!-- Detection Settings -->
+  <div class="bg-white rounded-lg shadow">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-xl font-semibold text-gray-900">Detection Settings</h2>
+      <p class="text-sm text-gray-500 mt-1">Configure anomaly detection sensitivity and thresholds</p>
+    </div>
+    <div class="p-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Detection Sensitivity</label>
+          <select class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+            <option>Low (Only flag major deviations)</option>
+            <option selected>Medium (Balanced detection)</option>
+            <option>High (Flag minor deviations)</option>
+          </select>
+          <p class="text-xs text-gray-500 mt-1">Higher sensitivity may result in more false positives</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Deviation Threshold</label>
+          <select class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+            <option>±10% from expected range</option>
+            <option>±15% from expected range</option>
+            <option selected>±20% from expected range</option>
+            <option>±25% from expected range</option>
+          </select>
+          <p class="text-xs text-gray-500 mt-1">Minimum deviation to flag as anomaly</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Monitoring Period</label>
+          <select class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+            <option>Last 7 days</option>
+            <option>Last 14 days</option>
+            <option selected>Last 30 days</option>
+            <option>Last 90 days</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Email Notifications</label>
+          <select class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+            <option>Never</option>
+            <option>Critical anomalies only</option>
+            <option selected>Critical and High priority</option>
+            <option>All anomalies</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mt-6 flex justify-end">
+        <button class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium cursor-pointer">
+          Save Settings
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

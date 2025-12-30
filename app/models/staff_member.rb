@@ -262,6 +262,48 @@ class StaffMember < ApplicationRecord
     "Connected: #{providers}"
   end
 
+  # Staff Performance Analytics methods
+  def bookings_count(period = 30.days)
+    bookings.where(created_at: period.ago..Time.current).count
+  end
+
+  def total_revenue(period = 30.days)
+    bookings.where(created_at: period.ago..Time.current)
+            .joins(invoice: :payments)
+            .where(payments: { status: :completed })
+            .sum('payments.amount').to_f
+  end
+
+  def average_rating
+    # Placeholder for rating system - returns nil if not implemented
+    # When rating system is added, calculate: ratings.average(:score)
+    nil
+  end
+
+  def completion_rate(period = 30.days)
+    total_bookings = bookings.where(created_at: period.ago..Time.current).count
+    return 0 if total_bookings.zero?
+
+    completed = bookings.where(created_at: period.ago..Time.current, status: :completed).count
+    ((completed.to_f / total_bookings) * 100).round(1)
+  end
+
+  def cancellation_rate(period = 30.days)
+    total_bookings = bookings.where(created_at: period.ago..Time.current).count
+    return 0 if total_bookings.zero?
+
+    cancelled = bookings.where(created_at: period.ago..Time.current, status: 'cancelled').count
+    ((cancelled.to_f / total_bookings) * 100).round(1)
+  end
+
+  def no_show_rate(period = 30.days)
+    total_bookings = bookings.where(created_at: period.ago..Time.current).count
+    return 0 if total_bookings.zero?
+
+    no_shows = bookings.where(created_at: period.ago..Time.current, status: 'no_show').count
+    ((no_shows.to_f / total_bookings) * 100).round(1)
+  end
+
   private
 
   # --------------------------------------------------------------------------

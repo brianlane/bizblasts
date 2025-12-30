@@ -14,6 +14,7 @@ class Product < ApplicationRecord
   has_one :client_document, as: :documentable, dependent: :nullify
 
   has_many :product_variants, -> { order(:id) }, dependent: :destroy
+  has_many :stock_movements, dependent: :destroy
   # If variants are mandatory, line_items might associate through variants
   # has_many :line_items, dependent: :destroy # Use this if products DON'T have variants
   has_many :line_items, through: :product_variants # Use this if products MUST have variants
@@ -136,11 +137,20 @@ class Product < ApplicationRecord
   # Delegate stock check to variants if they exist, otherwise check product stock
   def in_stock?(requested_quantity = 1)
     return true if business&.stock_management_disabled?
-    
+
     if product_variants.any?
       product_variants.sum(:stock_quantity) >= requested_quantity
     else
       stock_quantity >= requested_quantity
+    end
+  end
+
+  # Get total stock quantity (sum of all variants or product stock_quantity)
+  def total_stock_quantity
+    if product_variants.any?
+      product_variants.sum(:stock_quantity)
+    else
+      stock_quantity || 0
     end
   end
 

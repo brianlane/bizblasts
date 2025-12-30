@@ -176,7 +176,77 @@ class TenantCustomer < ApplicationRecord
   def total_monthly_subscription_cost
     active_subscriptions.sum(:subscription_price)
   end
-  
+
+  # Customer Lifecycle Analytics methods
+  # Calculate total revenue from this customer
+  def total_revenue
+    Rails.cache.fetch(["customer_revenue", id], expires_in: 1.hour) do
+      booking_revenue + order_revenue
+    end
+  end
+
+  def booking_revenue
+    bookings.joins(invoice: :payments)
+            .where(payments: { status: :completed })
+            .sum('payments.amount').to_f
+  end
+
+  def order_revenue
+    orders.joins(:payments)
+          .where(payments: { status: :completed })
+          .sum('payments.amount').to_f
+  end
+
+  # Count of all purchases (bookings + orders)
+  def purchase_frequency
+    (bookings.count + orders.count).to_f
+  end
+
+  # Purchases per year based on customer lifespan
+  def purchase_frequency_per_year
+    return 0 if lifespan_days.zero?
+    (purchase_frequency / (lifespan_days / 365.0)).round(2)
+  end
+
+  # Days between first and last purchase
+  def lifespan_days
+    return 0 unless first_purchase_at && last_purchase_at
+    (last_purchase_at - first_purchase_at).to_i
+  end
+
+  def first_purchase_at
+    [bookings.minimum(:created_at), orders.minimum(:created_at)].compact.min
+  end
+
+  def last_purchase_at
+    [bookings.maximum(:created_at), orders.maximum(:created_at)].compact.max
+  end
+
+  def days_since_last_purchase
+    return nil unless last_purchase_at
+    (Time.current - last_purchase_at).to_i / 1.day
+  end
+
+  # Average days between purchases for customers with multiple purchases
+  def avg_days_between_purchases
+    return nil if purchase_frequency < 2
+
+    all_purchases = (bookings.pluck(:created_at) + orders.pluck(:created_at)).sort
+    return nil if all_purchases.length < 2
+
+    intervals = []
+    (1...all_purchases.length).each do |i|
+      intervals << (all_purchases[i] - all_purchases[i-1]).to_i / 1.day
+    end
+
+    intervals.sum / intervals.length
+  end
+
+  # Clear revenue cache when related records change
+  def clear_revenue_cache
+    Rails.cache.delete(["customer_revenue", id])
+  end
+
   # Define ransackable attributes for ActiveAdmin - updated for new fields
   # Note: phone excluded from ransackable attributes because it's encrypted and doesn't support partial searches
   def self.ransackable_attributes(auth_object = nil)

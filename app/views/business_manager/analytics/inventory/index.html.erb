@@ -1,0 +1,781 @@
+<% content_for :title, "Inventory Intelligence" %>
+
+<div class="analytics-inventory-container">
+  <div class="page-header">
+    <h1>Inventory Intelligence</h1>
+    <div class="header-actions">
+      <!-- Period Selector -->
+      <div class="mr-4">
+        <%= render 'shared/period_selector', period: @period, base_path: business_manager_analytics_inventory_index_path %>
+      </div>
+
+      <%= link_to "Export CSV", export_business_manager_analytics_inventory_index_path(format: :csv, period: @period), class: "btn btn-outline cursor-pointer" %>
+    </div>
+  </div>
+
+  <!-- Inventory Health Score -->
+  <div class="analytics-section">
+    <h2>Inventory Health Score</h2>
+    <%= link_to "View Detailed Breakdown", health_score_business_manager_analytics_inventory_index_path, class: "btn btn-link cursor-pointer" %>
+
+    <div class="health-score-container">
+      <div class="score-display">
+        <div class="score-circle <%= @health_score[:grade].downcase %>">
+          <span class="score-value"><%= @health_score[:score] %></span>
+          <span class="score-grade">Grade <%= @health_score[:grade] %></span>
+        </div>
+        <div class="score-interpretation">
+          <% if @health_score[:score] >= 90 %>
+            <span class="status-excellent">Excellent</span>
+            <p>Your inventory management is in excellent shape!</p>
+          <% elsif @health_score[:score] >= 70 %>
+            <span class="status-good">Good</span>
+            <p>Your inventory management is working well with minor improvements needed.</p>
+          <% else %>
+            <span class="status-needs-attention">Needs Attention</span>
+            <p>There are several inventory issues that require immediate attention.</p>
+          <% end %>
+        </div>
+      </div>
+
+      <% if @health_score[:issues].any? %>
+        <div class="health-issues">
+          <h4>Issues Found</h4>
+          <ul>
+            <% @health_score[:issues].each do |issue| %>
+              <li><%= issue %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <% if @health_score[:recommendations].any? %>
+        <div class="health-recommendations">
+          <h4>Recommendations</h4>
+          <ul>
+            <% @health_score[:recommendations].each do |recommendation| %>
+              <li><%= recommendation %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Low Stock Alerts -->
+  <div class="analytics-section">
+    <h2>Low Stock Alerts</h2>
+    <%= link_to "View All Low Stock Items", low_stock_business_manager_analytics_inventory_index_path, class: "btn btn-link cursor-pointer" %>
+
+    <% if @low_stock.any? %>
+      <div class="alert-summary">
+        <span class="alert-count critical"><%= @low_stock.count { |item| item[:status] == 'critical' } %> Critical</span>
+        <span class="alert-count warning"><%= @low_stock.count { |item| item[:status] == 'warning' } %> Warning</span>
+      </div>
+
+      <div class="low-stock-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Variant</th>
+              <th>Current Stock</th>
+              <th>Days Remaining</th>
+              <th>Reorder Qty</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @low_stock.first(10).each do |item| %>
+              <tr class="<%= item[:status] %>">
+                <td><%= item[:product_name] %></td>
+                <td><%= item[:variant_name] %></td>
+                <td><%= item[:current_stock] %></td>
+                <td><%= item[:days_remaining].round(1) %> days</td>
+                <td><%= item[:recommended_reorder] %> units</td>
+                <td>
+                  <span class="badge <%= item[:status] %>">
+                    <%= item[:status].titleize %>
+                  </span>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <% if @low_stock.count > 10 %>
+        <p class="table-note">Showing 10 of <%= @low_stock.count %> low stock items. <%= link_to "View all →", low_stock_business_manager_analytics_inventory_index_path %></p>
+      <% end %>
+    <% else %>
+      <div class="empty-state">
+        <span class="icon">✓</span>
+        <p>No low stock items at this time</p>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Reorder Recommendations -->
+  <div class="analytics-section">
+    <h2>Reorder Recommendations</h2>
+    <%= link_to "View All Recommendations", reorder_recommendations_business_manager_analytics_inventory_index_path, class: "btn btn-link cursor-pointer" %>
+
+    <% if @reorder_points.any? %>
+      <div class="alert-summary">
+        <span class="alert-count urgent"><%= @reorder_points.count { |item| item[:status] == 'urgent' } %> Urgent</span>
+        <span class="alert-count due"><%= @reorder_points.count { |item| item[:status] == 'due' } %> Due</span>
+      </div>
+
+      <div class="reorder-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Variant</th>
+              <th>Current Stock</th>
+              <th>Reorder Point</th>
+              <th>Order Qty</th>
+              <th>Daily Sales</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @reorder_points.first(10).each do |item| %>
+              <tr class="<%= item[:status] %>">
+                <td><%= item[:product_name] %></td>
+                <td><%= item[:variant_name] %></td>
+                <td><%= item[:current_stock] %></td>
+                <td><%= item[:reorder_point] %></td>
+                <td class="highlight"><%= item[:recommended_order_quantity] %> units</td>
+                <td><%= item[:daily_sales_rate] %> units/day</td>
+                <td>
+                  <span class="badge <%= item[:status] %>">
+                    <%= item[:status].titleize %>
+                  </span>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <div class="empty-state">
+        <span class="icon">✓</span>
+        <p>All products are above their reorder points</p>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Stock Valuation -->
+  <div class="analytics-section">
+    <h2>Stock Valuation</h2>
+    <%= link_to "View Detailed Breakdown", valuation_business_manager_analytics_inventory_index_path, class: "btn btn-link cursor-pointer" %>
+
+    <div class="metrics-grid">
+      <div class="metric-card highlight">
+        <span class="label">Total Stock Value</span>
+        <span class="value"><%= number_to_currency(@stock_valuation[:total_stock_value]) %></span>
+        <span class="description">At cost price</span>
+      </div>
+      <div class="metric-card">
+        <span class="label">Product Count</span>
+        <span class="value"><%= @stock_valuation[:product_count] %></span>
+        <span class="description">With inventory value</span>
+      </div>
+      <% if @stock_valuation[:breakdown].any? %>
+        <div class="metric-card">
+          <span class="label">Top Product Value</span>
+          <span class="value"><%= number_to_currency(@stock_valuation[:breakdown].first[:stock_value]) %></span>
+          <span class="description"><%= @stock_valuation[:breakdown].first[:product_name] %></span>
+        </div>
+        <div class="metric-card">
+          <span class="label">Avg Product Value</span>
+          <span class="value">
+            <%= number_to_currency(@stock_valuation[:total_stock_value] / @stock_valuation[:product_count]) %>
+          </span>
+          <span class="description">Per product</span>
+        </div>
+      <% end %>
+    </div>
+
+    <% if @stock_valuation[:breakdown].any? %>
+      <div class="valuation-breakdown">
+        <h4>Top 5 Products by Value</h4>
+        <div class="breakdown-list">
+          <% @stock_valuation[:breakdown].first(5).each do |item| %>
+            <div class="breakdown-item">
+              <span class="product-name"><%= item[:product_name] %></span>
+              <div class="product-details">
+                <span class="stock-qty"><%= item[:stock_quantity] %> units</span>
+                <span class="stock-value"><%= number_to_currency(item[:stock_value]) %></span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Stock Movement Summary -->
+  <div class="analytics-section">
+    <h2>Stock Movement Summary (Last 30 Days)</h2>
+    <%= link_to "View All Movements", movements_business_manager_analytics_inventory_index_path, class: "btn btn-link cursor-pointer" %>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <span class="label">Total Movements</span>
+        <span class="value"><%= @movement_summary[:total_movements] %></span>
+      </div>
+      <div class="metric-card success">
+        <span class="label">Stock In</span>
+        <span class="value"><%= @movement_summary[:stock_in] %></span>
+        <span class="description">Units received</span>
+      </div>
+      <div class="metric-card">
+        <span class="label">Stock Out</span>
+        <span class="value"><%= @movement_summary[:stock_out] %></span>
+        <span class="description">Units sold/used</span>
+      </div>
+      <div class="metric-card warning">
+        <span class="label">Adjustments</span>
+        <span class="value"><%= @movement_summary[:adjustments] %></span>
+        <span class="description">Manual corrections</span>
+      </div>
+    </div>
+
+    <% if @movement_summary[:adjustments] > 10 %>
+      <div class="alert alert-warning">
+        <strong>High Adjustment Count:</strong> <%= @movement_summary[:adjustments] %> stock adjustments in the last 30 days may indicate inventory tracking issues.
+      </div>
+    <% end %>
+
+    <% if @movement_summary[:recent_movements].any? %>
+      <div class="recent-movements">
+        <h4>Recent Movements (Last 20)</h4>
+        <div class="movements-list">
+          <% @movement_summary[:recent_movements].first(5).each do |movement| %>
+            <div class="movement-item">
+              <span class="movement-date"><%= movement[:date].strftime('%b %d, %Y') %></span>
+              <span class="movement-product"><%= movement[:product_name] %> - <%= movement[:variant_name] %></span>
+              <span class="movement-type <%= movement[:movement_type] %>">
+                <%= movement[:movement_type].titleize %>
+              </span>
+              <span class="movement-qty">
+                <%= movement[:quantity] > 0 ? "+#{movement[:quantity]}" : movement[:quantity] %>
+              </span>
+              <span class="movement-reason"><%= movement[:reason] %></span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Quick Links -->
+  <div class="analytics-section">
+    <h2>Detailed Reports</h2>
+    <div class="quick-links-grid">
+      <%= link_to dead_stock_business_manager_analytics_inventory_index_path, class: "quick-link" do %>
+        <span class="icon">📦</span>
+        <span class="link-title">Dead Stock Report</span>
+        <span class="link-description">Products with no recent sales</span>
+      <% end %>
+
+      <%= link_to turnover_business_manager_analytics_inventory_index_path, class: "quick-link" do %>
+        <span class="icon">🔄</span>
+        <span class="link-title">Stock Turnover</span>
+        <span class="link-description">Inventory velocity analysis</span>
+      <% end %>
+
+      <%= link_to profitability_business_manager_analytics_inventory_index_path, class: "quick-link" do %>
+        <span class="icon">💰</span>
+        <span class="link-title">Product Profitability</span>
+        <span class="link-description">Profit margin analysis</span>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<style>
+.analytics-inventory-container {
+  padding: 1rem;
+}
+
+@media (min-width: 640px) {
+  .analytics-inventory-container {
+    padding: 2rem;
+  }
+}
+
+.page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .page-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.analytics-section {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+@media (min-width: 640px) {
+  .analytics-section {
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+}
+
+.health-score-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+@media (min-width: 640px) {
+  .health-score-container {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2rem;
+  }
+}
+
+.score-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.score-circle {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  border: 8px solid;
+}
+
+.score-circle.a {
+  background: #d1fae5;
+  border-color: #10b981;
+  color: #065f46;
+}
+
+.score-circle.b {
+  background: #dbeafe;
+  border-color: #3b82f6;
+  color: #1e40af;
+}
+
+.score-circle.c {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  color: #92400e;
+}
+
+.score-circle.d, .score-circle.f {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #991b1b;
+}
+
+.score-value {
+  font-size: 2.5rem;
+}
+
+.score-grade {
+  font-size: 1rem;
+  margin-top: 0.25rem;
+}
+
+.score-interpretation {
+  text-align: center;
+}
+
+.status-excellent {
+  color: #10b981;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.status-good {
+  color: #3b82f6;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.status-needs-attention {
+  color: #ef4444;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.health-issues, .health-recommendations {
+  margin-top: 1rem;
+}
+
+.health-issues ul, .health-recommendations ul {
+  margin: 0.5rem 0 0 1.5rem;
+}
+
+.health-issues li, .health-recommendations li {
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.alert-summary {
+  display: flex;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.alert-count {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.alert-count.critical, .alert-count.urgent {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.alert-count.warning, .alert-count.due {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.low-stock-table, .reorder-table {
+  margin-top: 1rem;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead {
+  background: #f9fafb;
+}
+
+th {
+  text-align: left;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6b7280;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+tr.critical {
+  background: #fef2f2;
+}
+
+tr.warning {
+  background: #fffbeb;
+}
+
+tr.urgent {
+  background: #fef2f2;
+}
+
+td.highlight {
+  font-weight: 600;
+  color: #111827;
+}
+
+.badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge.critical, .badge.urgent {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.badge.warning, .badge.due {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.table-note {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: #6b7280;
+}
+
+.empty-state .icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.metric-card {
+  background: #f9fafb;
+  border-radius: 6px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-card.highlight {
+  background: #dbeafe;
+  border: 2px solid #3b82f6;
+}
+
+.metric-card.success {
+  background: #d1fae5;
+  border: 1px solid #10b981;
+}
+
+.metric-card.warning {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+}
+
+.metric-card .label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.metric-card .value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.25rem;
+}
+
+.metric-card .description {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.valuation-breakdown {
+  margin-top: 1.5rem;
+}
+
+.breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 6px;
+}
+
+.product-name {
+  font-weight: 500;
+  color: #374151;
+}
+
+.product-details {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.stock-qty {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.stock-value {
+  font-weight: 600;
+  color: #111827;
+}
+
+.recent-movements {
+  margin-top: 1.5rem;
+}
+
+.movements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.movement-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 4px;
+  align-items: center;
+}
+
+.movement-date {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.movement-product {
+  font-weight: 500;
+  color: #374151;
+}
+
+.movement-type {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.movement-type.in {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.movement-type.out {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.movement-type.adjustment {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.movement-qty {
+  font-weight: 600;
+  color: #111827;
+}
+
+.movement-reason {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.quick-links-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.quick-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.quick-link:hover {
+  background: #f3f4f6;
+}
+
+.quick-link .icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.link-title {
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.25rem;
+}
+
+.link-description {
+  font-size: 0.875rem;
+  color: #6b7280;
+  text-align: center;
+}
+
+.alert {
+  padding: 1rem;
+  border-radius: 6px;
+  margin-top: 1rem;
+}
+
+.alert-warning {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  color: #92400e;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 0.875rem;
+}
+
+.btn-outline {
+  border: 1px solid #d1d5db;
+  color: #374151;
+  background: white;
+}
+
+.btn-outline:hover {
+  background: #f9fafb;
+}
+
+.btn-link {
+  color: #3b82f6;
+  padding: 0;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+</style>

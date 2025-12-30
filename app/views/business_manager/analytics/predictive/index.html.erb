@@ -1,0 +1,294 @@
+<div class="container mx-auto px-4 py-8">
+  <div class="flex justify-between items-center mb-8">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">Predictive Analytics</h1>
+      <p class="text-gray-600 mt-1">AI-powered insights and forecasting</p>
+    </div>
+    <%= link_to "Export Data", export_business_manager_analytics_predictive_index_path(format: :csv),
+                class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" %>
+  </div>
+
+  <!-- Quick Navigation -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <%= link_to demand_forecast_business_manager_analytics_predictive_index_path,
+                class: "bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow" do %>
+      <div class="flex items-center">
+        <div class="bg-blue-100 p-3 rounded-lg mr-3">
+          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+          </svg>
+        </div>
+        <div>
+          <div class="text-sm font-semibold text-gray-900">Demand Forecast</div>
+          <div class="text-xs text-gray-500">Predict bookings</div>
+        </div>
+      </div>
+    <% end %>
+
+    <%= link_to pricing_recommendations_business_manager_analytics_predictive_index_path,
+                class: "bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow" do %>
+      <div class="flex items-center">
+        <div class="bg-green-100 p-3 rounded-lg mr-3">
+          <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="text-sm font-semibold text-gray-900">Pricing</div>
+          <div class="text-xs text-gray-500">Optimize prices</div>
+        </div>
+      </div>
+    <% end %>
+
+    <%= link_to anomalies_business_manager_analytics_predictive_index_path,
+                class: "bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow" do %>
+      <div class="flex items-center">
+        <div class="bg-red-100 p-3 rounded-lg mr-3">
+          <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="text-sm font-semibold text-gray-900">Anomalies</div>
+          <div class="text-xs text-gray-500">Detect issues</div>
+        </div>
+      </div>
+    <% end %>
+
+    <%= link_to restock_predictions_business_manager_analytics_predictive_index_path,
+                class: "bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow" do %>
+      <div class="flex items-center">
+        <div class="bg-purple-100 p-3 rounded-lg mr-3">
+          <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+          </svg>
+        </div>
+        <div>
+          <div class="text-sm font-semibold text-gray-900">Restock</div>
+          <div class="text-xs text-gray-500">Inventory needs</div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Revenue Prediction -->
+  <div class="bg-white rounded-lg shadow mb-8">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+        <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+        </svg>
+        Revenue Prediction (Next 30 Days)
+      </h2>
+    </div>
+    <div class="p-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6">
+          <p class="text-sm text-blue-700 font-medium mb-2">Historical Daily Average</p>
+          <p class="text-3xl font-bold text-blue-900"><%= number_to_currency(@revenue_prediction[:historical_daily_avg]) %></p>
+          <p class="text-xs text-blue-600 mt-2">Based on last 90 days</p>
+        </div>
+
+        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6">
+          <p class="text-sm text-purple-700 font-medium mb-2">Predicted Total (30 Days)</p>
+          <p class="text-3xl font-bold text-purple-900"><%= number_to_currency(@revenue_prediction[:predicted_total]) %></p>
+          <div class="flex items-center mt-2">
+            <% if @revenue_prediction[:trend_direction] == 'increasing' %>
+              <svg class="w-4 h-4 text-green-600 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+              </svg>
+              <p class="text-xs text-green-600">Trending up</p>
+            <% elsif @revenue_prediction[:trend_direction] == 'decreasing' %>
+              <svg class="w-4 h-4 text-red-600 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+              </svg>
+              <p class="text-xs text-red-600">Trending down</p>
+            <% else %>
+              <p class="text-xs text-gray-600">Stable</p>
+            <% end %>
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6">
+          <p class="text-sm text-green-700 font-medium mb-2">Trend Direction</p>
+          <p class="text-3xl font-bold text-green-900 capitalize"><%= @revenue_prediction[:trend_direction] %></p>
+          <%= link_to "View full forecast →", revenue_prediction_business_manager_analytics_predictive_index_path,
+                      class: "text-xs text-green-600 hover:text-green-800 mt-2 inline-block" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Anomalies Detected -->
+  <% if @anomalies.present? && @anomalies.any? %>
+    <div class="bg-white rounded-lg shadow mb-8">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+          <svg class="w-5 h-5 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          Anomalies Detected
+          <span class="ml-3 px-2 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">
+            <%= @anomalies.count %>
+          </span>
+        </h2>
+      </div>
+      <div class="p-6">
+        <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-red-800">Unusual Activity Detected</h3>
+              <div class="mt-2 text-sm text-red-700">
+                <p>These metrics deviate significantly from normal patterns. Review recommended.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <% @anomalies.first(5).each do |anomaly| %>
+            <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:shadow-sm">
+              <div class="flex items-center flex-1">
+                <div class="<%= anomaly[:severity] == 'high' ? 'bg-red-100' : 'bg-yellow-100' %> p-2 rounded-lg mr-4">
+                  <svg class="w-5 h-5 <%= anomaly[:severity] == 'high' ? 'text-red-600' : 'text-yellow-600' %>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <div class="text-sm font-medium text-gray-900"><%= anomaly[:date].strftime('%b %d, %Y') %></div>
+                  <div class="text-xs text-gray-500 mt-1">
+                    <%= anomaly[:metric].to_s.humanize %>: <%= anomaly[:value] %>
+                    (<%= anomaly[:direction] %> expected range <%= anomaly[:expected_range] %>)
+                  </div>
+                </div>
+              </div>
+              <span class="px-3 py-1 rounded-full text-xs font-semibold <%= anomaly[:severity] == 'high' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800' %>">
+                <%= anomaly[:severity].upcase %>
+              </span>
+            </div>
+          <% end %>
+        </div>
+
+        <% if @anomalies.count > 5 %>
+          <div class="mt-4 text-center">
+            <%= link_to "View all #{@anomalies.count} anomalies →",
+                        anomalies_business_manager_analytics_predictive_index_path,
+                        class: "text-blue-600 hover:text-blue-800 font-medium" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Restock Predictions -->
+  <% if @restock_predictions.present? && @restock_predictions.any? %>
+    <div class="bg-white rounded-lg shadow mb-8">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+          <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+          </svg>
+          Inventory Restock Recommendations
+        </h2>
+      </div>
+      <div class="p-6">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Stock</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Until Stockout</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Daily Sales</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Urgency</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <% @restock_predictions.each do |prediction| %>
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900"><%= prediction[:product_name] %></div>
+                    <% if prediction[:variant_name].present? %>
+                      <div class="text-sm text-gray-500"><%= prediction[:variant_name] %></div>
+                    <% end %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <%= prediction[:current_stock] %> units
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium <%= prediction[:days_until_stockout] <= 7 ? 'text-red-600' : 'text-gray-900' %>">
+                      <%= prediction[:days_until_stockout].round(1) %> days
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <%= prediction[:daily_sales_rate] %> / day
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                      <%= prediction[:urgency] == 'high' ? 'bg-red-100 text-red-800' :
+                          prediction[:urgency] == 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-green-100 text-green-800' %>">
+                      <%= prediction[:urgency].upcase %>
+                    </span>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+        <%= link_to "View all restock predictions →",
+                    restock_predictions_business_manager_analytics_predictive_index_path,
+                    class: "text-blue-600 hover:text-blue-800 font-medium mt-4 inline-block" %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Staff Scheduling Optimization -->
+  <div class="bg-white rounded-lg shadow">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        Staff Scheduling Optimization
+        <span class="ml-3 text-sm font-normal text-gray-600">(<%= @scheduling_optimization[:day_of_week] %>)</span>
+      </h2>
+    </div>
+    <div class="p-6">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-blue-50 rounded-lg p-4">
+          <p class="text-sm text-blue-700 font-medium">Peak Hour</p>
+          <p class="text-2xl font-bold text-blue-900"><%= @scheduling_optimization[:peak_hour] %></p>
+        </div>
+        <div class="bg-purple-50 rounded-lg p-4">
+          <p class="text-sm text-purple-700 font-medium">Slowest Hour</p>
+          <p class="text-2xl font-bold text-purple-900"><%= @scheduling_optimization[:slowest_hour] %></p>
+        </div>
+        <div class="bg-green-50 rounded-lg p-4">
+          <p class="text-sm text-green-700 font-medium">Date</p>
+          <p class="text-2xl font-bold text-green-900"><%= @scheduling_optimization[:date].strftime('%b %d') %></p>
+        </div>
+        <div class="text-right">
+          <%= link_to "View full schedule →",
+                      staff_scheduling_business_manager_analytics_predictive_index_path,
+                      class: "text-blue-600 hover:text-blue-800 font-medium" %>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-4 md:grid-cols-6 gap-2">
+        <% @scheduling_optimization[:recommendations].first(12).each do |rec| %>
+          <div class="bg-gray-50 rounded p-3 text-center">
+            <div class="text-xs text-gray-500"><%= rec[:hour] %></div>
+            <div class="text-lg font-bold text-gray-900"><%= rec[:recommended_staff] %></div>
+            <div class="text-xs text-gray-500"><%= rec[:expected_bookings] %> bkgs</div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

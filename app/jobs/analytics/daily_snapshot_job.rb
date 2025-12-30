@@ -95,7 +95,12 @@ module Analytics
         top_pages: calculate_top_pages(page_views),
         device_breakdown: calculate_device_breakdown(sessions),
         geo_breakdown: calculate_geo_breakdown(sessions),
-        campaign_metrics: calculate_campaign_metrics(sessions)
+        campaign_metrics: calculate_campaign_metrics(sessions),
+        customer_metrics: calculate_customer_metrics(business, date_range),
+        staff_metrics: calculate_staff_metrics(business, date_range),
+        revenue_metrics: calculate_revenue_metrics(business, date_range),
+        operational_metrics: calculate_operational_metrics(business, date_range),
+        inventory_metrics: calculate_inventory_metrics(business, date_range)
       }
     end
 
@@ -267,6 +272,270 @@ module Analytics
             revenue: session.revenue.to_f
           }
         end
+    end
+
+    def calculate_customer_metrics(business, date_range)
+      # Use lifecycle service to calculate customer metrics
+      lifecycle_service = Analytics::CustomerLifecycleService.new(business)
+      churn_service = Analytics::ChurnPredictionService.new(business)
+
+      # Get customers active in this period
+      customers_in_period = business.tenant_customers
+                                   .joins("LEFT JOIN bookings ON bookings.tenant_customer_id = tenant_customers.id")
+                                   .joins("LEFT JOIN orders ON orders.tenant_customer_id = tenant_customers.id")
+                                   .where("bookings.created_at BETWEEN ? AND ? OR orders.created_at BETWEEN ? AND ?",
+                                          date_range.begin, date_range.end, date_range.begin, date_range.end)
+                                   .distinct
+
+      # Calculate new customers (first purchase in this period)
+      new_customers = customers_in_period.select do |customer|
+        first_purchase = customer.first_purchase_at
+        first_purchase && first_purchase >= date_range.begin && first_purchase <= date_range.end
+      end.count
+
+      # Calculate repeat customers (had previous purchases)
+      repeat_customers = customers_in_period.count - new_customers
+
+      # Get segment distribution
+      segment_summary = lifecycle_service.segment_summary
+
+      # Get churn statistics
+      churn_stats = churn_service.churn_statistics
+
+      {
+        active_customers: customers_in_period.count,
+        new_customers: new_customers,
+        repeat_customers: repeat_customers,
+        avg_clv: lifecycle_service.customer_metrics_summary[:avg_clv] || 0,
+        arpc: lifecycle_service.calculate_arpc(1.day), # ARPC for this day
+        repeat_rate: lifecycle_service.customer_metrics_summary[:repeat_customer_rate] || 0,
+        segment_distribution: segment_summary[:percentages] || {},
+        churn_risk: {
+          high: churn_stats[:high_risk] || 0,
+          medium: churn_stats[:medium_risk] || 0,
+          low: churn_stats[:low_risk] || 0
+        },
+        total_revenue_from_customers: customers_in_period.sum(&:total_revenue).round(2)
+      }
+    rescue StandardError => e
+      Rails.logger.error "[DailySnapshot] Error calculating customer metrics: #{e.message}"
+      {
+        active_customers: 0,
+        new_customers: 0,
+        repeat_customers: 0,
+        avg_clv: 0,
+        arpc: 0,
+        repeat_rate: 0,
+        segment_distribution: {},
+        churn_risk: { high: 0, medium: 0, low: 0 },
+        total_revenue_from_customers: 0
+      }
+    end
+
+    def calculate_staff_metrics(business, date_range)
+      staff_service = Analytics::StaffPerformanceService.new(business)
+      period = 1.day # For daily snapshot, use 1 day period
+
+      staff_members = business.staff_members.includes(:bookings)
+      active_staff = staff_members.select { |s| s.bookings.where(created_at: date_range).any? }
+
+      total_bookings = business.bookings.where(created_at: date_range).count
+      total_revenue = business.bookings
+                              .where(created_at: date_range)
+                              .joins(:payments)
+                              .where(payments: { status: 'completed' })
+                              .sum('payments.amount').to_f
+
+      {
+        total_staff: staff_members.count,
+        active_staff: active_staff.count,
+        total_bookings: total_bookings,
+        total_revenue: total_revenue,
+        avg_bookings_per_staff: active_staff.any? ? (total_bookings.to_f / active_staff.count).round(1) : 0,
+        avg_revenue_per_staff: active_staff.any? ? (total_revenue / active_staff.count).round(2) : 0,
+        top_performer: active_staff.max_by { |s| s.bookings.where(created_at: date_range).joins(:payments).where(payments: { status: 'completed' }).sum('payments.amount') }&.full_name || 'N/A'
+      }
+    rescue StandardError => e
+      Rails.logger.error "[DailySnapshot] Error calculating staff metrics: #{e.message}"
+      {
+        total_staff: 0,
+        active_staff: 0,
+        total_bookings: 0,
+        total_revenue: 0,
+        avg_bookings_per_staff: 0,
+        avg_revenue_per_staff: 0,
+        top_performer: 'N/A'
+      }
+    end
+
+    def calculate_revenue_metrics(business, date_range)
+      revenue_service = Analytics::RevenueForecastService.new(business)
+
+      # Get revenue data for the period
+      payments = business.payments.where(created_at: date_range, status: 'completed')
+      total_revenue = payments.sum(:amount).to_f
+
+      # Get refund data
+      refunds = business.payments.where(created_at: date_range, status: 'refunded')
+      refund_amount = refunds.sum(:amount).to_f
+
+      # Revenue by category
+      booking_revenue = business.bookings
+                               .where(created_at: date_range)
+                               .joins(:payments)
+                               .where(payments: { status: 'completed' })
+                               .sum('payments.amount').to_f
+
+      order_revenue = business.orders
+                             .where(created_at: date_range)
+                             .joins(:payments)
+                             .where(payments: { status: 'completed' })
+                             .sum('payments.amount').to_f
+
+      subscription_revenue = business.subscription_transactions
+                                    .where(created_at: date_range, status: 'completed')
+                                    .sum(:amount).to_f
+
+      {
+        total_revenue: total_revenue,
+        booking_revenue: booking_revenue,
+        order_revenue: order_revenue,
+        subscription_revenue: subscription_revenue,
+        refund_amount: refund_amount,
+        refund_count: refunds.count,
+        refund_rate: total_revenue > 0 ? ((refund_amount / total_revenue) * 100).round(2) : 0,
+        daily_average: total_revenue,
+        net_revenue: (total_revenue - refund_amount).round(2)
+      }
+    rescue StandardError => e
+      Rails.logger.error "[DailySnapshot] Error calculating revenue metrics: #{e.message}"
+      {
+        total_revenue: 0,
+        booking_revenue: 0,
+        order_revenue: 0,
+        subscription_revenue: 0,
+        refund_amount: 0,
+        refund_count: 0,
+        refund_rate: 0,
+        daily_average: 0,
+        net_revenue: 0
+      }
+    end
+
+    def calculate_operational_metrics(business, date_range)
+      operations_service = Analytics::OperationalEfficiencyService.new(business)
+
+      bookings = business.bookings.where(created_at: date_range)
+      total_bookings = bookings.count
+
+      # No-show metrics
+      no_shows = bookings.where(status: 'no_show')
+      no_show_count = no_shows.count
+      no_show_rate = total_bookings > 0 ? ((no_show_count.to_f / total_bookings) * 100).round(2) : 0
+
+      # Cancellation metrics
+      cancelled = bookings.where(status: 'cancelled')
+      cancellation_count = cancelled.count
+      cancellation_rate = total_bookings > 0 ? ((cancellation_count.to_f / total_bookings) * 100).round(2) : 0
+
+      # Completion metrics
+      completed = bookings.where(status: 'completed')
+      completion_count = completed.count
+      completion_rate = total_bookings > 0 ? ((completion_count.to_f / total_bookings) * 100).round(2) : 0
+
+      # Lead time calculation
+      lead_times = bookings.map do |booking|
+        next unless booking.start_time && booking.created_at
+        ((booking.start_time - booking.created_at) / 1.day).to_i
+      end.compact
+
+      avg_lead_time = lead_times.any? ? (lead_times.sum / lead_times.count.to_f).round(1) : 0
+      same_day_bookings = lead_times.count { |d| d == 0 }
+
+      {
+        total_bookings: total_bookings,
+        completed_count: completion_count,
+        completion_rate: completion_rate,
+        no_show_count: no_show_count,
+        no_show_rate: no_show_rate,
+        cancellation_count: cancellation_count,
+        cancellation_rate: cancellation_rate,
+        avg_lead_time_days: avg_lead_time,
+        same_day_bookings: same_day_bookings,
+        estimated_lost_revenue: no_shows.joins(:service).sum('services.price').to_f
+      }
+    rescue StandardError => e
+      Rails.logger.error "[DailySnapshot] Error calculating operational metrics: #{e.message}"
+      {
+        total_bookings: 0,
+        completed_count: 0,
+        completion_rate: 0,
+        no_show_count: 0,
+        no_show_rate: 0,
+        cancellation_count: 0,
+        cancellation_rate: 0,
+        avg_lead_time_days: 0,
+        same_day_bookings: 0,
+        estimated_lost_revenue: 0
+      }
+    end
+
+    def calculate_inventory_metrics(business, date_range)
+      inventory_service = Analytics::InventoryIntelligenceService.new(business)
+
+      # Get basic inventory counts
+      products_with_stock = business.products.joins(:product_variants)
+                                    .where.not(product_variants: { stock_quantity: nil })
+                                    .distinct.count
+
+      total_stock_quantity = business.product_variants.sum(:stock_quantity).to_i
+
+      # Get stock valuation
+      valuation = inventory_service.stock_valuation
+      total_stock_value = valuation[:total_stock_value]
+
+      # Get low stock alerts count
+      low_stock_count = inventory_service.low_stock_alerts(7).count
+
+      # Get stock movements for the day
+      movements = business.stock_movements.where(created_at: date_range)
+      stock_in = movements.where(movement_type: 'in').sum(:quantity)
+      stock_out = movements.where(movement_type: 'out').sum(:quantity)
+      adjustments = movements.where(movement_type: 'adjustment').count
+
+      # Calculate units sold from orders
+      units_sold = business.orders
+                           .joins(:line_items)
+                           .where(created_at: date_range, line_items: { itemable_type: 'ProductVariant' })
+                           .sum('line_items.quantity')
+
+      # Get health score
+      health_score = inventory_service.inventory_health_score[:score]
+
+      {
+        products_with_stock: products_with_stock,
+        total_stock_quantity: total_stock_quantity,
+        total_stock_value: total_stock_value,
+        low_stock_count: low_stock_count,
+        stock_in: stock_in,
+        stock_out: stock_out,
+        adjustments: adjustments,
+        units_sold: units_sold,
+        health_score: health_score
+      }
+    rescue StandardError => e
+      Rails.logger.error "[DailySnapshot] Error calculating inventory metrics: #{e.message}"
+      {
+        products_with_stock: 0,
+        total_stock_quantity: 0,
+        total_stock_value: 0,
+        low_stock_count: 0,
+        stock_in: 0,
+        stock_out: 0,
+        adjustments: 0,
+        units_sold: 0,
+        health_score: 0
+      }
     end
 
     # Helper method to time and log slow queries

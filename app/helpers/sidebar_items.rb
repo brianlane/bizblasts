@@ -29,6 +29,11 @@ module SidebarItems
       path: -> { business_manager_dashboard_path },
       icon: '<svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>'
     },
+    analytics: {
+      label: 'Analytics',
+      path: -> { business_manager_analytics_path },
+      icon: '<svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>'
+    },
     bookings: {
       label: 'Bookings',
       path: -> { business_manager_bookings_path },
@@ -151,7 +156,7 @@ module SidebarItems
 
   # Default order for sidebar items (used by UserSidebarItem.default_items_for)
   DEFAULT_ORDER = %i[
-    dashboard bookings estimates website website_builder
+    dashboard analytics bookings estimates website website_builder
     transactions payments staff services products
     rentals rental_bookings shipping_methods tax_rates
     customers referrals loyalty promotions customer_subscriptions

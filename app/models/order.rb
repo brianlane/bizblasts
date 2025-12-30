@@ -10,7 +10,8 @@ class Order < ApplicationRecord
   has_many :line_items, as: :lineable, dependent: :destroy, foreign_key: :lineable_id
   has_many :stock_reservations
   has_one :invoice
-  
+  has_many :payments, dependent: :nullify
+
   # Add association for test compatibility (orders can be created from subscriptions)
   has_many :customer_subscriptions, through: :tenant_customer
 

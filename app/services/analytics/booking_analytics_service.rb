@@ -28,7 +28,7 @@ module Analytics
         no_show_rate: calculate_no_show_rate(bookings),
         total_revenue: calculate_total_revenue(bookings),
         average_value: calculate_average_value(bookings),
-        bookings_by_source: bookings_by_source(start_date, end_date),
+        bookings_by_source: bookings_by_source(start_date: start_date, end_date: end_date),
         lead_time: calculate_average_lead_time(bookings),
         peak_hours: calculate_peak_hours(bookings),
         peak_days: calculate_peak_days(bookings)
@@ -104,7 +104,7 @@ module Analytics
       
       staff_members.map do |staff|
         bookings = business.bookings
-          .where(bookable: staff, created_at: start_date..end_date)
+          .where(staff_member: staff, created_at: start_date..end_date)
         
         {
           staff_id: staff.id,
@@ -256,7 +256,7 @@ module Analytics
 
     def calculate_staff_utilization(staff, start_date, end_date)
       # Calculate utilization based on booked hours vs available hours
-      bookings = business.bookings.where(bookable: staff, start_time: start_date..end_date)
+      bookings = business.bookings.where(staff_member: staff, start_time: start_date..end_date)
       
       total_booked_minutes = bookings.sum do |booking|
         booking.service&.duration || 60
