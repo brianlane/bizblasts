@@ -58,14 +58,21 @@ module BusinessManager
         # Daily forecast
         @daily_forecast = (0...period).map do |day_offset|
           date = Date.current + day_offset.days
-          daily_bookings = (total_predicted.to_f / period * (0.8 + rand * 0.4)).round
+          # Use day-of-week multiplier instead of random values
+          # Weekdays typically have higher demand, weekends lower
+          day_multiplier = [0.7, 0.9, 1.0, 1.1, 1.2, 0.95, 0.75][date.wday]
+          daily_bookings = (total_predicted.to_f / period * day_multiplier).round
           avg_revenue_per_booking = total_predicted > 0 ? (total_revenue_predicted / total_predicted) : 0
+
+          # Calculate confidence based on historical data volume
+          historical_data_points = @demand_by_service.sum { |s| s[:historical_avg] > 0 ? 1 : 0 }
+          base_confidence = [50 + (historical_data_points * 5), 90].min
 
           {
             date: date,
             predicted_bookings: daily_bookings,
             predicted_revenue: daily_bookings * avg_revenue_per_booking,
-            confidence: 70 + rand(20)
+            confidence: base_confidence
           }
         end
 
@@ -96,6 +103,18 @@ module BusinessManager
           pricing_data = @predictive_service.optimal_pricing_recommendations(service.id)
           demand_level = service.bookings.where(created_at: 30.days.ago..Time.current).count > 20 ? 'high' : service.bookings.where(created_at: 30.days.ago..Time.current).count > 10 ? 'medium' : 'low'
 
+          # Calculate confidence based on booking volume (more bookings = higher confidence)
+          booking_count = pricing_data[:current_monthly_bookings].to_i
+          confidence_level = if booking_count >= 30
+                              85 # High confidence with sufficient data
+                            elsif booking_count >= 15
+                              75 # Medium confidence
+                            elsif booking_count >= 5
+                              65 # Low confidence
+                            else
+                              50 # Very low confidence with minimal data
+                            end
+
           {
             service_name: service.name,
             current_price: service.price,
@@ -106,8 +125,8 @@ module BusinessManager
             primary_reason: pricing_data[:revenue_increase_potential] > 0 ? 'Increase revenue potential' : 'Optimize for market positioning',
             factors: ['Historical demand', 'Market analysis', 'Booking trends'],
             revenue_impact: (pricing_data[:optimal_price] - service.price) * pricing_data[:optimal_monthly_bookings],
-            confidence_level: 75 + rand(15),
-            booking_count: pricing_data[:current_monthly_bookings].to_i
+            confidence_level: confidence_level,
+            booking_count: booking_count
           }
         end
 
@@ -132,16 +151,19 @@ module BusinessManager
         end
 
         @market_comparison = all_services.first(5).map do |service|
-          market_avg = service.price * (0.9 + rand * 0.2)
+          # Use optimal price as market average estimate (from pricing analysis)
+          pricing_rec = @pricing_recommendations.find { |r| r[:service_name] == service.name }
+          market_avg = pricing_rec ? pricing_rec[:recommended_price] : service.price
+
           {
             service_name: service.name,
             your_price: service.price,
-            market_min: market_avg * 0.8,
-            market_max: market_avg * 1.2,
-            market_position_percent: 20,
-            market_spread_percent: 60,
-            your_position_percent: 40,
-            position: service.price > market_avg ? 'above' : service.price < market_avg * 0.9 ? 'below' : 'competitive'
+            market_min: (market_avg * 0.8).round(2),
+            market_max: (market_avg * 1.2).round(2),
+            market_position_percent: market_avg > 0 ? ((service.price - market_avg * 0.8) / (market_avg * 0.4) * 100).round : 50,
+            market_spread_percent: 40, # Typical market spread is 40% (±20%)
+            your_position_percent: market_avg > 0 ? ((service.price - market_avg * 0.8) / (market_avg * 0.4) * 100).round : 50,
+            position: service.price > market_avg * 1.1 ? 'above' : service.price < market_avg * 0.9 ? 'below' : 'competitive'
           }
         end
 
@@ -219,14 +241,20 @@ module BusinessManager
 
         # Format anomalies for the view
         @anomalies = anomalies_data.map do |anomaly|
+          # Parse expected_range correctly (handles negative values)
+          # Format is "min - max" with spaces around the dash
+          range_parts = anomaly[:expected_range].split(' - ')
+          expected_min = range_parts.first.to_f
+          expected_max = range_parts.last.to_f
+
           {
             title: "Unusual #{anomaly[:metric].to_s.titleize} Activity",
             description: "Detected #{anomaly[:direction]} trend outside normal range",
             category: determine_anomaly_category(anomaly[:metric]),
             severity: anomaly[:severity],
             current_value: anomaly[:value],
-            expected_min: anomaly[:expected_range].split('-').first.to_f,
-            expected_max: anomaly[:expected_range].split('-').last.to_f,
+            expected_min: expected_min,
+            expected_max: expected_max,
             deviation_percent: anomaly[:deviation_percentage],
             metric_type: 'currency',
             detected_days_ago: ((Time.current - anomaly[:date].to_time) / 1.day).to_i,
@@ -538,16 +566,19 @@ module BusinessManager
           }
         ]
 
-        # Supplier performance (mock data for now)
+        # Supplier performance (mock data for now - TODO: implement actual supplier tracking)
         @supplier_performance = business.products.includes(:product_variants)
                                        .group_by { |p| 'Default Supplier' }
                                        .map do |supplier, products|
+          # Calculate reliability based on product count (more products = established relationship)
+          reliability_score = [60 + (products.count * 2), 95].min
+
           {
             supplier_name: supplier,
             products_supplied: products.count,
-            avg_lead_time: 7, # days
-            reliability_score: 85 + rand(15),
-            last_delivery: rand(30).days.ago.to_date
+            avg_lead_time: 7, # days - TODO: track actual lead times
+            reliability_score: reliability_score,
+            last_delivery: 14.days.ago.to_date # Default to 2 weeks ago - TODO: track actual deliveries
           }
         end.first(5)
 
@@ -672,17 +703,31 @@ module BusinessManager
 
         # Daily revenue forecast
         @daily_forecast = []
+        # Calculate confidence based on historical data volume
+        total_payments = business.payments.where(status: 'completed', created_at: 90.days.ago..Time.current).count
+        base_confidence = if total_payments >= 100
+                           85 # High confidence with substantial data
+                         elsif total_payments >= 50
+                           75 # Medium confidence
+                         elsif total_payments >= 20
+                           65 # Low confidence
+                         else
+                           50 # Very low confidence
+                         end
+
         days_ahead.times do |day_offset|
           date = Date.current + day_offset.days
           base_revenue = revenue_data[:historical_daily_avg]
           day_factor = [0.7, 0.8, 1.0, 1.1, 1.2, 0.9, 0.6][date.wday] # Weekend adjustments
+          # Reduce confidence for predictions further in the future
+          days_out_confidence_penalty = [0, (day_offset / 10)].min
 
           @daily_forecast << {
             date: date,
             predicted_revenue: (base_revenue * day_factor).round(2),
             lower_bound: (base_revenue * day_factor * 0.85).round(2),
             upper_bound: (base_revenue * day_factor * 1.15).round(2),
-            confidence: 80 + rand(15)
+            confidence: [base_confidence - days_out_confidence_penalty, 50].max
           }
         end
 
@@ -698,12 +743,29 @@ module BusinessManager
 
           predicted_revenue = (historical_revenue / 90.0 * days_ahead).round(2)
 
+          # Calculate growth potential based on booking trends
+          older_period_revenue = services.sum do |service|
+            service.bookings.where(created_at: 180.days.ago..90.days.ago)
+                   .joins(:payments)
+                   .where(payments: { status: 'completed' })
+                   .sum('payments.amount')
+          end
+
+          # Growth potential = how much revenue could grow if recent trend continues
+          if older_period_revenue > 0
+            actual_growth_rate = ((historical_revenue - older_period_revenue) / older_period_revenue * 100).round(1)
+            # Clamp to realistic range (5-25%)
+            growth_potential = [[actual_growth_rate, 5].max, 25].min
+          else
+            growth_potential = 10 # Default 10% growth potential if no historical comparison
+          end
+
           {
             category: category,
             historical_revenue: historical_revenue,
             predicted_revenue: predicted_revenue,
             services_count: services.count,
-            growth_potential: rand(5..25)
+            growth_potential: growth_potential
           }
         end.sort_by { |c| -c[:predicted_revenue] }
 

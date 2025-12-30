@@ -57,16 +57,20 @@ module Analytics
 
     # Generate privacy-respecting visitor fingerprint
     # Does not track across sessions and is not unique enough for cross-site tracking
+    # Uses 128 bits (32 hex chars) to reduce collision probability while maintaining privacy
     # @param request [ActionDispatch::Request] The HTTP request
-    # @return [String] Anonymous fingerprint hash
+    # @return [String] Anonymous fingerprint hash (32 hex characters)
     def generate_fingerprint(request)
       components = [
         request.user_agent.to_s[0..100], # Truncated user agent
         request.headers['Accept-Language'].to_s.split(',').first, # Primary language
+        request.headers['Accept-Encoding'].to_s, # Encoding preferences
         Time.current.to_date.to_s # Date-based salt for daily rotation
       ]
-      
-      Digest::SHA256.hexdigest(components.join('|'))[0..15]
+
+      # Use 32 chars (128 bits) instead of 16 chars (64 bits) to reduce collision risk
+      # Birthday paradox: 50% collision at ~2^64 for 64 bits, ~2^128 for 128 bits
+      Digest::SHA256.hexdigest(components.join('|'))[0..31]
     end
 
     # Anonymize IP address for privacy

@@ -8,14 +8,19 @@ module Api
       # No CSRF needed - stateless API with anonymous tracking
       before_action :set_business_from_host, only: [:track]
       before_action :check_privacy_settings, only: [:track]
-      
-      # Rate limiting - 100 requests per minute per IP
-      MAX_REQUESTS_PER_MINUTE = 100
+
+      # Rate limiting configuration (from config/initializers/analytics.rb)
+      def self.max_requests_per_minute
+        Rails.application.config.analytics.rate_limit_per_minute
+      end
       
       # POST /api/v1/analytics/track
       def track
         # Rate limiting check
         if rate_limited?
+          # Emit notification for monitoring
+          ActiveSupport::Notifications.instrument('analytics.rate_limited', ip: request.remote_ip)
+
           render json: { error: 'Rate limit exceeded' }, status: :too_many_requests
           return
         end
@@ -95,7 +100,7 @@ module Api
           return false # First request in this window
         end
 
-        current_count > MAX_REQUESTS_PER_MINUTE
+        current_count > self.class.max_requests_per_minute
       end
       
       def sanitize_event(event)

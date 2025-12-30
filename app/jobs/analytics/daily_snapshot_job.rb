@@ -6,12 +6,22 @@ module Analytics
   class DailySnapshotJob < ApplicationJob
     queue_as :analytics
 
-    # Query timing threshold for logging slow queries (in seconds)
-    SLOW_QUERY_THRESHOLD = 1.0
-
     # Domain patterns for traffic source categorization
     SEARCH_ENGINE_DOMAINS = %w[google bing yahoo duckduckgo].freeze
     SOCIAL_NETWORK_DOMAINS = %w[facebook twitter instagram linkedin pinterest tiktok].freeze
+
+    # Configuration thresholds (from config/initializers/analytics.rb)
+    def self.slow_threshold
+      Rails.application.config.analytics.snapshot_slow_threshold
+    end
+
+    def self.max_duration
+      Rails.application.config.analytics.snapshot_max_duration
+    end
+
+    def self.error_threshold
+      Rails.application.config.analytics.snapshot_error_threshold
+    end
 
     def perform(date = nil)
       date ||= Date.yesterday
@@ -19,18 +29,52 @@ module Analytics
 
       start_time = Time.current
       business_count = 0
+      error_count = 0
+      slow_business_ids = []
 
       # Generate snapshot for each active business
-      Business.active.find_each do |business|
+      # Using find_each for batching to reduce memory usage
+      Business.active.find_each(batch_size: 100) do |business|
+        business_start = Time.current
+
         generate_snapshot(business, date)
         business_count += 1
+
+        # Track slow business processing
+        business_elapsed = Time.current - business_start
+        if business_elapsed > self.class.slow_threshold
+          slow_business_ids << business.id
+          Rails.logger.warn "[DailySnapshot] Slow processing for business #{business.id}: #{business_elapsed.round(2)}s"
+        end
+
+        # Progress logging every 100 businesses
+        if business_count % 100 == 0
+          Rails.logger.info "[DailySnapshot] Progress: #{business_count} businesses processed"
+        end
       rescue StandardError => e
+        error_count += 1
         Rails.logger.error "[DailySnapshot] Error generating snapshot for business #{business.id}: #{e.message}"
         Rails.logger.error e.backtrace.first(5).join("\n")
+
+        # Alert if too many errors
+        if error_count > self.class.error_threshold
+          Rails.logger.error "[DailySnapshot] Too many errors (#{error_count}), continuing but alerting"
+        end
       end
 
       elapsed = Time.current - start_time
-      Rails.logger.info "[DailySnapshot] Daily snapshot generation complete - #{business_count} businesses in #{elapsed.round(2)}s"
+      avg_time = business_count > 0 ? (elapsed / business_count).round(3) : 0
+
+      Rails.logger.info "[DailySnapshot] Complete - #{business_count} businesses, #{error_count} errors, #{elapsed.round(2)}s total (avg: #{avg_time}s/business)"
+
+      if slow_business_ids.any?
+        Rails.logger.warn "[DailySnapshot] Slow businesses: #{slow_business_ids.join(', ')}"
+      end
+
+      # Alert if job took too long
+      if elapsed > self.class.max_duration
+        Rails.logger.error "[DailySnapshot] Job duration exceeded threshold: #{elapsed.round(2)}s (max: #{self.class.max_duration}s)"
+      end
     end
 
     private

@@ -76,14 +76,36 @@ class PageView < ApplicationRecord
     end
 
     def traffic_by_source(start_date: 30.days.ago, end_date: Time.current)
-      result = { direct: 0, organic: 0, referral: 0, social: 0, paid: 0 }
-      
-      for_period(start_date, end_date).find_each do |pv|
-        source = categorize_traffic_source(pv)
-        result[source] += 1
+      # Use database aggregation instead of loading all records into memory
+      # This is much more efficient for large datasets
+      connection = ActiveRecord::Base.connection
+
+      # Build query with proper parameter binding for PostgreSQL
+      sql = sanitize_sql_array([<<-SQL, start_date.beginning_of_day, end_date.end_of_day])
+        SELECT
+          CASE
+            WHEN utm_medium IN ('cpc', 'ppc', 'paid') THEN 'paid'
+            WHEN referrer_domain IS NULL OR referrer_domain = '' THEN 'direct'
+            WHEN referrer_domain ~* 'google|bing|yahoo|duckduckgo' THEN 'organic'
+            WHEN referrer_domain ~* 'facebook|twitter|instagram|linkedin|pinterest|tiktok' THEN 'social'
+            ELSE 'referral'
+          END as source,
+          COUNT(*) as count
+        FROM (#{for_period(start_date, end_date).to_sql}) as scoped_page_views
+        GROUP BY source
+      SQL
+
+      results = connection.exec_query(sql)
+
+      # Initialize with zeros
+      traffic = { direct: 0, organic: 0, referral: 0, social: 0, paid: 0 }
+
+      # Fill in actual counts
+      results.each do |row|
+        traffic[row['source'].to_sym] = row['count']
       end
-      
-      result
+
+      traffic
     end
 
     def daily_trend(start_date: 30.days.ago, end_date: Time.current)
