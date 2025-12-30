@@ -16,7 +16,7 @@
 
   <!-- Quick Navigation -->
   <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-    <%= link_to campaigns_business_manager_analytics_marketing_index_path,
+    <%= link_to business_manager_promotions_path,
                 class: "bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow" do %>
       <div class="flex items-center">
         <div class="bg-blue-100 p-2 rounded-lg mr-3">
@@ -31,7 +31,7 @@
       </div>
     <% end %>
 
-    <%= link_to promotions_business_manager_analytics_marketing_index_path,
+    <%= link_to business_manager_promotions_path,
                 class: "bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow" do %>
       <div class="flex items-center">
         <div class="bg-green-100 p-2 rounded-lg mr-3">
@@ -163,7 +163,7 @@
       <div class="px-6 py-4 border-b border-gray-200">
         <div class="flex items-center justify-between">
           <h2 class="text-xl font-semibold text-gray-900">Top Performing Campaigns</h2>
-          <%= link_to "View All Campaigns", campaigns_business_manager_analytics_marketing_index_path,
+          <%= link_to "View All Campaigns", business_manager_promotions_path,
                       class: "text-blue-600 hover:text-blue-800 font-medium" %>
         </div>
       </div>

@@ -56,8 +56,8 @@ module BusinessManager
         @recommended_actions = @churn_service.recommended_actions(@customer)
 
         # Customer timeline data
-        @purchase_history = (@customer.bookings.order(created_at: :asc).pluck(:created_at, :id, :created_at) +
-                            @customer.orders.order(created_at: :asc).pluck(:created_at, :id, :created_at))
+        @purchase_history = (@customer.bookings.order(created_at: :asc).pluck(:created_at, :id, Arel.sql("'booking'")) +
+                            @customer.orders.order(created_at: :asc).pluck(:created_at, :id, Arel.sql("'order'")))
                             .sort_by { |p| p[0] }
 
         respond_to do |format|

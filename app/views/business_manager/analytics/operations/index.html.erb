@@ -11,7 +11,7 @@
   <!-- No-Show Analysis -->
   <div class="analytics-section">
     <h2>No-Show Analysis (Last 30 Days)</h2>
-    <%= link_to "View All No-Shows", no_shows_business_manager_analytics_operations_path, class: "btn btn-link cursor-pointer" %>
+    <%= link_to "View All No-Shows", business_manager_bookings_path(status: 'no_show'), class: "btn btn-link cursor-pointer" %>
 
     <div class="metrics-grid">
       <div class="metric-card <%= @no_show_data[:no_show_rate] > 10 ? 'warning' : '' %>">

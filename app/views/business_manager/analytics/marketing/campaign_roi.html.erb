@@ -1,0 +1,290 @@
+<% content_for :title, "Campaign ROI Analysis" %>
+
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Campaign ROI Analysis</h1>
+      <% if @campaign_data.present? %>
+        <p class="text-sm text-gray-600 mt-1"><%= @campaign_data[:campaign_name] %></p>
+      <% else %>
+        <p class="text-sm text-gray-600 mt-1">Detailed return on investment metrics</p>
+      <% end %>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <%= link_to "Export CSV", export_business_manager_analytics_marketing_index_path(format: :csv),
+                  class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" %>
+    </div>
+  </div>
+
+  <!-- Back Link -->
+  <%= link_to business_manager_analytics_marketing_index_path, class: "inline-flex items-center text-sm text-gray-600 hover:text-gray-900" do %>
+    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Back to Marketing Analytics
+  <% end %>
+
+  <% if @campaign_data.present? %>
+    <% revenue = @campaign_data[:revenue] || 0 %>
+    <% cost = @campaign_data[:cost] || 0 %>
+    <% roi = @campaign_data[:roi] || 0 %>
+    <% conversions = @campaign_data[:conversions] || 0 %>
+    <% conversion_rate = @campaign_data[:conversion_rate] || 0 %>
+    <% net_profit = revenue - cost %>
+
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Campaign Revenue</p>
+            <p class="text-2xl font-semibold text-green-600 mt-2"><%= number_to_currency(revenue) %></p>
+            <p class="text-xs text-gray-500 mt-1">Total generated</p>
+          </div>
+          <div class="bg-green-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Campaign Cost</p>
+            <p class="text-2xl font-semibold text-red-600 mt-2"><%= number_to_currency(cost) %></p>
+            <p class="text-xs text-gray-500 mt-1">Total spent</p>
+          </div>
+          <div class="bg-red-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Campaign ROI</p>
+            <p class="text-2xl font-semibold <%= roi >= 200 ? 'text-green-600' : roi >= 100 ? 'text-blue-600' : 'text-orange-600' %> mt-2">
+              <%= number_to_percentage(roi, precision: 0) %>
+            </p>
+            <p class="text-xs text-gray-500 mt-1">Return on investment</p>
+          </div>
+          <div class="<%= roi >= 200 ? 'bg-green-100' : roi >= 100 ? 'bg-blue-100' : 'bg-orange-100' %> p-3 rounded-full">
+            <svg class="w-6 h-6 <%= roi >= 200 ? 'text-green-600' : roi >= 100 ? 'text-blue-600' : 'text-orange-600' %>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Conversions</p>
+            <p class="text-2xl font-semibold text-purple-600 mt-2"><%= number_with_delimiter(conversions) %></p>
+            <p class="text-xs text-gray-500 mt-1"><%= number_to_percentage(conversion_rate, precision: 1) %> rate</p>
+          </div>
+          <div class="bg-purple-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROI Breakdown -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Financial Performance -->
+      <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h2 class="text-xl font-semibold text-gray-900">Financial Performance</h2>
+          <p class="text-sm text-gray-600 mt-1">Revenue and cost breakdown</p>
+        </div>
+
+        <div class="p-6">
+          <div class="space-y-4">
+            <!-- Net Profit -->
+            <div class="bg-gradient-to-br from-green-50 to-blue-50 rounded-lg p-6 text-center">
+              <p class="text-sm font-medium text-gray-600 mb-2">Net Profit</p>
+              <p class="text-3xl font-bold <%= net_profit >= 0 ? 'text-green-600' : 'text-red-600' %>">
+                <%= number_to_currency(net_profit) %>
+              </p>
+              <p class="text-xs text-gray-500 mt-2">Revenue - Cost</p>
+            </div>
+
+            <!-- Metrics -->
+            <div class="space-y-3">
+              <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <span class="text-sm font-medium text-gray-600">Cost Per Conversion</span>
+                <span class="text-sm font-semibold text-purple-600">
+                  <%= number_to_currency(@campaign_data[:cost_per_conversion] || 0) %>
+                </span>
+              </div>
+
+              <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <span class="text-sm font-medium text-gray-600">Revenue Per Conversion</span>
+                <span class="text-sm font-semibold text-green-600">
+                  <%= number_to_currency(@campaign_data[:revenue_per_conversion] || 0) %>
+                </span>
+              </div>
+
+              <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <span class="text-sm font-medium text-gray-600">Profit Per Conversion</span>
+                <span class="text-sm font-semibold <%= net_profit >= 0 ? 'text-green-600' : 'text-red-600' %>">
+                  <%= number_to_currency(conversions > 0 ? (net_profit / conversions) : 0) %>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Campaign Metrics -->
+      <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h2 class="text-xl font-semibold text-gray-900">Campaign Metrics</h2>
+          <p class="text-sm text-gray-600 mt-1">Engagement and performance stats</p>
+        </div>
+
+        <div class="p-6">
+          <div class="space-y-4">
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <div>
+                <p class="text-sm font-medium text-gray-600">Impressions</p>
+                <p class="text-xs text-gray-500">Total views</p>
+              </div>
+              <span class="text-sm font-semibold text-gray-900">
+                <%= number_with_delimiter(@campaign_data[:impressions] || 0) %>
+              </span>
+            </div>
+
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <div>
+                <p class="text-sm font-medium text-gray-600">Clicks</p>
+                <p class="text-xs text-gray-500">Total engagements</p>
+              </div>
+              <span class="text-sm font-semibold text-blue-600">
+                <%= number_with_delimiter(@campaign_data[:clicks] || 0) %>
+              </span>
+            </div>
+
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <div>
+                <p class="text-sm font-medium text-gray-600">Click-Through Rate</p>
+                <p class="text-xs text-gray-500">CTR</p>
+              </div>
+              <span class="text-sm font-semibold text-purple-600">
+                <%= number_to_percentage(@campaign_data[:ctr] || 0, precision: 2) %>
+              </span>
+            </div>
+
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <div>
+                <p class="text-sm font-medium text-gray-600">Conversion Rate</p>
+                <p class="text-xs text-gray-500">Click to customer</p>
+              </div>
+              <span class="text-sm font-semibold <%= conversion_rate >= 3 ? 'text-green-600' : 'text-orange-600' %>">
+                <%= number_to_percentage(conversion_rate, precision: 2) %>
+              </span>
+            </div>
+
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <div>
+                <p class="text-sm font-medium text-gray-600">Campaign Duration</p>
+                <p class="text-xs text-gray-500">Run time</p>
+              </div>
+              <span class="text-sm font-semibold text-gray-900">
+                <%= @campaign_data[:duration_days] || 0 %> days
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Insights -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-xl font-semibold text-gray-900">Performance Assessment</h2>
+        <p class="text-sm text-gray-600 mt-1">Campaign evaluation and recommendations</p>
+      </div>
+
+      <div class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- ROI Assessment -->
+          <div class="<%= roi >= 200 ? 'bg-green-50 border-green-200' : roi >= 100 ? 'bg-blue-50 border-blue-200' : 'bg-orange-50 border-orange-200' %> border rounded-lg p-4">
+            <h3 class="text-sm font-semibold <%= roi >= 200 ? 'text-green-900' : roi >= 100 ? 'text-blue-900' : 'text-orange-900' %> mb-3">
+              ROI Assessment
+            </h3>
+            <div class="space-y-2 text-sm <%= roi >= 200 ? 'text-green-800' : roi >= 100 ? 'text-blue-800' : 'text-orange-800' %>">
+              <% if roi >= 200 %>
+                <p><strong>Excellent Performance!</strong> This campaign is generating strong returns. Consider:</p>
+                <ul class="list-disc list-inside space-y-1 ml-2">
+                  <li>Increasing budget allocation</li>
+                  <li>Replicating successful elements</li>
+                  <li>Extending campaign duration</li>
+                </ul>
+              <% elsif roi >= 100 %>
+                <p><strong>Good Performance.</strong> Campaign is profitable with room for optimization:</p>
+                <ul class="list-disc list-inside space-y-1 ml-2">
+                  <li>Test different targeting options</li>
+                  <li>Optimize ad creative</li>
+                  <li>Improve landing page conversion</li>
+                </ul>
+              <% else %>
+                <p><strong>Needs Improvement.</strong> Campaign requires attention:</p>
+                <ul class="list-disc list-inside space-y-1 ml-2">
+                  <li>Review targeting parameters</li>
+                  <li>Test new ad variations</li>
+                  <li>Consider pausing and reassessing strategy</li>
+                </ul>
+              <% end %>
+            </div>
+          </div>
+
+          <!-- Conversion Assessment -->
+          <div class="<%= conversion_rate >= 3 ? 'bg-green-50 border-green-200' : conversion_rate >= 1.5 ? 'bg-blue-50 border-blue-200' : 'bg-orange-50 border-orange-200' %> border rounded-lg p-4">
+            <h3 class="text-sm font-semibold <%= conversion_rate >= 3 ? 'text-green-900' : conversion_rate >= 1.5 ? 'text-blue-900' : 'text-orange-900' %> mb-3">
+              Conversion Assessment
+            </h3>
+            <div class="space-y-2 text-sm <%= conversion_rate >= 3 ? 'text-green-800' : conversion_rate >= 1.5 ? 'text-blue-800' : 'text-orange-800' %>">
+              <p><strong>Conversion Rate: <%= number_to_percentage(conversion_rate, precision: 1) %></strong></p>
+              <% if conversion_rate >= 3 %>
+                <p>Excellent conversion efficiency. Your audience targeting and messaging are highly effective.</p>
+              <% elsif conversion_rate >= 1.5 %>
+                <p>Decent conversion rate. Focus on improving landing page experience and call-to-action clarity.</p>
+              <% else %>
+                <p>Low conversion rate. Consider audience refinement and A/B testing different messaging approaches.</p>
+              <% end %>
+              <div class="mt-3 w-full bg-gray-200 rounded-full h-2">
+                <div class="<%= conversion_rate >= 3 ? 'bg-green-500' : conversion_rate >= 1.5 ? 'bg-blue-500' : 'bg-orange-500' %> h-2 rounded-full" style="width: <%= [(conversion_rate * 20), 100].min %>%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  <% else %>
+    <!-- No Campaign Data -->
+    <div class="bg-white rounded-lg shadow p-12">
+      <div class="text-center">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">No campaign selected</h3>
+        <p class="mt-1 text-sm text-gray-500">Select a campaign to view detailed ROI analysis.</p>
+        <div class="mt-6">
+          <%= link_to "View All Campaigns", campaigns_business_manager_analytics_marketing_index_path, class: "inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>

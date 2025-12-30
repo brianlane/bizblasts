@@ -98,7 +98,6 @@ module Analytics
         campaign_metrics: calculate_campaign_metrics(sessions),
         customer_metrics: calculate_customer_metrics(business, date_range),
         staff_metrics: calculate_staff_metrics(business, date_range),
-        revenue_metrics: calculate_revenue_metrics(business, date_range),
         operational_metrics: calculate_operational_metrics(business, date_range),
         inventory_metrics: calculate_inventory_metrics(business, date_range)
       }
@@ -342,7 +341,7 @@ module Analytics
       total_bookings = business.bookings.where(created_at: date_range).count
       total_revenue = business.bookings
                               .where(created_at: date_range)
-                              .joins(:payments)
+                              .joins(invoice: :payments)
                               .where(payments: { status: 'completed' })
                               .sum('payments.amount').to_f
 
@@ -353,7 +352,7 @@ module Analytics
         total_revenue: total_revenue,
         avg_bookings_per_staff: active_staff.any? ? (total_bookings.to_f / active_staff.count).round(1) : 0,
         avg_revenue_per_staff: active_staff.any? ? (total_revenue / active_staff.count).round(2) : 0,
-        top_performer: active_staff.max_by { |s| s.bookings.where(created_at: date_range).joins(:payments).where(payments: { status: 'completed' }).sum('payments.amount') }&.full_name || 'N/A'
+        top_performer: active_staff.max_by { |s| s.bookings.where(created_at: date_range).joins(invoice: :payments).where(payments: { status: 'completed' }).sum('payments.amount') }&.full_name || 'N/A'
       }
     rescue StandardError => e
       Rails.logger.error "[DailySnapshot] Error calculating staff metrics: #{e.message}"
@@ -382,7 +381,7 @@ module Analytics
       # Revenue by category
       booking_revenue = business.bookings
                                .where(created_at: date_range)
-                               .joins(:payments)
+                               .joins(invoice: :payments)
                                .where(payments: { status: 'completed' })
                                .sum('payments.amount').to_f
 
@@ -499,8 +498,8 @@ module Analytics
 
       # Get stock movements for the day
       movements = business.stock_movements.where(created_at: date_range)
-      stock_in = movements.where(movement_type: 'in').sum(:quantity)
-      stock_out = movements.where(movement_type: 'out').sum(:quantity)
+      stock_in = movements.inbound.sum(:quantity)
+      stock_out = movements.outbound.sum(:quantity).abs
       adjustments = movements.where(movement_type: 'adjustment').count
 
       # Calculate units sold from orders

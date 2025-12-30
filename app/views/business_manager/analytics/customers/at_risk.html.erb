@@ -73,7 +73,7 @@
                   <div>
                     <div class="text-sm font-medium text-gray-900">
                       <%= link_to customer_data[:customer].full_name,
-                                  business_manager_analytics_customer_path(customer_data[:customer]),
+                                  business_manager_customer_path(customer_data[:customer]),
                                   class: "text-blue-600 hover:text-blue-800" %>
                     </div>
                     <div class="text-sm text-gray-500"><%= customer_data[:customer].email %></div>
@@ -117,7 +117,7 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <%= link_to "View Details",
-                            business_manager_analytics_customer_path(customer_data[:customer]),
+                            business_manager_customer_path(customer_data[:customer]),
                             class: "text-blue-600 hover:text-blue-900" %>
               </td>
             </tr>

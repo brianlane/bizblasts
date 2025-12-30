@@ -5,7 +5,7 @@ require 'rails_helper'
 RSpec.describe Analytics::DailySnapshotJob, type: :job do
   include ActiveJob::TestHelper
 
-  let!(:business) { create(:business) }
+  let!(:business) { create(:business, active: true) }
   let(:date) { Date.yesterday }
 
   describe '#perform' do
@@ -144,7 +144,7 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
     end
 
     context 'with multiple businesses' do
-      let(:other_business) { create(:business) }
+      let(:other_business) { create(:business, active: true) }
 
       before do
         create(:visitor_session, business: business, session_start: date.beginning_of_day + 2.hours)
@@ -159,7 +159,7 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
     end
 
     context 'when business processing fails' do
-      let(:other_business) { create(:business) }
+      let(:other_business) { create(:business, active: true) }
 
       before do
         create(:visitor_session, business: business, session_start: date.beginning_of_day + 2.hours)
@@ -186,7 +186,10 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
     context 'with bookings' do
       let!(:completed_booking) do
         service = create(:service, business: business, price: 100)
-        create(:booking, :completed, business: business, service: service, created_at: date.beginning_of_day + 3.hours)
+        booking = create(:booking, :completed, business: business, service: service, created_at: date.beginning_of_day + 3.hours)
+        invoice = create(:invoice, business: business, booking: booking, total_amount: 100, created_at: date.beginning_of_day + 3.hours)
+        create(:payment, business: business, invoice: invoice, amount: 100, status: 'completed', created_at: date.beginning_of_day + 3.hours)
+        booking
       end
 
       let!(:cancelled_booking) do
@@ -211,9 +214,11 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
       end
 
       it 'calculates average booking value correctly' do
-        # Create another completed booking
+        # Create another completed booking with invoice and payment
         service = create(:service, business: business, price: 200)
-        create(:booking, :completed, business: business, service: service, created_at: date.beginning_of_day + 5.hours)
+        booking2 = create(:booking, :completed, business: business, service: service, created_at: date.beginning_of_day + 5.hours)
+        invoice2 = create(:invoice, business: business, booking: booking2, total_amount: 200, created_at: date.beginning_of_day + 5.hours)
+        create(:payment, business: business, invoice: invoice2, amount: 200, status: 'completed', created_at: date.beginning_of_day + 5.hours)
 
         described_class.perform_now(date)
 

@@ -1,0 +1,354 @@
+<% content_for :title, "At-Risk Subscriptions" %>
+
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">At-Risk Subscriptions</h1>
+      <p class="text-sm text-gray-600 mt-1">Subscriptions requiring immediate attention and intervention</p>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <%= link_to "Export CSV", export_business_manager_analytics_subscriptions_path(format: :csv),
+                  class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" %>
+    </div>
+  </div>
+
+  <!-- Back Link -->
+  <%= link_to business_manager_analytics_subscriptions_path, class: "inline-flex items-center text-sm text-gray-600 hover:text-gray-900" do %>
+    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Back to Subscription Analytics
+  <% end %>
+
+  <!-- Summary Stats -->
+  <% if @at_risk_data.present? && @at_risk_data.is_a?(Hash) %>
+    <% total_at_risk = @at_risk_data[:total_at_risk] || 0 %>
+    <% total_at_risk_mrr = @at_risk_data[:total_at_risk_mrr] || 0 %>
+    <% critical_count = @at_risk_data[:critical_count] || 0 %>
+    <% critical_mrr = @at_risk_data[:critical_mrr] || 0 %>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">At-Risk Subscriptions</p>
+            <p class="text-2xl font-semibold text-orange-600 mt-2"><%= total_at_risk %></p>
+            <p class="text-xs text-gray-500 mt-1">Total requiring action</p>
+          </div>
+          <div class="bg-orange-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">At-Risk MRR</p>
+            <p class="text-2xl font-semibold text-orange-600 mt-2"><%= number_to_currency(total_at_risk_mrr) %></p>
+            <p class="text-xs text-gray-500 mt-1">Revenue at stake</p>
+          </div>
+          <div class="bg-orange-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Critical Subscriptions</p>
+            <p class="text-2xl font-semibold text-red-600 mt-2"><%= critical_count %></p>
+            <p class="text-xs text-gray-500 mt-1">Immediate intervention needed</p>
+          </div>
+          <div class="bg-red-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Critical MRR</p>
+            <p class="text-2xl font-semibold text-red-600 mt-2"><%= number_to_currency(critical_mrr) %></p>
+            <p class="text-xs text-gray-500 mt-1">Highest priority revenue</p>
+          </div>
+          <div class="bg-red-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- At-Risk Subscriptions List -->
+  <div class="bg-white rounded-lg shadow">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-xl font-semibold text-gray-900">At-Risk Subscription Details</h2>
+      <p class="text-sm text-gray-600 mt-1">Prioritized by risk level and revenue impact</p>
+    </div>
+
+    <div class="p-6">
+      <% if @at_risk_data.present? && @at_risk_data[:subscriptions].present? && @at_risk_data[:subscriptions].any? %>
+        <!-- Mobile Cards -->
+        <div class="space-y-4 lg:hidden">
+          <% @at_risk_data[:subscriptions].each do |subscription| %>
+            <% score = subscription[:health_score] || 0 %>
+            <% risk_level = subscription[:risk_level] || 'medium' %>
+            <% priority = subscription[:priority] || 'medium' %>
+            <% risk_color = risk_level == 'critical' ? 'red' : risk_level == 'high' ? 'orange' : 'yellow' %>
+            <% priority_color = priority == 'high' ? 'red' : priority == 'medium' ? 'orange' : 'yellow' %>
+
+            <div class="bg-white border-l-4 border-<%= risk_color %>-500 shadow-sm rounded-lg p-4">
+              <div class="flex justify-between items-start mb-3">
+                <div>
+                  <h3 class="font-medium text-gray-900"><%= subscription[:customer_name] %></h3>
+                  <p class="text-sm text-gray-500 mt-1"><%= subscription[:plan_name] %></p>
+                </div>
+                <div class="flex flex-col gap-1 items-end">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-<%= risk_color %>-100 text-<%= risk_color %>-800">
+                    <%= risk_level.titleize %> Risk
+                  </span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-<%= priority_color %>-100 text-<%= priority_color %>-800">
+                    <%= priority.titleize %> Priority
+                  </span>
+                </div>
+              </div>
+
+              <div class="space-y-3">
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-600">Health Score:</span>
+                  <span class="font-medium text-<%= risk_color %>-600"><%= number_with_precision(score, precision: 1) %>/100</span>
+                </div>
+
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                  <div class="bg-<%= risk_color %>-500 h-2 rounded-full" style="width: <%= [score, 100].min %>%"></div>
+                </div>
+
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-600">MRR at Risk:</span>
+                  <span class="font-medium text-gray-900"><%= number_to_currency(subscription[:mrr] || 0) %></span>
+                </div>
+
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-600">Days Until Renewal:</span>
+                  <span class="font-medium text-gray-900"><%= subscription[:days_until_renewal] || 'N/A' %></span>
+                </div>
+
+                <% if subscription[:primary_risk_factors].present? && subscription[:primary_risk_factors].any? %>
+                  <div class="pt-3 border-t border-gray-200">
+                    <p class="text-xs font-medium text-gray-700 mb-2">Primary Risk Factors:</p>
+                    <div class="space-y-1">
+                      <% subscription[:primary_risk_factors].each do |factor| %>
+                        <div class="flex items-start gap-2">
+                          <svg class="w-3 h-3 text-<%= risk_color %>-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                          </svg>
+                          <span class="text-xs text-gray-600"><%= factor %></span>
+                        </div>
+                      <% end %>
+                    </div>
+                  </div>
+                <% end %>
+
+                <% if subscription[:recommended_actions].present? && subscription[:recommended_actions].any? %>
+                  <div class="pt-3 border-t border-gray-200">
+                    <p class="text-xs font-medium text-gray-700 mb-2">Recommended Actions:</p>
+                    <div class="space-y-1">
+                      <% subscription[:recommended_actions].take(3).each do |action| %>
+                        <div class="flex items-start gap-2">
+                          <svg class="w-3 h-3 text-blue-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                          </svg>
+                          <span class="text-xs text-gray-600"><%= action %></span>
+                        </div>
+                      <% end %>
+                    </div>
+                  </div>
+                <% end %>
+
+                <div class="pt-3">
+                  <%= link_to "View Customer Details", business_manager_customer_path(subscription[:customer_id]),
+                              class: "block w-full text-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors" %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Desktop Table -->
+        <div class="hidden lg:block overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Health Score</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Risk Level</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MRR at Risk</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days to Renewal</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <% @at_risk_data[:subscriptions].each do |subscription| %>
+                <% score = subscription[:health_score] || 0 %>
+                <% risk_level = subscription[:risk_level] || 'medium' %>
+                <% priority = subscription[:priority] || 'medium' %>
+                <% risk_color = risk_level == 'critical' ? 'red' : risk_level == 'high' ? 'orange' : 'yellow' %>
+                <% priority_color = priority == 'high' ? 'red' : priority == 'medium' ? 'orange' : 'yellow' %>
+
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-<%= priority_color %>-100 text-<%= priority_color %>-800">
+                      <%= priority.titleize %>
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900"><%= subscription[:customer_name] %></div>
+                    <div class="text-sm text-gray-500"><%= subscription[:customer_email] %></div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900"><%= subscription[:plan_name] %></div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center gap-2">
+                      <div class="flex-1 bg-gray-200 rounded-full h-2 max-w-[100px]">
+                        <div class="bg-<%= risk_color %>-500 h-2 rounded-full" style="width: <%= [score, 100].min %>%"></div>
+                      </div>
+                      <span class="text-sm font-medium text-<%= risk_color %>-600"><%= number_with_precision(score, precision: 1) %></span>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-<%= risk_color %>-100 text-<%= risk_color %>-800">
+                      <%= risk_level.titleize %>
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900"><%= number_to_currency(subscription[:mrr] || 0) %></div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900"><%= subscription[:days_until_renewal] || 'N/A' %></div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm">
+                    <%= link_to "View", business_manager_customer_path(subscription[:customer_id]),
+                                class: "text-blue-600 hover:text-blue-900 font-medium" %>
+                  </td>
+                </tr>
+                <% if subscription[:primary_risk_factors].present? || subscription[:recommended_actions].present? %>
+                  <tr class="bg-gray-50">
+                    <td colspan="8" class="px-6 py-3">
+                      <div class="grid md:grid-cols-2 gap-4 text-sm">
+                        <% if subscription[:primary_risk_factors].present? && subscription[:primary_risk_factors].any? %>
+                          <div>
+                            <p class="font-medium text-gray-700 mb-1">Risk Factors:</p>
+                            <ul class="space-y-1">
+                              <% subscription[:primary_risk_factors].each do |factor| %>
+                                <li class="flex items-start gap-2">
+                                  <svg class="w-3 h-3 text-<%= risk_color %>-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                  </svg>
+                                  <span class="text-gray-600"><%= factor %></span>
+                                </li>
+                              <% end %>
+                            </ul>
+                          </div>
+                        <% end %>
+
+                        <% if subscription[:recommended_actions].present? && subscription[:recommended_actions].any? %>
+                          <div>
+                            <p class="font-medium text-gray-700 mb-1">Recommended Actions:</p>
+                            <ul class="space-y-1">
+                              <% subscription[:recommended_actions].each do |action| %>
+                                <li class="flex items-start gap-2">
+                                  <svg class="w-3 h-3 text-blue-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                  </svg>
+                                  <span class="text-gray-600"><%= action %></span>
+                                </li>
+                              <% end %>
+                            </ul>
+                          </div>
+                        <% end %>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Intervention Playbook -->
+        <div class="mt-8 bg-red-50 border border-red-200 rounded-lg p-4">
+          <h3 class="text-sm font-semibold text-red-900 mb-3">Churn Prevention Playbook</h3>
+          <div class="space-y-4 text-sm text-red-800">
+            <div>
+              <p class="font-medium mb-2">For Critical Risk (Score <40):</p>
+              <ul class="list-disc list-inside space-y-1 ml-2">
+                <li>Schedule immediate executive-level call</li>
+                <li>Offer dedicated success manager</li>
+                <li>Provide customized retention offer</li>
+                <li>Identify and address specific pain points</li>
+                <li>Consider pause/downgrade options as alternative to cancellation</li>
+              </ul>
+            </div>
+
+            <div>
+              <p class="font-medium mb-2">For High Risk (Score 40-59):</p>
+              <ul class="list-disc list-inside space-y-1 ml-2">
+                <li>Personal outreach from account manager</li>
+                <li>Conduct usage review and training session</li>
+                <li>Share relevant case studies and best practices</li>
+                <li>Offer feature consultation to increase adoption</li>
+                <li>Provide quarterly business review</li>
+              </ul>
+            </div>
+
+            <div>
+              <p class="font-medium mb-2">For Moderate Risk (Score 60-79):</p>
+              <ul class="list-disc list-inside space-y-1 ml-2">
+                <li>Send automated engagement campaigns</li>
+                <li>Highlight underutilized features</li>
+                <li>Share success stories from similar customers</li>
+                <li>Monitor usage trends closely</li>
+                <li>Proactive check-in before renewal</li>
+              </ul>
+            </div>
+
+            <div class="mt-3 pt-3 border-t border-red-200">
+              <p class="font-medium">General Best Practices:</p>
+              <ul class="list-disc list-inside space-y-1 mt-2 ml-2">
+                <li>Act within 24-48 hours for critical accounts</li>
+                <li>Document all intervention attempts and outcomes</li>
+                <li>Track win-back success rates by intervention type</li>
+                <li>Analyze common patterns in saved vs. lost accounts</li>
+                <li>Build automated early warning systems</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      <% else %>
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No at-risk subscriptions</h3>
+          <p class="mt-1 text-sm text-gray-500">All subscriptions are currently healthy. Great work!</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

@@ -211,7 +211,7 @@ class TenantCustomer < ApplicationRecord
   # Days between first and last purchase
   def lifespan_days
     return 0 unless first_purchase_at && last_purchase_at
-    (last_purchase_at - first_purchase_at).to_i
+    ((last_purchase_at - first_purchase_at) / 1.day).to_i
   end
 
   def first_purchase_at

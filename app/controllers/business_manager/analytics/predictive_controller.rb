@@ -57,11 +57,12 @@ module BusinessManager
         @daily_forecast = (0...period).map do |day_offset|
           date = Date.current + day_offset.days
           daily_bookings = (total_predicted.to_f / period * (0.8 + rand * 0.4)).round
+          avg_revenue_per_booking = total_predicted > 0 ? (total_revenue_predicted / total_predicted) : 0
 
           {
             date: date,
             predicted_bookings: daily_bookings,
-            predicted_revenue: daily_bookings * (total_revenue_predicted / total_predicted),
+            predicted_revenue: daily_bookings * avg_revenue_per_booking,
             confidence: 70 + rand(20)
           }
         end
@@ -542,7 +543,7 @@ module BusinessManager
         end
 
         seasonal_variance = @daily_forecast.map { |d| d[:predicted_revenue] }.then do |revenues|
-          return 0 if revenues.empty?
+          next 0 if revenues.empty?
           mean = revenues.sum / revenues.count
           variance = revenues.sum { |r| (r - mean) ** 2 } / revenues.count
           Math.sqrt(variance) / mean * 100

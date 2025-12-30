@@ -183,7 +183,7 @@
   <!-- Refund Analysis -->
   <div class="analytics-section">
     <h2>Refund Analysis (Last 30 Days)</h2>
-    <%= link_to "View All Refunds", refunds_business_manager_analytics_revenue_index_path, class: "btn btn-link cursor-pointer" %>
+    <%= link_to "View All Refunds", business_manager_payments_path(status: 'refunded'), class: "btn btn-link cursor-pointer" %>
 
     <div class="metrics-grid">
       <div class="metric-card">
