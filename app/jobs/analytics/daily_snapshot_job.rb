@@ -587,7 +587,7 @@ module Analytics
       result = yield
       elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
 
-      if elapsed > SLOW_QUERY_THRESHOLD
+      if elapsed > self.class.slow_threshold
         Rails.logger.warn "[DailySnapshot] Slow query detected: #{name} took #{elapsed.round(3)}s"
       end
 

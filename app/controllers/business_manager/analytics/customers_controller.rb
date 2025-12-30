@@ -23,7 +23,7 @@ module BusinessManager
                                     purchases: c.purchase_frequency.to_i
                                   }
                                 }
-                                .sort_by { |c| -c[:clv] }
+                                .sort_by { |c| -c[:clv][:total_value] }
                                 .first(10)
       end
 

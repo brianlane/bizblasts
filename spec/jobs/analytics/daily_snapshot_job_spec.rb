@@ -301,9 +301,13 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
     end
   end
 
-  describe 'SLOW_QUERY_THRESHOLD constant' do
-    it 'is set to 1 second' do
-      expect(described_class::SLOW_QUERY_THRESHOLD).to eq(1.0)
+  describe 'slow_threshold class method' do
+    it 'returns the configured threshold from Rails config' do
+      expect(described_class.slow_threshold).to eq(Rails.application.config.analytics.snapshot_slow_threshold)
+    end
+
+    it 'defaults to 5 seconds' do
+      expect(described_class.slow_threshold).to be >= 5.0
     end
   end
 end

@@ -720,7 +720,7 @@ module BusinessManager
           base_revenue = revenue_data[:historical_daily_avg]
           day_factor = [0.7, 0.8, 1.0, 1.1, 1.2, 0.9, 0.6][date.wday] # Weekend adjustments
           # Reduce confidence for predictions further in the future
-          days_out_confidence_penalty = [0, (day_offset / 10)].min
+          days_out_confidence_penalty = [0, (day_offset / 10)].max
 
           @daily_forecast << {
             date: date,

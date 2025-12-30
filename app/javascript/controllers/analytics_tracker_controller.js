@@ -39,6 +39,13 @@ export default class extends Controller {
     }
 
     this.initializeSession()
+
+    // If session initialization failed (e.g., no crypto API), disable tracking
+    if (!this.sessionId) {
+      console.error("[Analytics] Session initialization failed, tracking disabled")
+      return
+    }
+
     this.trackPageView()
     this.setupEventListeners()
     this.startBatchProcessor()
@@ -63,8 +70,14 @@ export default class extends Controller {
     // Use sessionStorage for session-scoped ID (clears on browser close)
     let sessionId = sessionStorage.getItem("bz_session_id")
     if (!sessionId) {
-      sessionId = this.generateUUID()
-      sessionStorage.setItem("bz_session_id", sessionId)
+      try {
+        sessionId = this.generateUUID()
+        sessionStorage.setItem("bz_session_id", sessionId)
+      } catch (error) {
+        // If secure random generation fails, return null to disable tracking
+        console.error("[Analytics] Failed to generate secure session ID:", error)
+        return null
+      }
     }
     return sessionId
   }
@@ -88,10 +101,10 @@ export default class extends Controller {
     const cryptoObj = (typeof window !== "undefined" && window.crypto) || (typeof globalThis !== "undefined" && globalThis.crypto)
 
     if (!cryptoObj || !cryptoObj.getRandomValues) {
-      // Fallback to Math.random() for older browsers
-      // This is less secure but prevents tracking from failing entirely
-      console.warn("[Analytics] Crypto API unavailable, using Math.random() fallback")
-      return this.generateFallbackUUID()
+      // SECURITY: Do not fall back to Math.random() as it's cryptographically insecure
+      // Session IDs must be unpredictable to prevent session prediction attacks
+      console.error("[Analytics] Crypto API unavailable. Cannot generate secure session ID. Analytics disabled.")
+      throw new Error("Crypto API required for secure session ID generation")
     }
 
     cryptoObj.getRandomValues(bytes)
@@ -112,17 +125,6 @@ export default class extends Controller {
       hex[8] + hex[9] + "-" +
       hex[10] + hex[11] + hex[12] + hex[13] + hex[14] + hex[15]
     )
-  }
-
-  generateFallbackUUID() {
-    // Fallback UUID generation using Math.random() for older browsers
-    // Less secure but better than failing entirely
-    // Format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0
-      const v = c === 'x' ? r : (r & 0x3 | 0x8)
-      return v.toString(16)
-    })
   }
 
   hashCode(str) {
@@ -626,6 +628,12 @@ export default class extends Controller {
     // Respect Do Not Track - external callers must not bypass privacy settings
     if (this.shouldNotTrack()) {
       console.debug("[Analytics] DNT enabled, conversion tracking skipped")
+      return
+    }
+
+    // Check if tracking is initialized (session ID exists)
+    if (!this.sessionId) {
+      console.debug("[Analytics] Session not initialized, conversion tracking skipped")
       return
     }
 
