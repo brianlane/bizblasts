@@ -545,6 +545,7 @@ module BusinessManager
         seasonal_variance = @daily_forecast.map { |d| d[:predicted_revenue] }.then do |revenues|
           next 0 if revenues.empty?
           mean = revenues.sum / revenues.count
+          next 0 if mean.zero? # Avoid division by zero when all revenues are zero
           variance = revenues.sum { |r| (r - mean) ** 2 } / revenues.count
           Math.sqrt(variance) / mean * 100
         end

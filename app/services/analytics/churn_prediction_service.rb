@@ -229,7 +229,7 @@ module Analytics
     def calculate_missed_appointments(customer)
       customer.bookings
               .where(created_at: 90.days.ago..Time.current)
-              .where(status: ['no_show', 'cancelled_by_customer'])
+              .where(status: [:no_show, :cancelled])
               .count
     end
 

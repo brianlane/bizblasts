@@ -84,6 +84,9 @@ module BusinessManager
       def export
         @customers = business.tenant_customers.includes(:bookings, :orders)
 
+        # Calculate segments once outside the loop to avoid O(N²) complexity
+        all_segments = @lifecycle_service.customer_segments_rfm
+
         csv_data = CSV.generate(headers: true) do |csv|
           csv << [
             'Customer ID',
@@ -101,8 +104,7 @@ module BusinessManager
           @customers.each do |customer|
             next if customer.purchase_frequency.zero?
 
-            segments = @lifecycle_service.customer_segments_rfm
-            segment_data = segments.find { |s| s[:customer_id] == customer.id }
+            segment_data = all_segments.find { |s| s[:customer_id] == customer.id }
 
             csv << [
               customer.id,

@@ -53,6 +53,7 @@ module Analytics
           customer_id: customer.id,
           customer_name: customer.full_name,
           email: customer.email,
+          total_revenue: customer.total_revenue,
           recency_score: calculate_recency_score(customer),
           frequency_score: calculate_frequency_score(customer),
           monetary_score: calculate_monetary_score(customer)
@@ -80,9 +81,7 @@ module Analytics
 
       segment_values = segments.group_by { |c| c[:segment] }
                                .transform_values { |customers|
-                                 customers.sum { |c|
-                                   business.tenant_customers.find(c[:customer_id]).total_revenue
-                                 }
+                                 customers.sum { |c| c[:total_revenue] }
                                }
 
       {
