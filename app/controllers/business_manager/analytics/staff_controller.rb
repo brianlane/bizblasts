@@ -14,15 +14,23 @@ module BusinessManager
 
       def show
         @staff_member = business.staff_members.find(params[:id])
-        @trends = @staff_service.productivity_trends(@staff_member, 90.days, interval: :week)
-        @metrics = {
-          bookings: @staff_member.bookings_count,
-          revenue: @staff_member.total_revenue,
-          completion_rate: @staff_member.completion_rate,
-          cancellation_rate: @staff_member.cancellation_rate,
-          no_show_rate: @staff_member.no_show_rate,
-          utilization: @staff_service.calculate_utilization_rate(@staff_member, 30.days)
-        }
+
+        respond_to do |format|
+          # Redirect to existing staff member page - analytics data shown there
+          format.html { redirect_to business_manager_staff_member_path(@staff_member) }
+          format.json {
+            @trends = @staff_service.productivity_trends(@staff_member, 90.days, interval: :week)
+            @metrics = {
+              bookings: @staff_member.bookings_count,
+              revenue: @staff_member.total_revenue,
+              completion_rate: @staff_member.completion_rate,
+              cancellation_rate: @staff_member.cancellation_rate,
+              no_show_rate: @staff_member.no_show_rate,
+              utilization: @staff_service.calculate_utilization_rate(@staff_member, 30.days)
+            }
+            render json: { staff_member: @staff_member, metrics: @metrics, trends: @trends }
+          }
+        end
       end
 
       def compare

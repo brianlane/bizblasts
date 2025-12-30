@@ -177,7 +177,7 @@
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="w-full bg-gray-200 rounded-full h-3">
                       <% max_turnover = [@turnover_data.max_by { |d| d[:turnover_rate] }[:turnover_rate], 10].min %>
-                      <% bar_width = [(data[:turnover_rate] / max_turnover * 100).round(1), 100].min %>
+                      <% bar_width = max_turnover > 0 ? [(data[:turnover_rate] / max_turnover * 100).round(1), 100].min : 0 %>
                       <div class="<%= data[:turnover_rate] >= 4 ? 'bg-green-500' : data[:turnover_rate] >= 2 ? 'bg-blue-500' : 'bg-red-500' %> h-3 rounded-full"
                            style="width: <%= bar_width %>%"></div>
                     </div>

@@ -368,10 +368,15 @@ Rails.application.routes.draw do
           collection do
             get :demand_forecast
             get :pricing_recommendations
+            post :apply_pricing
+            post :apply_all_pricing
             get :anomalies
+            post :save_anomaly_settings
             get :next_purchase
             get :staff_scheduling
             get :restock_predictions
+            get :export_restock_predictions
+            post :create_purchase_orders
             get :revenue_prediction
             get :export
           end

@@ -54,6 +54,52 @@
           <dt class="text-sm font-medium text-gray-500">Completed Hours (This Month)</dt>
           <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= @staff_member.hours_completed_this_month.round(2) %></dd>
         </div>
+        
+        <% if @staff_metrics.present? %>
+          <!-- Performance Analytics Section -->
+          <div class="py-4 sm:py-5 sm:px-6 bg-gradient-to-r from-indigo-50 to-indigo-100">
+            <h4 class="text-sm font-semibold text-indigo-900 mb-4 flex items-center">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+              </svg>
+              Performance Analytics
+            </h4>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div class="bg-white p-3 rounded-lg shadow-sm border border-indigo-200">
+                <div class="text-xs text-gray-500 font-medium">Total Bookings</div>
+                <div class="text-xl font-bold text-indigo-600"><%= @staff_metrics[:bookings] || 0 %></div>
+              </div>
+              <div class="bg-white p-3 rounded-lg shadow-sm border border-green-200">
+                <div class="text-xs text-gray-500 font-medium">Total Revenue</div>
+                <div class="text-xl font-bold text-green-600"><%= number_to_currency(@staff_metrics[:revenue] || 0) %></div>
+              </div>
+              <div class="bg-white p-3 rounded-lg shadow-sm border border-blue-200">
+                <div class="text-xs text-gray-500 font-medium">Utilization Rate</div>
+                <div class="text-xl font-bold <%= (@staff_metrics[:utilization] || 0) >= 70 ? 'text-green-600' : (@staff_metrics[:utilization] || 0) >= 50 ? 'text-yellow-600' : 'text-red-600' %>">
+                  <%= number_to_percentage(@staff_metrics[:utilization] || 0, precision: 1) %>
+                </div>
+              </div>
+              <div class="bg-white p-3 rounded-lg shadow-sm border border-purple-200">
+                <div class="text-xs text-gray-500 font-medium">Completion Rate</div>
+                <div class="text-xl font-bold <%= (@staff_metrics[:completion_rate] || 0) >= 90 ? 'text-green-600' : (@staff_metrics[:completion_rate] || 0) >= 75 ? 'text-yellow-600' : 'text-red-600' %>">
+                  <%= number_to_percentage(@staff_metrics[:completion_rate] || 0, precision: 1) %>
+                </div>
+              </div>
+              <div class="bg-white p-3 rounded-lg shadow-sm border border-orange-200">
+                <div class="text-xs text-gray-500 font-medium">Cancellation Rate</div>
+                <div class="text-xl font-bold <%= (@staff_metrics[:cancellation_rate] || 0) <= 5 ? 'text-green-600' : (@staff_metrics[:cancellation_rate] || 0) <= 10 ? 'text-yellow-600' : 'text-red-600' %>">
+                  <%= number_to_percentage(@staff_metrics[:cancellation_rate] || 0, precision: 1) %>
+                </div>
+              </div>
+              <div class="bg-white p-3 rounded-lg shadow-sm border border-red-200">
+                <div class="text-xs text-gray-500 font-medium">No-Show Rate</div>
+                <div class="text-xl font-bold <%= (@staff_metrics[:no_show_rate] || 0) <= 5 ? 'text-green-600' : (@staff_metrics[:no_show_rate] || 0) <= 10 ? 'text-yellow-600' : 'text-red-600' %>">
+                  <%= number_to_percentage(@staff_metrics[:no_show_rate] || 0, precision: 1) %>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
         <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
           <dt class="text-sm font-medium text-gray-500">Bio</dt>
           <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"><%= simple_format(@staff_member.bio) %></dd>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_30_000000) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_30_183634) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -319,6 +319,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_30_000000) do
   create_table "businesses", force: :cascade do |t|
     t.boolean "active", default: true
     t.string "address"
+    t.jsonb "anomaly_settings", default: {"monitoring_period" => "30", "deviation_threshold" => "20", "email_notifications" => "critical_high", "detection_sensitivity" => "medium"}
     t.string "canonical_preference", default: "www", null: false, comment: "Preferred canonical version: \"www\" or \"apex\" for custom domains"
     t.string "city"
     t.integer "cname_check_attempts", default: 0, null: false

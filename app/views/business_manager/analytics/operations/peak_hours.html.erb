@@ -10,13 +10,13 @@
 
     <div class="flex items-center gap-4">
       <%= render 'shared/period_selector', period: @period || :last_90_days, base_path: peak_hours_business_manager_analytics_operations_path %>
-      <%= link_to "Export CSV", export_business_manager_analytics_operations_index_path(format: :csv, period: @period),
+      <%= link_to "Export CSV", export_business_manager_analytics_operations_path(format: :csv, period: @period),
                   class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" %>
     </div>
   </div>
 
   <!-- Back Link -->
-  <%= link_to business_manager_analytics_operations_index_path, class: "inline-flex items-center text-sm text-gray-600 hover:text-gray-900" do %>
+  <%= link_to business_manager_analytics_operations_path, class: "inline-flex items-center text-sm text-gray-600 hover:text-gray-900" do %>
     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
     </svg>

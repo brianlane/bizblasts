@@ -16,6 +16,17 @@ class BusinessManager::StaffMembersController < BusinessManager::BaseController
   def show
     # @staff_member is set by before_action
     # authorize @staff_member # Add Pundit authorization later
+    
+    # Load analytics data for the staff member
+    staff_service = ::Analytics::StaffPerformanceService.new(@current_business)
+    @staff_metrics = {
+      bookings: @staff_member.bookings_count,
+      revenue: @staff_member.total_revenue,
+      completion_rate: @staff_member.completion_rate,
+      cancellation_rate: @staff_member.cancellation_rate,
+      no_show_rate: @staff_member.no_show_rate,
+      utilization: staff_service.calculate_utilization_rate(@staff_member, 30.days)
+    }
   end
 
   # GET /business_manager/staff_members/new

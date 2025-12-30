@@ -61,7 +61,8 @@ module BusinessManager
                             .sort_by { |p| p[0] }
 
         respond_to do |format|
-          format.html
+          # Redirect to existing customer page - analytics data shown there
+          format.html { redirect_to business_manager_customer_path(@customer) }
           format.json {
             render json: {
               customer: {

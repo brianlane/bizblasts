@@ -342,7 +342,7 @@ module Analytics
       total_revenue = business.bookings
                               .where(created_at: date_range)
                               .joins(invoice: :payments)
-                              .where(payments: { status: 'completed' })
+                              .where(payments: { status: :completed })
                               .sum('payments.amount').to_f
 
       {
@@ -352,7 +352,7 @@ module Analytics
         total_revenue: total_revenue,
         avg_bookings_per_staff: active_staff.any? ? (total_bookings.to_f / active_staff.count).round(1) : 0,
         avg_revenue_per_staff: active_staff.any? ? (total_revenue / active_staff.count).round(2) : 0,
-        top_performer: active_staff.max_by { |s| s.bookings.where(created_at: date_range).joins(invoice: :payments).where(payments: { status: 'completed' }).sum('payments.amount') }&.full_name || 'N/A'
+        top_performer: active_staff.max_by { |s| s.bookings.where(created_at: date_range).joins(invoice: :payments).where(payments: { status: :completed }).sum('payments.amount') }&.full_name || 'N/A'
       }
     rescue StandardError => e
       Rails.logger.error "[DailySnapshot] Error calculating staff metrics: #{e.message}"
@@ -371,28 +371,28 @@ module Analytics
       revenue_service = Analytics::RevenueForecastService.new(business)
 
       # Get revenue data for the period
-      payments = business.payments.where(created_at: date_range, status: 'completed')
+      payments = business.payments.where(created_at: date_range, status: :completed)
       total_revenue = payments.sum(:amount).to_f
 
       # Get refund data
-      refunds = business.payments.where(created_at: date_range, status: 'refunded')
+      refunds = business.payments.where(created_at: date_range, status: :refunded)
       refund_amount = refunds.sum(:amount).to_f
 
       # Revenue by category
       booking_revenue = business.bookings
                                .where(created_at: date_range)
                                .joins(invoice: :payments)
-                               .where(payments: { status: 'completed' })
+                               .where(payments: { status: :completed })
                                .sum('payments.amount').to_f
 
       order_revenue = business.orders
                              .where(created_at: date_range)
                              .joins(:payments)
-                             .where(payments: { status: 'completed' })
+                             .where(payments: { status: :completed })
                              .sum('payments.amount').to_f
 
       subscription_revenue = business.subscription_transactions
-                                    .where(created_at: date_range, status: 'completed')
+                                    .where(created_at: date_range, status: :completed)
                                     .sum(:amount).to_f
 
       {
@@ -428,17 +428,17 @@ module Analytics
       total_bookings = bookings.count
 
       # No-show metrics
-      no_shows = bookings.where(status: 'no_show')
+      no_shows = bookings.where(status: :no_show)
       no_show_count = no_shows.count
       no_show_rate = total_bookings > 0 ? ((no_show_count.to_f / total_bookings) * 100).round(2) : 0
 
       # Cancellation metrics
-      cancelled = bookings.where(status: 'cancelled')
+      cancelled = bookings.where(status: :cancelled)
       cancellation_count = cancelled.count
       cancellation_rate = total_bookings > 0 ? ((cancellation_count.to_f / total_bookings) * 100).round(2) : 0
 
       # Completion metrics
-      completed = bookings.where(status: 'completed')
+      completed = bookings.where(status: :completed)
       completion_count = completed.count
       completion_rate = total_bookings > 0 ? ((completion_count.to_f / total_bookings) * 100).round(2) : 0
 
@@ -505,7 +505,7 @@ module Analytics
       # Calculate units sold from orders
       units_sold = business.orders
                            .joins(:line_items)
-                           .where(created_at: date_range, line_items: { itemable_type: 'ProductVariant' })
+                           .where(created_at: date_range, line_items: { lineable_type: 'ProductVariant' })
                            .sum('line_items.quantity')
 
       # Get health score

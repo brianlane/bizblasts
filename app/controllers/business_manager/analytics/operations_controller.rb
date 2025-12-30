@@ -18,15 +18,33 @@ module BusinessManager
         period = params[:period]&.to_i&.days || 30.days
         @no_show_data = @operations_service.no_show_analysis(period)
         @no_show_bookings = business.bookings
-                                    .where(status: 'no_show', created_at: period.ago..Time.current)
+                                    .where(status: :no_show, created_at: period.ago..Time.current)
                                     .includes(:service, :tenant_customer, :staff_member)
                                     .order(start_time: :desc)
                                     .limit(50)
+
+        respond_to do |format|
+          # Redirect to bookings page with no_show status filter
+          format.html { redirect_to business_manager_bookings_path(status: 'no_show') }
+          format.json { render json: { no_show_data: @no_show_data, bookings: @no_show_bookings } }
+        end
       end
 
       def peak_hours
         period = params[:period]&.to_i&.days || 90.days
-        @heatmap_data = @operations_service.peak_hours_heatmap(period)
+        heatmap_result = @operations_service.peak_hours_heatmap(period)
+
+        # Convert 2D array to hash format: { monday: { 8: 5, 9: 10 }, ... }
+        days = [:sunday, :monday, :tuesday, :wednesday, :thursday, :friday, :saturday]
+        @heatmap_data = {}
+
+        heatmap_result[:heatmap].each_with_index do |day_data, day_index|
+          day_name = days[day_index]
+          @heatmap_data[day_name] = {}
+          day_data.each_with_index do |count, hour|
+            @heatmap_data[day_name][hour] = count
+          end
+        end
 
         respond_to do |format|
           format.json { render json: @heatmap_data }

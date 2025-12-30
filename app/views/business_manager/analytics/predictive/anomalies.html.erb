@@ -1,3 +1,38 @@
+<%
+  # Get saved settings from business or use defaults
+  saved_settings = @current_business&.anomaly_settings || {}
+  current_sensitivity = saved_settings['detection_sensitivity'] || 'medium'
+  current_threshold = saved_settings['deviation_threshold'] || '20'
+  current_period = saved_settings['monitoring_period'] || '30'
+  current_notifications = saved_settings['email_notifications'] || 'critical_high'
+
+  sensitivity_options = {
+    'low' => 'Low (Only flag major deviations)',
+    'medium' => 'Medium (Balanced detection)',
+    'high' => 'High (Flag minor deviations)'
+  }
+
+  threshold_options = {
+    '10' => '±10% from expected range',
+    '15' => '±15% from expected range',
+    '20' => '±20% from expected range',
+    '25' => '±25% from expected range'
+  }
+
+  period_options = {
+    '7' => 'Last 7 days',
+    '14' => 'Last 14 days',
+    '30' => 'Last 30 days',
+    '90' => 'Last 90 days'
+  }
+
+  notification_options = {
+    'never' => 'Never',
+    'critical' => 'Critical anomalies only',
+    'critical_high' => 'Critical and High priority',
+    'all' => 'All anomalies'
+  }
+%>
 <div class="container mx-auto px-4 py-8">
   <!-- Header -->
   <div class="flex justify-between items-center mb-8">
@@ -237,54 +272,163 @@
       <p class="text-sm text-gray-500 mt-1">Configure anomaly detection sensitivity and thresholds</p>
     </div>
     <div class="p-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Detection Sensitivity</label>
-          <select class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-            <option>Low (Only flag major deviations)</option>
-            <option selected>Medium (Balanced detection)</option>
-            <option>High (Flag minor deviations)</option>
-          </select>
-          <p class="text-xs text-gray-500 mt-1">Higher sensitivity may result in more false positives</p>
+      <%= form_with url: save_anomaly_settings_business_manager_analytics_predictive_index_path, method: :post, local: true, class: "space-y-6" do |f| %>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Detection Sensitivity Dropdown -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Detection Sensitivity</label>
+            <div class="relative"
+                 data-controller="dropdown"
+                 data-dropdown-selected-value-value="<%= current_sensitivity %>">
+              <input type="hidden" name="detection_sensitivity" value="<%= current_sensitivity %>" data-dropdown-target="hidden">
+              <button type="button"
+                      class="flex items-center justify-between w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      data-dropdown-target="button"
+                      data-action="click->dropdown#toggle"
+                      aria-haspopup="listbox"
+                      aria-expanded="false">
+                <span class="rich-dropdown-text text-gray-900"><%= sensitivity_options[current_sensitivity] %></span>
+                <svg class="w-4 h-4 text-gray-400 ml-2 flex-shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </button>
+              <div class="hidden absolute left-0 mt-1 w-full bg-white shadow-xl rounded-lg py-1 border border-gray-200 z-50"
+                   data-dropdown-target="menu"
+                   role="listbox">
+                <% sensitivity_options.each do |key, label| %>
+                  <% is_selected = key == current_sensitivity %>
+                  <div class="relative flex items-center px-4 py-2.5 text-sm cursor-pointer hover:bg-gray-100 transition-colors <%= is_selected ? 'bg-blue-50 text-blue-700' : '' %>"
+                       data-dropdown-target="option"
+                       data-action="click->dropdown#select"
+                       data-item-id="<%= key %>"
+                       data-item-text="<%= label %>"
+                       role="option"
+                       aria-selected="<%= is_selected %>">
+                    <span class="truncate"><%= label %></span>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Higher sensitivity may result in more false positives</p>
+          </div>
+
+          <!-- Deviation Threshold Dropdown -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Deviation Threshold</label>
+            <div class="relative"
+                 data-controller="dropdown"
+                 data-dropdown-selected-value-value="<%= current_threshold %>">
+              <input type="hidden" name="deviation_threshold" value="<%= current_threshold %>" data-dropdown-target="hidden">
+              <button type="button"
+                      class="flex items-center justify-between w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      data-dropdown-target="button"
+                      data-action="click->dropdown#toggle"
+                      aria-haspopup="listbox"
+                      aria-expanded="false">
+                <span class="rich-dropdown-text text-gray-900"><%= threshold_options[current_threshold] %></span>
+                <svg class="w-4 h-4 text-gray-400 ml-2 flex-shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </button>
+              <div class="hidden absolute left-0 mt-1 w-full bg-white shadow-xl rounded-lg py-1 border border-gray-200 z-50"
+                   data-dropdown-target="menu"
+                   role="listbox">
+                <% threshold_options.each do |key, label| %>
+                  <% is_selected = key == current_threshold %>
+                  <div class="relative flex items-center px-4 py-2.5 text-sm cursor-pointer hover:bg-gray-100 transition-colors <%= is_selected ? 'bg-blue-50 text-blue-700' : '' %>"
+                       data-dropdown-target="option"
+                       data-action="click->dropdown#select"
+                       data-item-id="<%= key %>"
+                       data-item-text="<%= label %>"
+                       role="option"
+                       aria-selected="<%= is_selected %>">
+                    <span class="truncate"><%= label %></span>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Minimum deviation to flag as anomaly</p>
+          </div>
+
+          <!-- Monitoring Period Dropdown -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Monitoring Period</label>
+            <div class="relative"
+                 data-controller="dropdown"
+                 data-dropdown-selected-value-value="<%= current_period %>">
+              <input type="hidden" name="monitoring_period" value="<%= current_period %>" data-dropdown-target="hidden">
+              <button type="button"
+                      class="flex items-center justify-between w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      data-dropdown-target="button"
+                      data-action="click->dropdown#toggle"
+                      aria-haspopup="listbox"
+                      aria-expanded="false">
+                <span class="rich-dropdown-text text-gray-900"><%= period_options[current_period] %></span>
+                <svg class="w-4 h-4 text-gray-400 ml-2 flex-shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </button>
+              <div class="hidden absolute left-0 mt-1 w-full bg-white shadow-xl rounded-lg py-1 border border-gray-200 z-50"
+                   data-dropdown-target="menu"
+                   role="listbox">
+                <% period_options.each do |key, label| %>
+                  <% is_selected = key == current_period %>
+                  <div class="relative flex items-center px-4 py-2.5 text-sm cursor-pointer hover:bg-gray-100 transition-colors <%= is_selected ? 'bg-blue-50 text-blue-700' : '' %>"
+                       data-dropdown-target="option"
+                       data-action="click->dropdown#select"
+                       data-item-id="<%= key %>"
+                       data-item-text="<%= label %>"
+                       role="option"
+                       aria-selected="<%= is_selected %>">
+                    <span class="truncate"><%= label %></span>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          </div>
+
+          <!-- Email Notifications Dropdown -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Email Notifications</label>
+            <div class="relative"
+                 data-controller="dropdown"
+                 data-dropdown-selected-value-value="<%= current_notifications %>">
+              <input type="hidden" name="email_notifications" value="<%= current_notifications %>" data-dropdown-target="hidden">
+              <button type="button"
+                      class="flex items-center justify-between w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      data-dropdown-target="button"
+                      data-action="click->dropdown#toggle"
+                      aria-haspopup="listbox"
+                      aria-expanded="false">
+                <span class="rich-dropdown-text text-gray-900"><%= notification_options[current_notifications] %></span>
+                <svg class="w-4 h-4 text-gray-400 ml-2 flex-shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </button>
+              <div class="hidden absolute left-0 mt-1 w-full bg-white shadow-xl rounded-lg py-1 border border-gray-200 z-50"
+                   data-dropdown-target="menu"
+                   role="listbox">
+                <% notification_options.each do |key, label| %>
+                  <% is_selected = key == current_notifications %>
+                  <div class="relative flex items-center px-4 py-2.5 text-sm cursor-pointer hover:bg-gray-100 transition-colors <%= is_selected ? 'bg-blue-50 text-blue-700' : '' %>"
+                       data-dropdown-target="option"
+                       data-action="click->dropdown#select"
+                       data-item-id="<%= key %>"
+                       data-item-text="<%= label %>"
+                       role="option"
+                       aria-selected="<%= is_selected %>">
+                    <span class="truncate"><%= label %></span>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Deviation Threshold</label>
-          <select class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-            <option>±10% from expected range</option>
-            <option>±15% from expected range</option>
-            <option selected>±20% from expected range</option>
-            <option>±25% from expected range</option>
-          </select>
-          <p class="text-xs text-gray-500 mt-1">Minimum deviation to flag as anomaly</p>
+        <div class="mt-6 flex justify-end">
+          <%= f.submit "Save Settings", class: "px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium cursor-pointer" %>
         </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Monitoring Period</label>
-          <select class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-            <option>Last 7 days</option>
-            <option>Last 14 days</option>
-            <option selected>Last 30 days</option>
-            <option>Last 90 days</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Email Notifications</label>
-          <select class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-            <option>Never</option>
-            <option>Critical anomalies only</option>
-            <option selected>Critical and High priority</option>
-            <option>All anomalies</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="mt-6 flex justify-end">
-        <button class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium cursor-pointer">
-          Save Settings
-        </button>
-      </div>
+      <% end %>
     </div>
   </div>
 </div>

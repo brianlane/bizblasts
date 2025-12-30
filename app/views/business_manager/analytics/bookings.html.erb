@@ -12,13 +12,8 @@
     <%= render 'shared/period_selector', period: @period, base_path: business_manager_analytics_bookings_path %>
   </div>
 
-  <!-- Back Link -->
-  <%= link_to business_manager_analytics_path(period: @period), class: "inline-flex items-center text-sm text-gray-600 hover:text-gray-900" do %>
-    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-    </svg>
-    Back to Analytics Overview
-  <% end %>
+  <!-- Navigation Tabs -->
+  <%= render 'business_manager/analytics/navigation_tabs', period: @period, active_tab: 'bookings' %>
 
   <!-- Booking Metrics Summary -->
   <% if @metrics.present? %>

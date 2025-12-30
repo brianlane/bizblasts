@@ -43,6 +43,12 @@ module BusinessManager
                                   .where(status: 'refunded', created_at: period.ago..Time.current)
                                   .order(created_at: :desc)
                                   .limit(20)
+
+        respond_to do |format|
+          # Redirect to payments page with refunded status filter
+          format.html { redirect_to business_manager_payments_path(status: 'refunded') }
+          format.json { render json: { refund_data: @refund_data, recent_refunds: @recent_refunds } }
+        end
       end
 
       def by_service

@@ -76,8 +76,9 @@ module BusinessManager
         @promotions_data = @marketing_service.promotions_summary(period)
 
         respond_to do |format|
+          # Redirect to promotions page - analytics data shown there
+          format.html { redirect_to business_manager_promotions_path }
           format.json { render json: @promotions_data }
-          format.html
         end
       end
 

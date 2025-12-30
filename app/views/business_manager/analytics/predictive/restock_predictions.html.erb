@@ -138,8 +138,15 @@
           <p class="text-sm text-gray-500 mt-1">Products that will need restocking soon</p>
         </div>
         <div class="flex space-x-2">
-          <%= link_to 'Export as CSV', '#', class: 'px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50' %>
-          <%= link_to 'Create Purchase Orders', '#', class: 'px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700' %>
+          <%= link_to 'Export as CSV',
+                      export_restock_predictions_business_manager_analytics_predictive_index_path(format: :csv),
+                      class: 'px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50' %>
+          <%= button_to 'Create Purchase Orders',
+                        create_purchase_orders_business_manager_analytics_predictive_index_path,
+                        method: :post,
+                        class: 'px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700',
+                        form_class: 'inline',
+                        data: { confirm: 'This will create purchase orders for all recommended restock items. Continue?' } %>
         </div>
       </div>
     </div>
@@ -168,7 +175,6 @@
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <%= stock_level_badge_color(product[:days_until_stockout]) %>
                   <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <%= stock_level_badge_color(product[:days_until_stockout]) %>">
                     <% if product[:days_until_stockout] <= 3 %>
                       Critical
@@ -266,19 +272,23 @@
             <div class="bg-blue-50 rounded-lg p-4">
               <div class="flex items-start justify-between mb-2">
                 <h4 class="text-sm font-medium text-gray-900"><%= adjustment[:season] %></h4>
-                <span class="text-xs font-medium text-blue-600"><%= adjustment[:timeframe] %></span>
-              </div>
-              <p class="text-sm text-gray-600 mb-3"><%= adjustment[:description] %></p>
-              <div class="space-y-2">
-                <% adjustment[:affected_products].first(3).each do |product| %>
-                  <div class="flex justify-between text-sm">
-                    <span class="text-gray-700"><%= product[:name] %></span>
-                    <span class="font-medium <%= product[:change] >= 0 ? 'text-green-600' : 'text-red-600' %>">
-                      <%= product[:change] >= 0 ? '+' : '' %><%= product[:change] %>%
-                    </span>
-                  </div>
+                <% if adjustment[:timeframe].present? %>
+                  <span class="text-xs font-medium text-blue-600"><%= adjustment[:timeframe] %></span>
                 <% end %>
               </div>
+              <p class="text-sm text-gray-600 mb-3"><%= adjustment[:description] %></p>
+              <% if adjustment[:affected_products].present? %>
+                <div class="space-y-2">
+                  <% adjustment[:affected_products].first(3).each do |product| %>
+                    <div class="flex justify-between text-sm">
+                      <span class="text-gray-700"><%= product[:name] %></span>
+                      <span class="font-medium <%= product[:change] >= 0 ? 'text-green-600' : 'text-red-600' %>">
+                        <%= product[:change] >= 0 ? '+' : '' %><%= product[:change] %>%
+                      </span>
+                    </div>
+                  <% end %>
+                </div>
+              <% end %>
             </div>
           <% end %>
         </div>

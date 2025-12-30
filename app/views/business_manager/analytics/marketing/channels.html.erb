@@ -25,10 +25,10 @@
 
   <!-- Summary Stats -->
   <% if @channel_data.present? && @channel_data.any? %>
-    <% total_spend = @channel_data.sum { |c| c[:spend] } %>
-    <% total_revenue = @channel_data.sum { |c| c[:revenue] } %>
+    <% total_spend = @channel_data.sum { |c| c[:spend].to_f } %>
+    <% total_revenue = @channel_data.sum { |c| c[:revenue].to_f } %>
     <% avg_roi = total_spend > 0 ? ((total_revenue - total_spend) / total_spend * 100) : 0 %>
-    <% top_channel = @channel_data.max_by { |c| c[:revenue] } %>
+    <% top_channel = @channel_data.max_by { |c| c[:revenue].to_f } %>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <div class="bg-white rounded-lg shadow p-6">
@@ -102,8 +102,8 @@
       <% if @channel_data.present? && @channel_data.any? %>
         <!-- Mobile Cards -->
         <div class="lg:hidden space-y-4">
-          <% @channel_data.sort_by { |c| -c[:revenue] }.each_with_index do |channel, index| %>
-            <% roi = channel[:spend] > 0 ? ((channel[:revenue] - channel[:spend]) / channel[:spend] * 100) : 0 %>
+          <% @channel_data.sort_by { |c| -c[:revenue].to_f }.each_with_index do |channel, index| %>
+            <% roi = channel[:spend].to_f > 0 ? ((channel[:revenue].to_f - channel[:spend].to_f) / channel[:spend].to_f * 100) : 0 %>
             <% roi_class = roi >= 100 ? 'border-green-500 bg-green-50' : roi >= 0 ? 'border-blue-500 bg-blue-50' : 'border-red-500 bg-red-50' %>
             <div class="border-l-4 <%= roi_class %> rounded-lg p-4">
               <div class="flex items-start justify-between mb-2">
@@ -172,8 +172,8 @@
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-              <% @channel_data.sort_by { |c| -c[:revenue] }.each_with_index do |channel, index| %>
-                <% roi = channel[:spend] > 0 ? ((channel[:revenue] - channel[:spend]) / channel[:spend] * 100) : 0 %>
+              <% @channel_data.sort_by { |c| -c[:revenue].to_f }.each_with_index do |channel, index| %>
+                <% roi = channel[:spend].to_f > 0 ? ((channel[:revenue].to_f - channel[:spend].to_f) / channel[:spend].to_f * 100) : 0 %>
                 <tr class="hover:bg-gray-50">
                   <td class="px-6 py-4 whitespace-nowrap">
                     <span class="inline-flex items-center justify-center w-8 h-8 rounded-full <%= index < 3 ? 'bg-blue-100 text-blue-600 font-semibold' : 'bg-gray-100 text-gray-600' %>">
@@ -221,17 +221,17 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right">
                   <div class="text-sm font-bold text-red-600">
-                    <%= number_to_currency(@channel_data.sum { |c| c[:spend] }) %>
+                    <%= number_to_currency(@channel_data.sum { |c| c[:spend].to_f }) %>
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right">
                   <div class="text-sm font-bold text-green-600">
-                    <%= number_to_currency(@channel_data.sum { |c| c[:revenue] }) %>
+                    <%= number_to_currency(@channel_data.sum { |c| c[:revenue].to_f }) %>
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right">
                   <div class="text-sm font-bold text-gray-900">
-                    <%= @channel_data.sum { |c| c[:conversions] } %>
+                    <%= @channel_data.sum { |c| c[:conversions].to_i } %>
                   </div>
                 </td>
                 <td colspan="3"></td>

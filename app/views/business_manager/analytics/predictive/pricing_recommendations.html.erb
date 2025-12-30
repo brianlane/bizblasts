@@ -61,9 +61,11 @@
           <h2 class="text-xl font-semibold text-gray-900">Service Pricing Recommendations</h2>
           <p class="text-sm text-gray-500 mt-1">Based on demand elasticity, market rates, and booking patterns</p>
         </div>
-        <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm cursor-pointer">
-          Apply All Recommended
-        </button>
+        <%= button_to "Apply All Recommended",
+                      apply_all_pricing_business_manager_analytics_predictive_index_path,
+                      method: :post,
+                      class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm cursor-pointer",
+                      data: { confirm: "Are you sure you want to apply all pricing recommendations? This will update prices for multiple services." } %>
       </div>
     </div>
     <div class="p-6">
@@ -131,7 +133,13 @@
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
-                  <button class="text-blue-600 hover:text-blue-800 font-medium cursor-pointer">Apply</button>
+                  <%= button_to "Apply",
+                                apply_pricing_business_manager_analytics_predictive_index_path,
+                                method: :post,
+                                params: { service_name: rec[:service_name], recommended_price: rec[:recommended_price] },
+                                class: "text-blue-600 hover:text-blue-800 font-medium cursor-pointer bg-transparent border-none p-0",
+                                form_class: "inline",
+                                data: { confirm: "Apply recommended price of #{number_to_currency(rec[:recommended_price])} to #{rec[:service_name]}?" } %>
                 </td>
               </tr>
             <% end %>

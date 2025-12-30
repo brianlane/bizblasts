@@ -131,11 +131,12 @@ module BusinessManager
     end
 
     # GET /manage/analytics/realtime
+    # Redirects to dashboard - realtime data is shown there
     def realtime
       @realtime = @dashboard_service.realtime_metrics
 
       respond_to do |format|
-        format.html
+        format.html { redirect_to business_manager_root_path }
         format.json { render json: @realtime }
       end
     end

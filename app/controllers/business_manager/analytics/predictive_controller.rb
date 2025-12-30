@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'csv'
+
 module BusinessManager
   module Analytics
     # Controller for predictive analytics and intelligent forecasting
@@ -29,12 +31,12 @@ module BusinessManager
 
           {
             service_name: service.name,
-            category: service.service_category&.name || 'Uncategorized',
+            category: 'Service',
             historical_avg: forecast_data[:historical_avg],
             predicted: total_bookings,
             predicted_revenue: total_bookings * service.price,
             change_percent: forecast_data[:historical_avg] > 0 ? ((total_bookings - (forecast_data[:historical_avg] * period)) / (forecast_data[:historical_avg] * period) * 100).round(1) : 0,
-            confidence: forecast_data[:forecast].first&.dig(:confidence_level) || 75,
+            confidence: (forecast_data[:forecast].first&.dig(:confidence_level) || 75).to_f,
             trend: forecast_data[:trend_direction]
           }
         end
@@ -153,6 +155,61 @@ module BusinessManager
         end
       end
 
+      def apply_pricing
+        service_name = params[:service_name]
+        recommended_price = params[:recommended_price].to_f
+
+        service = business.services.find_by(name: service_name)
+
+        if service.nil?
+          redirect_to pricing_recommendations_business_manager_analytics_predictive_index_path,
+                      alert: "Service '#{service_name}' not found."
+          return
+        end
+
+        old_price = service.price
+        service.price = recommended_price
+
+        if service.save
+          redirect_to pricing_recommendations_business_manager_analytics_predictive_index_path,
+                      notice: "Successfully updated '#{service.name}' price from #{number_to_currency(old_price)} to #{number_to_currency(recommended_price)}."
+        else
+          redirect_to pricing_recommendations_business_manager_analytics_predictive_index_path,
+                      alert: "Failed to update price for '#{service.name}': #{service.errors.full_messages.join(', ')}"
+        end
+      end
+
+      def apply_all_pricing
+        all_services = business.services.active
+        updated_count = 0
+        failed_services = []
+
+        all_services.each do |service|
+          pricing_data = @predictive_service.optimal_pricing_recommendations(service.id)
+          recommended_price = pricing_data[:optimal_price]
+
+          # Only update if the recommended price is significantly different (more than $5 difference)
+          if (recommended_price - service.price).abs > 5
+            old_price = service.price
+            service.price = recommended_price
+
+            if service.save
+              updated_count += 1
+            else
+              failed_services << service.name
+            end
+          end
+        end
+
+        if failed_services.any?
+          redirect_to pricing_recommendations_business_manager_analytics_predictive_index_path,
+                      alert: "Updated #{updated_count} services. Failed to update: #{failed_services.join(', ')}"
+        else
+          redirect_to pricing_recommendations_business_manager_analytics_predictive_index_path,
+                      notice: "Successfully updated pricing for #{updated_count} #{'service'.pluralize(updated_count)}."
+        end
+      end
+
       def anomalies
         metric_type = params[:metric]&.to_sym || :bookings
         period = params[:period]&.to_i&.days || 30.days
@@ -195,6 +252,19 @@ module BusinessManager
           format.json { render json: @anomalies }
           format.html
         end
+      end
+
+      def save_anomaly_settings
+        # Store settings in session for now (future: persist to business settings or user preferences)
+        session[:anomaly_settings] = {
+          detection_sensitivity: params[:detection_sensitivity],
+          deviation_threshold: params[:deviation_threshold],
+          monitoring_period: params[:monitoring_period],
+          email_notifications: params[:email_notifications]
+        }
+
+        redirect_to anomalies_business_manager_analytics_predictive_index_path,
+                    notice: 'Anomaly detection settings saved successfully.'
       end
 
       def next_purchase
@@ -265,9 +335,16 @@ module BusinessManager
         @peak_hours_coverage = []
         peak_hours = [10, 11, 14, 15, 16] # 10am-11am, 2pm-4pm
         peak_hours.each do |hour|
+          # Count staff with bookings during this hour as available
           coverage = all_staff.count do |staff|
-            staff.available_during?(date, hour)
+            staff.bookings.where(
+              'start_time >= ? AND start_time < ?',
+              date.beginning_of_day + hour.hours,
+              date.beginning_of_day + (hour + 1).hours
+            ).exists?
           end
+          # If no bookings data, assume all staff are potentially available
+          coverage = all_staff.count if coverage.zero?
 
           @peak_hours_coverage << {
             hour: "#{hour}:00",
@@ -332,16 +409,17 @@ module BusinessManager
         @restock_recommendations = restock_data.reject { |r| r[:urgency] == 'critical' && r[:days_until_stockout] <= 3 }
 
         # Restock summary
+        all_variants = ProductVariant.joins(:product).where(products: { business_id: business.id }).includes(:product)
+
         @restock_summary = {
           total_products_tracked: restock_data.count,
-          critical_restocks: @critical_restocks.count,
-          upcoming_restocks: @restock_recommendations.count { |r| r[:days_until_stockout] <= 14 },
-          adequate_stock: business.product_variants.count - restock_data.count,
-          total_restock_cost: restock_data.sum { |r| (r[:recommended_order_quantity] || 0) * (r[:unit_cost] || 0) }
+          critical_count: @critical_restocks.count,
+          warning_count: @restock_recommendations.count { |r| r[:days_until_stockout] <= 7 },
+          healthy_count: all_variants.count - restock_data.count,
+          total_order_value: restock_data.sum { |r| (r[:recommended_order_quantity] || 0) * (r[:unit_cost] || 0) }
         }
 
         # Identify overstocked products (high stock, low sales)
-        all_variants = business.product_variants.includes(:product)
         @overstocked_products = all_variants.select do |variant|
           sales_30_days = variant.line_items.where(created_at: 30.days.ago..Time.current).sum(:quantity)
           stock = variant.stock_quantity || 0
@@ -376,7 +454,7 @@ module BusinessManager
 
         # Supplier performance (mock data for now)
         @supplier_performance = business.products.includes(:product_variants)
-                                       .group_by { |p| p.supplier_name || 'Unknown' }
+                                       .group_by { |p| 'Default Supplier' }
                                        .map do |supplier, products|
           {
             supplier_name: supplier,
@@ -416,6 +494,75 @@ module BusinessManager
           format.json { render json: restock_data }
           format.html
         end
+      end
+
+      def export_restock_predictions
+        days_ahead = params[:days]&.to_i || 30
+        restock_data = @predictive_service.predict_restock_needs(days_ahead)
+
+        # Generate CSV
+        csv_data = CSV.generate(headers: true) do |csv|
+          # Header row
+          csv << [
+            'Product',
+            'SKU',
+            'Current Stock',
+            'Reorder Point',
+            'Days Until Stockout',
+            'Recommended Qty',
+            'Unit Cost',
+            'Order Value',
+            'Lead Time (days)',
+            'Order By Date',
+            'Urgency'
+          ]
+
+          # Data rows
+          restock_data.each do |product|
+            csv << [
+              product[:name],
+              product[:sku],
+              product[:current_stock],
+              product[:reorder_point],
+              product[:days_until_stockout],
+              product[:recommended_order_quantity],
+              number_to_currency(product[:unit_cost] || 0),
+              number_to_currency((product[:recommended_order_quantity] || 0) * (product[:unit_cost] || 0)),
+              product[:lead_time_days],
+              product[:order_by_date]&.strftime('%Y-%m-%d'),
+              product[:urgency]
+            ]
+          end
+        end
+
+        send_data csv_data,
+                  filename: "restock_predictions_#{Date.current}.csv",
+                  type: 'text/csv',
+                  disposition: 'attachment'
+      end
+
+      def create_purchase_orders
+        days_ahead = params[:days]&.to_i || 30
+        restock_data = @predictive_service.predict_restock_needs(days_ahead)
+
+        # Filter to only items that need restocking (days until stockout <= 30)
+        items_to_order = restock_data.select { |r| r[:days_until_stockout] <= days_ahead }
+
+        if items_to_order.empty?
+          redirect_to restock_predictions_business_manager_analytics_predictive_index_path,
+                      alert: 'No products currently need restocking.'
+          return
+        end
+
+        # TODO: Create actual purchase orders once PurchaseOrder model is implemented
+        # For now, we'll just show a summary and redirect with a success message
+
+        total_items = items_to_order.count
+        total_value = items_to_order.sum { |r| (r[:recommended_order_quantity] || 0) * (r[:unit_cost] || 0) }
+        critical_items = items_to_order.count { |r| r[:urgency] == 'critical' }
+
+        redirect_to restock_predictions_business_manager_analytics_predictive_index_path,
+                    notice: "Purchase order summary: #{total_items} #{'item'.pluralize(total_items)} totaling #{number_to_currency(total_value)} (#{critical_items} critical). Purchase order system coming soon!"
       end
 
       def revenue_prediction
