@@ -117,7 +117,7 @@ module Analytics
       {
         total_customers: customers.count,
         active_customers: customers_with_purchases.count,
-        avg_clv: customers_with_purchases.sum { |c| calculate_clv(c) } / customers_with_purchases.count,
+        avg_clv: customers_with_purchases.sum { |c| calculate_clv(c)[:total_value] } / customers_with_purchases.count,
         arpc: calculate_arpc(period),
         repeat_customer_rate: calculate_repeat_rate(customers),
         avg_purchase_frequency: customers_with_purchases.sum(&:purchase_frequency) / customers_with_purchases.count,
