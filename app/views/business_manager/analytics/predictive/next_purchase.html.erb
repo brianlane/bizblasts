@@ -18,20 +18,64 @@
   <% end %>
 
   <!-- Customer Selector -->
-  <div class="bg-white rounded-lg shadow p-6">
+  <div class="bg-white rounded-lg shadow p-4 sm:p-6">
     <h2 class="text-lg font-semibold text-gray-900 mb-4">Select Customer</h2>
-    <%= form_with url: next_purchase_business_manager_analytics_predictive_index_path, method: :get, local: true, class: "flex flex-col sm:flex-row gap-4" do %>
-      <div class="flex-1">
-        <select name="customer_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-          <option value="">Choose a customer...</option>
+    <%
+      selected_customer = @customers.find { |c| c.id.to_s == params[:customer_id].to_s }
+      selected_text = selected_customer ? "#{selected_customer.full_name} (#{selected_customer.email})" : "Choose a customer..."
+      selected_value = selected_customer&.id || ""
+    %>
+    <%= form_with url: next_purchase_business_manager_analytics_predictive_index_path, method: :get, local: true, class: "flex flex-col sm:flex-row gap-4 items-stretch sm:items-center" do %>
+      <div class="w-full sm:w-80 md:w-96 relative"
+           data-controller="dropdown"
+           data-dropdown-selected-value-value="<%= selected_value %>">
+
+        <!-- Hidden Input for form submission -->
+        <input type="hidden" name="customer_id" value="<%= selected_value %>" data-dropdown-target="hidden">
+
+        <!-- Dropdown Button -->
+        <button type="button"
+                class="flex items-center justify-between w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                data-dropdown-target="button"
+                data-action="click->dropdown#toggle"
+                aria-haspopup="listbox"
+                aria-expanded="false">
+          <span class="rich-dropdown-text text-gray-900 truncate text-left"><%= selected_text %></span>
+          <svg class="w-4 h-4 text-gray-400 ml-2 flex-shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </button>
+
+        <!-- Dropdown Menu -->
+        <div class="hidden absolute left-0 mt-1 bg-white shadow-xl rounded-lg py-1 border border-gray-200 z-50 w-full sm:w-80 md:w-96"
+             data-dropdown-target="menu"
+             role="listbox"
+             style="max-height: 250px; overflow-y: auto;">
+          <!-- Empty option -->
+          <div class="relative flex items-center px-4 py-2.5 text-sm cursor-pointer hover:bg-gray-100 transition-colors text-gray-500"
+               data-dropdown-target="option"
+               data-action="click->dropdown#select"
+               data-item-id=""
+               data-item-text="Choose a customer..."
+               role="option"
+               aria-selected="<%= selected_value.blank? %>">
+            <span class="truncate">Choose a customer...</span>
+          </div>
           <% @customers.each do |customer| %>
-            <option value="<%= customer.id %>" <%= params[:customer_id].to_s == customer.id.to_s ? 'selected' : '' %>>
-              <%= customer.full_name %> (<%= customer.email %>)
-            </option>
+            <% is_selected = customer.id.to_s == params[:customer_id].to_s %>
+            <div class="relative flex items-center px-4 py-2.5 text-sm cursor-pointer hover:bg-gray-100 transition-colors <%= is_selected ? 'bg-blue-50 text-blue-700' : 'text-gray-700' %>"
+                 data-dropdown-target="option"
+                 data-action="click->dropdown#select"
+                 data-item-id="<%= customer.id %>"
+                 data-item-text="<%= customer.full_name %> (<%= customer.email %>)"
+                 role="option"
+                 aria-selected="<%= is_selected %>">
+              <span class="truncate"><%= customer.full_name %> (<%= customer.email %>)</span>
+            </div>
           <% end %>
-        </select>
+        </div>
       </div>
-      <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
+      <button type="submit" class="w-full sm:w-auto px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer whitespace-nowrap font-medium">
         Get Prediction
       </button>
     <% end %>
@@ -39,43 +83,44 @@
 
   <% if @prediction.present? %>
     <!-- Prediction Results -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
       <!-- Main Prediction -->
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="bg-white rounded-lg shadow p-4 sm:p-6">
         <div class="flex items-center gap-3 mb-4">
-          <div class="bg-purple-100 p-3 rounded-full">
-            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="bg-purple-100 p-2 sm:p-3 rounded-full">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
             </svg>
           </div>
-          <h3 class="text-lg font-semibold text-gray-900">Next Purchase Prediction</h3>
+          <h3 class="text-base sm:text-lg font-semibold text-gray-900">Next Purchase Prediction</h3>
         </div>
 
-        <div class="space-y-4">
-          <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-            <span class="text-sm text-gray-600">Predicted Next Purchase</span>
-            <span class="text-lg font-bold text-purple-600">
+        <div class="space-y-3 sm:space-y-4">
+          <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-gray-50 rounded-lg gap-1 sm:gap-0">
+            <span class="text-xs sm:text-sm text-gray-600">Predicted Next Purchase</span>
+            <span class="text-base sm:text-lg font-bold text-purple-600">
               <%= @prediction[:predicted_date]&.strftime('%b %d, %Y') || 'N/A' %>
             </span>
           </div>
 
-          <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-            <span class="text-sm text-gray-600">Days Until Purchase</span>
-            <span class="text-lg font-bold text-blue-600">
+          <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-gray-50 rounded-lg gap-1 sm:gap-0">
+            <span class="text-xs sm:text-sm text-gray-600">Days Until Purchase</span>
+            <span class="text-base sm:text-lg font-bold text-blue-600">
               <%= @prediction[:days_until_purchase] || 'N/A' %> days
             </span>
           </div>
 
-          <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-            <span class="text-sm text-gray-600">Confidence Score</span>
-            <span class="text-lg font-bold <%= (@prediction[:confidence] || 0) >= 70 ? 'text-green-600' : (@prediction[:confidence] || 0) >= 50 ? 'text-yellow-600' : 'text-red-600' %>">
-              <%= number_to_percentage(@prediction[:confidence] || 0, precision: 0) %>
+          <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-gray-50 rounded-lg gap-1 sm:gap-0">
+            <span class="text-xs sm:text-sm text-gray-600">Confidence Score</span>
+            <% confidence_value = (@prediction[:confidence] || 0).to_f %>
+            <span class="text-base sm:text-lg font-bold <%= confidence_value >= 70 ? 'text-green-600' : confidence_value >= 50 ? 'text-yellow-600' : 'text-red-600' %>">
+              <%= number_to_percentage(confidence_value, precision: 0) %>
             </span>
           </div>
 
-          <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-            <span class="text-sm text-gray-600">Expected Value</span>
-            <span class="text-lg font-bold text-green-600">
+          <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-gray-50 rounded-lg gap-1 sm:gap-0">
+            <span class="text-xs sm:text-sm text-gray-600">Expected Value</span>
+            <span class="text-base sm:text-lg font-bold text-green-600">
               <%= number_to_currency(@prediction[:expected_value] || 0) %>
             </span>
           </div>
@@ -83,18 +128,18 @@
       </div>
 
       <!-- Likely Products/Services -->
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Likely Products/Services</h3>
+      <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+        <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-4">Likely Products/Services</h3>
         
         <% if @prediction[:likely_items].present? %>
           <div class="space-y-3">
             <% @prediction[:likely_items].each do |item| %>
               <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p class="text-sm font-medium text-gray-900"><%= item[:name] %></p>
+                <div class="min-w-0 flex-1 mr-3">
+                  <p class="text-sm font-medium text-gray-900 truncate"><%= item[:name] %></p>
                   <p class="text-xs text-gray-500"><%= item[:category] %></p>
                 </div>
-                <div class="text-right">
+                <div class="text-right flex-shrink-0">
                   <p class="text-sm font-medium text-blue-600"><%= number_to_percentage(item[:probability], precision: 0) %></p>
                   <p class="text-xs text-gray-500">probability</p>
                 </div>
@@ -109,22 +154,22 @@
 
     <!-- Customer Purchase History -->
     <div class="bg-white rounded-lg shadow">
-      <div class="px-6 py-4 border-b border-gray-200">
-        <h2 class="text-lg font-semibold text-gray-900">Purchase Pattern Analysis</h2>
+      <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+        <h2 class="text-base sm:text-lg font-semibold text-gray-900">Purchase Pattern Analysis</h2>
       </div>
-      <div class="p-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="text-center p-4 bg-gray-50 rounded-lg">
-            <p class="text-sm text-gray-600">Avg. Days Between Purchases</p>
-            <p class="text-2xl font-bold text-gray-900 mt-2"><%= @prediction[:avg_days_between_purchases] || 'N/A' %></p>
+      <div class="p-4 sm:p-6">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+          <div class="text-center p-3 sm:p-4 bg-gray-50 rounded-lg">
+            <p class="text-xs sm:text-sm text-gray-600">Avg. Days Between Purchases</p>
+            <p class="text-xl sm:text-2xl font-bold text-gray-900 mt-1 sm:mt-2"><%= @prediction[:avg_days_between_purchases] || 'N/A' %></p>
           </div>
-          <div class="text-center p-4 bg-gray-50 rounded-lg">
-            <p class="text-sm text-gray-600">Total Purchases</p>
-            <p class="text-2xl font-bold text-gray-900 mt-2"><%= @prediction[:total_purchases] || 0 %></p>
+          <div class="text-center p-3 sm:p-4 bg-gray-50 rounded-lg">
+            <p class="text-xs sm:text-sm text-gray-600">Total Purchases</p>
+            <p class="text-xl sm:text-2xl font-bold text-gray-900 mt-1 sm:mt-2"><%= @prediction[:total_purchases] || 0 %></p>
           </div>
-          <div class="text-center p-4 bg-gray-50 rounded-lg">
-            <p class="text-sm text-gray-600">Avg. Order Value</p>
-            <p class="text-2xl font-bold text-gray-900 mt-2"><%= number_to_currency(@prediction[:avg_order_value] || 0) %></p>
+          <div class="text-center p-3 sm:p-4 bg-gray-50 rounded-lg">
+            <p class="text-xs sm:text-sm text-gray-600">Avg. Order Value</p>
+            <p class="text-xl sm:text-2xl font-bold text-gray-900 mt-1 sm:mt-2"><%= number_to_currency(@prediction[:avg_order_value] || 0) %></p>
           </div>
         </div>
       </div>
@@ -132,16 +177,16 @@
 
     <!-- Recommendations -->
     <% if @prediction[:recommendations].present? %>
-      <div class="bg-blue-50 border-l-4 border-blue-400 p-6 rounded-lg">
+      <div class="bg-blue-50 border-l-4 border-blue-400 p-4 sm:p-6 rounded-lg">
         <div class="flex">
           <div class="flex-shrink-0">
-            <svg class="h-6 w-6 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="h-5 w-5 sm:h-6 sm:w-6 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
             </svg>
           </div>
           <div class="ml-3">
             <h3 class="text-sm font-medium text-blue-800">Recommended Actions</h3>
-            <div class="mt-2 text-sm text-blue-700">
+            <div class="mt-2 text-xs sm:text-sm text-blue-700">
               <ul class="list-disc list-inside space-y-1">
                 <% @prediction[:recommendations].each do |rec| %>
                   <li><%= rec %></li>
@@ -154,12 +199,12 @@
     <% end %>
   <% else %>
     <!-- Empty State -->
-    <div class="bg-white rounded-lg shadow p-12 text-center">
-      <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="bg-white rounded-lg shadow p-8 sm:p-12 text-center">
+      <svg class="mx-auto h-12 w-12 sm:h-16 sm:w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
       </svg>
-      <h3 class="mt-4 text-lg font-medium text-gray-900">Select a Customer</h3>
-      <p class="mt-2 text-sm text-gray-500">Choose a customer above to see their next purchase prediction.</p>
+      <h3 class="mt-4 text-base sm:text-lg font-medium text-gray-900">Select a Customer</h3>
+      <p class="mt-2 text-xs sm:text-sm text-gray-500">Choose a customer above to see their next purchase prediction.</p>
     </div>
   <% end %>
 </div>

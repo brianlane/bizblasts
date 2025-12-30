@@ -9,7 +9,7 @@
   </div>
 
   <!-- Quick Navigation -->
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-8">
     <%= link_to demand_forecast_business_manager_analytics_predictive_index_path,
                 class: "bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow" do %>
       <div class="flex items-center">
@@ -66,6 +66,21 @@
         <div>
           <div class="text-sm font-semibold text-gray-900">Restock</div>
           <div class="text-xs text-gray-500">Inventory needs</div>
+        </div>
+      </div>
+    <% end %>
+
+    <%= link_to next_purchase_business_manager_analytics_predictive_index_path,
+                class: "bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow" do %>
+      <div class="flex items-center">
+        <div class="bg-indigo-100 p-3 rounded-lg mr-3">
+          <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="text-sm font-semibold text-gray-900">Next Purchase</div>
+          <div class="text-xs text-gray-500">Customer predictions</div>
         </div>
       </div>
     <% end %>

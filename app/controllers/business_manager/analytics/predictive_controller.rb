@@ -123,7 +123,8 @@ module BusinessManager
         }
 
         @premium_candidates = @pricing_recommendations.select { |r| r[:demand_level] == 'high' && r[:recommended_price] > r[:current_price] }.first(3).map do |r|
-          { name: r[:service_name], increase_potential: ((r[:recommended_price] - r[:current_price]) / r[:current_price] * 100).round(1) }
+          increase_potential = r[:current_price] > 0 ? ((r[:recommended_price] - r[:current_price]) / r[:current_price] * 100).round(1) : 0
+          { name: r[:service_name], increase_potential: increase_potential }
         end
 
         @promotional_candidates = @pricing_recommendations.select { |r| r[:demand_level] == 'low' }.first(3).map do |r|
@@ -312,28 +313,60 @@ module BusinessManager
           week_bookings = staff.bookings.where(start_time: date.beginning_of_week..date.end_of_week)
           total_hours = week_bookings.sum { |b| (b.duration_minutes || 60) / 60.0 }
           available_hours = 40 # Assume 40 hour work week
+          utilization = available_hours > 0 ? (total_hours / available_hours * 100).round(1) : 0
+
+          # Generate initials from name
+          name_parts = staff.full_name.split(' ')
+          initials = name_parts.map { |part| part[0]&.upcase }.join
+
+          # Determine recommendation based on utilization
+          recommendation = if utilization < 40
+                             'Consider assigning more shifts or cross-training'
+                           elsif utilization > 90
+                             'At risk of burnout - consider redistributing workload'
+                           else
+                             nil
+                           end
 
           {
             name: staff.full_name,
+            initials: initials,
+            role: staff.position || 'Staff Member',
             booked_hours: total_hours.round(1),
+            hours_scheduled: total_hours.round(1),
             available_hours: available_hours,
-            utilization_percent: (total_hours / available_hours * 100).round(1),
-            bookings_count: week_bookings.count
+            utilization_percent: utilization,
+            bookings_count: week_bookings.count,
+            recommendation: recommendation
           }
         end
 
-        # Scheduling summary
+        # Scheduling summary - calculate optimal staff count and potential savings
+        underutilized = @staff_utilization.count { |s| s[:utilization_percent] < 60 }
+        overutilized = @staff_utilization.count { |s| s[:utilization_percent] > 90 }
+        optimal = @staff_utilization.count { |s| s[:utilization_percent].between?(60, 90) }
+
+        # Calculate potential savings from optimizing underutilized staff
+        hourly_rate = 25 # Assume average hourly rate
+        potential_savings = underutilized * 10 * hourly_rate * 4 # 10 hours/week * $25 * 4 weeks
+
         @scheduling_summary = {
           total_staff: all_staff.count,
+          optimal_staff_count: [all_staff.count - underutilized, 1].max,
+          overstaffed_shifts: underutilized,
+          understaffed_shifts: overutilized,
+          potential_savings: potential_savings,
           avg_utilization: @staff_utilization.any? ? (@staff_utilization.sum { |s| s[:utilization_percent] } / @staff_utilization.count).round(1) : 0,
-          underutilized_staff: @staff_utilization.count { |s| s[:utilization_percent] < 60 },
-          overutilized_staff: @staff_utilization.count { |s| s[:utilization_percent] > 90 },
-          optimal_staff: @staff_utilization.count { |s| s[:utilization_percent].between?(60, 90) }
+          underutilized_staff: underutilized,
+          overutilized_staff: overutilized,
+          optimal_staff: optimal
         }
 
         # Peak hours coverage analysis
         @peak_hours_coverage = []
+        day_names = %w[Sunday Monday Tuesday Wednesday Thursday Friday Saturday]
         peak_hours = [10, 11, 14, 15, 16] # 10am-11am, 2pm-4pm
+
         peak_hours.each do |hour|
           # Count staff with bookings during this hour as available
           coverage = all_staff.count do |staff|
@@ -346,22 +379,38 @@ module BusinessManager
           # If no bookings data, assume all staff are potentially available
           coverage = all_staff.count if coverage.zero?
 
+          hour_index = hour - 8
+          demand = @demand_heatmap.dig(date.wday, hour_index) || 0
+          staff_needed = [(demand / 20.0).ceil, 1].max # 1 staff per 20% demand
+
           @peak_hours_coverage << {
+            day: day_names[date.wday],
+            time_range: "#{hour}:00 - #{hour + 1}:00",
+            expected_bookings: (demand / 10.0).round,
+            staff_scheduled: coverage,
+            staff_needed: staff_needed,
+            staff_difference: coverage - staff_needed,
+            coverage_adequate: coverage >= staff_needed,
             hour: "#{hour}:00",
             staff_available: coverage,
-            demand_level: @demand_heatmap[date.wday][hour - 8] || 0,
+            demand_level: demand,
             adequate: coverage >= 3
           }
         end
 
-        # Schedule recommendations
+        # Schedule recommendations with all required fields
         @schedule_recommendations = []
 
         if @scheduling_summary[:underutilized_staff] > 0
           @schedule_recommendations << {
             priority: 'medium',
             title: 'Reduce Underutilized Staff Hours',
-            description: "#{@scheduling_summary[:underutilized_staff]} staff members are underutilized (<60%). Consider reducing scheduled hours or cross-training for other tasks."
+            description: "#{@scheduling_summary[:underutilized_staff]} staff members are underutilized (<60%). Consider reducing scheduled hours or cross-training for other tasks.",
+            shift_time: 'Various shifts',
+            current_staff: all_staff.count,
+            recommended_staff: @scheduling_summary[:optimal_staff_count],
+            impact: potential_savings,
+            rationale: 'Based on historical booking patterns and current utilization rates'
           }
         end
 
@@ -369,28 +418,65 @@ module BusinessManager
           @schedule_recommendations << {
             priority: 'high',
             title: 'Address Overutilization',
-            description: "#{@scheduling_summary[:overutilized_staff]} staff members are overutilized (>90%). Consider hiring additional staff or redistributing workload."
+            description: "#{@scheduling_summary[:overutilized_staff]} staff members are overutilized (>90%). Consider hiring additional staff or redistributing workload.",
+            shift_time: 'Peak hours',
+            current_staff: all_staff.count,
+            recommended_staff: all_staff.count + 1,
+            impact: -2000, # Cost to add staff
+            rationale: 'High utilization leads to burnout and reduced service quality'
           }
         end
 
-        insufficient_coverage = @peak_hours_coverage.count { |p| !p[:adequate] }
+        insufficient_coverage = @peak_hours_coverage.count { |p| !p[:coverage_adequate] }
         if insufficient_coverage > 0
           @schedule_recommendations << {
             priority: 'high',
             title: 'Increase Peak Hour Coverage',
-            description: "#{insufficient_coverage} peak hours have insufficient staff coverage. Ensure at least 3 staff members during high-demand periods."
+            description: "#{insufficient_coverage} peak hours have insufficient staff coverage. Ensure at least 3 staff members during high-demand periods.",
+            shift_time: '10:00 AM - 4:00 PM',
+            current_staff: @peak_hours_coverage.map { |p| p[:staff_scheduled] }.min || 0,
+            recommended_staff: 3,
+            impact: 500, # Potential revenue from better coverage
+            rationale: 'Peak hours generate highest revenue - adequate staffing is critical'
           }
         end
 
-        # Scheduling insights
+        # Add a default recommendation if none exist
+        if @schedule_recommendations.empty?
+          @schedule_recommendations << {
+            priority: 'low',
+            title: 'Maintain Current Schedule',
+            description: 'Staff scheduling is well optimized. Continue monitoring utilization rates.',
+            shift_time: 'All shifts',
+            current_staff: all_staff.count,
+            recommended_staff: all_staff.count,
+            impact: 0,
+            rationale: 'Current staffing levels match demand patterns'
+          }
+        end
+
+        # Scheduling insights with type field
+        total_staff_safe = [@scheduling_summary[:total_staff], 1].max
         @scheduling_insights = [
           {
+            type: 'info',
             title: 'Optimal Staffing Levels',
-            description: "#{@scheduling_summary[:optimal_staff]} staff members (#{(@scheduling_summary[:optimal_staff].to_f / @scheduling_summary[:total_staff] * 100).round}%) are at optimal utilization (60-90%)."
+            description: "#{@scheduling_summary[:optimal_staff]} staff members (#{(@scheduling_summary[:optimal_staff].to_f / total_staff_safe * 100).round}%) are at optimal utilization (60-90%)."
           },
           {
+            type: 'opportunity',
             title: 'Peak Demand Days',
-            description: "Weekdays show highest demand. Ensure adequate coverage Monday-Friday 10am-4pm."
+            description: 'Weekdays show highest demand. Ensure adequate coverage Monday-Friday 10am-4pm.'
+          },
+          {
+            type: @scheduling_summary[:overutilized_staff] > 0 ? 'warning' : 'info',
+            title: 'Staff Workload Balance',
+            description: @scheduling_summary[:overutilized_staff] > 0 ? 'Some staff members are overworked. Review workload distribution.' : 'Staff workload is well balanced across the team.'
+          },
+          {
+            type: 'opportunity',
+            title: 'Scheduling Efficiency',
+            description: "Average staff utilization is #{@scheduling_summary[:avg_utilization]}%. Target range is 60-90%."
           }
         ]
 

@@ -166,7 +166,7 @@ module Analytics
                              .sum('line_items.price * line_items.quantity').to_f
         total_cost = product.cost_price.to_f * total_quantity
         gross_profit = total_revenue - total_cost
-        margin_percentage = (gross_profit / total_revenue * 100).round(2)
+        margin_percentage = total_revenue > 0 ? (gross_profit / total_revenue * 100).round(2) : 0
 
         profitability_data << {
           product_id: product.id,

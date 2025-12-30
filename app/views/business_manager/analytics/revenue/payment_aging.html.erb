@@ -217,7 +217,7 @@
                     <div class="text-sm text-gray-900"><%= invoice.tenant_customer&.full_name || 'N/A' %></div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-right">
-                    <div class="text-sm font-semibold text-gray-900"><%= number_to_currency(invoice.total) %></div>
+                    <div class="text-sm font-semibold text-gray-900"><%= number_to_currency(invoice.total_amount) %></div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="text-sm text-gray-900"><%= invoice.due_date.strftime('%b %d, %Y') %></div>

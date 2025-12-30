@@ -1,96 +1,97 @@
-<div class="container mx-auto px-4 py-8">
+<div class="container mx-auto px-4 py-4 sm:py-8">
   <!-- Header -->
-  <div class="flex justify-between items-center mb-8">
+  <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
     <div>
-      <h1 class="text-3xl font-bold text-gray-900">AI Staff Scheduling</h1>
-      <p class="text-gray-600 mt-1">Optimize staffing levels based on predicted demand and capacity planning</p>
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">AI Staff Scheduling</h1>
+      <p class="text-sm sm:text-base text-gray-600 mt-1">Optimize staffing levels based on predicted demand and capacity planning</p>
     </div>
     <%= link_to "← Back to Predictive Analytics", business_manager_analytics_predictive_index_path,
-                class: "text-blue-600 hover:text-blue-800 font-medium" %>
+                class: "text-blue-600 hover:text-blue-800 font-medium text-sm sm:text-base" %>
   </div>
 
   <!-- Scheduling Overview -->
-  <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-    <div class="bg-white rounded-lg shadow p-6">
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
+    <div class="bg-white rounded-lg shadow p-4 sm:p-6">
       <div class="flex items-center justify-between mb-2">
-        <p class="text-sm text-gray-600">Optimal Staff Count</p>
-        <div class="bg-blue-100 p-2 rounded-lg">
-          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <p class="text-xs sm:text-sm text-gray-600">Optimal Staff</p>
+        <div class="bg-blue-100 p-1.5 sm:p-2 rounded-lg">
+          <svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
           </svg>
         </div>
       </div>
-      <p class="text-3xl font-bold text-gray-900"><%= @scheduling_summary[:optimal_staff_count] %></p>
-      <p class="text-sm text-gray-500 mt-1">For next week's peak hours</p>
+      <p class="text-2xl sm:text-3xl font-bold text-gray-900"><%= @scheduling_summary[:optimal_staff_count] %></p>
+      <p class="text-xs sm:text-sm text-gray-500 mt-1 hidden sm:block">For next week's peak hours</p>
     </div>
 
-    <div class="bg-white rounded-lg shadow p-6">
+    <div class="bg-white rounded-lg shadow p-4 sm:p-6">
       <div class="flex items-center justify-between mb-2">
-        <p class="text-sm text-gray-600">Overstaffed Shifts</p>
-        <div class="bg-orange-100 p-2 rounded-lg">
-          <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <p class="text-xs sm:text-sm text-gray-600">Overstaffed</p>
+        <div class="bg-orange-100 p-1.5 sm:p-2 rounded-lg">
+          <svg class="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
           </svg>
         </div>
       </div>
-      <p class="text-3xl font-bold text-orange-600"><%= @scheduling_summary[:overstaffed_shifts] %></p>
-      <p class="text-sm text-gray-500 mt-1">Reduce to save costs</p>
+      <p class="text-2xl sm:text-3xl font-bold text-orange-600"><%= @scheduling_summary[:overstaffed_shifts] %></p>
+      <p class="text-xs sm:text-sm text-gray-500 mt-1 hidden sm:block">Reduce to save costs</p>
     </div>
 
-    <div class="bg-white rounded-lg shadow p-6">
+    <div class="bg-white rounded-lg shadow p-4 sm:p-6">
       <div class="flex items-center justify-between mb-2">
-        <p class="text-sm text-gray-600">Understaffed Shifts</p>
-        <div class="bg-red-100 p-2 rounded-lg">
-          <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <p class="text-xs sm:text-sm text-gray-600">Understaffed</p>
+        <div class="bg-red-100 p-1.5 sm:p-2 rounded-lg">
+          <svg class="w-4 h-4 sm:w-5 sm:h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
           </svg>
         </div>
       </div>
-      <p class="text-3xl font-bold text-red-600"><%= @scheduling_summary[:understaffed_shifts] %></p>
-      <p class="text-sm text-gray-500 mt-1">Add staff to meet demand</p>
+      <p class="text-2xl sm:text-3xl font-bold text-red-600"><%= @scheduling_summary[:understaffed_shifts] %></p>
+      <p class="text-xs sm:text-sm text-gray-500 mt-1 hidden sm:block">Add staff to meet demand</p>
     </div>
 
-    <div class="bg-white rounded-lg shadow p-6">
+    <div class="bg-white rounded-lg shadow p-4 sm:p-6">
       <div class="flex items-center justify-between mb-2">
-        <p class="text-sm text-gray-600">Cost Savings Potential</p>
-        <div class="bg-green-100 p-2 rounded-lg">
-          <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <p class="text-xs sm:text-sm text-gray-600">Savings</p>
+        <div class="bg-green-100 p-1.5 sm:p-2 rounded-lg">
+          <svg class="w-4 h-4 sm:w-5 sm:h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
         </div>
       </div>
-      <p class="text-3xl font-bold text-green-600"><%= number_to_currency(@scheduling_summary[:potential_savings]) %></p>
-      <p class="text-sm text-gray-500 mt-1">Monthly with optimized schedule</p>
+      <p class="text-xl sm:text-3xl font-bold text-green-600"><%= number_to_currency(@scheduling_summary[:potential_savings], precision: 0) %></p>
+      <p class="text-xs sm:text-sm text-gray-500 mt-1 hidden sm:block">Monthly with optimized schedule</p>
     </div>
   </div>
 
   <!-- Weekly Demand Heatmap -->
-  <div class="bg-white rounded-lg shadow mb-8">
-    <div class="px-6 py-4 border-b border-gray-200">
-      <h2 class="text-xl font-semibold text-gray-900">Predicted Demand Heatmap</h2>
-      <p class="text-sm text-gray-500 mt-1">Expected booking volume by day and time (next 7 days)</p>
+  <div class="bg-white rounded-lg shadow mb-6 sm:mb-8">
+    <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+      <h2 class="text-lg sm:text-xl font-semibold text-gray-900">Predicted Demand Heatmap</h2>
+      <p class="text-xs sm:text-sm text-gray-500 mt-1">Expected booking volume by day and time (next 7 days)</p>
     </div>
-    <div class="p-6 overflow-x-auto">
-      <table class="min-w-full">
+    <div class="p-4 sm:p-6 overflow-x-auto">
+      <table class="min-w-full" style="min-width: 600px;">
         <thead>
           <tr>
-            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
-            <% %w[Monday Tuesday Wednesday Thursday Friday Saturday Sunday].each do |day| %>
-              <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase"><%= day %></th>
+            <th class="px-2 sm:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
+            <% %w[Mon Tue Wed Thu Fri Sat Sun].each do |day| %>
+              <th class="px-1 sm:px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase"><%= day %></th>
             <% end %>
           </tr>
         </thead>
         <tbody>
           <% (8..20).each do |hour| %>
             <tr>
-              <td class="px-4 py-2 text-sm text-gray-600 whitespace-nowrap">
+              <td class="px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm text-gray-600 whitespace-nowrap">
                 <%= "#{hour}:00" %>
               </td>
               <% 7.times do |day_index| %>
-                <% demand_level = @demand_heatmap[day_index][hour] %>
+                <% hour_index = hour - 8 %>
+                <% demand_level = @demand_heatmap.dig(day_index, hour_index) || 0 %>
                 <% cell_color = demand_level >= 80 ? 'bg-red-500' : demand_level >= 60 ? 'bg-orange-400' : demand_level >= 40 ? 'bg-yellow-400' : demand_level >= 20 ? 'bg-green-400' : 'bg-gray-200' %>
-                <td class="px-2 py-2">
-                  <div class="<%= cell_color %> rounded text-center py-2 text-white text-xs font-medium cursor-pointer hover:opacity-80"
+                <td class="px-1 sm:px-2 py-1 sm:py-2">
+                  <div class="<%= cell_color %> rounded text-center py-1 sm:py-2 text-white text-[10px] sm:text-xs font-medium cursor-pointer hover:opacity-80"
                        title="<%= demand_level %>% capacity">
                     <%= demand_level %>%
                   </div>
@@ -100,26 +101,27 @@
           <% end %>
         </tbody>
       </table>
-      <div class="mt-4 flex items-center justify-end space-x-4 text-xs text-gray-600">
+      <!-- Legend - scrollable on mobile -->
+      <div class="mt-4 flex flex-wrap sm:flex-nowrap items-center justify-start sm:justify-end gap-2 sm:gap-4 text-[10px] sm:text-xs text-gray-600">
         <div class="flex items-center">
-          <div class="w-4 h-4 bg-gray-200 rounded mr-1"></div>
-          <span>Low (0-20%)</span>
+          <div class="w-3 h-3 sm:w-4 sm:h-4 bg-gray-200 rounded mr-1"></div>
+          <span>Low</span>
         </div>
         <div class="flex items-center">
-          <div class="w-4 h-4 bg-green-400 rounded mr-1"></div>
-          <span>Medium (20-40%)</span>
+          <div class="w-3 h-3 sm:w-4 sm:h-4 bg-green-400 rounded mr-1"></div>
+          <span>Medium</span>
         </div>
         <div class="flex items-center">
-          <div class="w-4 h-4 bg-yellow-400 rounded mr-1"></div>
-          <span>Moderate (40-60%)</span>
+          <div class="w-3 h-3 sm:w-4 sm:h-4 bg-yellow-400 rounded mr-1"></div>
+          <span>Moderate</span>
         </div>
         <div class="flex items-center">
-          <div class="w-4 h-4 bg-orange-400 rounded mr-1"></div>
-          <span>High (60-80%)</span>
+          <div class="w-3 h-3 sm:w-4 sm:h-4 bg-orange-400 rounded mr-1"></div>
+          <span>High</span>
         </div>
         <div class="flex items-center">
-          <div class="w-4 h-4 bg-red-500 rounded mr-1"></div>
-          <span>Very High (80-100%)</span>
+          <div class="w-3 h-3 sm:w-4 sm:h-4 bg-red-500 rounded mr-1"></div>
+          <span>Very High</span>
         </div>
       </div>
     </div>
