@@ -200,7 +200,7 @@ module BusinessManager
 
         if service.save
           redirect_to pricing_recommendations_business_manager_analytics_predictive_index_path,
-                      notice: "Successfully updated '#{service.name}' price from #{number_to_currency(old_price)} to #{number_to_currency(recommended_price)}."
+                      notice: "Successfully updated '#{service.name}' price from #{helpers.number_to_currency(old_price)} to #{helpers.number_to_currency(recommended_price)}."
         else
           redirect_to pricing_recommendations_business_manager_analytics_predictive_index_path,
                       alert: "Failed to update price for '#{service.name}': #{service.errors.full_messages.join(', ')}"
@@ -677,7 +677,7 @@ module BusinessManager
         critical_items = items_to_order.count { |r| r[:urgency] == 'critical' }
 
         redirect_to restock_predictions_business_manager_analytics_predictive_index_path,
-                    notice: "Purchase order summary: #{total_items} #{'item'.pluralize(total_items)} totaling #{number_to_currency(total_value)} (#{critical_items} critical). Purchase order system coming soon!"
+                    notice: "Purchase order summary: #{total_items} #{'item'.pluralize(total_items)} totaling #{helpers.number_to_currency(total_value)} (#{critical_items} critical). Purchase order system coming soon!"
       end
 
       def revenue_prediction
