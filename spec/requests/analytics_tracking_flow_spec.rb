@@ -9,6 +9,8 @@ RSpec.describe 'Analytics Tracking Flow', type: :request do
 
   before do
     host! "#{business.subdomain}.lvh.me"
+    # Clear rate limit cache before each test to prevent interference between tests
+    Rails.cache.clear
   end
 
   describe 'Page View -> Click Event -> Conversion Flow' do
@@ -164,9 +166,6 @@ RSpec.describe 'Analytics Tracking Flow', type: :request do
 
   describe 'Rate Limiting' do
     it 'enforces rate limit of 100 requests per minute per IP' do
-      # Clear cache to ensure clean rate limit state
-      Rails.cache.clear
-
       page_view_event = {
         events: [{
           type: 'page_view',

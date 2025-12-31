@@ -25,6 +25,10 @@ module BusinessManager
 
         @demand_by_service = all_services.map do |service|
           forecast_data = @predictive_service.forecast_service_demand(service.id, period)
+
+          # Skip services with insufficient data (error responses)
+          next if forecast_data[:error].present?
+
           total_bookings = forecast_data[:forecast].sum { |f| f[:forecasted_bookings] }
           total_predicted += total_bookings
           total_revenue_predicted += total_bookings * service.price
@@ -39,7 +43,7 @@ module BusinessManager
             confidence: (forecast_data[:forecast].first&.dig(:confidence_level) || 75).to_f,
             trend: forecast_data[:trend_direction]
           }
-        end
+        end.compact
 
         # Get historical data for comparison
         historical_bookings = business.bookings.where(created_at: period.days.ago..Time.current).count

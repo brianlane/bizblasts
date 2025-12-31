@@ -165,17 +165,20 @@ export default class extends Controller {
         this.close()
       }
     }
-    
+
+    // Store bound keydown handler so it can be properly removed
+    this.keydownHandler = this.closeOnEscape.bind(this)
+
     document.addEventListener('click', this.outsideClickHandler)
     document.addEventListener('touchend', this.outsideClickHandler)
-    document.addEventListener('keydown', this.closeOnEscape.bind(this))
+    document.addEventListener('keydown', this.keydownHandler)
   }
   
   removeOutsideClickListener() {
     if (this.outsideClickHandler) {
       document.removeEventListener('click', this.outsideClickHandler)
       document.removeEventListener('touchend', this.outsideClickHandler)
-      document.removeEventListener('keydown', this.closeOnEscape.bind(this))
+      document.removeEventListener('keydown', this.keydownHandler)
     }
   }
 }
