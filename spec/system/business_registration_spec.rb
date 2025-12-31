@@ -5,10 +5,23 @@ require 'rails_helper'
 RSpec.describe "Business Registration", type: :system do
   before do
     # Create required policy versions for business registration
-    create(:policy_version, policy_type: 'privacy_policy', version: 'v1.0', active: true)
-    create(:policy_version, policy_type: 'terms_of_service', version: 'v1.0', active: true)
-    create(:policy_version, policy_type: 'acceptable_use_policy', version: 'v1.0', active: true)
-    create(:policy_version, policy_type: 'return_policy', version: 'v1.0', active: true)
+    # Use find_or_create_by to make this idempotent for CI test retries
+    PolicyVersion.find_or_create_by!(policy_type: 'privacy_policy', version: 'v1.0') do |pv|
+      pv.active = true
+      pv.effective_date = Date.current
+    end
+    PolicyVersion.find_or_create_by!(policy_type: 'terms_of_service', version: 'v1.0') do |pv|
+      pv.active = true
+      pv.effective_date = Date.current
+    end
+    PolicyVersion.find_or_create_by!(policy_type: 'acceptable_use_policy', version: 'v1.0') do |pv|
+      pv.active = true
+      pv.effective_date = Date.current
+    end
+    PolicyVersion.find_or_create_by!(policy_type: 'return_policy', version: 'v1.0') do |pv|
+      pv.active = true
+      pv.effective_date = Date.current
+    end
 
     # Business registration is on the main domain (no subdomain)
     switch_to_main_domain

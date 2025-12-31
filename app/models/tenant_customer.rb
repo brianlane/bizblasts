@@ -197,9 +197,20 @@ class TenantCustomer < ApplicationRecord
           .sum('payments.amount').to_f
   end
 
-  # Count of all purchases (bookings + orders)
+  # Count of completed purchases (bookings + orders with completed payments)
+  # Must match the same criteria as total_revenue for accurate avg_order_value
   def purchase_frequency
-    (bookings.count + orders.count).to_f
+    completed_bookings = bookings.joins(invoice: :payments)
+                                 .where(payments: { status: :completed })
+                                 .distinct
+                                 .count.to_f
+
+    completed_orders = orders.joins(invoice: :payments)
+                             .where(payments: { status: :completed })
+                             .distinct
+                             .count.to_f
+
+    completed_bookings + completed_orders
   end
 
   # Purchases per year based on customer lifespan
