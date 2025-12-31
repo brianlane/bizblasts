@@ -13,6 +13,12 @@ module Public
       # Selected service
       if params[:service_id].present?
         @service = @business.services.find_by(id: params[:service_id])
+
+        # Log if service not found (helpful for debugging CI issues)
+        if @service.nil? && Rails.env.test?
+          Rails.logger.warn "[TenantCalendar] Service ID #{params[:service_id]} not found for business #{@business.id}"
+          Rails.logger.warn "[TenantCalendar] Available service IDs: #{@business.services.pluck(:id).join(', ')}"
+        end
       end
 
       # Handle service variant selection

@@ -32,14 +32,35 @@ RSpec.describe "Tenant Calendar Real-time Updates", type: :system do
     login_as(client, scope: :user)
   end
 
+  after do
+    # Clear tenant context to avoid test pollution
+    ActsAsTenant.current_tenant = nil
+  end
+
   it "displays the correct slot count for days with late-night availability as time passes", js: true do
+    # Ensure all test data is persisted and IDs are stable
+    business.reload
+    service.reload
+    service_variant.reload
+    staff_member.reload
+
+    # Verify associations are correct
+    expect(service.business_id).to eq(business.id)
+    expect(service_variant.service_id).to eq(service.id)
+
     # Find the next Wednesday in business timezone
     wednesday = Date.current.in_time_zone(business.time_zone).to_date.next_occurring(:wednesday)
 
     # Travel to Wednesday morning to check the initial state
     travel_to wednesday.in_time_zone(business.time_zone).change(hour: 10) do
+      # Set the ActsAsTenant context explicitly for the test
+      ActsAsTenant.current_tenant = business
+
       with_subdomain(business.subdomain) do
         visit tenant_calendar_path(service_id: service.id, service_variant_id: service_variant.id)
+
+        # Wait for page to load and check we have the right URL
+        expect(page).to have_current_path(/calendar/, wait: 3)
 
         # Wait for calendar to fully render before finding elements
         expect(page).to have_css('.calendar-day', minimum: 1, wait: 10)
@@ -53,8 +74,14 @@ RSpec.describe "Tenant Calendar Real-time Updates", type: :system do
 
     # Now, travel to late that same night and revisit the page to test the JS update
     travel_to wednesday.in_time_zone(business.time_zone).change(hour: 22, min: 30) do
+      # Set the ActsAsTenant context explicitly for the test
+      ActsAsTenant.current_tenant = business
+
       with_subdomain(business.subdomain) do
         visit tenant_calendar_path(service_id: service.id, service_variant_id: service_variant.id)
+
+        # Wait for page to load
+        expect(page).to have_current_path(/calendar/, wait: 3)
 
         # Wait for calendar to fully render before finding elements
         expect(page).to have_css('.calendar-day', minimum: 1, wait: 10)
