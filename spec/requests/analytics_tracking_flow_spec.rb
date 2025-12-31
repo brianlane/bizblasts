@@ -33,7 +33,7 @@ RSpec.describe 'Analytics Tracking Flow', type: :request do
       }
 
       expect {
-        post api_v1_analytics_track_path, params: page_view_event
+        post api_v1_analytics_track_path, params: page_view_event, as: :json
       }.to have_enqueued_job(AnalyticsIngestionJob)
 
       expect(response).to have_http_status(:accepted)
@@ -74,7 +74,7 @@ RSpec.describe 'Analytics Tracking Flow', type: :request do
       }
 
       expect {
-        post api_v1_analytics_track_path, params: click_event
+        post api_v1_analytics_track_path, params: click_event, as: :json
       }.to have_enqueued_job(AnalyticsIngestionJob)
 
       perform_enqueued_jobs
@@ -102,7 +102,7 @@ RSpec.describe 'Analytics Tracking Flow', type: :request do
       }
 
       expect {
-        post api_v1_analytics_track_path, params: conversion_event
+        post api_v1_analytics_track_path, params: conversion_event, as: :json
       }.to have_enqueued_job(AnalyticsIngestionJob)
 
       perform_enqueued_jobs
@@ -130,7 +130,8 @@ RSpec.describe 'Analytics Tracking Flow', type: :request do
       expect {
         post api_v1_analytics_track_path,
              params: page_view_event,
-             headers: { 'DNT' => '1' }
+             headers: { 'DNT' => '1' },
+             as: :json
       }.not_to have_enqueued_job(AnalyticsIngestionJob)
 
       expect(response).to have_http_status(:ok)
@@ -153,7 +154,8 @@ RSpec.describe 'Analytics Tracking Flow', type: :request do
       expect {
         post api_v1_analytics_track_path,
              params: page_view_event,
-             headers: { 'User-Agent' => 'Googlebot/2.1' }
+             headers: { 'User-Agent' => 'Googlebot/2.1' },
+             as: :json
       }.not_to have_enqueued_job(AnalyticsIngestionJob)
 
       expect(response).to have_http_status(:ok)
@@ -162,6 +164,9 @@ RSpec.describe 'Analytics Tracking Flow', type: :request do
 
   describe 'Rate Limiting' do
     it 'enforces rate limit of 100 requests per minute per IP' do
+      # Clear cache to ensure clean rate limit state
+      Rails.cache.clear
+
       page_view_event = {
         events: [{
           type: 'page_view',
@@ -174,12 +179,12 @@ RSpec.describe 'Analytics Tracking Flow', type: :request do
 
       # Make 100 successful requests
       100.times do
-        post api_v1_analytics_track_path, params: page_view_event
+        post api_v1_analytics_track_path, params: page_view_event, as: :json
         expect(response).to have_http_status(:accepted)
       end
 
       # 101st request should be rate limited
-      post api_v1_analytics_track_path, params: page_view_event
+      post api_v1_analytics_track_path, params: page_view_event, as: :json
       expect(response).to have_http_status(:too_many_requests)
 
       result = JSON.parse(response.body)
@@ -189,7 +194,7 @@ RSpec.describe 'Analytics Tracking Flow', type: :request do
 
   describe 'Input Validation' do
     it 'rejects non-array events parameter' do
-      post api_v1_analytics_track_path, params: { events: 'not an array' }
+      post api_v1_analytics_track_path, params: { events: 'not an array' }, as: :json
 
       expect(response).to have_http_status(:bad_request)
       result = JSON.parse(response.body)
@@ -211,7 +216,7 @@ RSpec.describe 'Analytics Tracking Flow', type: :request do
         }]
       }
 
-      post api_v1_analytics_track_path, params: malicious_event
+      post api_v1_analytics_track_path, params: malicious_event, as: :json
       expect(response).to have_http_status(:accepted)
 
       perform_enqueued_jobs
@@ -236,7 +241,7 @@ RSpec.describe 'Analytics Tracking Flow', type: :request do
         }]
       }
 
-      post api_v1_analytics_track_path, params: event
+      post api_v1_analytics_track_path, params: event, as: :json
       perform_enqueued_jobs
 
       # Data should only exist for the correct business
