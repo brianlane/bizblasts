@@ -239,7 +239,7 @@ class TenantCustomer < ApplicationRecord
       intervals << (all_purchases[i] - all_purchases[i-1]).to_i / 1.day
     end
 
-    intervals.sum / intervals.length
+    intervals.sum.to_f / intervals.length
   end
 
   # Clear revenue cache when related records change

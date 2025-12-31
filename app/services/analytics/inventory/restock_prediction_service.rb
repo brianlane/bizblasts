@@ -52,6 +52,7 @@ module Analytics
           days_until_stockout: days_until_stockout.round(1),
           predicted_stockout_date: days_until_stockout.days.from_now.to_date,
           recommended_restock_quantity: (daily_sales * 30).ceil,
+          cost_price: variant.cost_price || 0,
           urgency: determine_urgency(days_until_stockout)
         }
       end

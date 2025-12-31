@@ -247,7 +247,7 @@ module Analytics
       intervals = customers.map(&:avg_days_between_purchases).compact
       return 0 if intervals.empty?
 
-      (intervals.sum / intervals.count).round(0)
+      (intervals.sum.to_f / intervals.count).round(0)
     end
 
     def empty_metrics_summary

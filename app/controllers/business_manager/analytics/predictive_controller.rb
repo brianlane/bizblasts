@@ -536,7 +536,7 @@ module BusinessManager
           critical_count: @critical_restocks.count,
           warning_count: @restock_recommendations.count { |r| r[:days_until_stockout] <= 7 },
           healthy_count: all_variants.count - restock_data.count,
-          total_order_value: restock_data.sum { |r| (r[:recommended_order_quantity] || 0) * (r[:unit_cost] || 0) }
+          total_order_value: restock_data.sum { |r| (r[:recommended_restock_quantity] || 0) * (r[:cost_price] || 0) }
         }
 
         # Identify overstocked products (high stock, low sales)
@@ -673,7 +673,7 @@ module BusinessManager
         # For now, we'll just show a summary and redirect with a success message
 
         total_items = items_to_order.count
-        total_value = items_to_order.sum { |r| (r[:recommended_order_quantity] || 0) * (r[:unit_cost] || 0) }
+        total_value = items_to_order.sum { |r| (r[:recommended_restock_quantity] || 0) * (r[:cost_price] || 0) }
         critical_items = items_to_order.count { |r| r[:urgency] == 'critical' }
 
         redirect_to restock_predictions_business_manager_analytics_predictive_index_path,
