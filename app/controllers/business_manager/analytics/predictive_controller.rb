@@ -779,7 +779,7 @@ module BusinessManager
                                   .sum('payments.amount')
 
         subscriptions_revenue = business.customer_subscriptions.active
-                                       .sum { |sub| sub.amount * 3 } # 3 months worth
+                                       .sum { |sub| sub.total_amount * 3 } # 3 months worth
 
         total_historical = bookings_revenue + products_revenue + subscriptions_revenue
 
