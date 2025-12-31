@@ -87,6 +87,8 @@ module BusinessManager
 
         # Calculate segments once outside the loop to avoid O(N²) complexity
         all_segments = @lifecycle_service.customer_segments_rfm
+        # Convert to hash keyed by customer_id for O(1) lookups instead of O(N) find
+        segments_by_customer = all_segments.index_by { |s| s[:customer_id] }
 
         csv_data = CSV.generate(headers: true) do |csv|
           csv << [
@@ -105,7 +107,7 @@ module BusinessManager
           @customers.each do |customer|
             next if customer.purchase_frequency.zero?
 
-            segment_data = all_segments.find { |s| s[:customer_id] == customer.id }
+            segment_data = segments_by_customer[customer.id]
 
             csv << [
               customer.id,

@@ -682,18 +682,26 @@ module BusinessManager
 
       def revenue_prediction
         days_ahead = params[:days]&.to_i || 30
+
+        # Calculate actual forecasts for each standard period to ensure labels match predictions
+        forecast_30 = @predictive_service.predict_revenue(30)
+        forecast_60 = @predictive_service.predict_revenue(60)
+        forecast_90 = @predictive_service.predict_revenue(90)
+        forecast_365 = @predictive_service.predict_revenue(365)
+
+        # Use the requested period's data for historical metrics and trend
         revenue_data = @predictive_service.predict_revenue(days_ahead)
 
-        # Revenue forecast with multiple time horizons
+        # Revenue forecast with multiple time horizons - using actual calculations for each period
         @revenue_forecast = {
-          period_30: revenue_data[:predicted_total],
-          period_60: revenue_data[:predicted_total] * 2,
-          period_90: revenue_data[:predicted_total] * 3,
-          period_365: revenue_data[:predicted_total] * 12,
-          confidence_30: revenue_data[:confidence_level] || 85,
-          confidence_60: (revenue_data[:confidence_level] || 85) - 5,
-          confidence_90: (revenue_data[:confidence_level] || 85) - 10,
-          confidence_365: (revenue_data[:confidence_level] || 85) - 20,
+          period_30: forecast_30[:predicted_total],
+          period_60: forecast_60[:predicted_total],
+          period_90: forecast_90[:predicted_total],
+          period_365: forecast_365[:predicted_total],
+          confidence_30: forecast_30[:confidence_level] || 85,
+          confidence_60: forecast_60[:confidence_level] || 80,
+          confidence_90: forecast_90[:confidence_level] || 75,
+          confidence_365: forecast_365[:confidence_level] || 65,
           historical_daily_avg: revenue_data[:historical_daily_avg],
           trend_direction: revenue_data[:trend_direction],
           growth_rate: revenue_data[:growth_rate] || 0
