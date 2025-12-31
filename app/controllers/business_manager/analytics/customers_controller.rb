@@ -115,7 +115,7 @@ module BusinessManager
               customer.purchase_frequency.to_i,
               customer.last_purchase_at&.strftime('%Y-%m-%d'),
               customer.days_since_last_purchase,
-              @lifecycle_service.calculate_clv(customer),
+              @lifecycle_service.calculate_clv(customer)[:total_value],
               @churn_service.predict_churn_probability(customer),
               segment_data&.dig(:segment) || 'N/A'
             ]

@@ -59,6 +59,9 @@ module Analytics
     def customer_segments_rfm
       customers = business.tenant_customers.includes(:bookings, :orders)
 
+      # Calculate quartiles once for all customers to avoid O(n²) complexity
+      revenue_quartiles = calculate_revenue_quartiles
+
       # Calculate RFM scores for all customers
       customer_data = customers.map do |customer|
         next if customer.purchase_frequency.zero? # Skip customers with no purchases
@@ -70,7 +73,7 @@ module Analytics
           total_revenue: customer.total_revenue,
           recency_score: calculate_recency_score(customer),
           frequency_score: calculate_frequency_score(customer),
-          monetary_score: calculate_monetary_score(customer)
+          monetary_score: calculate_monetary_score(customer, revenue_quartiles)
         }
       end.compact
 
@@ -167,11 +170,12 @@ module Analytics
       end
     end
 
-    def calculate_monetary_score(customer)
+    def calculate_monetary_score(customer, quartiles = nil)
       revenue = customer.total_revenue
 
       # Use business-specific quartiles for more accurate scoring
-      quartiles = calculate_revenue_quartiles
+      # Accept pre-calculated quartiles to avoid O(n²) complexity when called in loops
+      quartiles ||= calculate_revenue_quartiles
 
       case revenue
       when quartiles[:q4]..Float::INFINITY then 5

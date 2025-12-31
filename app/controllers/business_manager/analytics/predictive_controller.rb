@@ -740,7 +740,7 @@ module BusinessManager
         @revenue_by_category = service_categories.map do |category, services|
           historical_revenue = services.sum do |service|
             service.bookings.where(created_at: 90.days.ago..Time.current)
-                   .joins(:payments)
+                   .joins(invoice: :payments)
                    .where(payments: { status: 'completed' })
                    .sum('payments.amount')
           end
@@ -750,7 +750,7 @@ module BusinessManager
           # Calculate growth potential based on booking trends
           older_period_revenue = services.sum do |service|
             service.bookings.where(created_at: 180.days.ago..90.days.ago)
-                   .joins(:payments)
+                   .joins(invoice: :payments)
                    .where(payments: { status: 'completed' })
                    .sum('payments.amount')
           end
@@ -775,7 +775,7 @@ module BusinessManager
 
         # Revenue by stream (bookings vs products vs subscriptions)
         bookings_revenue = business.bookings.where(created_at: 90.days.ago..Time.current)
-                                  .joins(:payments)
+                                  .joins(invoice: :payments)
                                   .where(payments: { status: 'completed' })
                                   .sum('payments.amount')
 
