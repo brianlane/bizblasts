@@ -351,7 +351,7 @@ module Analytics
         new_customers: new_customers,
         repeat_customers: repeat_customers,
         avg_clv: lifecycle_service.customer_metrics_summary[:avg_clv] || 0,
-        arpc: lifecycle_service.calculate_arpc(1.day), # ARPC for this day
+        arpc: lifecycle_service.calculate_arpc(1.day, date_range: date_range), # ARPC for this day
         repeat_rate: lifecycle_service.customer_metrics_summary[:repeat_customer_rate] || 0,
         segment_distribution: segment_summary[:percentages] || {},
         churn_risk: {

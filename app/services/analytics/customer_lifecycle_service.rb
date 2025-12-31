@@ -41,17 +41,23 @@ module Analytics
     end
 
     # Calculate Average Revenue Per Customer for a period
-    def calculate_arpc(period = 30.days)
+    # @param period [ActiveSupport::Duration] Time period (e.g., 30.days)
+    # @param date_range [Range] Optional specific date range to use instead of period.ago..Time.current
+    def calculate_arpc(period = 30.days, date_range: nil)
+      # Use provided date_range or calculate from period
+      range = date_range || (period.ago..Time.current)
+
       customers_with_activity = business.tenant_customers
                                         .joins("LEFT JOIN bookings ON bookings.tenant_customer_id = tenant_customers.id")
                                         .joins("LEFT JOIN orders ON orders.tenant_customer_id = tenant_customers.id")
-                                        .where("bookings.created_at >= ? OR orders.created_at >= ?", period.ago, period.ago)
+                                        .where("bookings.created_at BETWEEN ? AND ? OR orders.created_at BETWEEN ? AND ?",
+                                               range.begin, range.end, range.begin, range.end)
                                         .distinct
 
       customer_count = customers_with_activity.count
       return 0 if customer_count.zero?
 
-      total_revenue = calculate_total_revenue(period)
+      total_revenue = calculate_total_revenue(period, date_range: range)
       (total_revenue / customer_count).round(2)
     end
 
@@ -130,15 +136,18 @@ module Analytics
 
     private
 
-    def calculate_total_revenue(period)
+    def calculate_total_revenue(period, date_range: nil)
+      # Use provided date_range or calculate from period
+      range = date_range || (period.ago..Time.current)
+
       booking_revenue = business.bookings
-                               .where(created_at: period.ago..Time.current)
+                               .where(created_at: range)
                                .joins(invoice: :payments)
                                .where(payments: { status: :completed })
                                .sum('payments.amount')
 
       order_revenue = business.orders
-                             .where(created_at: period.ago..Time.current)
+                             .where(created_at: range)
                              .joins(:payments)
                              .where(payments: { status: :completed })
                              .sum('payments.amount')

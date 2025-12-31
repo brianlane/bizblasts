@@ -13,7 +13,10 @@ class Payment < ApplicationRecord
   validates :business, presence: true, unless: :orphaned_payment?
   validates :tenant_customer, presence: true, unless: :orphaned_payment?
   validates :invoice, presence: true, unless: :orphaned_payment?
-  
+
+  # Callbacks
+  after_commit :clear_customer_revenue_cache, on: [:create, :update, :destroy]
+
   enum :payment_method, {
     credit_card: 'credit_card',
     cash: 'cash',
@@ -118,7 +121,11 @@ class Payment < ApplicationRecord
   end
   
   private
-  
+
+  def clear_customer_revenue_cache
+    tenant_customer&.clear_revenue_cache
+  end
+
   def orphaned_payment?
     business_id.nil? || tenant_customer_id.nil? || invoice_id.nil?
   end
