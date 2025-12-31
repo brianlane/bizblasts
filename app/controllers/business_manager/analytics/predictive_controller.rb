@@ -105,6 +105,10 @@ module BusinessManager
 
         @pricing_recommendations = all_services.map do |service|
           pricing_data = @predictive_service.optimal_pricing_recommendations(service.id)
+
+          # Skip services where pricing optimization returned an error
+          next if pricing_data[:error].present? || pricing_data[:optimal_price].nil?
+
           recent_booking_count = service.bookings.where(created_at: 30.days.ago..Time.current).count
           demand_level = recent_booking_count > 20 ? 'high' : recent_booking_count > 10 ? 'medium' : 'low'
 
@@ -133,7 +137,7 @@ module BusinessManager
             confidence_level: confidence_level,
             booking_count: booking_count
           }
-        end
+        end.compact
 
         # Summary
         total_current = all_services.sum(&:price)
@@ -214,7 +218,12 @@ module BusinessManager
 
         all_services.each do |service|
           pricing_data = @predictive_service.optimal_pricing_recommendations(service.id)
+
+          # Skip if pricing service returned an error
+          next if pricing_data[:error].present?
+
           recommended_price = pricing_data[:optimal_price]
+          next if recommended_price.nil?
 
           # Only update if the recommended price is significantly different (more than $5 difference)
           if (recommended_price - service.price).abs > 5

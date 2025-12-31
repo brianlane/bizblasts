@@ -192,7 +192,7 @@ class TenantCustomer < ApplicationRecord
   end
 
   def order_revenue
-    orders.joins(:payments)
+    orders.joins(invoice: :payments)
           .where(payments: { status: :completed })
           .sum('payments.amount').to_f
   end
