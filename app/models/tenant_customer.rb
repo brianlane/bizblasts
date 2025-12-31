@@ -231,7 +231,7 @@ class TenantCustomer < ApplicationRecord
   def avg_days_between_purchases
     return nil if purchase_frequency < 2
 
-    all_purchases = (bookings.pluck(:created_at) + orders.pluck(:created_at)).sort
+    all_purchases = (bookings.pluck(:created_at) + orders.pluck(:created_at)).compact.sort
     return nil if all_purchases.length < 2
 
     intervals = []

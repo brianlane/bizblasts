@@ -15,7 +15,8 @@ module BusinessManager
       end
 
       def no_shows
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
         @no_show_data = @operations_service.no_show_analysis(period)
         @no_show_bookings = business.bookings
                                     .where(status: :no_show, created_at: period.ago..Time.current)
@@ -31,7 +32,8 @@ module BusinessManager
       end
 
       def peak_hours
-        period = params[:period]&.to_i&.days || 90.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 90.days
         heatmap_result = @operations_service.peak_hours_heatmap(period)
 
         # Convert 2D array to hash format: { monday: { 8: 5, 9: 10 }, ... }
@@ -73,7 +75,8 @@ module BusinessManager
       end
 
       def lead_time
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
         @lead_time_data = @operations_service.lead_time_distribution(period)
 
         respond_to do |format|
@@ -83,7 +86,8 @@ module BusinessManager
       end
 
       def export
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
 
         csv_data = CSV.generate do |csv|
           csv << ['Metric', 'Value']

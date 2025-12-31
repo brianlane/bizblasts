@@ -37,7 +37,8 @@ module BusinessManager
       end
 
       def refunds
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
         @refund_data = @revenue_service.refund_analysis(period)
         @recent_refunds = business.payments
                                   .where(status: 'refunded', created_at: period.ago..Time.current)
@@ -52,7 +53,8 @@ module BusinessManager
       end
 
       def by_service
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
         limit = params[:limit]&.to_i || 10
         @service_revenue = @revenue_service.revenue_by_service(period, limit)
 
@@ -63,7 +65,8 @@ module BusinessManager
       end
 
       def gross_margin
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
         @margin_analysis = @revenue_service.gross_margin_analysis(period)
 
         respond_to do |format|
@@ -83,7 +86,8 @@ module BusinessManager
       end
 
       def export
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
 
         csv_data = CSV.generate do |csv|
           csv << ['Metric', 'Value']

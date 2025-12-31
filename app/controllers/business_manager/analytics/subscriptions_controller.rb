@@ -25,7 +25,8 @@ module BusinessManager
       end
 
       def churn
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
         @churn_data = {
           revenue_churn: @subscription_service.subscription_churn_rate(period),
           customer_churn: @subscription_service.customer_churn_rate(period)
@@ -57,7 +58,8 @@ module BusinessManager
       end
 
       def expansion
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
         @expansion_data = @subscription_service.expansion_revenue(period)
 
         respond_to do |format|
@@ -67,7 +69,8 @@ module BusinessManager
       end
 
       def export
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
 
         csv_data = CSV.generate do |csv|
           csv << ['Subscription Analytics Export']

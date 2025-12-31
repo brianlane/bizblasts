@@ -40,7 +40,8 @@ module BusinessManager
       end
 
       def turnover
-        period = params[:period]&.to_i&.days || 90.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 90.days
 
         @turnover_data = []
         business.products.limit(50).each do |product|
@@ -61,7 +62,8 @@ module BusinessManager
       end
 
       def profitability
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
         @profitability_data = @inventory_service.product_profitability_analysis(period)
 
         respond_to do |format|
@@ -92,7 +94,8 @@ module BusinessManager
       end
 
       def movements
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
         @movement_data = @inventory_service.stock_movement_summary(period)
 
         respond_to do |format|
@@ -111,7 +114,8 @@ module BusinessManager
       end
 
       def export
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
 
         csv_data = CSV.generate do |csv|
           csv << ['Inventory Analytics Export']

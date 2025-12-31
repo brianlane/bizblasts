@@ -239,7 +239,8 @@ module BusinessManager
 
       def anomalies
         metric_type = params[:metric]&.to_sym || :bookings
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
 
         anomalies_data = @predictive_service.detect_anomalies(metric_type, period)
 
@@ -626,31 +627,23 @@ module BusinessManager
           # Header row
           csv << [
             'Product',
-            'SKU',
+            'Variant',
             'Current Stock',
-            'Reorder Point',
+            'Daily Sales Rate',
             'Days Until Stockout',
             'Recommended Qty',
-            'Unit Cost',
-            'Order Value',
-            'Lead Time (days)',
-            'Order By Date',
             'Urgency'
           ]
 
           # Data rows
           restock_data.each do |product|
             csv << [
-              product[:name],
-              product[:sku],
+              product[:product_name],
+              product[:variant_name],
               product[:current_stock],
-              product[:reorder_point],
+              product[:daily_sales_rate],
               product[:days_until_stockout],
-              product[:recommended_order_quantity],
-              number_to_currency(product[:unit_cost] || 0),
-              number_to_currency((product[:recommended_order_quantity] || 0) * (product[:unit_cost] || 0)),
-              product[:lead_time_days],
-              product[:order_by_date]&.strftime('%Y-%m-%d'),
+              product[:recommended_restock_quantity],
               product[:urgency]
             ]
           end

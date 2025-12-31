@@ -30,7 +30,8 @@ module BusinessManager
       end
 
       def campaigns
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
         @campaigns_data = @marketing_service.campaigns_summary(period)
 
         respond_to do |format|
@@ -52,7 +53,8 @@ module BusinessManager
       end
 
       def email_campaigns
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
         @email_data = @marketing_service.email_campaign_performance(period)
 
         respond_to do |format|
@@ -62,7 +64,8 @@ module BusinessManager
       end
 
       def sms_campaigns
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
         @sms_data = @marketing_service.sms_campaign_performance(period)
 
         respond_to do |format|
@@ -72,7 +75,8 @@ module BusinessManager
       end
 
       def promotions
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
         @promotions_data = @marketing_service.promotions_summary(period)
 
         respond_to do |format|
@@ -93,7 +97,8 @@ module BusinessManager
       end
 
       def referrals
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
         @referral_data = @marketing_service.referral_program_metrics(period)
 
         respond_to do |format|
@@ -103,7 +108,8 @@ module BusinessManager
       end
 
       def acquisition
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
         @acquisition_data = @marketing_service.acquisition_by_source(period)
 
         respond_to do |format|
@@ -113,7 +119,8 @@ module BusinessManager
       end
 
       def channels
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
         @channel_data = @marketing_service.channel_performance(period)
 
         respond_to do |format|
@@ -123,7 +130,8 @@ module BusinessManager
       end
 
       def attribution
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
         @attribution_data = @marketing_service.attribution_analysis(period)
 
         respond_to do |format|
@@ -133,7 +141,8 @@ module BusinessManager
       end
 
       def spend_efficiency
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
         @efficiency_data = @marketing_service.marketing_spend_efficiency(period)
 
         respond_to do |format|
@@ -143,7 +152,8 @@ module BusinessManager
       end
 
       def export
-        period = params[:period]&.to_i&.days || 30.days
+        period_days = params[:period]&.to_i
+        period = (period_days && period_days > 0) ? period_days.days : 30.days
 
         csv_data = CSV.generate do |csv|
           csv << ['Marketing Performance Export']
