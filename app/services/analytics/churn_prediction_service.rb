@@ -205,7 +205,7 @@ module Analytics
                             .sum('payments.amount').to_f +
                     customer.orders
                             .where(created_at: 60.days.ago..Time.current)
-                            .joins(:payments)
+                            .joins(invoice: :payments)
                             .where(payments: { status: :completed })
                             .sum('payments.amount').to_f
 
@@ -216,7 +216,7 @@ module Analytics
                               .sum('payments.amount').to_f +
                       customer.orders
                               .where(created_at: 120.days.ago..60.days.ago)
-                              .joins(:payments)
+                              .joins(invoice: :payments)
                               .where(payments: { status: :completed })
                               .sum('payments.amount').to_f
 

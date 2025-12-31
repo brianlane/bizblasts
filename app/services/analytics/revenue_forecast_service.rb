@@ -71,7 +71,7 @@ module Analytics
 
       order_revenue = business.orders
                              .where(created_at: period.ago..Time.current)
-                             .joins(:payments)
+                             .joins(invoice: :payments)
                              .where(payments: { status: :completed })
                              .sum('payments.amount').to_f
 

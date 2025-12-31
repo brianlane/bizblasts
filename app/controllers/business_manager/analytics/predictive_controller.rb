@@ -145,7 +145,7 @@ module BusinessManager
 
         @pricing_summary = {
           current_avg_price: all_services.any? ? total_current / all_services.count : 0,
-          recommended_avg_price: all_services.any? ? total_recommended / all_services.count : 0,
+          recommended_avg_price: @pricing_recommendations.any? ? total_recommended / @pricing_recommendations.count : 0,
           revenue_impact: @pricing_recommendations.sum { |r| r[:revenue_impact] },
           services_to_optimize: @pricing_recommendations.count { |r| (r[:recommended_price] - r[:current_price]).abs > 5 }
         }
