@@ -15,7 +15,8 @@ module Analytics
     end
 
     # Calculate Customer Lifetime Value for a customer
-    # CLV = (Average Order Value × Purchase Frequency) × Customer Lifespan
+    # CLV = Current Revenue + Predicted Future Revenue
+    # Future Revenue = (Average Order Value × Purchase Frequency Per Year) × Expected Remaining Years
     def calculate_clv(customer)
       if customer.purchase_frequency.zero?
         return {
@@ -28,15 +29,21 @@ module Analytics
       end
 
       avg_order_value = customer.total_revenue / customer.purchase_frequency
-      customer_lifespan_years = customer.lifespan_days / 365.0
-      predicted_value = (avg_order_value * customer.purchase_frequency_per_year * customer_lifespan_years).round(2)
+      historical_lifespan_years = customer.lifespan_days / 365.0
+
+      # Estimate expected remaining lifetime (industry standard: 3 years for active customers)
+      # Reduce remaining lifetime for customers who've been around longer
+      expected_remaining_years = [3.0 - historical_lifespan_years, 1.0].max
+
+      # Calculate predicted future value based on historical purchase patterns
+      predicted_future_value = (avg_order_value * customer.purchase_frequency_per_year * expected_remaining_years).round(2)
 
       {
         total_value: customer.total_revenue,
-        predicted_future_value: predicted_value,
+        predicted_future_value: predicted_future_value,
         avg_order_value: avg_order_value.round(2),
         purchase_frequency: customer.purchase_frequency,
-        estimated_lifespan_years: customer_lifespan_years.round(1)
+        estimated_lifespan_years: (historical_lifespan_years + expected_remaining_years).round(1)
       }
     end
 
