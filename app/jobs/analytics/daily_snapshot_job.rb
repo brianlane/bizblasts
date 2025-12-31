@@ -548,9 +548,12 @@ module Analytics
       adjustments = movements.where(movement_type: 'adjustment').count
 
       # Calculate units sold from orders
+      # Filter by product_variant_id IS NOT NULL to identify product line items
+      # (lineable_type stores the parent class 'Order', not the item type)
       units_sold = business.orders
                            .joins(:line_items)
-                           .where(created_at: date_range, line_items: { lineable_type: 'ProductVariant' })
+                           .where(created_at: date_range)
+                           .where.not(line_items: { product_variant_id: nil })
                            .sum('line_items.quantity')
 
       # Get health score
