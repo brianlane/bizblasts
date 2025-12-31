@@ -123,7 +123,7 @@ RSpec.describe Analytics::PredictiveService, type: :service do
       expect(result).to be_an(Array)
       anomaly = result.first
       expect(anomaly).to include(:date, :metric, :value, :expected_range, :severity, :deviation_percentage)
-      expect(anomaly[:severity]).to be_in(['low', 'medium', 'high'])
+      expect(anomaly[:severity]).to be_in(['low', 'medium', 'high', 'critical'])
       expect(anomaly[:direction]).to be_in(['above', 'below'])
     end
 

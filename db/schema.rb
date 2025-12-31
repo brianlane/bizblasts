@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_30_183634) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_31_160003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -143,6 +143,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_30_183634) do
     t.date "period_start", null: false
     t.jsonb "predictions", default: {}
     t.jsonb "product_metrics", default: {}
+    t.jsonb "revenue_metrics", default: {}
     t.jsonb "service_metrics", default: {}
     t.string "snapshot_type", null: false
     t.jsonb "staff_metrics", default: {}
@@ -167,6 +168,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_30_183634) do
     t.index ["marketing_metrics"], name: "index_analytics_snapshots_on_marketing_metrics", using: :gin
     t.index ["operational_metrics"], name: "index_analytics_snapshots_on_operational_metrics", using: :gin
     t.index ["predictions"], name: "index_analytics_snapshots_on_predictions", using: :gin
+    t.index ["revenue_metrics"], name: "index_analytics_snapshots_on_revenue_metrics", using: :gin
     t.index ["snapshot_type"], name: "index_analytics_snapshots_on_snapshot_type"
     t.index ["staff_metrics"], name: "index_analytics_snapshots_on_staff_metrics", using: :gin
     t.index ["subscription_metrics"], name: "index_analytics_snapshots_on_subscription_metrics", using: :gin

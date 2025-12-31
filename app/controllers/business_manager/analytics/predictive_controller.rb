@@ -16,7 +16,7 @@ module BusinessManager
       end
 
       def demand_forecast
-        period = params[:period]&.to_i || 30
+        period = (params[:period]&.to_i&.presence || 30).clamp(1, 365)
 
         # Overall demand forecast
         all_services = business.services.active
@@ -105,7 +105,8 @@ module BusinessManager
 
         @pricing_recommendations = all_services.map do |service|
           pricing_data = @predictive_service.optimal_pricing_recommendations(service.id)
-          demand_level = service.bookings.where(created_at: 30.days.ago..Time.current).count > 20 ? 'high' : service.bookings.where(created_at: 30.days.ago..Time.current).count > 10 ? 'medium' : 'low'
+          recent_booking_count = service.bookings.where(created_at: 30.days.ago..Time.current).count
+          demand_level = recent_booking_count > 20 ? 'high' : recent_booking_count > 10 ? 'medium' : 'low'
 
           # Calculate confidence based on booking volume (more bookings = higher confidence)
           booking_count = pricing_data[:current_monthly_bookings].to_i
