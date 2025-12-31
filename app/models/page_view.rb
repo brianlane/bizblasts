@@ -84,7 +84,7 @@ class PageView < ApplicationRecord
       sql = sanitize_sql_array([<<-SQL, start_date.beginning_of_day, end_date.end_of_day])
         SELECT
           CASE
-            WHEN utm_medium IN ('cpc', 'ppc', 'paid') THEN 'paid'
+            WHEN LOWER(utm_medium) IN ('cpc', 'ppc', 'paid') THEN 'paid'
             WHEN referrer_domain IS NULL OR referrer_domain = '' THEN 'direct'
             WHEN referrer_domain ~* 'google|bing|yahoo|duckduckgo' THEN 'organic'
             WHEN referrer_domain ~* 'facebook|twitter|instagram|linkedin|pinterest|tiktok' THEN 'social'
