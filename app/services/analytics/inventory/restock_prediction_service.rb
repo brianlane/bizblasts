@@ -68,6 +68,7 @@ module Analytics
       end
 
       def determine_urgency(days_until_stockout)
+        return 'critical' if days_until_stockout <= 3
         return 'high' if days_until_stockout <= 7
         return 'medium' if days_until_stockout <= 14
         'low'

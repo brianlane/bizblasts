@@ -134,6 +134,7 @@ module Analytics
         product_metrics: calculate_product_metrics(business, date_range),
         service_metrics: calculate_service_metrics(business, date_range),
         estimate_metrics: calculate_estimate_metrics(business, date_range),
+        revenue_metrics: calculate_revenue_metrics(business, date_range),
         traffic_sources: calculate_traffic_sources(sessions),
         top_referrers: calculate_top_referrers(sessions),
         top_pages: calculate_top_pages(page_views),

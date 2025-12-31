@@ -94,12 +94,20 @@ module Analytics
             # Calculate deviation percentage from expected average
             deviation_percentage = avg.zero? ? 0 : ((value.to_f - avg).abs / avg * 100).round(1)
 
+            # Determine severity based on z-score magnitude
+            severity = case z_score.abs
+                       when 0..2.5 then 'low'
+                       when 2.5..3 then 'medium'
+                       when 3..4 then 'high'
+                       else 'critical'
+                       end
+
             anomalies << {
               date: date,
               metric: metric_name,
               value: value.to_f.round(2),
               expected_range: "#{(avg - threshold * std_dev).round(2)} - #{(avg + threshold * std_dev).round(2)}",
-              severity: z_score.abs > 3 ? 'high' : 'medium',
+              severity: severity,
               direction: z_score > 0 ? 'above' : 'below',
               z_score: z_score.round(2),
               deviation_percentage: deviation_percentage
