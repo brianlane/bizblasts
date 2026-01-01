@@ -839,7 +839,7 @@ module BusinessManager
         # Risk factors affecting forecast accuracy
         @risk_factors = []
 
-        if revenue_data[:trend_direction] == 'declining'
+        if revenue_data[:trend_direction] == 'down'
           @risk_factors << {
             severity: 'high',
             factor: 'Declining Revenue Trend',
@@ -904,14 +904,14 @@ module BusinessManager
         # Strategic recommendations
         @strategic_recommendations = []
 
-        if revenue_data[:trend_direction] == 'growing'
+        if revenue_data[:trend_direction] == 'up'
           @strategic_recommendations << {
             priority: 'high',
             title: 'Capitalize on Growth Momentum',
             description: 'Revenue is trending upward. Increase marketing spend and expand high-performing service offerings.',
             expected_impact: '+12% revenue growth'
           }
-        elsif revenue_data[:trend_direction] == 'declining'
+        elsif revenue_data[:trend_direction] == 'down'
           @strategic_recommendations << {
             priority: 'critical',
             title: 'Address Revenue Decline',

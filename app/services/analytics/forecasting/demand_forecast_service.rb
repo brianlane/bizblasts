@@ -70,7 +70,7 @@ module Analytics
           {
             date: day_offset.days.from_now.to_date,
             forecasted_bookings: [adjusted_forecast.round, 1].max,
-            confidence_level: 'medium'
+            confidence_level: 75
           }
         end
       end
