@@ -189,7 +189,22 @@ module BusinessManager
 
       def apply_pricing
         service_name = params[:service_name]
+
+        # Validate recommended_price parameter before converting
+        if params[:recommended_price].blank? || !params[:recommended_price].to_s.match?(/\A\d+\.?\d*\z/)
+          redirect_to pricing_recommendations_business_manager_analytics_predictive_index_path,
+                      alert: "Invalid price value. Please provide a valid numeric price."
+          return
+        end
+
         recommended_price = params[:recommended_price].to_f
+
+        # Ensure price is greater than zero
+        if recommended_price <= 0
+          redirect_to pricing_recommendations_business_manager_analytics_predictive_index_path,
+                      alert: "Price must be greater than zero."
+          return
+        end
 
         service = business.services.find_by(name: service_name)
 
