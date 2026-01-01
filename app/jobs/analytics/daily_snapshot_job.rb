@@ -331,11 +331,33 @@ module Analytics
                                           date_range.begin, date_range.end, date_range.begin, date_range.end)
                                    .distinct
 
-      # Calculate new customers (first purchase in this period)
-      new_customers = customers_in_period.select do |customer|
-        first_purchase = customer.first_purchase_at
-        first_purchase && first_purchase >= date_range.begin && first_purchase <= date_range.end
-      end.count
+      # Calculate new customers using SQL aggregation (first purchase in this period)
+      # Find earliest completed purchase date for each customer
+      new_customers = customers_in_period.select('tenant_customers.id').where(
+        "tenant_customers.id IN (
+          SELECT DISTINCT customer_id FROM (
+            SELECT bookings.tenant_customer_id AS customer_id,
+                   MIN(bookings.created_at) AS first_purchase_date
+            FROM bookings
+            INNER JOIN invoices ON invoices.invokable_id = bookings.id AND invoices.invokable_type = 'Booking'
+            INNER JOIN payments ON payments.invoice_id = invoices.id
+            WHERE payments.status = #{Payment.statuses[:completed]}
+            GROUP BY bookings.tenant_customer_id
+
+            UNION
+
+            SELECT orders.tenant_customer_id AS customer_id,
+                   MIN(orders.created_at) AS first_purchase_date
+            FROM orders
+            INNER JOIN invoices ON invoices.invokable_id = orders.id AND invoices.invokable_type = 'Order'
+            INNER JOIN payments ON payments.invoice_id = invoices.id
+            WHERE payments.status = #{Payment.statuses[:completed]}
+            GROUP BY orders.tenant_customer_id
+          ) AS first_purchases
+          WHERE first_purchase_date BETWEEN ? AND ?
+        )",
+        date_range.begin, date_range.end
+      ).count
 
       # Calculate repeat customers (had previous purchases)
       repeat_customers = customers_in_period.count - new_customers
@@ -345,6 +367,11 @@ module Analytics
 
       # Get churn statistics
       churn_stats = churn_service.churn_statistics
+
+      # Calculate total revenue using SQL aggregation instead of iterating
+      total_revenue_from_customers = business.payments
+                                            .where(status: :completed, created_at: date_range)
+                                            .sum(:amount).to_f
 
       {
         active_customers: customers_in_period.count,
@@ -359,7 +386,7 @@ module Analytics
           medium: churn_stats[:medium_risk] || 0,
           low: churn_stats[:low_risk] || 0
         },
-        total_revenue_from_customers: customers_in_period.sum(&:total_revenue).round(2)
+        total_revenue_from_customers: total_revenue_from_customers.round(2)
       }
     rescue StandardError => e
       Rails.logger.error "[DailySnapshot] Error calculating customer metrics: #{e.message}"
@@ -380,8 +407,14 @@ module Analytics
       staff_service = Analytics::StaffPerformanceService.new(business)
       period = 1.day # For daily snapshot, use 1 day period
 
-      staff_members = business.staff_members.includes(:bookings)
-      active_staff = staff_members.select { |s| s.bookings.where(created_at: date_range).any? }
+      staff_members = business.staff_members
+
+      # Find active staff using a single query
+      active_staff_count = business.staff_members
+                                  .joins(:bookings)
+                                  .where(bookings: { created_at: date_range })
+                                  .distinct
+                                  .count
 
       total_bookings = business.bookings.where(created_at: date_range).count
       total_revenue = business.bookings
@@ -390,14 +423,30 @@ module Analytics
                               .where(payments: { status: :completed })
                               .sum('payments.amount').to_f
 
+      # Find top performer using a single query with GROUP BY
+      top_performer_data = business.staff_members
+                                  .joins(bookings: { invoice: :payments })
+                                  .where(bookings: { created_at: date_range })
+                                  .where(payments: { status: :completed })
+                                  .group('staff_members.id')
+                                  .select('staff_members.id, staff_members.first_name, staff_members.last_name, SUM(payments.amount) as total_revenue')
+                                  .order('total_revenue DESC')
+                                  .first
+
+      top_performer_name = if top_performer_data
+                            "#{top_performer_data.first_name} #{top_performer_data.last_name}".strip
+                          else
+                            'N/A'
+                          end
+
       {
         total_staff: staff_members.count,
-        active_staff: active_staff.count,
+        active_staff: active_staff_count,
         total_bookings: total_bookings,
         total_revenue: total_revenue,
-        avg_bookings_per_staff: active_staff.any? ? (total_bookings.to_f / active_staff.count).round(1) : 0,
-        avg_revenue_per_staff: active_staff.any? ? (total_revenue / active_staff.count).round(2) : 0,
-        top_performer: active_staff.max_by { |s| s.bookings.where(created_at: date_range).joins(invoice: :payments).where(payments: { status: :completed }).sum('payments.amount') }&.full_name || 'N/A'
+        avg_bookings_per_staff: active_staff_count > 0 ? (total_bookings.to_f / active_staff_count).round(1) : 0,
+        avg_revenue_per_staff: active_staff_count > 0 ? (total_revenue / active_staff_count).round(2) : 0,
+        top_performer: top_performer_name
       }
     rescue StandardError => e
       Rails.logger.error "[DailySnapshot] Error calculating staff metrics: #{e.message}"
