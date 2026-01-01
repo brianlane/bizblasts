@@ -127,8 +127,12 @@ class StaffMember < ApplicationRecord
   end
   
   def hours_booked_this_month
-    start_of_month = Time.current.beginning_of_month
-    end_of_month = Time.current.end_of_month
+    # Use business timezone to ensure consistent month boundaries
+    time_zone = business&.time_zone || 'UTC'
+    now = Time.current.in_time_zone(time_zone)
+    start_of_month = now.beginning_of_month
+    end_of_month = now.end_of_month
+
     bookings_in_month = bookings.where(start_time: start_of_month..end_of_month)
                               .where(status: [:confirmed, :completed])
     bookings_in_month.sum do |booking|
@@ -141,8 +145,12 @@ class StaffMember < ApplicationRecord
   end
 
   def hours_completed_this_month
-    start_of_month = Time.current.beginning_of_month
-    end_of_month = Time.current.end_of_month
+    # Use business timezone to ensure consistent month boundaries
+    time_zone = business&.time_zone || 'UTC'
+    now = Time.current.in_time_zone(time_zone)
+    start_of_month = now.beginning_of_month
+    end_of_month = now.end_of_month
+
     completed_bookings = bookings.where(start_time: start_of_month..end_of_month, status: :completed)
     completed_bookings.sum do |booking|
       if booking.start_time && booking.end_time

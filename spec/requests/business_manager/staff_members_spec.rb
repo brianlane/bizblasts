@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe "Business Manager StaffMembers", type: :request do
-  let!(:business) { create(:business) }
+  let!(:business) { create(:business, time_zone: 'America/New_York') }
   let!(:manager) { create(:user, :manager, business: business) }
   let!(:staff_user) { create(:user, :staff, business: business) }
   let!(:staff_member) { create(:staff_member, business: business, user: staff_user) }
@@ -30,10 +30,30 @@ RSpec.describe "Business Manager StaffMembers", type: :request do
     end
 
     it "shows booked and completed hours for the month" do
+      # Create required associations for bookings
+      service = create(:service, business: business)
+      tenant_customer = create(:tenant_customer, business: business)
+      create(:services_staff_member, service: service, staff_member: staff_member)
+
       # Create bookings for this staff member in the current month
       now = Time.current
-      create(:booking, staff_member: staff_member, start_time: now.beginning_of_month + 1.day, end_time: now.beginning_of_month + 1.day + 2.hours, status: :confirmed)
-      create(:booking, staff_member: staff_member, start_time: now.beginning_of_month + 2.days, end_time: now.beginning_of_month + 2.days + 3.hours, status: :completed)
+      create(:booking,
+        business: business,
+        service: service,
+        tenant_customer: tenant_customer,
+        staff_member: staff_member,
+        start_time: now.beginning_of_month + 1.day,
+        end_time: now.beginning_of_month + 1.day + 2.hours,
+        status: :confirmed)
+      create(:booking,
+        business: business,
+        service: service,
+        tenant_customer: tenant_customer,
+        staff_member: staff_member,
+        start_time: now.beginning_of_month + 2.days,
+        end_time: now.beginning_of_month + 2.days + 3.hours,
+        status: :completed)
+
       get business_manager_staff_members_path
       expect(response.body).to include(staff_member.hours_booked_this_month.round(2).to_s)
       expect(response.body).to include(staff_member.hours_completed_this_month.round(2).to_s)
@@ -48,9 +68,29 @@ RSpec.describe "Business Manager StaffMembers", type: :request do
     end
 
     it "shows booked and completed hours for the month" do
+      # Create required associations for bookings
+      service = create(:service, business: business)
+      tenant_customer = create(:tenant_customer, business: business)
+      create(:services_staff_member, service: service, staff_member: staff_member)
+
       now = Time.current
-      create(:booking, staff_member: staff_member, start_time: now.beginning_of_month + 3.days, end_time: now.beginning_of_month + 3.days + 1.5.hours, status: :confirmed)
-      create(:booking, staff_member: staff_member, start_time: now.beginning_of_month + 4.days, end_time: now.beginning_of_month + 4.days + 2.5.hours, status: :completed)
+      create(:booking,
+        business: business,
+        service: service,
+        tenant_customer: tenant_customer,
+        staff_member: staff_member,
+        start_time: now.beginning_of_month + 3.days,
+        end_time: now.beginning_of_month + 3.days + 1.5.hours,
+        status: :confirmed)
+      create(:booking,
+        business: business,
+        service: service,
+        tenant_customer: tenant_customer,
+        staff_member: staff_member,
+        start_time: now.beginning_of_month + 4.days,
+        end_time: now.beginning_of_month + 4.days + 2.5.hours,
+        status: :completed)
+
       get business_manager_staff_member_path(staff_member)
       expect(response.body).to include(staff_member.hours_booked_this_month.round(2).to_s)
       expect(response.body).to include(staff_member.hours_completed_this_month.round(2).to_s)
