@@ -343,7 +343,7 @@ module Analytics
               SELECT bookings.tenant_customer_id AS customer_id,
                      bookings.created_at AS purchase_date
               FROM bookings
-              INNER JOIN invoices ON invoices.invokable_id = bookings.id AND invoices.invokable_type = 'Booking'
+              INNER JOIN invoices ON invoices.booking_id = bookings.id
               INNER JOIN payments ON payments.invoice_id = invoices.id
               WHERE payments.status = ?
 
@@ -352,7 +352,7 @@ module Analytics
               SELECT orders.tenant_customer_id AS customer_id,
                      orders.created_at AS purchase_date
               FROM orders
-              INNER JOIN invoices ON invoices.invokable_id = orders.id AND invoices.invokable_type = 'Order'
+              INNER JOIN invoices ON invoices.order_id = orders.id
               INNER JOIN payments ON payments.invoice_id = invoices.id
               WHERE payments.status = ?
             ) AS all_purchases
@@ -433,12 +433,12 @@ module Analytics
                                   .where(bookings: { created_at: date_range })
                                   .where(payments: { status: :completed })
                                   .group('staff_members.id')
-                                  .select('staff_members.id, staff_members.first_name, staff_members.last_name, SUM(payments.amount) as total_revenue')
+                                  .select('staff_members.id, staff_members.name, SUM(payments.amount) as total_revenue')
                                   .order('total_revenue DESC')
                                   .first
 
       top_performer_name = if top_performer_data
-                            "#{top_performer_data.first_name} #{top_performer_data.last_name}".strip
+                            top_performer_data.name
                           else
                             'N/A'
                           end
