@@ -323,17 +323,23 @@ module Analytics
       lifecycle_service = Analytics::CustomerLifecycleService.new(business)
       churn_service = Analytics::ChurnPredictionService.new(business)
 
-      # Get customers active in this period
+      # Get customers active in this period (with completed purchases only to match new_customers criteria)
+      completed_status = Payment.statuses[:completed]
       customers_in_period = business.tenant_customers
-                                   .joins("LEFT JOIN bookings ON bookings.tenant_customer_id = tenant_customers.id")
-                                   .joins("LEFT JOIN orders ON orders.tenant_customer_id = tenant_customers.id")
-                                   .where("bookings.created_at BETWEEN ? AND ? OR orders.created_at BETWEEN ? AND ?",
-                                          date_range.begin, date_range.end, date_range.begin, date_range.end)
+                                   .joins("LEFT JOIN bookings ON bookings.tenant_customer_id = tenant_customers.id
+                                          LEFT JOIN invoices AS booking_invoices ON booking_invoices.booking_id = bookings.id
+                                          LEFT JOIN payments AS booking_payments ON booking_payments.invoice_id = booking_invoices.id")
+                                   .joins("LEFT JOIN orders ON orders.tenant_customer_id = tenant_customers.id
+                                          LEFT JOIN invoices AS order_invoices ON order_invoices.order_id = orders.id
+                                          LEFT JOIN payments AS order_payments ON order_payments.invoice_id = order_invoices.id")
+                                   .where("(bookings.created_at BETWEEN ? AND ? AND booking_payments.status = ?) OR
+                                           (orders.created_at BETWEEN ? AND ? AND order_payments.status = ?)",
+                                          date_range.begin, date_range.end, completed_status,
+                                          date_range.begin, date_range.end, completed_status)
                                    .distinct
 
       # Calculate new customers using SQL aggregation (first purchase in this period)
       # Find earliest completed purchase date across ALL purchase types for each customer
-      completed_status = Payment.statuses[:completed]
       new_customers = customers_in_period.select('tenant_customers.id').where(
         "tenant_customers.id IN (
           SELECT customer_id

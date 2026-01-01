@@ -68,18 +68,19 @@ export default class extends Controller {
 
   getOrCreateSessionId() {
     // Use sessionStorage for session-scoped ID (clears on browser close)
-    let sessionId = sessionStorage.getItem("bz_session_id")
-    if (!sessionId) {
-      try {
+    try {
+      let sessionId = sessionStorage.getItem("bz_session_id")
+      if (!sessionId) {
         sessionId = this.generateUUID()
         sessionStorage.setItem("bz_session_id", sessionId)
-      } catch (error) {
-        // If secure random generation fails, return null to disable tracking
-        console.error("[Analytics] Failed to generate secure session ID:", error)
-        return null
       }
+      return sessionId
+    } catch (error) {
+      // Handle storage access errors (sandboxed iframes, disabled storage, security policies)
+      // and UUID generation failures
+      console.error("[Analytics] Failed to access sessionStorage or generate session ID:", error)
+      return null
     }
-    return sessionId
   }
 
   generateFingerprint() {
