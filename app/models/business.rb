@@ -183,6 +183,7 @@ class Business < ApplicationRecord
   has_many :page_sections, through: :pages
   has_many :loyalty_programs
   has_many :products, dependent: :destroy
+  has_many :product_variants, through: :products
   has_many :stock_movements, through: :products
   has_many :rental_bookings, dependent: :destroy
   has_many :orders  # Orphaned, not deleted
