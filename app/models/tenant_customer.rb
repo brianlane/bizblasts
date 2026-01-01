@@ -225,12 +225,32 @@ class TenantCustomer < ApplicationRecord
     ((last_purchase_at - first_purchase_at) / 1.day).to_i
   end
 
+  # First purchase date (only completed purchases with paid invoices)
+  # Must match the same criteria as purchase_frequency and total_revenue
   def first_purchase_at
-    [bookings.minimum(:created_at), orders.minimum(:created_at)].compact.min
+    completed_booking_date = bookings.joins(invoice: :payments)
+                                     .where(payments: { status: :completed })
+                                     .minimum('bookings.created_at')
+
+    completed_order_date = orders.joins(invoice: :payments)
+                                 .where(payments: { status: :completed })
+                                 .minimum('orders.created_at')
+
+    [completed_booking_date, completed_order_date].compact.min
   end
 
+  # Last purchase date (only completed purchases with paid invoices)
+  # Must match the same criteria as purchase_frequency and total_revenue
   def last_purchase_at
-    [bookings.maximum(:created_at), orders.maximum(:created_at)].compact.max
+    completed_booking_date = bookings.joins(invoice: :payments)
+                                     .where(payments: { status: :completed })
+                                     .maximum('bookings.created_at')
+
+    completed_order_date = orders.joins(invoice: :payments)
+                                 .where(payments: { status: :completed })
+                                 .maximum('orders.created_at')
+
+    [completed_booking_date, completed_order_date].compact.max
   end
 
   def days_since_last_purchase
@@ -239,10 +259,20 @@ class TenantCustomer < ApplicationRecord
   end
 
   # Average days between purchases for customers with multiple purchases
+  # Only counts completed purchases with paid invoices to match purchase_frequency
   def avg_days_between_purchases
     return nil if purchase_frequency < 2
 
-    all_purchases = (bookings.pluck(:created_at) + orders.pluck(:created_at)).compact.sort
+    # Get completed bookings and orders
+    completed_booking_dates = bookings.joins(invoice: :payments)
+                                      .where(payments: { status: :completed })
+                                      .pluck('bookings.created_at')
+
+    completed_order_dates = orders.joins(invoice: :payments)
+                                  .where(payments: { status: :completed })
+                                  .pluck('orders.created_at')
+
+    all_purchases = (completed_booking_dates + completed_order_dates).compact.sort
     return nil if all_purchases.length < 2
 
     intervals = []

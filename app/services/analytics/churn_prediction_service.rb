@@ -103,23 +103,48 @@ module Analytics
     def actual_churn_rate(period = 30.days)
       start_date = period.ago
 
-      # Customers active at start of period
+      # Customers active at start of period (had completed bookings OR orders before start date)
+      # Must include both bookings and orders to match the churn prediction model
+      customers_with_bookings = business.tenant_customers
+                                       .joins(bookings: { invoice: :payments })
+                                       .where(payments: { status: :completed })
+                                       .where('bookings.created_at < ?', start_date)
+                                       .select(:id)
+
+      customers_with_orders = business.tenant_customers
+                                     .joins(orders: { invoice: :payments })
+                                     .where(payments: { status: :completed })
+                                     .where('orders.created_at < ?', start_date)
+                                     .select(:id)
+
+      # Combine both groups (UNION)
       active_at_start = business.tenant_customers
-                               .joins(:bookings)
-                               .where('bookings.created_at < ?', start_date)
+                               .where(id: customers_with_bookings)
+                               .or(business.tenant_customers.where(id: customers_with_orders))
                                .distinct
                                .count
 
       return 0 if active_at_start.zero?
 
-      # Customers who haven't made a purchase since start date
+      # Customers who have made a purchase since start date (still active)
+      customers_with_recent_bookings = business.tenant_customers
+                                              .joins(bookings: { invoice: :payments })
+                                              .where(payments: { status: :completed })
+                                              .where('bookings.created_at >= ?', start_date)
+                                              .select(:id)
+
+      customers_with_recent_orders = business.tenant_customers
+                                            .joins(orders: { invoice: :payments })
+                                            .where(payments: { status: :completed })
+                                            .where('orders.created_at >= ?', start_date)
+                                            .select(:id)
+
+      # Customers who were active at start but haven't purchased since (churned)
       churned = business.tenant_customers
-                       .joins(:bookings)
-                       .where('bookings.created_at < ?', start_date)
-                       .where.not(id: business.tenant_customers
-                                         .joins(:bookings)
-                                         .where('bookings.created_at >= ?', start_date)
-                                         .select(:id))
+                       .where(id: customers_with_bookings)
+                       .or(business.tenant_customers.where(id: customers_with_orders))
+                       .where.not(id: customers_with_recent_bookings)
+                       .where.not(id: customers_with_recent_orders)
                        .distinct
                        .count
 
