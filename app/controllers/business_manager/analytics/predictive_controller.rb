@@ -39,7 +39,7 @@ module BusinessManager
             historical_avg: forecast_data[:historical_avg],
             predicted: total_bookings,
             predicted_revenue: total_bookings * service.price,
-            change_percent: forecast_data[:historical_avg] > 0 ? ((total_bookings - (forecast_data[:historical_avg] * period)) / (forecast_data[:historical_avg] * period) * 100).round(1) : 0,
+            change_percent: (forecast_data[:historical_avg] || 0) > 0 ? ((total_bookings - (forecast_data[:historical_avg] * period)) / (forecast_data[:historical_avg] * period) * 100).round(1) : 0,
             confidence: (forecast_data[:forecast].first&.dig(:confidence_level) || 75).to_f,
             trend: forecast_data[:trend_direction]
           }
