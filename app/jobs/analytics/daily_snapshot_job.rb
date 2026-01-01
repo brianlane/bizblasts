@@ -332,28 +332,31 @@ module Analytics
                                    .distinct
 
       # Calculate new customers using SQL aggregation (first purchase in this period)
-      # Find earliest completed purchase date for each customer
+      # Find earliest completed purchase date across ALL purchase types for each customer
       completed_status = Payment.statuses[:completed]
       new_customers = customers_in_period.select('tenant_customers.id').where(
         "tenant_customers.id IN (
-          SELECT DISTINCT customer_id FROM (
-            SELECT bookings.tenant_customer_id AS customer_id,
-                   MIN(bookings.created_at) AS first_purchase_date
-            FROM bookings
-            INNER JOIN invoices ON invoices.invokable_id = bookings.id AND invoices.invokable_type = 'Booking'
-            INNER JOIN payments ON payments.invoice_id = invoices.id
-            WHERE payments.status = ?
-            GROUP BY bookings.tenant_customer_id
+          SELECT customer_id
+          FROM (
+            SELECT customer_id, MIN(purchase_date) AS first_purchase_date
+            FROM (
+              SELECT bookings.tenant_customer_id AS customer_id,
+                     bookings.created_at AS purchase_date
+              FROM bookings
+              INNER JOIN invoices ON invoices.invokable_id = bookings.id AND invoices.invokable_type = 'Booking'
+              INNER JOIN payments ON payments.invoice_id = invoices.id
+              WHERE payments.status = ?
 
-            UNION
+              UNION ALL
 
-            SELECT orders.tenant_customer_id AS customer_id,
-                   MIN(orders.created_at) AS first_purchase_date
-            FROM orders
-            INNER JOIN invoices ON invoices.invokable_id = orders.id AND invoices.invokable_type = 'Order'
-            INNER JOIN payments ON payments.invoice_id = invoices.id
-            WHERE payments.status = ?
-            GROUP BY orders.tenant_customer_id
+              SELECT orders.tenant_customer_id AS customer_id,
+                     orders.created_at AS purchase_date
+              FROM orders
+              INNER JOIN invoices ON invoices.invokable_id = orders.id AND invoices.invokable_type = 'Order'
+              INNER JOIN payments ON payments.invoice_id = invoices.id
+              WHERE payments.status = ?
+            ) AS all_purchases
+            GROUP BY customer_id
           ) AS first_purchases
           WHERE first_purchase_date BETWEEN ? AND ?
         )",

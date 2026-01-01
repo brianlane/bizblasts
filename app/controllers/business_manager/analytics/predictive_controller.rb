@@ -796,7 +796,7 @@ module BusinessManager
                                   .sum('payments.amount')
 
         products_revenue = business.orders.where(created_at: 90.days.ago..Time.current)
-                                  .joins(:payments)
+                                  .joins(invoice: :payments)
                                   .where(payments: { status: 'completed' })
                                   .sum('payments.amount')
 
