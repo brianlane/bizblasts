@@ -266,10 +266,12 @@ class TenantCustomer < ApplicationRecord
     # Get completed bookings and orders
     completed_booking_dates = bookings.joins(invoice: :payments)
                                       .where(payments: { status: :completed })
+                                      .distinct
                                       .pluck('bookings.created_at')
 
     completed_order_dates = orders.joins(invoice: :payments)
                                   .where(payments: { status: :completed })
+                                  .distinct
                                   .pluck('orders.created_at')
 
     all_purchases = (completed_booking_dates + completed_order_dates).compact.sort
