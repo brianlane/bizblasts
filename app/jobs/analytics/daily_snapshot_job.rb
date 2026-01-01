@@ -333,6 +333,7 @@ module Analytics
 
       # Calculate new customers using SQL aggregation (first purchase in this period)
       # Find earliest completed purchase date for each customer
+      completed_status = Payment.statuses[:completed]
       new_customers = customers_in_period.select('tenant_customers.id').where(
         "tenant_customers.id IN (
           SELECT DISTINCT customer_id FROM (
@@ -341,7 +342,7 @@ module Analytics
             FROM bookings
             INNER JOIN invoices ON invoices.invokable_id = bookings.id AND invoices.invokable_type = 'Booking'
             INNER JOIN payments ON payments.invoice_id = invoices.id
-            WHERE payments.status = #{Payment.statuses[:completed]}
+            WHERE payments.status = ?
             GROUP BY bookings.tenant_customer_id
 
             UNION
@@ -351,12 +352,12 @@ module Analytics
             FROM orders
             INNER JOIN invoices ON invoices.invokable_id = orders.id AND invoices.invokable_type = 'Order'
             INNER JOIN payments ON payments.invoice_id = invoices.id
-            WHERE payments.status = #{Payment.statuses[:completed]}
+            WHERE payments.status = ?
             GROUP BY orders.tenant_customer_id
           ) AS first_purchases
           WHERE first_purchase_date BETWEEN ? AND ?
         )",
-        date_range.begin, date_range.end
+        completed_status, completed_status, date_range.begin, date_range.end
       ).count
 
       # Calculate repeat customers (had previous purchases)
