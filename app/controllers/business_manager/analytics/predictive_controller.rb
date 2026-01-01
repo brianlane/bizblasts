@@ -191,18 +191,35 @@ module BusinessManager
         service_name = params[:service_name]
 
         # Validate recommended_price parameter before converting
-        if params[:recommended_price].blank? || !params[:recommended_price].to_s.match?(/\A\d+\.?\d*\z/)
+        # Use explicit validation to avoid ReDoS vulnerabilities
+        price_string = params[:recommended_price].to_s.strip
+
+        if price_string.blank?
+          redirect_to pricing_recommendations_business_manager_analytics_predictive_index_path,
+                      alert: "Price cannot be blank."
+          return
+        end
+
+        # Limit length to prevent DoS attacks with extremely long strings
+        if price_string.length > 20
+          redirect_to pricing_recommendations_business_manager_analytics_predictive_index_path,
+                      alert: "Price value is too long."
+          return
+        end
+
+        # Use Float() for strict numeric validation - raises ArgumentError for invalid input
+        begin
+          recommended_price = Float(price_string)
+        rescue ArgumentError, TypeError
           redirect_to pricing_recommendations_business_manager_analytics_predictive_index_path,
                       alert: "Invalid price value. Please provide a valid numeric price."
           return
         end
 
-        recommended_price = params[:recommended_price].to_f
-
-        # Ensure price is greater than zero
-        if recommended_price <= 0
+        # Ensure price is greater than zero and not infinite/NaN
+        if recommended_price <= 0 || !recommended_price.finite?
           redirect_to pricing_recommendations_business_manager_analytics_predictive_index_path,
-                      alert: "Price must be greater than zero."
+                      alert: "Price must be a positive number."
           return
         end
 
