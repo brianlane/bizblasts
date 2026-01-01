@@ -65,7 +65,12 @@ module BusinessManager
 
       def staff_idle_time
         @staff_member = business.staff_members.find(params[:staff_id]) if params[:staff_id]
-        @date = params[:date]&.to_date || Date.current
+        # Safely parse date parameter, falling back to current date on invalid input
+        @date = begin
+          params[:date]&.to_date
+        rescue ArgumentError
+          nil
+        end || Date.current
 
         if @staff_member
           @idle_analysis = @operations_service.idle_time_analysis(@staff_member, @date)

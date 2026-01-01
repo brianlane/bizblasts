@@ -328,7 +328,12 @@ module BusinessManager
       end
 
       def staff_scheduling
-        date = params[:date]&.to_date || Date.current
+        # Safely parse date parameter, falling back to current date on invalid input
+        date = begin
+          params[:date]&.to_date
+        rescue ArgumentError
+          nil
+        end || Date.current
         scheduling_data = @predictive_service.optimize_staff_scheduling(date)
 
         # Calculate weekly demand heatmap (7 days x 13 hours: 8am-8pm)
