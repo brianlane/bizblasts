@@ -69,30 +69,38 @@ module Analytics
     end
 
     # RFM (Recency, Frequency, Monetary) Segmentation
+    # OPTIMIZED: Uses SQL aggregation instead of loading all customers into memory
     def customer_segments_rfm
-      customers = business.tenant_customers.includes(:bookings, :orders)
+      # Calculate quartiles using SQL
+      quartiles = calculate_revenue_quartiles_sql
 
-      # Calculate quartiles once for all customers to avoid O(n²) complexity
-      revenue_quartiles = calculate_revenue_quartiles
+      # Use SQL CASE statements to calculate RFM scores in database
+      customers_with_scores = business.tenant_customers
+        .where('purchase_frequency > 0')
+        .select(
+          :id,
+          "CONCAT(first_name, ' ', last_name) as customer_name",
+          :email,
+          :total_revenue,
+          :days_since_last_purchase,
+          :purchase_frequency,
+          calculate_recency_score_sql,
+          calculate_frequency_score_sql,
+          calculate_monetary_score_sql(quartiles)
+        )
 
-      # Calculate RFM scores for all customers
-      customer_data = customers.map do |customer|
-        next if customer.purchase_frequency.zero? # Skip customers with no purchases
-
+      # Convert to hash array and assign segments
+      customers_with_scores.map do |customer|
         {
           customer_id: customer.id,
-          customer_name: customer.full_name,
+          customer_name: customer.customer_name,
           email: customer.email,
-          total_revenue: customer.total_revenue,
-          recency_score: calculate_recency_score(customer),
-          frequency_score: calculate_frequency_score(customer),
-          monetary_score: calculate_monetary_score(customer, revenue_quartiles)
+          total_revenue: customer.total_revenue.to_f,
+          recency_score: customer.recency_score,
+          frequency_score: customer.frequency_score,
+          monetary_score: customer.monetary_score,
+          segment: determine_segment(customer.recency_score, customer.frequency_score, customer.monetary_score)
         }
-      end.compact
-
-      # Assign segments based on RFM scores
-      customer_data.map do |data|
-        data.merge(segment: determine_segment(data[:recency_score], data[:frequency_score], data[:monetary_score]))
       end
     end
 
@@ -124,20 +132,23 @@ module Analytics
     end
 
     # Calculate metrics for all customers
+    # OPTIMIZED: Uses SQL aggregation instead of loading all customers
     def customer_metrics_summary(period = 30.days)
-      customers = business.tenant_customers.includes(:bookings, :orders)
-      customers_with_purchases = customers.select { |c| c.purchase_frequency > 0 }
+      # Use SQL COUNT to get totals without loading objects
+      total_customers = business.tenant_customers.count
+      active_customers = business.tenant_customers.where('purchase_frequency > 0').count
 
-      return empty_metrics_summary if customers_with_purchases.empty?
+      return empty_metrics_summary if active_customers.zero?
 
+      # Use SQL aggregations for all metrics
       {
-        total_customers: customers.count,
-        active_customers: customers_with_purchases.count,
-        avg_clv: customers_with_purchases.sum { |c| calculate_clv(c)[:total_value] } / customers_with_purchases.count,
+        total_customers: total_customers,
+        active_customers: active_customers,
+        avg_clv: business.tenant_customers.where('purchase_frequency > 0').average(:total_revenue)&.to_f&.round(2) || 0,
         arpc: calculate_arpc(period),
-        repeat_customer_rate: calculate_repeat_rate(customers),
-        avg_purchase_frequency: customers_with_purchases.sum(&:purchase_frequency) / customers_with_purchases.count,
-        avg_days_between_purchases: calculate_avg_days_between_purchases(customers_with_purchases)
+        repeat_customer_rate: calculate_repeat_rate_sql,
+        avg_purchase_frequency: business.tenant_customers.where('purchase_frequency > 0').average(:purchase_frequency)&.to_f&.round(1) || 0,
+        avg_days_between_purchases: business.tenant_customers.where('avg_days_between_purchases IS NOT NULL').average(:avg_days_between_purchases)&.to_f&.round(0) || 0
       }
     end
 
@@ -202,16 +213,31 @@ module Analytics
       end
     end
 
-    def calculate_revenue_quartiles
-      revenues = business.tenant_customers.map(&:total_revenue).sort
-      return { q1: 0, q2: 0, q3: 0, q4: 0 } if revenues.empty?
+    # OPTIMIZED: Use SQL PERCENTILE_CONT instead of loading all revenues
+    def calculate_revenue_quartiles_sql
+      # Use PostgreSQL PERCENTILE_CONT for accurate quartile calculation
+      result = business.tenant_customers
+        .select(
+          "PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY total_revenue) as q1",
+          "PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY total_revenue) as q2",
+          "PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY total_revenue) as q3",
+          "PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY total_revenue) as q4"
+        )
+        .first
+
+      return { q1: 0, q2: 0, q3: 0, q4: 0 } unless result
 
       {
-        q1: revenues[revenues.length / 4] || 0,
-        q2: revenues[revenues.length / 2] || 0,
-        q3: revenues[(revenues.length * 3) / 4] || 0,
-        q4: revenues[(revenues.length * 9) / 10] || 0
+        q1: result.q1&.to_f || 0,
+        q2: result.q2&.to_f || 0,
+        q3: result.q3&.to_f || 0,
+        q4: result.q4&.to_f || 0
       }
+    end
+
+    # Legacy method for backward compatibility (calls SQL version)
+    def calculate_revenue_quartiles
+      calculate_revenue_quartiles_sql
     end
 
     def determine_segment(recency, frequency, monetary)
@@ -242,7 +268,18 @@ module Analytics
       'hibernating'
     end
 
+    # OPTIMIZED: Use SQL COUNT instead of loading all customers
+    def calculate_repeat_rate_sql
+      total_with_purchases = business.tenant_customers.where('purchase_frequency > 0').count
+      return 0 if total_with_purchases.zero?
+
+      repeat_customers = business.tenant_customers.where('purchase_frequency > 1').count
+      ((repeat_customers.to_f / total_with_purchases) * 100).round(2)
+    end
+
+    # Legacy method for backward compatibility (renamed for clarity)
     def calculate_repeat_rate(customers)
+      # If called with customers array, use old logic for compatibility
       customers_with_purchases = customers.select { |c| c.purchase_frequency > 0 }
       return 0 if customers_with_purchases.empty?
 
@@ -255,6 +292,44 @@ module Analytics
       return 0 if intervals.empty?
 
       (intervals.sum.to_f / intervals.count).round(0)
+    end
+
+    # SQL helper methods for RFM score calculation
+    def calculate_recency_score_sql
+      <<~SQL.squish
+        CASE
+          WHEN days_since_last_purchase IS NULL THEN 1
+          WHEN days_since_last_purchase BETWEEN 0 AND 30 THEN 5
+          WHEN days_since_last_purchase BETWEEN 31 AND 60 THEN 4
+          WHEN days_since_last_purchase BETWEEN 61 AND 90 THEN 3
+          WHEN days_since_last_purchase BETWEEN 91 AND 180 THEN 2
+          ELSE 1
+        END as recency_score
+      SQL
+    end
+
+    def calculate_frequency_score_sql
+      <<~SQL.squish
+        CASE
+          WHEN purchase_frequency >= 10 THEN 5
+          WHEN purchase_frequency BETWEEN 6 AND 9 THEN 4
+          WHEN purchase_frequency BETWEEN 3 AND 5 THEN 3
+          WHEN purchase_frequency = 2 THEN 2
+          ELSE 1
+        END as frequency_score
+      SQL
+    end
+
+    def calculate_monetary_score_sql(quartiles)
+      <<~SQL.squish
+        CASE
+          WHEN total_revenue >= #{quartiles[:q4]} THEN 5
+          WHEN total_revenue >= #{quartiles[:q3]} THEN 4
+          WHEN total_revenue >= #{quartiles[:q2]} THEN 3
+          WHEN total_revenue >= #{quartiles[:q1]} THEN 2
+          ELSE 1
+        END as monetary_score
+      SQL
     end
 
     def empty_metrics_summary

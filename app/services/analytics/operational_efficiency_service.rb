@@ -41,17 +41,20 @@ module Analytics
     end
 
     # Peak hours analysis
+    # OPTIMIZED: Uses pluck instead of loading full booking objects
     def peak_hours_heatmap(period = 90.days)
-      bookings = business.bookings.where(created_at: period.ago..Time.current)
+      # Use pluck to get only start_time without loading full objects
+      start_times = business.bookings
+        .where(created_at: period.ago..Time.current)
+        .where.not(start_time: nil)
+        .pluck(:start_time)
 
       # Create 7x24 heatmap (day of week x hour)
       heatmap = Array.new(7) { Array.new(24, 0) }
 
-      bookings.find_each do |booking|
-        next unless booking.start_time
-
-        day = booking.start_time.wday # 0 = Sunday
-        hour = booking.start_time.hour
+      start_times.each do |start_time|
+        day = start_time.wday # 0 = Sunday
+        hour = start_time.hour
         heatmap[day][hour] += 1
       end
 
@@ -108,23 +111,41 @@ module Analytics
     end
 
     # Booking lead time analysis (time from booking created to service date)
+    # OPTIMIZED: Uses SQL date math instead of loading all bookings
     def lead_time_distribution(period = 30.days)
-      bookings = business.bookings.where(created_at: period.ago..Time.current)
+      # Use SQL to calculate lead times without loading objects
+      lead_time_stats = business.bookings
+        .where(created_at: period.ago..Time.current)
+        .where.not(start_time: nil)
+        .select(
+          "EXTRACT(DAY FROM (start_time - created_at))::INTEGER as lead_days",
+          'COUNT(*) as booking_count'
+        )
+        .group('lead_days')
 
-      lead_times = bookings.map do |booking|
-        next unless booking.start_time && booking.created_at
-        ((booking.start_time - booking.created_at) / 1.day).to_i
-      end.compact
+      return empty_distribution if lead_time_stats.empty?
 
-      return empty_distribution if lead_times.empty?
+      # Use SQL aggregations for statistics
+      summary = business.bookings
+        .where(created_at: period.ago..Time.current)
+        .where.not(start_time: nil)
+        .select(
+          'AVG(EXTRACT(DAY FROM (start_time - created_at))) as avg_lead_time',
+          'PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY EXTRACT(DAY FROM (start_time - created_at))) as median_lead_time',
+          'COUNT(CASE WHEN EXTRACT(DAY FROM (start_time - created_at)) = 0 THEN 1 END) as same_day',
+          'COUNT(CASE WHEN EXTRACT(DAY FROM (start_time - created_at)) = 1 THEN 1 END) as next_day',
+          'COUNT(CASE WHEN EXTRACT(DAY FROM (start_time - created_at)) BETWEEN 2 AND 7 THEN 1 END) as within_week',
+          'COUNT(CASE WHEN EXTRACT(DAY FROM (start_time - created_at)) > 7 THEN 1 END) as over_week'
+        )
+        .first
 
       {
-        avg_lead_time_days: (lead_times.sum / lead_times.count.to_f).round(1),
-        median_lead_time_days: lead_times.sort[lead_times.count / 2],
-        same_day: lead_times.count { |d| d == 0 },
-        next_day: lead_times.count { |d| d == 1 },
-        within_week: lead_times.count { |d| d.between?(2, 7) },
-        over_week: lead_times.count { |d| d > 7 }
+        avg_lead_time_days: (summary.avg_lead_time&.to_f || 0).round(1),
+        median_lead_time_days: (summary.median_lead_time&.to_f || 0).round(0),
+        same_day: summary.same_day || 0,
+        next_day: summary.next_day || 0,
+        within_week: summary.within_week || 0,
+        over_week: summary.over_week || 0
       }
     end
 

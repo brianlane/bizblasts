@@ -33,8 +33,8 @@ module Analytics
       slow_business_ids = []
 
       # Generate snapshot for each active business
-      # Using find_each for batching to reduce memory usage
-      Business.active.find_each(batch_size: 100) do |business|
+      # OPTIMIZED: Reduced batch size and added memory cleanup
+      Business.active.find_each(batch_size: 10) do |business|
         business_start = Time.current
 
         generate_snapshot(business, date)
@@ -47,9 +47,14 @@ module Analytics
           Rails.logger.warn "[DailySnapshot] Slow processing for business #{business.id}: #{business_elapsed.round(2)}s"
         end
 
-        # Progress logging every 100 businesses
-        if business_count % 100 == 0
-          Rails.logger.info "[DailySnapshot] Progress: #{business_count} businesses processed"
+        # OPTIMIZATION: Clear ActiveRecord query cache and trigger GC periodically
+        if business_count % 10 == 0
+          ActiveRecord::Base.connection.clear_query_cache
+          GC.start
+
+          # Log memory usage
+          memory_mb = `ps -o rss= -p #{Process.pid}`.to_i / 1024
+          Rails.logger.info "[DailySnapshot] Progress: #{business_count} businesses processed, Memory: #{memory_mb}MB"
         end
       rescue StandardError => e
         error_count += 1
@@ -80,33 +85,38 @@ module Analytics
     private
 
     def generate_snapshot(business, date)
-      ActsAsTenant.with_tenant(business) do
-        # Skip if snapshot already exists
-        existing = business.analytics_snapshots.find_by(
-          snapshot_type: 'daily',
-          period_start: date,
-          period_end: date
-        )
-        
-        if existing
-          Rails.logger.debug "[DailySnapshot] Snapshot already exists for business #{business.id} on #{date}"
-          return
-        end
-        
-        # Calculate metrics for the date
-        metrics = calculate_metrics(business, date)
-        
-        # Create snapshot
-        business.analytics_snapshots.create!(
+      # OPTIMIZATION: Wrap in transaction to ensure memory cleanup
+      ActiveRecord::Base.transaction do
+        ActsAsTenant.with_tenant(business) do
+          # Skip if snapshot already exists
+          existing = business.analytics_snapshots.find_by(
+            snapshot_type: 'daily',
+            period_start: date,
+            period_end: date
+          )
+
+          if existing
+            Rails.logger.debug "[DailySnapshot] Snapshot already exists for business #{business.id} on #{date}"
+            return
+          end
+
+          # Calculate metrics for the date
+          metrics = calculate_metrics(business, date)
+
+          # Create snapshot
+          business.analytics_snapshots.create!(
           snapshot_type: 'daily',
           period_start: date,
           period_end: date,
           generated_at: Time.current,
           **metrics
         )
-        
+
         Rails.logger.info "[DailySnapshot] Created snapshot for business #{business.id} on #{date}"
+        end
       end
+      # OPTIMIZATION: Ensure memory cleanup after each business
+      GC.start
     end
 
     def calculate_metrics(business, date)

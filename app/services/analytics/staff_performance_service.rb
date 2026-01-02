@@ -14,29 +14,47 @@ module Analytics
     end
 
     # Get staff leaderboard sorted by revenue
+    # OPTIMIZED: Uses SQL aggregation instead of N+1 queries
     def staff_leaderboard(period = 30.days, sort_by: :revenue)
-      staff_members = business.staff_members.includes(:bookings)
+      # Calculate metrics using SQL JOIN and aggregation
+      leaderboard_data = business.staff_members
+        .left_joins(bookings: { invoice: :payments })
+        .where('bookings.created_at >= ? OR bookings.id IS NULL', period.ago)
+        .group('staff_members.id')
+        .select(
+          'staff_members.id as staff_id',
+          "CONCAT(staff_members.first_name, ' ', staff_members.last_name) as name",
+          'staff_members.email',
+          'staff_members.average_rating as avg_rating',
+          'COUNT(DISTINCT bookings.id) as bookings_count',
+          'COALESCE(SUM(CASE WHEN payments.status = 1 THEN payments.amount ELSE 0 END), 0) as revenue',
+          calculate_utilization_rate_sql(period),
+          'COALESCE(AVG(services.duration), 0) as avg_service_duration',
+          calculate_completion_rate_sql(period)
+        )
+        .joins('LEFT JOIN services ON services.id = bookings.service_id')
 
-      leaderboard_data = staff_members.map do |staff|
+      # Convert to array of hashes
+      data = leaderboard_data.map do |staff|
         {
-          staff_id: staff.id,
-          name: staff.full_name,
+          staff_id: staff.staff_id,
+          name: staff.name,
           email: staff.email,
-          bookings_count: bookings_count(staff, period),
-          revenue: calculate_staff_revenue(staff, period),
-          utilization_rate: calculate_utilization_rate(staff, period),
-          avg_rating: staff.average_rating || 0,
-          avg_service_duration: calculate_avg_service_duration(staff, period),
-          completion_rate: calculate_completion_rate(staff, period)
+          bookings_count: staff.bookings_count || 0,
+          revenue: (staff.revenue || 0).to_f.round(2),
+          utilization_rate: (staff.utilization_rate || 0).to_f.round(1),
+          avg_rating: (staff.avg_rating || 0).to_f,
+          avg_service_duration: (staff.avg_service_duration || 0).to_f.round(0),
+          completion_rate: (staff.completion_rate || 0).to_f.round(1)
         }
       end
 
       # Return hash with sorted arrays for each metric
       {
-        by_revenue: leaderboard_data.sort_by { |s| -s[:revenue] },
-        by_bookings: leaderboard_data.sort_by { |s| -s[:bookings_count] },
-        by_utilization: leaderboard_data.sort_by { |s| -s[:utilization_rate] },
-        by_rating: leaderboard_data.sort_by { |s| -s[:avg_rating] }
+        by_revenue: data.sort_by { |s| -s[:revenue] },
+        by_bookings: data.sort_by { |s| -s[:bookings_count] },
+        by_utilization: data.sort_by { |s| -s[:utilization_rate] },
+        by_rating: data.sort_by { |s| -s[:avg_rating] }
       }
     end
 
@@ -145,37 +163,33 @@ module Analytics
     end
 
     # Get staff performance summary
+    # OPTIMIZED: Uses SQL aggregation instead of N+1 queries
     def performance_summary(period = 30.days)
-      staff_members = business.staff_members.includes(:bookings)
+      total_staff = business.staff_members.count
 
-      total_bookings = 0
-      total_revenue = 0
-      total_staff = staff_members.count
-      active_staff_list = []
-      total_utilization = 0
+      # Use SQL to calculate all metrics in one query
+      summary = business.staff_members
+        .left_joins(bookings: { invoice: :payments })
+        .where('bookings.created_at >= ? OR bookings.id IS NULL', period.ago)
+        .select(
+          'COUNT(DISTINCT staff_members.id) as total_staff',
+          'COUNT(DISTINCT CASE WHEN bookings.id IS NOT NULL THEN staff_members.id END) as active_staff',
+          'COUNT(DISTINCT bookings.id) as total_bookings',
+          'COALESCE(SUM(CASE WHEN payments.status = 1 THEN payments.amount ELSE 0 END), 0) as total_revenue'
+        )
+        .first
 
-      staff_members.each do |staff|
-        bookings = bookings_count(staff, period)
-        total_bookings += bookings
-        total_revenue += calculate_staff_revenue(staff, period)
-
-        if bookings > 0
-          active_staff_list << staff
-          total_utilization += calculate_utilization_rate(staff, period)
-        end
-      end
-
-      active_count = active_staff_list.count
+      active_count = summary.active_staff || 0
 
       {
         total_staff: total_staff,
         active_staff: active_count,
         total_active: active_count, # Alias for view compatibility
-        total_bookings: total_bookings,
-        total_revenue: total_revenue,
-        avg_bookings_per_staff: total_staff > 0 ? (total_bookings.to_f / total_staff).round(1) : 0,
-        avg_revenue_per_staff: total_staff > 0 ? (total_revenue / total_staff).round(2) : 0,
-        avg_utilization: active_count > 0 ? (total_utilization / active_count).round(1) : 0
+        total_bookings: summary.total_bookings || 0,
+        total_revenue: (summary.total_revenue || 0).to_f.round(2),
+        avg_bookings_per_staff: total_staff > 0 ? ((summary.total_bookings || 0).to_f / total_staff).round(1) : 0,
+        avg_revenue_per_staff: total_staff > 0 ? ((summary.total_revenue || 0).to_f / total_staff).round(2) : 0,
+        avg_utilization: active_count > 0 ? calculate_avg_utilization_sql(period) : 0
       }
     end
 
@@ -233,6 +247,50 @@ module Analytics
       when :overbooked
         "Consider hiring additional staff or limiting bookings"
       end
+    end
+
+    # SQL helper methods for performance calculations
+    def calculate_utilization_rate_sql(period)
+      days_in_period = (period / 1.day).to_i
+      weeks_in_period = days_in_period / 7.0
+      available_hours = weeks_in_period * 40 # 40 hours per week
+
+      <<~SQL.squish
+        ROUND(
+          (COALESCE(SUM(services.duration), 0) / 60.0) / NULLIF(#{available_hours}, 0) * 100,
+          1
+        ) as utilization_rate
+      SQL
+    end
+
+    def calculate_completion_rate_sql(period)
+      <<~SQL.squish
+        ROUND(
+          COALESCE(
+            COUNT(CASE WHEN bookings.status = 3 THEN 1 END)::FLOAT /
+            NULLIF(COUNT(bookings.id), 0) * 100,
+            0
+          ),
+          1
+        ) as completion_rate
+      SQL
+    end
+
+    def calculate_avg_utilization_sql(period)
+      days_in_period = (period / 1.day).to_i
+      weeks_in_period = days_in_period / 7.0
+      available_hours = weeks_in_period * 40
+
+      result = business.staff_members
+        .left_joins(bookings: :service)
+        .where('bookings.created_at >= ? OR bookings.id IS NULL', period.ago)
+        .where('bookings.status NOT IN (?) OR bookings.id IS NULL', ['cancelled', 'no_show'])
+        .group('staff_members.id')
+        .select("(COALESCE(SUM(services.duration), 0) / 60.0) / NULLIF(#{available_hours}, 0) * 100 as util_rate")
+        .having('COUNT(bookings.id) > 0')
+
+      rates = result.pluck(:util_rate).compact
+      rates.empty? ? 0 : (rates.sum / rates.count).round(1)
     end
   end
 end

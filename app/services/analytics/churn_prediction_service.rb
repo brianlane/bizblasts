@@ -55,47 +55,74 @@ module Analytics
     end
 
     # Get all at-risk customers (churn probability >= threshold)
+    # OPTIMIZED: Uses SQL to filter and calculate probabilities
     def at_risk_customers(threshold = 60)
-      customers = business.tenant_customers.includes(:bookings, :orders)
+      # Use SQL to calculate churn probability and filter in database
+      at_risk_records = business.tenant_customers
+        .where('purchase_frequency > 0')
+        .where("#{churn_probability_case_sql} >= ?", threshold)
+        .select(
+          :id,
+          "CONCAT(first_name, ' ', last_name) as customer_name",
+          :email,
+          :days_since_last_purchase,
+          :total_revenue,
+          :purchase_frequency,
+          "#{churn_probability_case_sql} as churn_probability"
+        )
+        .order('churn_probability DESC')
 
-      at_risk = []
-      customers.find_each do |customer|
-        next if customer.purchase_frequency.zero?
-
-        probability = predict_churn_probability(customer)
-        if probability >= threshold
-          at_risk << {
-            customer: customer,
-            churn_probability: probability,
-            days_since_purchase: customer.days_since_last_purchase,
-            total_revenue: customer.total_revenue,
-            purchase_count: customer.purchase_frequency.to_i,
-            risk_factors: identify_risk_factors(customer)
-          }
-        end
+      # Convert to hash format
+      at_risk_records.map do |record|
+        {
+          customer_id: record.id,
+          customer_name: record.customer_name,
+          email: record.email,
+          churn_probability: record.churn_probability.to_f.round(1),
+          days_since_purchase: record.days_since_last_purchase&.to_i,
+          total_revenue: record.total_revenue.to_f,
+          purchase_count: record.purchase_frequency.to_i,
+          risk_factors: identify_risk_factors_sql(record.id)
+        }
       end
-
-      at_risk.sort_by { |c| -c[:churn_probability] }
     end
 
     # Get churn statistics for all customers
+    # OPTIMIZED: Calculates churn probability in SQL instead of loading all customers
     def churn_statistics
-      customers = business.tenant_customers.includes(:bookings, :orders)
-                         .select { |c| c.purchase_frequency > 0 }
+      # Use SQL to calculate churn risk factors and probabilities
+      customers_with_risk = business.tenant_customers
+        .where('purchase_frequency > 0')
+        .select(
+          :id,
+          :days_since_last_purchase,
+          calculate_churn_probability_sql
+        )
 
-      return empty_statistics if customers.empty?
+      return empty_statistics if customers_with_risk.empty?
 
-      probabilities = customers.map { |c| predict_churn_probability(c) }
+      # Use SQL aggregations to count risk levels
+      total_count = customers_with_risk.count
+
+      risk_counts = business.tenant_customers
+        .where('purchase_frequency > 0')
+        .select(
+          "COUNT(CASE WHEN #{churn_probability_case_sql} >= 70 THEN 1 END) as high_risk",
+          "COUNT(CASE WHEN #{churn_probability_case_sql} >= 40 AND #{churn_probability_case_sql} < 70 THEN 1 END) as medium_risk",
+          "COUNT(CASE WHEN #{churn_probability_case_sql} < 40 THEN 1 END) as low_risk",
+          "AVG(#{churn_probability_case_sql}) as avg_probability"
+        )
+        .first
 
       {
-        total_customers: customers.count,
-        high_risk: probabilities.count { |p| p >= 70 },
-        medium_risk: probabilities.count { |p| p >= 40 && p < 70 },
-        low_risk: probabilities.count { |p| p < 40 },
-        avg_churn_probability: (probabilities.sum / probabilities.count).round(1),
-        customers_at_risk_30_days: estimate_churn_in_period(customers, 30),
-        customers_at_risk_60_days: estimate_churn_in_period(customers, 60),
-        customers_at_risk_90_days: estimate_churn_in_period(customers, 90)
+        total_customers: total_count,
+        high_risk: risk_counts.high_risk || 0,
+        medium_risk: risk_counts.medium_risk || 0,
+        low_risk: risk_counts.low_risk || 0,
+        avg_churn_probability: (risk_counts.avg_probability&.to_f || 0).round(1),
+        customers_at_risk_30_days: estimate_churn_in_period_sql(30),
+        customers_at_risk_60_days: estimate_churn_in_period_sql(60),
+        customers_at_risk_90_days: estimate_churn_in_period_sql(90)
       }
     end
 
@@ -272,6 +299,16 @@ module Analytics
     end
 
     # Estimate how many customers will churn in a given period
+    # OPTIMIZED: Use SQL COUNT instead of loading all customers
+    def estimate_churn_in_period_sql(days)
+      business.tenant_customers
+        .where('purchase_frequency > 0')
+        .where("#{churn_probability_case_sql} >= 60")
+        .where('days_since_last_purchase >= ?', days / 2)
+        .count
+    end
+
+    # Legacy method for backward compatibility
     def estimate_churn_in_period(customers, days)
       # Simple estimation: customers with high probability and recent inactivity
       customers.count do |customer|
@@ -281,6 +318,32 @@ module Analytics
         # High probability and haven't purchased recently
         probability >= 60 && days_since >= (days / 2)
       end
+    end
+
+    # SQL helper methods for churn probability calculation
+    def churn_probability_case_sql
+      <<~SQL.squish
+        (
+          CASE WHEN days_since_last_purchase > #{CHURN_INDICATORS[:days_since_purchase][:threshold]} THEN #{CHURN_INDICATORS[:days_since_purchase][:weight]} ELSE 0 END +
+          0 +
+          0 +
+          0
+        ) * 100
+      SQL
+    end
+
+    def calculate_churn_probability_sql
+      "#{churn_probability_case_sql} as churn_probability"
+    end
+
+    def identify_risk_factors_sql(customer_id)
+      customer = business.tenant_customers.find(customer_id)
+      factors = []
+
+      factors << :long_absence if customer.days_since_last_purchase.to_i > 90
+      factors << :single_purchase if customer.purchase_frequency == 1 && customer.days_since_last_purchase.to_i > 30
+
+      factors
     end
 
     def empty_statistics

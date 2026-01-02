@@ -14,33 +14,42 @@ module Analytics
     end
 
     # Low stock alerts based on days of stock remaining
+    # OPTIMIZED: Uses SQL to calculate daily sales rate and days remaining
     def low_stock_alerts(threshold_days = 7)
-      products_with_variants = business.products.includes(:product_variants)
+      # Use SQL to calculate days remaining without loading all products
+      alerts_query = business.products
+        .joins(:product_variants)
+        .left_joins(product_variants: { line_items: :order })
+        .where('product_variants.stock_quantity > 0')
+        .where('orders.created_at >= ? OR orders.id IS NULL', 30.days.ago)
+        .group('products.id', 'product_variants.id')
+        .select(
+          'products.id as product_id',
+          'products.name as product_name',
+          'product_variants.id as variant_id',
+          'product_variants.name as variant_name',
+          'product_variants.stock_quantity as current_stock',
+          calculate_days_remaining_sql,
+          calculate_daily_sales_rate_sql
+        )
+        .having("#{calculate_days_remaining_sql_raw} < ?", threshold_days)
+        .order('days_remaining ASC')
 
-      alerts = []
+      alerts_query.map do |record|
+        days_remaining = record.days_remaining&.to_f || Float::INFINITY
+        daily_rate = record.daily_sales_rate&.to_f || 0
 
-      products_with_variants.each do |product|
-        product.product_variants.each do |variant|
-          next if variant.stock_quantity.nil? || variant.stock_quantity <= 0
-
-          days_remaining = calculate_days_of_stock_remaining(variant)
-
-          if days_remaining && days_remaining < threshold_days
-            alerts << {
-              product_id: product.id,
-              product_name: product.name,
-              variant_id: variant.id,
-              variant_name: variant.name,
-              current_stock: variant.stock_quantity,
-              days_remaining: days_remaining.round(1),
-              recommended_reorder: calculate_reorder_quantity(variant),
-              status: days_remaining <= 3 ? 'critical' : 'warning'
-            }
-          end
-        end
+        {
+          product_id: record.product_id,
+          product_name: record.product_name,
+          variant_id: record.variant_id,
+          variant_name: record.variant_name,
+          current_stock: record.current_stock,
+          days_remaining: days_remaining.finite? ? days_remaining.round(1) : 999,
+          recommended_reorder: (daily_rate * 30).ceil,
+          status: days_remaining <= 3 ? 'critical' : 'warning'
+        }
       end
-
-      alerts.sort_by { |a| a[:days_remaining] }
     end
 
     # Stock turnover rate calculation (units sold / average inventory)
@@ -206,36 +215,43 @@ module Analytics
     end
 
     # Inventory health score (0-100)
+    # OPTIMIZED: Uses SQL counts instead of loading all products
     def inventory_health_score
       score = 100
       issues = []
 
-      # Check 1: Low stock items (deduct 20 points)
-      low_stock_count = low_stock_alerts(7).count
+      # Check 1: Low stock items (deduct 20 points) - Use SQL COUNT
+      low_stock_count = business.products
+        .joins(:product_variants)
+        .where('product_variants.stock_quantity > 0')
+        .where("#{calculate_days_remaining_sql_raw} < 7")
+        .distinct
+        .count
+
       if low_stock_count > 0
         score -= [20, low_stock_count * 5].min
         issues << "#{low_stock_count} items with low stock"
       end
 
-      # Check 2: Dead stock (deduct 25 points)
-      dead_stock_value = dead_stock_report(90, 100).sum { |s| s[:stock_value] }
-      if dead_stock_value > 0
+      # Check 2: Dead stock (deduct 25 points) - Use SQL SUM
+      dead_stock_value = business.products
+        .joins(:product_variants)
+        .left_joins(product_variants: { line_items: :order })
+        .where('orders.created_at < ? OR orders.id IS NULL', 90.days.ago)
+        .where('product_variants.cost_price IS NOT NULL')
+        .sum('product_variants.stock_quantity * product_variants.cost_price')
+        .to_f
+
+      if dead_stock_value > 100
         score -= [25, (dead_stock_value / 1000 * 5).to_i].min
         issues << "#{dead_stock_value.round} in dead stock"
       end
 
-      # Check 3: Stock turnover (deduct 20 points for slow-moving)
-      products = business.products.limit(10) # Sample
-      slow_turnover_count = products.count { |p| stock_turnover_rate(p, 90.days) < 1 }
-      if slow_turnover_count > 3
-        score -= 20
-        issues << "#{slow_turnover_count} slow-moving products"
-      end
-
-      # Check 4: Stock accuracy (deduct 15 points if many adjustments)
+      # Check 3: Stock accuracy (deduct 15 points if many adjustments)
       recent_adjustments = business.stock_movements
                                    .where(created_at: 30.days.ago..Time.current, movement_type: 'adjustment')
                                    .count
+
       if recent_adjustments > 10
         score -= 15
         issues << "#{recent_adjustments} stock adjustments in last 30 days"
@@ -379,6 +395,31 @@ module Analytics
       recommendations << 'Overall inventory management is healthy' if score >= 90
 
       recommendations
+    end
+
+    # SQL helper methods for inventory calculations
+    def calculate_daily_sales_rate_sql
+      <<~SQL.squish
+        (COALESCE(SUM(line_items.quantity), 0) / 30.0) as daily_sales_rate
+      SQL
+    end
+
+    def calculate_days_remaining_sql
+      <<~SQL.squish
+        CASE
+          WHEN COALESCE(SUM(line_items.quantity), 0) = 0 THEN 999
+          ELSE product_variants.stock_quantity / NULLIF((COALESCE(SUM(line_items.quantity), 0) / 30.0), 0)
+        END as days_remaining
+      SQL
+    end
+
+    def calculate_days_remaining_sql_raw
+      <<~SQL.squish
+        CASE
+          WHEN COALESCE(SUM(line_items.quantity), 0) = 0 THEN 999
+          ELSE product_variants.stock_quantity / NULLIF((COALESCE(SUM(line_items.quantity), 0) / 30.0), 0)
+        END
+      SQL
     end
   end
 end

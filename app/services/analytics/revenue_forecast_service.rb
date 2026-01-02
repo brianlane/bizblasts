@@ -201,14 +201,20 @@ module Analytics
 
     private
 
+    # OPTIMIZED: Use SQL GROUP BY instead of iterating dates in Ruby
     def calculate_daily_revenue_history(period)
-      date_range = period.ago.to_date..Date.current
+      start_date = period.ago.to_date
+      end_date = Date.current
 
-      date_range.map do |date|
-        business.payments
-                .where(created_at: date.beginning_of_day..date.end_of_day, status: :completed)
-                .sum(:amount).to_f
-      end
+      # Use SQL to group by date
+      daily_revenues = business.payments
+        .where(created_at: start_date.beginning_of_day..end_date.end_of_day, status: :completed)
+        .group("DATE(created_at)")
+        .sum(:amount)
+
+      # Fill in missing dates with 0
+      date_range = (start_date..end_date).to_a
+      date_range.map { |date| daily_revenues[date] || 0.0 }
     end
 
     def calculate_revenue_trend(historical_data)
