@@ -340,6 +340,7 @@ module Analytics
 
       # Calculate new customers using SQL aggregation (first purchase in this period)
       # Find earliest completed purchase date across ALL purchase types for each customer
+      # CRITICAL: Must filter by business_id since raw SQL bypasses ActsAsTenant scoping
       new_customers = customers_in_period.select('tenant_customers.id').where(
         "tenant_customers.id IN (
           SELECT customer_id
@@ -352,6 +353,7 @@ module Analytics
               INNER JOIN invoices ON invoices.booking_id = bookings.id
               INNER JOIN payments ON payments.invoice_id = invoices.id
               WHERE payments.status = ?
+                AND bookings.business_id = ?
 
               UNION ALL
 
@@ -361,12 +363,13 @@ module Analytics
               INNER JOIN invoices ON invoices.order_id = orders.id
               INNER JOIN payments ON payments.invoice_id = invoices.id
               WHERE payments.status = ?
+                AND orders.business_id = ?
             ) AS all_purchases
             GROUP BY customer_id
           ) AS first_purchases
           WHERE first_purchase_date BETWEEN ? AND ?
         )",
-        completed_status, completed_status, date_range.begin, date_range.end
+        completed_status, business.id, completed_status, business.id, date_range.begin, date_range.end
       ).count
 
       # Calculate repeat customers (had previous purchases)
