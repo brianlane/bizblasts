@@ -215,6 +215,9 @@ class TenantCustomer < ApplicationRecord
 
   # Purchases per year based on customer lifespan
   def purchase_frequency_per_year
+    # For single-purchase customers (lifespan_days = 0), assume they'll purchase once per year
+    # This provides a reasonable baseline for CLV predictions instead of zero
+    return 1.0 if lifespan_days.zero? && purchase_frequency > 0
     return 0 if lifespan_days.zero?
     (purchase_frequency / (lifespan_days / 365.0)).round(2)
   end
