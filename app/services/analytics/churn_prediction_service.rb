@@ -325,10 +325,13 @@ module Analytics
       churn_sql_fragment = churn_probability_case_sql
       churn_where_clause = "#{churn_sql_fragment} >= 30"
 
+      # Use dynamic calculation from cached_last_purchase_at to avoid stale cached_days_since_last_purchase
+      days_since_sql = "EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - cached_last_purchase_at)) / 86400"
+
       business.tenant_customers
         .where('cached_purchase_frequency > 0')
         .where(Arel.sql(churn_where_clause))
-        .where('cached_days_since_last_purchase >= ?', days / 2)
+        .where(Arel.sql("#{days_since_sql} >= ?"), days / 2)
         .count
     end
 

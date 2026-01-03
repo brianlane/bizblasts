@@ -492,7 +492,9 @@ module Analytics
       total_revenue = payments.sum(:amount).to_f
 
       # Get refund data
-      refunds = business.payments.where(created_at: date_range, status: :refunded)
+      # Filter by updated_at since refunds occur when status changes to :refunded (no refunded_at column exists)
+      # This captures payments that were refunded during this date range, not when they were originally created
+      refunds = business.payments.where(updated_at: date_range, status: :refunded)
       refund_amount = refunds.sum(:amount).to_f
 
       # Revenue by category
@@ -541,7 +543,9 @@ module Analytics
     def calculate_operational_metrics(business, date_range)
       operations_service = Analytics::OperationalEfficiencyService.new(business)
 
-      bookings = business.bookings.where(created_at: date_range)
+      # Filter by start_time to capture operational events that occurred on this day
+      # (no-shows, cancellations, completions happen on the appointment date, not creation date)
+      bookings = business.bookings.where(start_time: date_range)
       total_bookings = bookings.count
 
       # No-show metrics
