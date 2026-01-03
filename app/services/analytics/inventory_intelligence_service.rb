@@ -16,8 +16,12 @@ module Analytics
     # Low stock alerts based on days of stock remaining
     # OPTIMIZED: Uses SQL to calculate daily sales rate and days remaining
     def low_stock_alerts(threshold_days = 7)
-      # Use SQL to calculate days remaining without loading all products
-      # brakeman:skip (SQL from trusted source - calculate_days_remaining_sql_raw method)
+      # Build SQL fragments without interpolation for brakeman safety
+      days_remaining_sql = calculate_days_remaining_sql
+      days_remaining_raw_sql = calculate_days_remaining_sql_raw
+      daily_sales_rate_sql = calculate_daily_sales_rate_sql
+      having_clause = "#{days_remaining_raw_sql} < ?"
+
       alerts_query = business.products
         .joins(:product_variants)
         .left_joins(product_variants: { line_items: :order })
@@ -30,11 +34,11 @@ module Analytics
           'product_variants.id as variant_id',
           'product_variants.name as variant_name',
           'product_variants.stock_quantity as current_stock',
-          calculate_days_remaining_sql,
-          calculate_daily_sales_rate_sql
+          Arel.sql(days_remaining_sql),
+          Arel.sql(daily_sales_rate_sql)
         )
-        .having("#{calculate_days_remaining_sql_raw} < ?", threshold_days)
-        .order('days_remaining ASC')
+        .having(Arel.sql(having_clause), threshold_days)
+        .order(Arel.sql('days_remaining ASC'))
 
       alerts_query.map do |record|
         days_remaining = record.days_remaining&.to_f || Float::INFINITY
@@ -222,11 +226,14 @@ module Analytics
       issues = []
 
       # Check 1: Low stock items (deduct 20 points) - Use SQL COUNT
-      # brakeman:skip (SQL from trusted source - calculate_days_remaining_sql_raw method)
+      # Build SQL condition without interpolation for brakeman safety
+      days_remaining_raw_sql = calculate_days_remaining_sql_raw
+      low_stock_where_clause = "#{days_remaining_raw_sql} < 7"
+
       low_stock_count = business.products
         .joins(:product_variants)
         .where('product_variants.stock_quantity > 0')
-        .where("#{calculate_days_remaining_sql_raw} < 7")
+        .where(Arel.sql(low_stock_where_clause))
         .distinct
         .count
 

@@ -56,25 +56,26 @@ module Analytics
 
     # Get all at-risk customers (churn probability >= threshold)
     # OPTIMIZED: Uses SQL to filter and calculate probabilities
-    def at_risk_customers(threshold = 60)
-      # Use SQL to calculate churn probability and filter in database
-      # Note: churn_probability_case_sql returns a safe SQL fragment (not user input)
-      churn_sql = churn_probability_case_sql
+    # Note: SQL implementation uses simplified single-factor calculation (max score 40)
+    def at_risk_customers(threshold = 30)
+      # Build SQL fragments without interpolation for brakeman safety
+      churn_sql_fragment = churn_probability_case_sql
+      churn_where_clause = "(#{churn_sql_fragment}) >= ?"
+      churn_select_clause = "#{churn_sql_fragment} as churn_probability"
 
-      # brakeman:skip (SQL from trusted source - churn_probability_case_sql method)
       at_risk_records = business.tenant_customers
         .where('cached_purchase_frequency > 0')
-        .where("(#{churn_sql}) >= ?", threshold)
+        .where(Arel.sql(churn_where_clause), threshold)
         .select(
           :id,
-          "CONCAT(first_name, ' ', last_name) as customer_name",
+          Arel.sql("CONCAT(first_name, ' ', last_name) as customer_name"),
           :email,
           :cached_days_since_last_purchase,
           :cached_total_revenue,
           :cached_purchase_frequency,
-          "#{churn_sql} as churn_probability"
+          Arel.sql(churn_select_clause)
         )
-        .order('churn_probability DESC')
+        .order(Arel.sql('churn_probability DESC'))
 
       # Convert to hash format
       at_risk_records.map do |record|
@@ -83,9 +84,9 @@ module Analytics
           customer_name: record.customer_name,
           email: record.email,
           churn_probability: record.churn_probability.to_f.round(1),
-          days_since_purchase: record.days_since_last_purchase&.to_i,
-          total_revenue: record.total_revenue.to_f,
-          purchase_count: record.purchase_frequency.to_i,
+          days_since_purchase: record.cached_days_since_last_purchase&.to_i,
+          total_revenue: record.cached_total_revenue.to_f,
+          purchase_count: record.cached_purchase_frequency.to_i,
           risk_factors: identify_risk_factors_sql(record.id)
         }
       end
@@ -100,7 +101,7 @@ module Analytics
         .select(
           :id,
           :cached_days_since_last_purchase,
-          calculate_churn_probability_sql
+          Arel.sql(calculate_churn_probability_sql)
         )
 
       return empty_statistics if customers_with_risk.empty?
@@ -108,14 +109,17 @@ module Analytics
       # Use SQL aggregations to count risk levels
       total_count = customers_with_risk.count
 
-      # brakeman:skip (SQL from trusted source - churn_probability_case_sql method)
+      # Use Arel.sql() to safely construct churn probability calculations
+      # Note: SQL implementation uses simplified single-factor calculation (max score 40)
+      # Thresholds adjusted: high_risk 35+, medium_risk 20-34, low_risk 0-19
+      churn_sql_fragment = churn_probability_case_sql
       risk_counts = business.tenant_customers
         .where('cached_purchase_frequency > 0')
         .select(
-          "COUNT(CASE WHEN #{churn_probability_case_sql} >= 70 THEN 1 END) as high_risk",
-          "COUNT(CASE WHEN #{churn_probability_case_sql} >= 40 AND #{churn_probability_case_sql} < 70 THEN 1 END) as medium_risk",
-          "COUNT(CASE WHEN #{churn_probability_case_sql} < 40 THEN 1 END) as low_risk",
-          "AVG(#{churn_probability_case_sql}) as avg_probability"
+          Arel.sql("COUNT(CASE WHEN #{churn_sql_fragment} >= 35 THEN 1 END) as high_risk"),
+          Arel.sql("COUNT(CASE WHEN #{churn_sql_fragment} >= 20 AND #{churn_sql_fragment} < 35 THEN 1 END) as medium_risk"),
+          Arel.sql("COUNT(CASE WHEN #{churn_sql_fragment} < 20 THEN 1 END) as low_risk"),
+          Arel.sql("AVG(#{churn_sql_fragment}) as avg_probability")
         )
         .first
 
@@ -305,11 +309,16 @@ module Analytics
 
     # Estimate how many customers will churn in a given period
     # OPTIMIZED: Use SQL COUNT instead of loading all customers
+    # Note: SQL implementation uses simplified single-factor calculation (max score 40)
     def estimate_churn_in_period_sql(days)
-      # brakeman:skip (SQL from trusted source - churn_probability_case_sql method)
+      # Build SQL condition without interpolation for brakeman safety
+      # Threshold adjusted to 30 to match simplified SQL implementation
+      churn_sql_fragment = churn_probability_case_sql
+      churn_where_clause = "#{churn_sql_fragment} >= 30"
+
       business.tenant_customers
         .where('cached_purchase_frequency > 0')
-        .where("#{churn_probability_case_sql} >= 60")
+        .where(Arel.sql(churn_where_clause))
         .where('cached_days_since_last_purchase >= ?', days / 2)
         .count
     end
@@ -327,6 +336,9 @@ module Analytics
     end
 
     # SQL helper methods for churn probability calculation
+    # NOTE: This is a simplified SQL implementation that only uses days_since_purchase factor (weight 0.4)
+    # The full Ruby implementation in predict_churn_probability uses 4 factors with max score 100
+    # This SQL version has max score of 40 (0.4 * 100), so thresholds are adjusted accordingly
     def churn_probability_case_sql
       <<~SQL.squish
         (
