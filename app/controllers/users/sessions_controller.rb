@@ -8,8 +8,12 @@ module Users
   # 3. Dynamic domain support (subdomains and custom domains)
   # 4. Environment-aware URL generation (development vs production)
   class SessionsController < Devise::SessionsController
+    # Handle CSRF token errors gracefully instead of returning 500
+    # This can happen when sessions expire or cookies are cleared between GET/POST
+    rescue_from ActionController::InvalidAuthenticityToken, with: :handle_invalid_csrf_token
+
     # Redirect any new or create (sign-in) request that occurs on a tenant
-    # subdomain or custom domain back to the platform’s main domain. All
+    # subdomain or custom domain back to the platform's main domain. All
     # authentication should be performed on the base domain to avoid cross-
     # domain cookie issues and for a consistent user experience.
     before_action :redirect_auth_from_subdomain, only: [:new, :create]
@@ -341,6 +345,25 @@ module Users
     end
 
     private
+
+    # Handle invalid CSRF tokens by resetting and showing the login form again
+    # This provides a better UX than a 500 error when sessions expire
+    def handle_invalid_csrf_token
+      Rails.logger.warn "[Sessions] Invalid CSRF token detected for sign-in attempt from IP: #{request.remote_ip}"
+      
+      # Regenerate CSRF token for fresh attempt
+      session[:_csrf_token] = nil
+      form_authenticity_token
+      
+      # Create a fresh resource for the form
+      self.resource = resource_class.new
+      
+      # Show user-friendly message
+      flash.now[:alert] = "Your session has expired. Please try signing in again."
+      
+      # Re-render login form with fresh CSRF token
+      render :new, status: :unprocessable_content
+    end
 
     def redirect_with_cross_domain_support(target, status: Devise::Controllers::Responder.redirect_status, external_redirect: nil)
       url = target.to_s
