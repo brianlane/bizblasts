@@ -111,15 +111,20 @@ module Analytics
 
       # Use Arel.sql() to safely construct churn probability calculations
       # Note: SQL implementation uses simplified single-factor calculation (max score 40)
-      # Binary output: 40 (high risk, days > 90) or 0 (low risk, days <= 90)
-      # Medium risk always returns 0 in this simplified implementation
+      # Binary churn score: 40 (days > 90) or 0 (days <= 90)
+      # For 3-tier categorization, split score=0 by actual days since purchase:
+      #   High risk: score >= 40 (days > 90)
+      #   Medium risk: score = 0 AND days 60-90
+      #   Low risk: score = 0 AND days < 60
       churn_sql_fragment = churn_probability_case_sql
+      days_sql = "EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - cached_last_purchase_at)) / 86400"
+
       risk_counts = business.tenant_customers
         .where('cached_purchase_frequency > 0')
         .select(
           Arel.sql("COUNT(CASE WHEN #{churn_sql_fragment} >= 40 THEN 1 END) as high_risk"),
-          Arel.sql("COUNT(CASE WHEN #{churn_sql_fragment} > 0 AND #{churn_sql_fragment} < 40 THEN 1 END) as medium_risk"),
-          Arel.sql("COUNT(CASE WHEN #{churn_sql_fragment} <= 0 THEN 1 END) as low_risk"),
+          Arel.sql("COUNT(CASE WHEN #{churn_sql_fragment} < 40 AND #{days_sql} BETWEEN 60 AND 90 THEN 1 END) as medium_risk"),
+          Arel.sql("COUNT(CASE WHEN #{churn_sql_fragment} < 40 AND (#{days_sql} < 60 OR cached_last_purchase_at IS NULL) THEN 1 END) as low_risk"),
           Arel.sql("AVG(#{churn_sql_fragment}) as avg_probability")
         )
         .first
