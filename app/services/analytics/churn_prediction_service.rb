@@ -87,7 +87,10 @@ module Analytics
           days_since_purchase: record.cached_days_since_last_purchase&.to_i,
           total_revenue: record.cached_total_revenue.to_f,
           purchase_count: record.cached_purchase_frequency.to_i,
-          risk_factors: identify_risk_factors_sql(record.id)
+          risk_factors: identify_risk_factors_from_cached(
+            record.cached_days_since_last_purchase&.to_i,
+            record.cached_purchase_frequency&.to_i
+          )
         }
       end
     end
@@ -365,14 +368,23 @@ module Analytics
       "#{churn_probability_case_sql} as churn_probability"
     end
 
-    def identify_risk_factors_sql(customer_id)
-      customer = business.tenant_customers.find(customer_id)
+    # Identify risk factors from cached column values (no database queries)
+    def identify_risk_factors_from_cached(days_since_purchase, purchase_frequency)
       factors = []
 
-      factors << :long_absence if customer.days_since_last_purchase.to_i > 90
-      factors << :single_purchase if customer.purchase_frequency == 1 && customer.days_since_last_purchase.to_i > 30
+      factors << :long_absence if days_since_purchase.to_i > 90
+      factors << :single_purchase if purchase_frequency == 1 && days_since_purchase.to_i > 30
 
       factors
+    end
+
+    # Legacy method - kept for backward compatibility but renamed to indicate it queries DB
+    def identify_risk_factors_sql(customer_id)
+      customer = business.tenant_customers.find(customer_id)
+      identify_risk_factors_from_cached(
+        customer.days_since_last_purchase.to_i,
+        customer.purchase_frequency
+      )
     end
 
     def empty_statistics

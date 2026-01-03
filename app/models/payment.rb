@@ -129,10 +129,17 @@ class Payment < ApplicationRecord
 
     # Update cached analytics fields asynchronously to avoid slowing down payment processing
     # Trigger update if:
-    # 1. Payment status changed to completed or refunded (affects analytics)
-    # 2. A completed/refunded payment was destroyed (removes revenue from analytics)
-    should_update_cache = (saved_change_to_status? && (completed? || refunded?)) ||
-                          (destroyed? && (completed? || refunded?))
+    # 1. Payment status changed to completed or refunded (adds revenue to analytics)
+    # 2. Payment status changed FROM completed or refunded to something else (removes revenue)
+    # 3. A completed/refunded payment was destroyed (removes revenue from analytics)
+    status_changed_to_counted = saved_change_to_status? && (completed? || refunded?)
+    status_changed_from_counted = saved_change_to_status? &&
+                                  %w[completed refunded].include?(status_before_last_save)
+    destroyed_while_counted = destroyed? && (completed? || refunded?)
+
+    should_update_cache = status_changed_to_counted ||
+                          status_changed_from_counted ||
+                          destroyed_while_counted
 
     if should_update_cache
       UpdateCustomerAnalyticsCacheJob.perform_later(tenant_customer.id)
