@@ -328,18 +328,31 @@ module Analytics
     # OPTIMIZED: Use SQL COUNT instead of loading all customers
     # Note: SQL implementation uses simplified single-factor calculation (max score 40)
     def estimate_churn_in_period_sql(days)
-      # Build SQL condition without interpolation for brakeman safety
-      # Threshold adjusted to 30 to match simplified SQL implementation
-      churn_sql_fragment = churn_probability_case_sql
-      churn_where_clause = "#{churn_sql_fragment} >= 30"
-
       # Use dynamic calculation from cached_last_purchase_at to avoid stale cached_days_since_last_purchase
       days_since_sql = "EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - cached_last_purchase_at)) / 86400"
 
+      # Use different day ranges for each forecast period to ensure differentiation
+      # Ranges are centered around the 90-day churn threshold
+      case days
+      when 30
+        # Imminent risk: customers at or just past churn threshold (75-120 days)
+        condition = "#{days_since_sql} BETWEEN 75 AND 120"
+      when 60
+        # Near-term risk: customers approaching or recently past threshold (60-150 days)
+        condition = "#{days_since_sql} BETWEEN 60 AND 150"
+      when 90
+        # Medium-term risk: broader window around threshold (30-180 days)
+        condition = "#{days_since_sql} BETWEEN 30 AND 180"
+      else
+        # Fallback for custom forecast periods
+        lower_bound = [90 - days, 0].max
+        upper_bound = 90 + (days * 0.6).to_i
+        condition = "#{days_since_sql} BETWEEN #{lower_bound} AND #{upper_bound}"
+      end
+
       business.tenant_customers
         .where('cached_purchase_frequency > 0')
-        .where(Arel.sql(churn_where_clause))
-        .where(Arel.sql("#{days_since_sql} >= ?"), days / 2)
+        .where(Arel.sql(condition))
         .count
     end
 
