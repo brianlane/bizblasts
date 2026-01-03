@@ -295,14 +295,15 @@ module Analytics
     end
 
     # SQL helper methods for RFM score calculation
+    # IMPORTANT: Uses dynamic calculation from cached_last_purchase_at to avoid stale cached_days_since_last_purchase
     def calculate_recency_score_sql
       <<~SQL.squish
         CASE
-          WHEN cached_days_since_last_purchase IS NULL THEN 1
-          WHEN cached_days_since_last_purchase BETWEEN 0 AND 30 THEN 5
-          WHEN cached_days_since_last_purchase BETWEEN 31 AND 60 THEN 4
-          WHEN cached_days_since_last_purchase BETWEEN 61 AND 90 THEN 3
-          WHEN cached_days_since_last_purchase BETWEEN 91 AND 180 THEN 2
+          WHEN cached_last_purchase_at IS NULL THEN 1
+          WHEN EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - cached_last_purchase_at)) / 86400 BETWEEN 0 AND 30 THEN 5
+          WHEN EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - cached_last_purchase_at)) / 86400 BETWEEN 31 AND 60 THEN 4
+          WHEN EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - cached_last_purchase_at)) / 86400 BETWEEN 61 AND 90 THEN 3
+          WHEN EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - cached_last_purchase_at)) / 86400 BETWEEN 91 AND 180 THEN 2
           ELSE 1
         END as recency_score
       SQL

@@ -111,14 +111,15 @@ module Analytics
 
       # Use Arel.sql() to safely construct churn probability calculations
       # Note: SQL implementation uses simplified single-factor calculation (max score 40)
-      # Thresholds adjusted: high_risk 35+, medium_risk 20-34, low_risk 0-19
+      # Binary output: 40 (high risk, days > 90) or 0 (low risk, days <= 90)
+      # Medium risk always returns 0 in this simplified implementation
       churn_sql_fragment = churn_probability_case_sql
       risk_counts = business.tenant_customers
         .where('cached_purchase_frequency > 0')
         .select(
-          Arel.sql("COUNT(CASE WHEN #{churn_sql_fragment} >= 35 THEN 1 END) as high_risk"),
-          Arel.sql("COUNT(CASE WHEN #{churn_sql_fragment} >= 20 AND #{churn_sql_fragment} < 35 THEN 1 END) as medium_risk"),
-          Arel.sql("COUNT(CASE WHEN #{churn_sql_fragment} < 20 THEN 1 END) as low_risk"),
+          Arel.sql("COUNT(CASE WHEN #{churn_sql_fragment} >= 40 THEN 1 END) as high_risk"),
+          Arel.sql("COUNT(CASE WHEN #{churn_sql_fragment} > 0 AND #{churn_sql_fragment} < 40 THEN 1 END) as medium_risk"),
+          Arel.sql("COUNT(CASE WHEN #{churn_sql_fragment} <= 0 THEN 1 END) as low_risk"),
           Arel.sql("AVG(#{churn_sql_fragment}) as avg_probability")
         )
         .first
@@ -339,10 +340,15 @@ module Analytics
     # NOTE: This is a simplified SQL implementation that only uses days_since_purchase factor (weight 0.4)
     # The full Ruby implementation in predict_churn_probability uses 4 factors with max score 100
     # This SQL version has max score of 40 (0.4 * 100), so thresholds are adjusted accordingly
+    # IMPORTANT: Uses dynamic calculation from cached_last_purchase_at to avoid stale cached_days_since_last_purchase
     def churn_probability_case_sql
       <<~SQL.squish
         (
-          CASE WHEN cached_days_since_last_purchase > #{CHURN_INDICATORS[:days_since_purchase][:threshold]} THEN #{CHURN_INDICATORS[:days_since_purchase][:weight]} ELSE 0 END +
+          CASE
+            WHEN cached_last_purchase_at IS NULL THEN 0
+            WHEN EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - cached_last_purchase_at)) / 86400 > #{CHURN_INDICATORS[:days_since_purchase][:threshold]} THEN #{CHURN_INDICATORS[:days_since_purchase][:weight]}
+            ELSE 0
+          END +
           0 +
           0 +
           0

@@ -33,6 +33,20 @@ class ServiceAreaChecker
   CACHE_KEY_PREFIX = "geocoder:zip"
   FAILED_CACHE_SENTINEL = "__service_area_checker_failed__".freeze
 
+  # Class-level cache tracking for test environment (shared across instances)
+  @test_checked_cache_keys = Set.new
+  @test_cache_mutex = Mutex.new
+
+  class << self
+    attr_accessor :test_checked_cache_keys, :test_cache_mutex
+
+    def reset_test_cache_tracking!
+      @test_cache_mutex.synchronize do
+        @test_checked_cache_keys.clear
+      end
+    end
+  end
+
   def initialize(business)
     @business = business
   end
@@ -84,12 +98,18 @@ class ServiceAreaChecker
   def clear_cache!
     @center_coordinates = nil
     @memory_cache&.clear
-    @checked_cache_keys&.clear
 
     if business&.zip.present?
       cache_key = cache_key_for(normalize_zip(business.zip))
       begin
         Rails.cache.delete(cache_key)
+
+        # Remove from class-level test cache tracking
+        if Rails.env.test?
+          self.class.test_cache_mutex.synchronize do
+            self.class.test_checked_cache_keys.delete(normalize_zip(business.zip))
+          end
+        end
       rescue StandardError => e
         Rails.logger.debug "[ServiceAreaChecker] Failed to clear cache key #{cache_key}: #{e.class} - #{e.message}"
       end
@@ -302,13 +322,22 @@ class ServiceAreaChecker
   def ensure_test_cache_fresh!(normalized_zip, cache_key)
     return unless Rails.env.test?
 
-    @checked_cache_keys ||= Set.new
+    # Use class-level tracking to avoid per-instance memory accumulation
+    already_checked = self.class.test_cache_mutex.synchronize do
+      self.class.test_checked_cache_keys.include?(normalized_zip)
+    end
+
+    # Skip if already checked to avoid repeated cache deletes and memory accumulation
+    return if already_checked
+
     begin
       Rails.cache.delete(cache_key)
     rescue StandardError => e
       Rails.logger.debug "[ServiceAreaChecker] Failed to delete stale cache key #{cache_key}: #{e.class} - #{e.message}"
     ensure
-      @checked_cache_keys << normalized_zip
+      self.class.test_cache_mutex.synchronize do
+        self.class.test_checked_cache_keys << normalized_zip
+      end
     end
   end
 
