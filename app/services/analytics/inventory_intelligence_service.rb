@@ -22,9 +22,12 @@ module Analytics
       daily_sales_rate_sql = calculate_daily_sales_rate_sql
       having_clause = "#{days_remaining_raw_sql} < ?"
 
+      # NOTE: LineItem uses polymorphic association (lineable), not a direct :order association
+      # We need a raw SQL join to connect product_variants -> line_items -> orders
       alerts_query = business.products
         .joins(:product_variants)
-        .left_joins(product_variants: { line_items: :order })
+        .joins("LEFT JOIN line_items ON line_items.product_variant_id = product_variants.id AND line_items.lineable_type = 'Order'")
+        .joins("LEFT JOIN orders ON orders.id = line_items.lineable_id")
         .where('product_variants.stock_quantity > 0')
         .where('orders.created_at >= ? OR orders.id IS NULL', 30.days.ago)
         .group('products.id', 'product_variants.id')
@@ -227,14 +230,21 @@ module Analytics
 
       # Check 1: Low stock items (deduct 20 points) - Use SQL COUNT
       # Build SQL condition without interpolation for brakeman safety
+      # NOTE: days_remaining calculation uses line_items.quantity, so we need the line_items join
       days_remaining_raw_sql = calculate_days_remaining_sql_raw
       low_stock_where_clause = "#{days_remaining_raw_sql} < 7"
 
       low_stock_count = business.products
         .joins(:product_variants)
+        .joins("LEFT JOIN line_items ON line_items.product_variant_id = product_variants.id AND line_items.lineable_type = 'Order'")
+        .joins("LEFT JOIN orders ON orders.id = line_items.lineable_id AND orders.created_at >= '#{30.days.ago.to_fs(:db)}'")
         .where('product_variants.stock_quantity > 0')
-        .where(Arel.sql(low_stock_where_clause))
+        .group('products.id', 'product_variants.id')
+        .having(Arel.sql(low_stock_where_clause))
         .distinct
+        .count
+        .keys
+        .uniq
         .count
 
       if low_stock_count > 0
@@ -243,9 +253,11 @@ module Analytics
       end
 
       # Check 2: Dead stock (deduct 25 points) - Use SQL SUM
+      # NOTE: LineItem uses polymorphic association (lineable), not a direct :order association
       dead_stock_value = business.products
         .joins(:product_variants)
-        .left_joins(product_variants: { line_items: :order })
+        .joins("LEFT JOIN line_items ON line_items.product_variant_id = product_variants.id AND line_items.lineable_type = 'Order'")
+        .joins("LEFT JOIN orders ON orders.id = line_items.lineable_id")
         .where('orders.created_at < ? OR orders.id IS NULL', 90.days.ago)
         .where('product_variants.cost_price IS NOT NULL')
         .sum('product_variants.stock_quantity * product_variants.cost_price')

@@ -130,12 +130,37 @@ module Analytics
       product_cost = 0
 
       products_with_cost.each do |product|
-        orders = business.orders
-                        .joins(:line_items)
-                        .where(created_at: period.ago..Time.current, line_items: { itemable: product })
+        # Find line items for this product's variants
+        variant_ids = product.product_variants.pluck(:id)
+        next if variant_ids.empty?
 
-        revenue = orders.joins(:payments).where(payments: { status: :completed }).sum('payments.amount').to_f
-        quantity = orders.joins(:line_items).where(line_items: { itemable: product }).sum('line_items.quantity')
+        # Get orders containing these product variants
+        order_ids = LineItem
+                      .where(lineable_type: 'Order', product_variant_id: variant_ids)
+                      .where('created_at >= ?', period.ago)
+                      .pluck(:lineable_id)
+                      .uniq
+        next if order_ids.empty?
+
+        # Calculate revenue from payments (using subquery to avoid cartesian product)
+        paid_order_ids = business.orders
+                                .joins(invoice: :payments)
+                                .where(id: order_ids)
+                                .where(payments: { status: :completed })
+                                .select(:id)
+                                .distinct
+                                .pluck(:id)
+
+        revenue = business.payments
+                         .joins(:invoice)
+                         .where(invoices: { order_id: paid_order_ids }, status: :completed)
+                         .sum(:amount).to_f
+
+        # Calculate quantity sold
+        quantity = LineItem
+                    .where(lineable_type: 'Order', lineable_id: order_ids, product_variant_id: variant_ids)
+                    .sum(:quantity)
+
         cost = product.cost_price.to_f * quantity
 
         product_revenue += revenue

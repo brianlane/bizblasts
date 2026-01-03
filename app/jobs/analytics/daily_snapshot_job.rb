@@ -627,13 +627,20 @@ module Analytics
       # Filter by product_variant_id IS NOT NULL to identify product line items
       # (lineable_type stores the parent class 'Order', not the item type)
       # IMPORTANT: Filter by payment status to match revenue calculation (only count paid orders)
-      units_sold = business.orders
-                           .joins(:line_items)
-                           .joins(invoice: :payments)
-                           .where(created_at: date_range)
-                           .where(payments: { status: :completed })
-                           .where.not(line_items: { product_variant_id: nil })
-                           .sum('line_items.quantity')
+      #
+      # NOTE: We use a subquery to avoid cartesian product when orders have multiple payments.
+      # Joining orders -> line_items -> invoice -> payments would duplicate line items per payment,
+      # causing inflated counts (e.g., 5 units with 2 payments would report 10 units sold).
+      paid_order_ids = business.orders
+                               .joins(invoice: :payments)
+                               .where(created_at: date_range)
+                               .where(payments: { status: :completed })
+                               .select(:id)
+
+      units_sold = LineItem.where(lineable_type: 'Order')
+                           .where(lineable_id: paid_order_ids)
+                           .where.not(product_variant_id: nil)
+                           .sum(:quantity)
 
       # Get health score
       health_score = inventory_service.inventory_health_score[:score]
@@ -651,6 +658,7 @@ module Analytics
       }
     rescue StandardError => e
       Rails.logger.error "[DailySnapshot] Error calculating inventory metrics: #{e.message}"
+      Rails.logger.error "[DailySnapshot] Backtrace: #{e.backtrace.first(5).join("\n")}"
       {
         products_with_stock: 0,
         total_stock_quantity: 0,

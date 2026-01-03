@@ -7,8 +7,10 @@ RSpec.describe BusinessManager::AnalyticsController, type: :controller do
   let(:user) { create(:user, :manager, business: business) }
 
   before do
-    sign_in user
+    # Set the request host to match the business tenant subdomain
+    @request.host = "#{business.hostname}.lvh.me"
     ActsAsTenant.current_tenant = business
+    sign_in user
   end
 
   describe 'GET #index' do
