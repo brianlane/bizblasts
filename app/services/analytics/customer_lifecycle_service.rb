@@ -95,7 +95,7 @@ module Analytics
           customer_id: customer.id,
           customer_name: customer.customer_name,
           email: customer.email,
-          total_revenue: customer.total_revenue.to_f,
+          total_revenue: customer.cached_total_revenue.to_f,
           recency_score: customer.recency_score,
           frequency_score: customer.frequency_score,
           monetary_score: customer.monetary_score,

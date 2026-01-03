@@ -549,7 +549,12 @@ class TenantCustomer < ApplicationRecord
       cached_days_since_last_purchase: days_since,
       cached_avg_days_between_purchases: avg_days&.round(2)
     )
+  rescue ActiveRecord::Deadlocked, ActiveRecord::LockWaitTimeout => e
+    # Re-raise database errors so UpdateCustomerAnalyticsCacheJob can retry
+    Rails.logger.warn "[TenantCustomer] Database error updating cached analytics for customer #{id}, job will retry: #{e.message}"
+    raise
   rescue StandardError => e
+    # Log other errors but don't re-raise (e.g., validation errors, calculation errors)
     Rails.logger.error "[TenantCustomer] Failed to update cached analytics fields for customer #{id}: #{e.message}"
   end
 

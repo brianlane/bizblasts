@@ -128,8 +128,13 @@ class Payment < ApplicationRecord
     tenant_customer.clear_revenue_cache
 
     # Update cached analytics fields asynchronously to avoid slowing down payment processing
-    # Only update if the payment status changed to completed or refunded (affects analytics)
-    if saved_change_to_status? && (completed? || refunded?)
+    # Trigger update if:
+    # 1. Payment status changed to completed or refunded (affects analytics)
+    # 2. A completed/refunded payment was destroyed (removes revenue from analytics)
+    should_update_cache = (saved_change_to_status? && (completed? || refunded?)) ||
+                          (destroyed? && (completed? || refunded?))
+
+    if should_update_cache
       UpdateCustomerAnalyticsCacheJob.perform_later(tenant_customer.id)
     end
   end
