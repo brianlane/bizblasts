@@ -70,6 +70,7 @@ module Analytics
           :id,
           Arel.sql("CONCAT(first_name, ' ', last_name) as customer_name"),
           :email,
+          :cached_last_purchase_at,
           :cached_days_since_last_purchase,
           :cached_total_revenue,
           :cached_purchase_frequency,
@@ -79,16 +80,23 @@ module Analytics
 
       # Convert to hash format
       at_risk_records.map do |record|
+        # Calculate actual days since purchase dynamically to match filtering logic
+        actual_days_since_purchase = if record.cached_last_purchase_at
+                                        ((Time.current - record.cached_last_purchase_at) / 1.day).to_i
+                                      else
+                                        nil
+                                      end
+
         {
           customer_id: record.id,
           customer_name: record.customer_name,
           email: record.email,
           churn_probability: record.churn_probability.to_f.round(1),
-          days_since_purchase: record.cached_days_since_last_purchase&.to_i,
+          days_since_purchase: actual_days_since_purchase,
           total_revenue: record.cached_total_revenue.to_f,
           purchase_count: record.cached_purchase_frequency.to_i,
           risk_factors: identify_risk_factors_from_cached(
-            record.cached_days_since_last_purchase&.to_i,
+            actual_days_since_purchase,
             record.cached_purchase_frequency&.to_i
           )
         }

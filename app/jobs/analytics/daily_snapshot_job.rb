@@ -626,9 +626,12 @@ module Analytics
       # Calculate units sold from orders
       # Filter by product_variant_id IS NOT NULL to identify product line items
       # (lineable_type stores the parent class 'Order', not the item type)
+      # IMPORTANT: Filter by payment status to match revenue calculation (only count paid orders)
       units_sold = business.orders
                            .joins(:line_items)
+                           .joins(invoice: :payments)
                            .where(created_at: date_range)
+                           .where(payments: { status: :completed })
                            .where.not(line_items: { product_variant_id: nil })
                            .sum('line_items.quantity')
 
