@@ -176,7 +176,123 @@ class TenantCustomer < ApplicationRecord
   def total_monthly_subscription_cost
     active_subscriptions.sum(:subscription_price)
   end
-  
+
+  # Customer Lifecycle Analytics methods
+  # Calculate total revenue from this customer
+  def total_revenue
+    Rails.cache.fetch(["customer_revenue", id], expires_in: 1.hour) do
+      booking_revenue + order_revenue
+    end
+  end
+
+  def booking_revenue
+    bookings.joins(invoice: :payments)
+            .where(payments: { status: :completed })
+            .sum('payments.amount').to_f
+  end
+
+  def order_revenue
+    orders.joins(invoice: :payments)
+          .where(payments: { status: :completed })
+          .sum('payments.amount').to_f
+  end
+
+  # Count of completed purchases (bookings + orders with completed payments)
+  # Must match the same criteria as total_revenue for accurate avg_order_value
+  def purchase_frequency
+    completed_bookings = bookings.joins(invoice: :payments)
+                                 .where(payments: { status: :completed })
+                                 .distinct
+                                 .count.to_f
+
+    completed_orders = orders.joins(invoice: :payments)
+                             .where(payments: { status: :completed })
+                             .distinct
+                             .count.to_f
+
+    completed_bookings + completed_orders
+  end
+
+  # Purchases per year based on customer lifespan
+  def purchase_frequency_per_year
+    # For single-purchase customers (lifespan_days = 0), assume they'll purchase once per year
+    # This provides a reasonable baseline for CLV predictions instead of zero
+    return 1.0 if lifespan_days.zero? && purchase_frequency > 0
+    return 0 if lifespan_days.zero?
+    (purchase_frequency / (lifespan_days / 365.0)).round(2)
+  end
+
+  # Days between first and last purchase
+  def lifespan_days
+    return 0 unless first_purchase_at && last_purchase_at
+    ((last_purchase_at - first_purchase_at) / 1.day).to_i
+  end
+
+  # First purchase date (only completed purchases with paid invoices)
+  # Must match the same criteria as purchase_frequency and total_revenue
+  def first_purchase_at
+    completed_booking_date = bookings.joins(invoice: :payments)
+                                     .where(payments: { status: :completed })
+                                     .minimum('bookings.created_at')
+
+    completed_order_date = orders.joins(invoice: :payments)
+                                 .where(payments: { status: :completed })
+                                 .minimum('orders.created_at')
+
+    [completed_booking_date, completed_order_date].compact.min
+  end
+
+  # Last purchase date (only completed purchases with paid invoices)
+  # Must match the same criteria as purchase_frequency and total_revenue
+  def last_purchase_at
+    completed_booking_date = bookings.joins(invoice: :payments)
+                                     .where(payments: { status: :completed })
+                                     .maximum('bookings.created_at')
+
+    completed_order_date = orders.joins(invoice: :payments)
+                                 .where(payments: { status: :completed })
+                                 .maximum('orders.created_at')
+
+    [completed_booking_date, completed_order_date].compact.max
+  end
+
+  def days_since_last_purchase
+    return nil unless last_purchase_at
+    (Time.current - last_purchase_at).to_i / 1.day
+  end
+
+  # Average days between purchases for customers with multiple purchases
+  # Only counts completed purchases with paid invoices to match purchase_frequency
+  def avg_days_between_purchases
+    return nil if purchase_frequency < 2
+
+    # Get completed bookings and orders
+    completed_booking_dates = bookings.joins(invoice: :payments)
+                                      .where(payments: { status: :completed })
+                                      .distinct
+                                      .pluck('bookings.created_at')
+
+    completed_order_dates = orders.joins(invoice: :payments)
+                                  .where(payments: { status: :completed })
+                                  .distinct
+                                  .pluck('orders.created_at')
+
+    all_purchases = (completed_booking_dates + completed_order_dates).compact.sort
+    return nil if all_purchases.length < 2
+
+    intervals = []
+    (1...all_purchases.length).each do |i|
+      intervals << (all_purchases[i] - all_purchases[i-1]).to_i / 1.day
+    end
+
+    intervals.sum.to_f / intervals.length
+  end
+
+  # Clear revenue cache when related records change
+  def clear_revenue_cache
+    Rails.cache.delete(["customer_revenue", id])
+  end
+
   # Define ransackable attributes for ActiveAdmin - updated for new fields
   # Note: phone excluded from ransackable attributes because it's encrypted and doesn't support partial searches
   def self.ransackable_attributes(auth_object = nil)
@@ -350,6 +466,96 @@ class TenantCustomer < ApplicationRecord
     else
       true
     end
+  end
+
+  # Update all cached analytics fields for this customer
+  # Called after payment/booking/order changes to keep analytics performant
+  def update_cached_analytics_fields!
+    # Calculate first and last purchase dates
+    completed_booking_dates = bookings.joins(invoice: :payments)
+                                      .where(payments: { status: :completed })
+                                      .pluck('MIN(bookings.created_at) as first_date', 'MAX(bookings.created_at) as last_date')
+                                      .first
+
+    completed_order_dates = orders.joins(invoice: :payments)
+                                  .where(payments: { status: :completed })
+                                  .pluck('MIN(orders.created_at) as first_date', 'MAX(orders.created_at) as last_date')
+                                  .first
+
+    booking_first = completed_booking_dates&.first
+    booking_last = completed_booking_dates&.last
+    order_first = completed_order_dates&.first
+    order_last = completed_order_dates&.last
+
+    first_purchase = [booking_first, order_first].compact.min
+    last_purchase = [booking_last, order_last].compact.max
+
+    # Calculate total revenue
+    revenue = booking_revenue + order_revenue
+
+    # Calculate purchase frequency
+    completed_bookings_count = bookings.joins(invoice: :payments)
+                                       .where(payments: { status: :completed })
+                                       .distinct
+                                       .count
+
+    completed_orders_count = orders.joins(invoice: :payments)
+                                   .where(payments: { status: :completed })
+                                   .distinct
+                                   .count
+
+    frequency = completed_bookings_count + completed_orders_count
+
+    # Calculate days since last purchase
+    days_since = if last_purchase
+                   ((Time.current - last_purchase).to_i / 1.day)
+                 else
+                   nil
+                 end
+
+    # Calculate average days between purchases
+    avg_days = if frequency >= 2
+                 completed_booking_dates_list = bookings.joins(invoice: :payments)
+                                                        .where(payments: { status: :completed })
+                                                        .distinct
+                                                        .pluck('bookings.created_at')
+
+                 completed_order_dates_list = orders.joins(invoice: :payments)
+                                                    .where(payments: { status: :completed })
+                                                    .distinct
+                                                    .pluck('orders.created_at')
+
+                 all_purchases = (completed_booking_dates_list + completed_order_dates_list).compact.sort
+
+                 if all_purchases.length >= 2
+                   intervals = []
+                   (1...all_purchases.length).each do |i|
+                     intervals << (all_purchases[i] - all_purchases[i - 1]).to_i / 1.day
+                   end
+                   intervals.sum.to_f / intervals.length
+                 else
+                   nil
+                 end
+               else
+                 nil
+               end
+
+    # Update all cached fields in a single UPDATE query
+    update_columns(
+      cached_total_revenue: revenue.round(2),
+      cached_purchase_frequency: frequency,
+      cached_first_purchase_at: first_purchase,
+      cached_last_purchase_at: last_purchase,
+      cached_days_since_last_purchase: days_since,
+      cached_avg_days_between_purchases: avg_days&.round(2)
+    )
+  rescue ActiveRecord::Deadlocked, ActiveRecord::LockWaitTimeout => e
+    # Re-raise database errors so UpdateCustomerAnalyticsCacheJob can retry
+    Rails.logger.warn "[TenantCustomer] Database error updating cached analytics for customer #{id}, job will retry: #{e.message}"
+    raise
+  rescue StandardError => e
+    # Log other errors but don't re-raise (e.g., validation errors, calculation errors)
+    Rails.logger.error "[TenantCustomer] Failed to update cached analytics fields for customer #{id}: #{e.message}"
   end
 
   private

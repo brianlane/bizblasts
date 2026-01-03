@@ -12,6 +12,14 @@ class BusinessManager::CustomersController < BusinessManager::BaseController
   # GET /manage/customers/:id
   def show
     authorize @customer
+    
+    # Load analytics data for the customer
+    lifecycle_service = ::Analytics::CustomerLifecycleService.new(@current_business)
+    churn_service = ::Analytics::ChurnPredictionService.new(@current_business)
+    
+    @clv = lifecycle_service.calculate_clv(@customer)
+    @churn_probability = churn_service.predict_churn_probability(@customer)
+    @risk_factors = churn_service.send(:identify_risk_factors, @customer)
   end
 
   # GET /manage/customers/new

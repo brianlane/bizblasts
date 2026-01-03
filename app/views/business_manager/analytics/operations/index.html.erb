@@ -1,0 +1,553 @@
+<% content_for :title, "Operational Efficiency Analytics" %>
+
+<div class="analytics-operations-container">
+  <div class="page-header">
+    <h1>Operational Efficiency</h1>
+    <div class="header-actions">
+      <%= link_to "Export CSV", export_business_manager_analytics_operations_path(format: :csv), class: "btn btn-outline cursor-pointer" %>
+    </div>
+  </div>
+
+  <!-- No-Show Analysis -->
+  <div class="analytics-section">
+    <h2>No-Show Analysis (Last 30 Days)</h2>
+    <%= link_to "View All No-Shows", business_manager_bookings_path(status: 'no_show'), class: "btn btn-link cursor-pointer" %>
+
+    <div class="metrics-grid">
+      <div class="metric-card <%= @no_show_data[:no_show_rate] > 10 ? 'warning' : '' %>">
+        <span class="label">No-Show Rate</span>
+        <span class="value"><%= number_to_percentage(@no_show_data[:no_show_rate], precision: 2) %></span>
+        <span class="description"><%= @no_show_data[:no_show_count] %> no-shows</span>
+      </div>
+      <div class="metric-card">
+        <span class="label">Estimated Lost Revenue</span>
+        <span class="value"><%= number_to_currency(@no_show_data[:estimated_lost_revenue]) %></span>
+        <span class="description">From no-show appointments</span>
+      </div>
+    </div>
+
+    <% if @no_show_data[:no_show_rate] > 10 %>
+      <div class="alert alert-warning">
+        <strong>High No-Show Rate:</strong> Your <%= number_to_percentage(@no_show_data[:no_show_rate], precision: 1) %> no-show rate exceeds industry average (5-10%). Consider SMS reminders or deposit requirements.
+      </div>
+    <% end %>
+
+    <div class="patterns-grid">
+      <div class="pattern-section">
+        <h4>No-Shows by Day of Week</h4>
+        <div class="pattern-list">
+          <% @no_show_data[:patterns][:by_day_of_week].sort_by { |day, count| -count }.first(3).each do |day, count| %>
+            <div class="pattern-item">
+              <span class="pattern-label"><%= Date::DAYNAMES[day.to_i] %></span>
+              <span class="pattern-value"><%= count %> no-shows</span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="pattern-section">
+        <h4>No-Shows by Hour</h4>
+        <div class="pattern-list">
+          <% @no_show_data[:patterns][:by_hour].sort_by { |hour, count| -count }.first(3).each do |hour, count| %>
+            <div class="pattern-item">
+              <span class="pattern-label"><%= "#{hour}:00" %></span>
+              <span class="pattern-value"><%= count %> no-shows</span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <% if @no_show_data[:patterns][:by_service].any? %>
+        <div class="pattern-section">
+          <h4>No-Shows by Service</h4>
+          <div class="pattern-list">
+            <% Service.where(id: @no_show_data[:patterns][:by_service].keys).each do |service| %>
+              <% count = @no_show_data[:patterns][:by_service][service.id] %>
+              <div class="pattern-item">
+                <span class="pattern-label"><%= service.name %></span>
+                <span class="pattern-value"><%= count %> no-shows</span>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Cancellation Analysis -->
+  <div class="analytics-section">
+    <h2>Cancellation Analysis (Last 30 Days)</h2>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <span class="label">Cancellation Count</span>
+        <span class="value"><%= @cancellation_data[:cancellation_count] %></span>
+      </div>
+      <div class="metric-card">
+        <span class="label">Cancellation Rate</span>
+        <span class="value"><%= number_to_percentage(@cancellation_data[:cancellation_rate], precision: 2) %></span>
+      </div>
+      <div class="metric-card">
+        <span class="label">Avg Cancellation Lead Time</span>
+        <span class="value"><%= @cancellation_data[:avg_cancellation_lead_time].round(1) %> hours</span>
+        <span class="description">From booking to cancellation</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Peak Hours Heatmap -->
+  <div class="analytics-section">
+    <h2>Peak Hours Heatmap (Last 90 Days)</h2>
+    <%= link_to "View Detailed Heatmap", peak_hours_business_manager_analytics_operations_path, class: "btn btn-link cursor-pointer" %>
+
+    <div class="peak-hours-summary">
+      <div class="peak-item">
+        <span class="icon">📅</span>
+        <div>
+          <strong>Busiest Day:</strong>
+          <%= @peak_hours[:busiest_day] %>
+        </div>
+      </div>
+      <div class="peak-item">
+        <span class="icon">⏰</span>
+        <div>
+          <strong>Busiest Hour:</strong>
+          <%= "#{@peak_hours[:busiest_hour]}:00" %>
+        </div>
+      </div>
+      <div class="peak-item">
+        <span class="icon">🌙</span>
+        <div>
+          <strong>Slowest Day:</strong>
+          <%= @peak_hours[:slowest_day] %>
+        </div>
+      </div>
+      <div class="peak-item">
+        <span class="icon">💤</span>
+        <div>
+          <strong>Slowest Hour:</strong>
+          <%= "#{@peak_hours[:slowest_hour]}:00" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Simple heatmap visualization -->
+    <div class="heatmap-container">
+      <div class="heatmap-header">Booking Distribution</div>
+      <div class="heatmap-grid">
+        <div class="heatmap-axis-y">
+          <% Date::DAYNAMES.each do |day| %>
+            <div class="axis-label"><%= day[0..2] %></div>
+          <% end %>
+        </div>
+        <div class="heatmap-cells">
+          <% @peak_hours[:heatmap].each_with_index do |day_data, day_index| %>
+            <div class="heatmap-row">
+              <% day_data.each_with_index do |count, hour| %>
+                <%
+                  max_count = @peak_hours[:heatmap].flatten.max
+                  intensity = max_count > 0 ? (count.to_f / max_count * 100).round : 0
+                  color_class = case intensity
+                    when 0 then 'intensity-0'
+                    when 1..20 then 'intensity-20'
+                    when 21..40 then 'intensity-40'
+                    when 41..60 then 'intensity-60'
+                    when 61..80 then 'intensity-80'
+                    else 'intensity-100'
+                  end
+                %>
+                <div class="heatmap-cell <%= color_class %>"
+                     title="<%= Date::DAYNAMES[day_index] %> <%= hour %>:00 - <%= count %> bookings">
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+      <div class="heatmap-axis-x">
+        <% (0..23).step(3).each do |hour| %>
+          <div class="axis-label"><%= "#{hour}:00" %></div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fulfillment Metrics -->
+  <div class="analytics-section">
+    <h2>Fulfillment Metrics (Last 30 Days)</h2>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <span class="label">Avg Duration</span>
+        <span class="value"><%= @fulfillment_metrics[:avg_duration].to_i %> min</span>
+        <span class="description">Average service duration</span>
+      </div>
+      <div class="metric-card">
+        <span class="label">Total Completed</span>
+        <span class="value"><%= @fulfillment_metrics[:total_completed] %></span>
+        <span class="description">Bookings completed</span>
+      </div>
+      <div class="metric-card highlight">
+        <span class="label">Completion Rate</span>
+        <span class="value"><%= number_to_percentage(@fulfillment_metrics[:completion_rate], precision: 1) %></span>
+        <span class="description">Of all bookings</span>
+      </div>
+      <div class="metric-card">
+        <span class="label">Avg Lead Time</span>
+        <span class="value"><%= @fulfillment_metrics[:avg_lead_time].round(1) %> days</span>
+        <span class="description">Booking to service date</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lead Time Distribution -->
+  <div class="analytics-section">
+    <h2>Lead Time Distribution (Last 30 Days)</h2>
+    <%= link_to "View Details", lead_time_business_manager_analytics_operations_path, class: "btn btn-link cursor-pointer" %>
+
+    <div class="lead-time-stats">
+      <div class="stat-item">
+        <span class="label">Average Lead Time</span>
+        <span class="value"><%= @lead_time_dist[:avg_lead_time_days] %> days</span>
+      </div>
+      <div class="stat-item">
+        <span class="label">Median Lead Time</span>
+        <span class="value"><%= @lead_time_dist[:median_lead_time_days] %> days</span>
+      </div>
+    </div>
+
+    <div class="lead-time-breakdown">
+      <div class="breakdown-bar">
+        <div class="bar-segment same-day"
+             style="width: <%= (@lead_time_dist[:same_day].to_f / (@lead_time_dist[:same_day] + @lead_time_dist[:next_day] + @lead_time_dist[:within_week] + @lead_time_dist[:over_week]) * 100).round(1) %>%">
+          <%= @lead_time_dist[:same_day] %>
+        </div>
+        <div class="bar-segment next-day"
+             style="width: <%= (@lead_time_dist[:next_day].to_f / (@lead_time_dist[:same_day] + @lead_time_dist[:next_day] + @lead_time_dist[:within_week] + @lead_time_dist[:over_week]) * 100).round(1) %>%">
+          <%= @lead_time_dist[:next_day] %>
+        </div>
+        <div class="bar-segment within-week"
+             style="width: <%= (@lead_time_dist[:within_week].to_f / (@lead_time_dist[:same_day] + @lead_time_dist[:next_day] + @lead_time_dist[:within_week] + @lead_time_dist[:over_week]) * 100).round(1) %>%">
+          <%= @lead_time_dist[:within_week] %>
+        </div>
+        <div class="bar-segment over-week"
+             style="width: <%= (@lead_time_dist[:over_week].to_f / (@lead_time_dist[:same_day] + @lead_time_dist[:next_day] + @lead_time_dist[:within_week] + @lead_time_dist[:over_week]) * 100).round(1) %>%">
+          <%= @lead_time_dist[:over_week] %>
+        </div>
+      </div>
+
+      <div class="breakdown-legend">
+        <div class="legend-item">
+          <span class="legend-color same-day"></span>
+          <span>Same Day: <%= @lead_time_dist[:same_day] %></span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-color next-day"></span>
+          <span>Next Day: <%= @lead_time_dist[:next_day] %></span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-color within-week"></span>
+          <span>2-7 Days: <%= @lead_time_dist[:within_week] %></span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-color over-week"></span>
+          <span>Over Week: <%= @lead_time_dist[:over_week] %></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.analytics-operations-container {
+  padding: 2rem;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.analytics-section {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.metric-card {
+  background: #f9fafb;
+  border-radius: 6px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-card.highlight {
+  background: #dbeafe;
+  border: 2px solid #3b82f6;
+}
+
+.metric-card.warning {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+}
+
+.metric-card .label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.metric-card .value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.25rem;
+}
+
+.metric-card .description {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.patterns-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.pattern-section h4 {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pattern-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pattern-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 4px;
+}
+
+.pattern-label {
+  font-weight: 500;
+  color: #374151;
+}
+
+.pattern-value {
+  color: #6b7280;
+}
+
+.peak-hours-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.peak-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 6px;
+}
+
+.peak-item .icon {
+  font-size: 1.5rem;
+}
+
+.heatmap-container {
+  margin-top: 2rem;
+  overflow-x: auto;
+}
+
+.heatmap-header {
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #374151;
+}
+
+.heatmap-grid {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.heatmap-axis-y {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  padding-right: 0.5rem;
+}
+
+.heatmap-cells {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.heatmap-row {
+  display: flex;
+  gap: 2px;
+}
+
+.heatmap-cell {
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.intensity-0 { background: #f3f4f6; }
+.intensity-20 { background: #dbeafe; }
+.intensity-40 { background: #93c5fd; }
+.intensity-60 { background: #60a5fa; }
+.intensity-80 { background: #3b82f6; }
+.intensity-100 { background: #1e40af; }
+
+.heatmap-axis-x {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 0.5rem;
+  padding-left: 4rem;
+}
+
+.axis-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.lead-time-stats {
+  display: flex;
+  gap: 2rem;
+  margin: 1rem 0;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-item .label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.stat-item .value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.lead-time-breakdown {
+  margin-top: 1.5rem;
+}
+
+.breakdown-bar {
+  display: flex;
+  height: 40px;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.bar-segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.bar-segment.same-day { background: #10b981; }
+.bar-segment.next-day { background: #3b82f6; }
+.bar-segment.within-week { background: #f59e0b; }
+.bar-segment.over-week { background: #8b5cf6; }
+
+.breakdown-legend {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+}
+
+.legend-color.same-day { background: #10b981; }
+.legend-color.next-day { background: #3b82f6; }
+.legend-color.within-week { background: #f59e0b; }
+.legend-color.over-week { background: #8b5cf6; }
+
+.alert {
+  padding: 1rem;
+  border-radius: 6px;
+  margin-top: 1rem;
+}
+
+.alert-warning {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  color: #92400e;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 0.875rem;
+}
+
+.btn-outline {
+  border: 1px solid #d1d5db;
+  color: #374151;
+  background: white;
+}
+
+.btn-outline:hover {
+  background: #f9fafb;
+}
+
+.btn-link {
+  color: #3b82f6;
+  padding: 0;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+</style>

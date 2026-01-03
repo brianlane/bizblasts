@@ -13,6 +13,7 @@ class Booking < ApplicationRecord
   before_destroy :remove_from_calendar_async
   after_save :create_video_meeting_async, if: :should_create_video_meeting?
   after_save :delete_video_meeting_async, if: :should_delete_video_meeting?
+  after_commit :clear_customer_revenue_cache, on: [:create, :update, :destroy]
   
   acts_as_tenant(:business)
   belongs_to :business, optional: true
@@ -182,6 +183,10 @@ class Booking < ApplicationRecord
   end
 
   private
+
+  def clear_customer_revenue_cache
+    tenant_customer&.clear_revenue_cache
+  end
 
   def experience_service?
     self.service&.experience?

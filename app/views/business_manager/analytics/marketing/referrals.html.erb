@@ -1,0 +1,260 @@
+<% content_for :title, "Referral Program Metrics" %>
+
+<div class="space-y-6">
+  <!-- Header with Period Selector -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Referral Program Metrics</h1>
+      <p class="text-sm text-gray-600 mt-1">Track and analyze your customer referral program performance</p>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <%= render 'shared/period_selector', period: @period || :last_30_days, base_path: referrals_business_manager_analytics_marketing_index_path %>
+      <%= link_to "Export CSV", export_business_manager_analytics_marketing_index_path(format: :csv, period: @period),
+                  class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" %>
+    </div>
+  </div>
+
+  <!-- Back Link -->
+  <%= link_to business_manager_analytics_marketing_index_path, class: "inline-flex items-center text-sm text-gray-600 hover:text-gray-900" do %>
+    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Back to Marketing Analytics
+  <% end %>
+
+  <!-- Summary Stats -->
+  <% if @referral_data.present? %>
+    <% total_referrals = @referral_data[:total_referrals] || 0 %>
+    <% successful_referrals = @referral_data[:successful_referrals] || 0 %>
+    <% conversion_rate = total_referrals > 0 ? (successful_referrals.to_f / total_referrals * 100) : 0 %>
+    <% total_revenue = @referral_data[:total_revenue] || 0 %>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Total Referrals</p>
+            <p class="text-2xl font-semibold text-gray-900 mt-2"><%= total_referrals %></p>
+          </div>
+          <div class="bg-blue-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Converted</p>
+            <p class="text-2xl font-semibold text-green-600 mt-2"><%= successful_referrals %></p>
+            <p class="text-xs text-gray-500 mt-1"><%= number_to_percentage(conversion_rate, precision: 1) %> rate</p>
+          </div>
+          <div class="bg-green-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Referral Revenue</p>
+            <p class="text-2xl font-semibold text-green-600 mt-2"><%= number_to_currency(total_revenue) %></p>
+          </div>
+          <div class="bg-green-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Avg Value</p>
+            <p class="text-2xl font-semibold text-gray-900 mt-2">
+              <%= successful_referrals > 0 ? number_to_currency(total_revenue / successful_referrals) : number_to_currency(0) %>
+            </p>
+          </div>
+          <div class="bg-purple-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Top Referrers -->
+  <div class="bg-white rounded-lg shadow">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-xl font-semibold text-gray-900">Top Referrers</h2>
+      <p class="text-sm text-gray-600 mt-1">Customers who referred the most new business</p>
+    </div>
+
+    <div class="p-6">
+      <% if @referral_data.present? && @referral_data[:top_referrers] && @referral_data[:top_referrers].any? %>
+        <!-- Mobile Cards -->
+        <div class="lg:hidden space-y-4">
+          <% @referral_data[:top_referrers].each_with_index do |referrer, index| %>
+            <div class="border rounded-lg p-4 shadow-sm <%= index < 3 ? 'border-l-4 border-yellow-500' : '' %>">
+              <div class="flex items-start justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="inline-flex items-center justify-center w-8 h-8 rounded-full <%= index < 3 ? 'bg-yellow-100 text-yellow-600 font-semibold' : 'bg-gray-100 text-gray-600' %>">
+                    <%= index + 1 %>
+                  </span>
+                  <div>
+                    <h3 class="font-semibold text-gray-900"><%= referrer[:customer_name] %></h3>
+                    <p class="text-xs text-gray-500"><%= referrer[:email] %></p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="space-y-2 text-sm mt-3">
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Referrals:</span>
+                  <span class="font-medium text-gray-900"><%= referrer[:total_referrals] %></span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Converted:</span>
+                  <span class="font-medium text-green-600"><%= referrer[:successful_referrals] %></span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Revenue:</span>
+                  <span class="font-medium text-green-600"><%= number_to_currency(referrer[:revenue_generated]) %></span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Conv. Rate:</span>
+                  <span class="font-medium text-blue-600">
+                    <%= number_to_percentage((referrer[:successful_referrals].to_f / referrer[:total_referrals] * 100), precision: 0) %>
+                  </span>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Desktop Table -->
+        <div class="hidden lg:block overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Rank
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Customer
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Email
+                </th>
+                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Total Referrals
+                </th>
+                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Converted
+                </th>
+                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Conversion Rate
+                </th>
+                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Revenue Generated
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <% @referral_data[:top_referrers].each_with_index do |referrer, index| %>
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full <%= index < 3 ? 'bg-yellow-100 text-yellow-600 font-semibold' : 'bg-gray-100 text-gray-600' %>">
+                      <%= index + 1 %>
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900"><%= referrer[:customer_name] %></div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-500"><%= referrer[:email] %></div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <div class="text-sm text-gray-900"><%= referrer[:total_referrals] %></div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <div class="text-sm font-semibold text-green-600"><%= referrer[:successful_referrals] %></div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <% conv_rate = (referrer[:successful_referrals].to_f / referrer[:total_referrals] * 100) %>
+                    <div class="text-sm font-medium <%= conv_rate >= 50 ? 'text-green-600' : conv_rate >= 25 ? 'text-blue-600' : 'text-orange-600' %>">
+                      <%= number_to_percentage(conv_rate, precision: 0) %>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <div class="text-sm font-semibold text-green-600"><%= number_to_currency(referrer[:revenue_generated]) %></div>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Referral Insights -->
+        <div class="mt-6 bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <h3 class="text-sm font-semibold text-purple-900 mb-3">Referral Program Insights</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div class="flex items-start">
+              <svg class="w-5 h-5 text-purple-600 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <div>
+                <div class="font-medium text-purple-900">Reward Top Referrers</div>
+                <div class="text-purple-800">Recognize and incentivize your best brand advocates.</div>
+              </div>
+            </div>
+            <div class="flex items-start">
+              <svg class="w-5 h-5 text-purple-600 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <div>
+                <div class="font-medium text-purple-900">Track Conversion Quality</div>
+                <div class="text-purple-800">Monitor both quantity and quality of referrals.</div>
+              </div>
+            </div>
+            <div class="flex items-start">
+              <svg class="w-5 h-5 text-purple-600 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <div>
+                <div class="font-medium text-purple-900">Optimize Incentives</div>
+                <div class="text-purple-800">Test different reward structures to maximize ROI.</div>
+              </div>
+            </div>
+            <div class="flex items-start">
+              <svg class="w-5 h-5 text-purple-600 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <div>
+                <div class="font-medium text-purple-900">Promote to Happy Customers</div>
+                <div class="text-purple-800">Target satisfied customers for better conversion rates.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% else %>
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No referral data</h3>
+          <p class="mt-1 text-sm text-gray-500">No customer referrals recorded for the selected period.</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,264 @@
+<% content_for :title, "SMS Campaign Performance" %>
+
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">SMS Campaign Performance</h1>
+      <p class="text-sm text-gray-600 mt-1">Track delivery and engagement metrics for SMS campaigns</p>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <%= render 'shared/period_selector', period: params[:period] || 30, base_path: sms_campaigns_business_manager_analytics_marketing_index_path %>
+      <%= link_to "Export CSV", export_business_manager_analytics_marketing_index_path(format: :csv, period: params[:period]),
+                  class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" %>
+    </div>
+  </div>
+
+  <!-- Back Link -->
+  <%= link_to business_manager_analytics_marketing_index_path, class: "inline-flex items-center text-sm text-gray-600 hover:text-gray-900" do %>
+    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Back to Marketing Analytics
+  <% end %>
+
+  <!-- Summary Stats -->
+  <% if @sms_data.present? %>
+    <% total_sent = @sms_data[:total_sent] || 0 %>
+    <% total_delivered = @sms_data[:total_delivered] || 0 %>
+    <% total_clicked = @sms_data[:total_clicked] || 0 %>
+    <% delivery_rate = @sms_data[:delivery_rate] || 0 %>
+    <% click_rate = @sms_data[:click_rate] || 0 %>
+    <% conversion_rate = @sms_data[:conversion_rate] || 0 %>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Total SMS Sent</p>
+            <p class="text-2xl font-semibold text-gray-900 mt-2"><%= number_with_delimiter(total_sent) %></p>
+            <p class="text-xs text-gray-500 mt-1">Last <%= params[:period] || 30 %> days</p>
+          </div>
+          <div class="bg-blue-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Delivery Rate</p>
+            <p class="text-2xl font-semibold <%= delivery_rate >= 98 ? 'text-green-600' : delivery_rate >= 95 ? 'text-blue-600' : 'text-orange-600' %> mt-2">
+              <%= number_to_percentage(delivery_rate, precision: 1) %>
+            </p>
+            <p class="text-xs text-gray-500 mt-1"><%= number_with_delimiter(total_delivered) %> delivered</p>
+          </div>
+          <div class="<%= delivery_rate >= 98 ? 'bg-green-100' : delivery_rate >= 95 ? 'bg-blue-100' : 'bg-orange-100' %> p-3 rounded-full">
+            <svg class="w-6 h-6 <%= delivery_rate >= 98 ? 'text-green-600' : delivery_rate >= 95 ? 'text-blue-600' : 'text-orange-600' %>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Click Rate</p>
+            <p class="text-2xl font-semibold <%= click_rate >= 10 ? 'text-green-600' : click_rate >= 5 ? 'text-blue-600' : 'text-orange-600' %> mt-2">
+              <%= number_to_percentage(click_rate, precision: 1) %>
+            </p>
+            <p class="text-xs text-gray-500 mt-1"><%= number_with_delimiter(total_clicked) %> clicks</p>
+          </div>
+          <div class="<%= click_rate >= 10 ? 'bg-green-100' : click_rate >= 5 ? 'bg-blue-100' : 'bg-orange-100' %> p-3 rounded-full">
+            <svg class="w-6 h-6 <%= click_rate >= 10 ? 'text-green-600' : click_rate >= 5 ? 'text-blue-600' : 'text-orange-600' %>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Conversion Rate</p>
+            <p class="text-2xl font-semibold <%= conversion_rate >= 3 ? 'text-green-600' : conversion_rate >= 1.5 ? 'text-blue-600' : 'text-orange-600' %> mt-2">
+              <%= number_to_percentage(conversion_rate, precision: 1) %>
+            </p>
+            <p class="text-xs text-gray-500 mt-1"><%= @sms_data[:total_conversions] || 0 %> conversions</p>
+          </div>
+          <div class="<%= conversion_rate >= 3 ? 'bg-green-100' : conversion_rate >= 1.5 ? 'bg-blue-100' : 'bg-orange-100' %> p-3 rounded-full">
+            <svg class="w-6 h-6 <%= conversion_rate >= 3 ? 'text-green-600' : conversion_rate >= 1.5 ? 'text-blue-600' : 'text-orange-600' %>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Campaign Performance Table -->
+  <div class="bg-white rounded-lg shadow">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-xl font-semibold text-gray-900">SMS Campaigns</h2>
+      <p class="text-sm text-gray-600 mt-1">Individual campaign performance metrics</p>
+    </div>
+
+    <div class="p-6">
+      <% if @sms_data.present? && @sms_data[:campaigns].present? && @sms_data[:campaigns].any? %>
+        <!-- Mobile Cards -->
+        <div class="space-y-4 lg:hidden">
+          <% @sms_data[:campaigns].each do |campaign| %>
+            <% delivery_rate_val = campaign[:delivery_rate] || 0 %>
+            <% click_rate_val = campaign[:click_rate] || 0 %>
+            <div class="border border-gray-200 rounded-lg p-4">
+              <div class="flex justify-between items-start mb-3">
+                <div class="flex-1">
+                  <h3 class="font-semibold text-gray-900"><%= campaign[:campaign_name] %></h3>
+                  <p class="text-sm text-gray-600">Sent <%= time_ago_in_words(campaign[:sent_at]) %> ago</p>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span class="text-gray-600">Sent:</span>
+                  <span class="font-medium text-gray-900 ml-1"><%= number_with_delimiter(campaign[:sent]) %></span>
+                </div>
+                <div>
+                  <span class="text-gray-600">Delivered:</span>
+                  <span class="font-medium text-green-600 ml-1"><%= number_with_delimiter(campaign[:delivered]) %></span>
+                </div>
+                <div>
+                  <span class="text-gray-600">Clicked:</span>
+                  <span class="font-medium text-blue-600 ml-1"><%= number_with_delimiter(campaign[:clicked]) %></span>
+                </div>
+                <div>
+                  <span class="text-gray-600">Conversions:</span>
+                  <span class="font-medium text-purple-600 ml-1"><%= campaign[:conversions] || 0 %></span>
+                </div>
+              </div>
+              <div class="mt-3 flex gap-3">
+                <span class="px-3 py-1 rounded-full text-xs font-medium <%= delivery_rate_val >= 98 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800' %>">
+                  <%= number_to_percentage(delivery_rate_val, precision: 1) %> delivered
+                </span>
+                <span class="px-3 py-1 rounded-full text-xs font-medium <%= click_rate_val >= 10 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800' %>">
+                  <%= number_to_percentage(click_rate_val, precision: 1) %> clicked
+                </span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Desktop Table -->
+        <div class="hidden lg:block overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Campaign
+                </th>
+                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Sent
+                </th>
+                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Delivered
+                </th>
+                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Clicked
+                </th>
+                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Conversions
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Delivery Rate
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Click Rate
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <% @sms_data[:campaigns].each do |campaign| %>
+                <% delivery_rate_val = campaign[:delivery_rate] || 0 %>
+                <% click_rate_val = campaign[:click_rate] || 0 %>
+                <tr>
+                  <td class="px-6 py-4">
+                    <div class="text-sm font-medium text-gray-900"><%= campaign[:campaign_name] %></div>
+                    <div class="text-sm text-gray-500">Sent <%= time_ago_in_words(campaign[:sent_at]) %> ago</div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <div class="text-sm text-gray-900"><%= number_with_delimiter(campaign[:sent]) %></div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <div class="text-sm font-medium text-green-600"><%= number_with_delimiter(campaign[:delivered]) %></div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <div class="text-sm font-medium text-blue-600"><%= number_with_delimiter(campaign[:clicked]) %></div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <div class="text-sm font-medium text-purple-600"><%= campaign[:conversions] || 0 %></div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= delivery_rate_val >= 98 ? 'bg-green-100 text-green-800' : delivery_rate_val >= 95 ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800' %>">
+                      <%= number_to_percentage(delivery_rate_val, precision: 1) %>
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= click_rate_val >= 10 ? 'bg-green-100 text-green-800' : click_rate_val >= 5 ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800' %>">
+                      <%= number_to_percentage(click_rate_val, precision: 1) %>
+                    </span>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- SMS Marketing Best Practices -->
+        <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 class="text-sm font-semibold text-blue-900 mb-3">SMS Marketing Benchmarks</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-800">
+            <div>
+              <div class="font-medium text-blue-900 mb-1">Delivery Rate</div>
+              <div class="text-xs space-y-0.5">
+                <div>• Excellent: 98%+</div>
+                <div>• Good: 95-98%</div>
+                <div>• Needs Attention: &lt;95%</div>
+              </div>
+            </div>
+            <div>
+              <div class="font-medium text-blue-900 mb-1">Click Rate</div>
+              <div class="text-xs space-y-0.5">
+                <div>• Excellent: 10%+</div>
+                <div>• Good: 5-10%</div>
+                <div>• Needs Improvement: &lt;5%</div>
+              </div>
+            </div>
+            <div>
+              <div class="font-medium text-blue-900 mb-1">Conversion Rate</div>
+              <div class="text-xs space-y-0.5">
+                <div>• Excellent: 3%+</div>
+                <div>• Good: 1.5-3%</div>
+                <div>• Needs Improvement: &lt;1.5%</div>
+              </div>
+            </div>
+          </div>
+          <div class="mt-4 pt-4 border-t border-blue-200">
+            <p class="text-xs text-blue-900"><strong>Note:</strong> SMS typically has higher engagement rates than email due to its immediacy and personal nature. Maintain compliance with SMS regulations and opt-in requirements.</p>
+          </div>
+        </div>
+      <% else %>
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No SMS campaigns</h3>
+          <p class="mt-1 text-sm text-gray-500">No SMS campaigns found for the selected period.</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

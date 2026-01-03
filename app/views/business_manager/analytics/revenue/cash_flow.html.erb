@@ -1,0 +1,203 @@
+<% content_for :title, "Cash Flow Projection" %>
+
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Cash Flow Projection</h1>
+      <p class="text-sm text-gray-600 mt-1">30-day forward projection of incoming and outgoing cash</p>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <%= link_to "Export CSV", export_business_manager_analytics_revenue_index_path(format: :csv),
+                  class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" %>
+    </div>
+  </div>
+
+  <!-- Back Link -->
+  <%= link_to business_manager_analytics_revenue_index_path, class: "inline-flex items-center text-sm text-gray-600 hover:text-gray-900" do %>
+    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Back to Revenue Analytics
+  <% end %>
+
+  <!-- Summary Stats -->
+  <% if @cash_flow_data.present? %>
+    <% projected_inflow = @cash_flow_data[:projected_inflow] || 0 %>
+    <% projected_outflow = @cash_flow_data[:projected_outflow] || 0 %>
+    <% net_cash_flow = projected_inflow - projected_outflow %>
+    <% current_runway = @cash_flow_data[:runway_days] || 0 %>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Projected Inflow</p>
+            <p class="text-2xl font-semibold text-green-600 mt-2"><%= number_to_currency(projected_inflow) %></p>
+            <p class="text-xs text-gray-500 mt-1">Next 30 days</p>
+          </div>
+          <div class="bg-green-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Projected Outflow</p>
+            <p class="text-2xl font-semibold text-red-600 mt-2"><%= number_to_currency(projected_outflow) %></p>
+            <p class="text-xs text-gray-500 mt-1">Next 30 days</p>
+          </div>
+          <div class="bg-red-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Net Cash Flow</p>
+            <p class="text-2xl font-semibold <%= net_cash_flow >= 0 ? 'text-green-600' : 'text-red-600' %> mt-2">
+              <%= number_to_currency(net_cash_flow) %>
+            </p>
+            <p class="text-xs text-gray-500 mt-1">Inflow - Outflow</p>
+          </div>
+          <div class="<%= net_cash_flow >= 0 ? 'bg-green-100' : 'bg-red-100' %> p-3 rounded-full">
+            <svg class="w-6 h-6 <%= net_cash_flow >= 0 ? 'text-green-600' : 'text-red-600' %>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Cash Runway</p>
+            <p class="text-2xl font-semibold text-blue-600 mt-2">
+              <%= current_runway > 0 ? "#{current_runway} days" : "N/A" %>
+            </p>
+            <p class="text-xs text-gray-500 mt-1">At current burn rate</p>
+          </div>
+          <div class="bg-blue-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Cash Flow Breakdown -->
+  <div class="bg-white rounded-lg shadow">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-xl font-semibold text-gray-900">Cash Flow Breakdown</h2>
+      <p class="text-sm text-gray-600 mt-1">Detailed projection by category</p>
+    </div>
+
+    <div class="p-6">
+      <% if @cash_flow_data.present? && @cash_flow_data[:breakdown].present? %>
+        <div class="space-y-6">
+          <!-- Inflow Section -->
+          <div>
+            <h3 class="text-lg font-semibold text-green-700 mb-4 flex items-center">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"/>
+              </svg>
+              Projected Inflow
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <% @cash_flow_data[:breakdown][:inflow].each do |item| %>
+                <div class="border-l-4 border-green-500 bg-green-50 rounded-lg p-4">
+                  <div class="flex justify-between items-center">
+                    <div>
+                      <h4 class="font-semibold text-gray-900"><%= item[:category] %></h4>
+                      <p class="text-sm text-gray-600"><%= item[:description] %></p>
+                    </div>
+                    <div class="text-right">
+                      <p class="text-xl font-bold text-green-600"><%= number_to_currency(item[:amount]) %></p>
+                      <p class="text-xs text-gray-500"><%= item[:count] %> <%= item[:count] == 1 ? 'item' : 'items' %></p>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+
+          <!-- Outflow Section -->
+          <div>
+            <h3 class="text-lg font-semibold text-red-700 mb-4 flex items-center">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"/>
+              </svg>
+              Projected Outflow
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <% @cash_flow_data[:breakdown][:outflow].each do |item| %>
+                <div class="border-l-4 border-red-500 bg-red-50 rounded-lg p-4">
+                  <div class="flex justify-between items-center">
+                    <div>
+                      <h4 class="font-semibold text-gray-900"><%= item[:category] %></h4>
+                      <p class="text-sm text-gray-600"><%= item[:description] %></p>
+                    </div>
+                    <div class="text-right">
+                      <p class="text-xl font-bold text-red-600"><%= number_to_currency(item[:amount]) %></p>
+                      <p class="text-xs text-gray-500"><%= item[:count] %> <%= item[:count] == 1 ? 'item' : 'items' %></p>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cash Flow Insights -->
+        <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 class="text-sm font-semibold text-blue-900 mb-3">Cash Flow Management Tips</h3>
+          <div class="space-y-2 text-sm text-blue-800">
+            <div class="flex items-start">
+              <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>Monitor accounts receivable closely to ensure timely collections</span>
+            </div>
+            <div class="flex items-start">
+              <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>Maintain a cash reserve equal to 3-6 months of operating expenses</span>
+            </div>
+            <div class="flex items-start">
+              <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>Consider payment terms that align inflows with outflows</span>
+            </div>
+            <div class="flex items-start">
+              <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>Review and optimize recurring expenses regularly</span>
+            </div>
+          </div>
+        </div>
+      <% else %>
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No cash flow data</h3>
+          <p class="mt-1 text-sm text-gray-500">Insufficient data to generate cash flow projection.</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

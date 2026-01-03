@@ -198,6 +198,10 @@ application.register("job-attachments", JobAttachmentsController)
 import AnalyticsTrackerController from "./controllers/analytics_tracker_controller"
 application.register("analytics-tracker", AnalyticsTrackerController)
 
+// Period selector controller for analytics pages
+import PeriodSelectorController from "./controllers/period_selector_controller"
+application.register("period-selector", PeriodSelectorController)
+
 // Auto-discovery for additional controllers (compatible approach)
 // This will automatically discover and register any controllers not manually registered above
 function autoDiscoverControllers() {
@@ -215,7 +219,7 @@ function autoDiscoverControllers() {
       'service-variants', 'dropdown-updater', 'service-availability', 'google-business-search', 'qr-payment',
       'place-id-lookup', 'enhanced-layout-selector', 'photo-upload', 'gallery-manager', 'gallery-lightbox', 'gallery-carousel',
       'hero-video', 'image-cropper', 'gallery-image-cropper', 'async-image-upload', 'simple-image-cropper', 'date-picker', 'dynamic-line-items', 'estimate-line-items', 'signature-pad', 'rental-durations',
-      'rental-pricing', 'import-progress', 'job-form-builder', 'service-job-forms', 'job-attachments', 'analytics-tracker'
+      'rental-pricing', 'import-progress', 'job-form-builder', 'service-job-forms', 'job-attachments', 'analytics-tracker', 'period-selector'
     ]);
     
     // Dynamically import and register each controller

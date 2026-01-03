@@ -271,7 +271,9 @@
     <% end %>
 
     <!-- Website Analytics Widget -->
-    <%= render 'business_manager/analytics/dashboard_widget' %>
+    <% if sidebar_item_keys.include?('analytics') %>
+      <%= render 'business_manager/analytics/dashboard_widget' %>
+    <% end %>
 
     <!-- Share Business Web Page -->
     <div id="share-business-widget" class="bg-white p-4 sm:p-6 rounded-lg shadow hover:shadow-md transition-shadow lg:col-span-1 xl:col-span-2">

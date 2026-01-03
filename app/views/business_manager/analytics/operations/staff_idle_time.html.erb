@@ -1,0 +1,222 @@
+<% content_for :title, "Staff Idle Time Analysis" %>
+
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Staff Idle Time Analysis</h1>
+      <p class="text-sm text-gray-600 mt-1">Identify gaps and optimize staff scheduling</p>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <%= link_to "Export CSV", export_business_manager_analytics_operations_path(format: :csv),
+                  class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" %>
+    </div>
+  </div>
+
+  <!-- Back Link -->
+  <%= link_to business_manager_analytics_operations_path, class: "inline-flex items-center text-sm text-gray-600 hover:text-gray-900" do %>
+    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Back to Operations Analytics
+  <% end %>
+
+  <!-- Staff and Date Selector -->
+  <div class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Select Staff Member and Date</h2>
+    <%= form_with url: staff_idle_time_business_manager_analytics_operations_path, method: :get, class: "grid grid-cols-1 md:grid-cols-2 gap-4" do |f| %>
+      <div>
+        <%= label_tag :staff_id, "Staff Member", class: "block text-sm font-medium text-gray-700 mb-2" %>
+        <%= select_tag :staff_id,
+            options_from_collection_for_select(@all_staff, :id, :full_name, params[:staff_id]),
+            prompt: "Select a staff member",
+            class: "w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+      </div>
+
+      <div>
+        <%= label_tag :date, "Date", class: "block text-sm font-medium text-gray-700 mb-2" %>
+        <%= date_field_tag :date,
+            params[:date] || Date.current,
+            class: "w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+      </div>
+
+      <div class="md:col-span-2">
+        <%= submit_tag "Analyze Idle Time", class: "w-full md:w-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer" %>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Idle Time Analysis Results -->
+  <% if @staff_member && @idle_analysis.present? %>
+    <!-- Summary Stats -->
+    <% total_scheduled = @idle_analysis[:total_scheduled_hours] || 0 %>
+    <% total_booked = @idle_analysis[:total_booked_hours] || 0 %>
+    <% total_idle = @idle_analysis[:total_idle_hours] || 0 %>
+    <% idle_percentage = @idle_analysis[:idle_percentage] || 0 %>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Scheduled Hours</p>
+            <p class="text-2xl font-semibold text-gray-900 mt-2"><%= number_with_precision(total_scheduled, precision: 1) %> hrs</p>
+            <p class="text-xs text-gray-500 mt-1"><%= @date.strftime('%b %d, %Y') %></p>
+          </div>
+          <div class="bg-gray-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Booked Hours</p>
+            <p class="text-2xl font-semibold text-blue-600 mt-2"><%= number_with_precision(total_booked, precision: 1) %> hrs</p>
+            <p class="text-xs text-gray-500 mt-1">Active bookings</p>
+          </div>
+          <div class="bg-blue-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Idle Hours</p>
+            <p class="text-2xl font-semibold text-orange-600 mt-2"><%= number_with_precision(total_idle, precision: 1) %> hrs</p>
+            <p class="text-xs text-gray-500 mt-1">Unproductive time</p>
+          </div>
+          <div class="bg-orange-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Idle Percentage</p>
+            <p class="text-2xl font-semibold <%= idle_percentage > 40 ? 'text-red-600' : idle_percentage > 20 ? 'text-orange-600' : 'text-green-600' %> mt-2">
+              <%= number_to_percentage(idle_percentage, precision: 0) %>
+            </p>
+            <p class="text-xs text-gray-500 mt-1">Of scheduled time</p>
+          </div>
+          <div class="<%= idle_percentage > 40 ? 'bg-red-100' : idle_percentage > 20 ? 'bg-orange-100' : 'bg-green-100' %> p-3 rounded-full">
+            <svg class="w-6 h-6 <%= idle_percentage > 40 ? 'text-red-600' : idle_percentage > 20 ? 'text-orange-600' : 'text-green-600' %>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Idle Time Gaps -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-xl font-semibold text-gray-900">Idle Time Gaps</h2>
+        <p class="text-sm text-gray-600 mt-1">Unbooked periods for <%= @staff_member.full_name %> on <%= @date.strftime('%B %d, %Y') %></p>
+      </div>
+
+      <div class="p-6">
+        <% if @idle_analysis[:idle_gaps].present? && @idle_analysis[:idle_gaps].any? %>
+          <div class="space-y-3">
+            <% @idle_analysis[:idle_gaps].each do |gap| %>
+              <% gap_duration = gap[:duration_hours] || 0 %>
+              <% gap_color = gap_duration >= 2 ? 'red' : gap_duration >= 1 ? 'orange' : 'yellow' %>
+              <div class="border-l-4 border-<%= gap_color %>-500 bg-<%= gap_color %>-50 rounded-lg p-4">
+                <div class="flex justify-between items-center">
+                  <div class="flex items-center">
+                    <svg class="w-5 h-5 text-<%= gap_color %>-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                      <h3 class="font-semibold text-gray-900">
+                        <%= gap[:start_time] %> - <%= gap[:end_time] %>
+                      </h3>
+                      <p class="text-sm text-gray-600"><%= number_with_precision(gap_duration, precision: 1) %> hour gap</p>
+                    </div>
+                  </div>
+                  <% if gap_duration >= 1 %>
+                    <span class="px-3 py-1 rounded-full text-xs font-medium bg-<%= gap_color %>-100 text-<%= gap_color %>-800">
+                      Optimization Opportunity
+                    </span>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+
+          <!-- Idle Time Optimization Tips -->
+          <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 class="text-sm font-semibold text-blue-900 mb-3">Optimization Strategies</h3>
+            <div class="space-y-2 text-sm text-blue-800">
+              <div class="flex items-start">
+                <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <span>Fill large gaps (2+ hours) with promotional offers or walk-in availability</span>
+              </div>
+              <div class="flex items-start">
+                <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <span>Adjust scheduled hours to match actual demand patterns</span>
+              </div>
+              <div class="flex items-start">
+                <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <span>Use idle time for customer outreach, follow-ups, or administrative tasks</span>
+              </div>
+              <div class="flex items-start">
+                <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <span>Consider cross-training staff to provide backup coverage during gaps</span>
+              </div>
+            </div>
+          </div>
+        <% else %>
+          <div class="text-center py-12">
+            <svg class="mx-auto h-12 w-12 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No idle time detected</h3>
+            <p class="mt-1 text-sm text-gray-500">This staff member is fully utilized for the selected date.</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% elsif @staff_member %>
+    <!-- Staff selected but no data -->
+    <div class="bg-white rounded-lg shadow p-12">
+      <div class="text-center">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">No schedule data</h3>
+        <p class="mt-1 text-sm text-gray-500">No scheduling information available for <%= @staff_member.full_name %> on this date.</p>
+      </div>
+    </div>
+  <% else %>
+    <!-- No staff member selected -->
+    <div class="bg-white rounded-lg shadow p-12">
+      <div class="text-center">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">Select a staff member</h3>
+        <p class="mt-1 text-sm text-gray-500">Choose a staff member and date above to analyze idle time.</p>
+      </div>
+    </div>
+  <% end %>
+</div>

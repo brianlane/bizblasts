@@ -127,8 +127,12 @@ class StaffMember < ApplicationRecord
   end
   
   def hours_booked_this_month
-    start_of_month = Time.current.beginning_of_month
-    end_of_month = Time.current.end_of_month
+    # Use business timezone to ensure consistent month boundaries
+    time_zone = business&.time_zone || 'UTC'
+    now = Time.current.in_time_zone(time_zone)
+    start_of_month = now.beginning_of_month
+    end_of_month = now.end_of_month
+
     bookings_in_month = bookings.where(start_time: start_of_month..end_of_month)
                               .where(status: [:confirmed, :completed])
     bookings_in_month.sum do |booking|
@@ -141,8 +145,12 @@ class StaffMember < ApplicationRecord
   end
 
   def hours_completed_this_month
-    start_of_month = Time.current.beginning_of_month
-    end_of_month = Time.current.end_of_month
+    # Use business timezone to ensure consistent month boundaries
+    time_zone = business&.time_zone || 'UTC'
+    now = Time.current.in_time_zone(time_zone)
+    start_of_month = now.beginning_of_month
+    end_of_month = now.end_of_month
+
     completed_bookings = bookings.where(start_time: start_of_month..end_of_month, status: :completed)
     completed_bookings.sum do |booking|
       if booking.start_time && booking.end_time
@@ -260,6 +268,48 @@ class StaffMember < ApplicationRecord
 
     providers = connections.map(&:provider_name).join(', ')
     "Connected: #{providers}"
+  end
+
+  # Staff Performance Analytics methods
+  def bookings_count(period = 30.days)
+    bookings.where(created_at: period.ago..Time.current).count
+  end
+
+  def total_revenue(period = 30.days)
+    bookings.where(created_at: period.ago..Time.current)
+            .joins(invoice: :payments)
+            .where(payments: { status: :completed })
+            .sum('payments.amount').to_f
+  end
+
+  def average_rating
+    # Placeholder for rating system - returns nil if not implemented
+    # When rating system is added, calculate: ratings.average(:score)
+    nil
+  end
+
+  def completion_rate(period = 30.days)
+    total_bookings = bookings.where(created_at: period.ago..Time.current).count
+    return 0 if total_bookings.zero?
+
+    completed = bookings.where(created_at: period.ago..Time.current, status: :completed).count
+    ((completed.to_f / total_bookings) * 100).round(1)
+  end
+
+  def cancellation_rate(period = 30.days)
+    total_bookings = bookings.where(created_at: period.ago..Time.current).count
+    return 0 if total_bookings.zero?
+
+    cancelled = bookings.where(created_at: period.ago..Time.current, status: :cancelled).count
+    ((cancelled.to_f / total_bookings) * 100).round(1)
+  end
+
+  def no_show_rate(period = 30.days)
+    total_bookings = bookings.where(created_at: period.ago..Time.current).count
+    return 0 if total_bookings.zero?
+
+    no_shows = bookings.where(created_at: period.ago..Time.current, status: :no_show).count
+    ((no_shows.to_f / total_bookings) * 100).round(1)
   end
 
   private

@@ -46,6 +46,9 @@ gem "pundit"
 # SECURITY FIX: Add rate limiting
 gem "rack-attack"
 
+# CORS support for analytics API
+gem "rack-cors"
+
 # Admin interface
 gem "activeadmin", "~> 3.4.0"
 gem "jquery-ui-rails" # Required for jQuery UI in Sprockets

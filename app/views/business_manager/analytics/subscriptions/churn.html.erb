@@ -1,0 +1,298 @@
+<% content_for :title, "Subscription Churn Analysis" %>
+
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Subscription Churn Analysis</h1>
+      <p class="text-sm text-gray-600 mt-1">Revenue and customer churn metrics</p>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <%= render 'shared/period_selector', period: params[:period] || 30, base_path: churn_business_manager_analytics_subscriptions_path %>
+      <%= link_to "Export CSV", export_business_manager_analytics_subscriptions_path(format: :csv, period: params[:period]),
+                  class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" %>
+    </div>
+  </div>
+
+  <!-- Back Link -->
+  <%= link_to business_manager_analytics_subscriptions_path, class: "inline-flex items-center text-sm text-gray-600 hover:text-gray-900" do %>
+    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Back to Subscription Analytics
+  <% end %>
+
+  <!-- Summary Stats -->
+  <% if @churn_data.present? %>
+    <% revenue_churn_rate = @churn_data.dig(:revenue_churn, :churn_rate) || 0 %>
+    <% revenue_churned = @churn_data.dig(:revenue_churn, :churned_mrr) || 0 %>
+    <% customer_churn_rate = @churn_data.dig(:customer_churn, :churn_rate) || 0 %>
+    <% customers_churned = @churn_data.dig(:customer_churn, :churned_customers) || 0 %>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Revenue Churn Rate</p>
+            <p class="text-2xl font-semibold <%= revenue_churn_rate < 5 ? 'text-green-600' : revenue_churn_rate < 10 ? 'text-blue-600' : 'text-red-600' %> mt-2">
+              <%= number_to_percentage(revenue_churn_rate, precision: 1) %>
+            </p>
+            <p class="text-xs text-gray-500 mt-1">Last <%= params[:period] || 30 %> days</p>
+          </div>
+          <div class="<%= revenue_churn_rate < 5 ? 'bg-green-100' : revenue_churn_rate < 10 ? 'bg-blue-100' : 'bg-red-100' %> p-3 rounded-full">
+            <svg class="w-6 h-6 <%= revenue_churn_rate < 5 ? 'text-green-600' : revenue_churn_rate < 10 ? 'text-blue-600' : 'text-red-600' %>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Churned MRR</p>
+            <p class="text-2xl font-semibold text-red-600 mt-2"><%= number_to_currency(revenue_churned) %></p>
+            <p class="text-xs text-gray-500 mt-1">Lost revenue</p>
+          </div>
+          <div class="bg-red-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Customer Churn Rate</p>
+            <p class="text-2xl font-semibold <%= customer_churn_rate < 5 ? 'text-green-600' : customer_churn_rate < 10 ? 'text-blue-600' : 'text-red-600' %> mt-2">
+              <%= number_to_percentage(customer_churn_rate, precision: 1) %>
+            </p>
+            <p class="text-xs text-gray-500 mt-1">Last <%= params[:period] || 30 %> days</p>
+          </div>
+          <div class="<%= customer_churn_rate < 5 ? 'bg-green-100' : customer_churn_rate < 10 ? 'bg-blue-100' : 'bg-red-100' %> p-3 rounded-full">
+            <svg class="w-6 h-6 <%= customer_churn_rate < 5 ? 'text-green-600' : customer_churn_rate < 10 ? 'text-blue-600' : 'text-red-600' %>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Churned Customers</p>
+            <p class="text-2xl font-semibold text-red-600 mt-2"><%= number_with_delimiter(customers_churned) %></p>
+            <p class="text-xs text-gray-500 mt-1">Lost subscribers</p>
+          </div>
+          <div class="bg-red-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Churn Analysis -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Revenue Churn -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-xl font-semibold text-gray-900">Revenue Churn</h2>
+        <p class="text-sm text-gray-600 mt-1">Lost MRR from cancellations and downgrades</p>
+      </div>
+
+      <div class="p-6">
+        <% if @churn_data.present? && @churn_data[:revenue_churn].present? %>
+          <% revenue_data = @churn_data[:revenue_churn] %>
+
+          <div class="space-y-4">
+            <div class="bg-red-50 border-l-4 border-red-500 rounded-lg p-4">
+              <div class="flex justify-between items-center mb-3">
+                <div>
+                  <h3 class="font-semibold text-gray-900">Churned MRR</h3>
+                  <p class="text-sm text-gray-600">Revenue lost this period</p>
+                </div>
+                <p class="text-2xl font-bold text-red-600"><%= number_to_currency(revenue_data[:churned_mrr] || 0) %></p>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-3">
+                <% churn_pct = revenue_data[:churn_rate] || 0 %>
+                <div class="<%= churn_pct < 5 ? 'bg-green-500' : churn_pct < 10 ? 'bg-blue-500' : 'bg-red-500' %> h-3 rounded-full" style="width: <%= [churn_pct, 100].min %>%"></div>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <span class="text-sm font-medium text-gray-600">Starting MRR</span>
+                <span class="text-sm font-semibold text-gray-900">
+                  <%= number_to_currency(revenue_data[:starting_mrr] || 0) %>
+                </span>
+              </div>
+
+              <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <span class="text-sm font-medium text-gray-600">Churned MRR</span>
+                <span class="text-sm font-semibold text-red-600">
+                  <%= number_to_currency(revenue_data[:churned_mrr] || 0) %>
+                </span>
+              </div>
+
+              <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <span class="text-sm font-medium text-gray-600">Churn Rate</span>
+                <span class="text-sm font-semibold <%= revenue_churn_rate < 5 ? 'text-green-600' : revenue_churn_rate < 10 ? 'text-blue-600' : 'text-red-600' %>">
+                  <%= number_to_percentage(revenue_data[:churn_rate] || 0, precision: 2) %>
+                </span>
+              </div>
+
+              <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <span class="text-sm font-medium text-gray-600">Annualized Churn</span>
+                <span class="text-sm font-semibold text-gray-900">
+                  <%= number_to_percentage((revenue_data[:churn_rate] || 0) * 12, precision: 1) %>
+                </span>
+              </div>
+            </div>
+          </div>
+        <% else %>
+          <div class="text-center py-8">
+            <p class="text-sm text-gray-500">No revenue churn data available</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Customer Churn -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-xl font-semibold text-gray-900">Customer Churn</h2>
+        <p class="text-sm text-gray-600 mt-1">Lost subscribers from cancellations</p>
+      </div>
+
+      <div class="p-6">
+        <% if @churn_data.present? && @churn_data[:customer_churn].present? %>
+          <% customer_data = @churn_data[:customer_churn] %>
+
+          <div class="space-y-4">
+            <div class="bg-orange-50 border-l-4 border-orange-500 rounded-lg p-4">
+              <div class="flex justify-between items-center mb-3">
+                <div>
+                  <h3 class="font-semibold text-gray-900">Churned Customers</h3>
+                  <p class="text-sm text-gray-600">Subscribers lost this period</p>
+                </div>
+                <p class="text-2xl font-bold text-orange-600"><%= number_with_delimiter(customer_data[:churned_customers] || 0) %></p>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-3">
+                <% customer_churn_pct = customer_data[:churn_rate] || 0 %>
+                <div class="<%= customer_churn_pct < 5 ? 'bg-green-500' : customer_churn_pct < 10 ? 'bg-blue-500' : 'bg-orange-500' %> h-3 rounded-full" style="width: <%= [customer_churn_pct, 100].min %>%"></div>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <span class="text-sm font-medium text-gray-600">Starting Customers</span>
+                <span class="text-sm font-semibold text-gray-900">
+                  <%= number_with_delimiter(customer_data[:starting_customers] || 0) %>
+                </span>
+              </div>
+
+              <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <span class="text-sm font-medium text-gray-600">Churned Customers</span>
+                <span class="text-sm font-semibold text-orange-600">
+                  <%= number_with_delimiter(customer_data[:churned_customers] || 0) %>
+                </span>
+              </div>
+
+              <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <span class="text-sm font-medium text-gray-600">Churn Rate</span>
+                <span class="text-sm font-semibold <%= customer_churn_rate < 5 ? 'text-green-600' : customer_churn_rate < 10 ? 'text-blue-600' : 'text-orange-600' %>">
+                  <%= number_to_percentage(customer_data[:churn_rate] || 0, precision: 2) %>
+                </span>
+              </div>
+
+              <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <span class="text-sm font-medium text-gray-600">Annualized Churn</span>
+                <span class="text-sm font-semibold text-gray-900">
+                  <%= number_to_percentage((customer_data[:churn_rate] || 0) * 12, precision: 1) %>
+                </span>
+              </div>
+            </div>
+          </div>
+        <% else %>
+          <div class="text-center py-8">
+            <p class="text-sm text-gray-500">No customer churn data available</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Churn Reduction Strategies -->
+  <div class="bg-white rounded-lg shadow">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-xl font-semibold text-gray-900">Churn Reduction Strategies</h2>
+      <p class="text-sm text-gray-600 mt-1">Benchmarks and actionable recommendations</p>
+    </div>
+
+    <div class="p-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Benchmarks -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 class="text-sm font-semibold text-blue-900 mb-3">SaaS Churn Benchmarks</h3>
+          <div class="space-y-2 text-sm text-blue-800">
+            <div class="flex items-start">
+              <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span><strong>&lt;5%:</strong> Excellent churn rate - best-in-class</span>
+            </div>
+            <div class="flex items-start">
+              <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span><strong>5-7%:</strong> Good - industry average range</span>
+            </div>
+            <div class="flex items-start">
+              <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+              </svg>
+              <span><strong>&gt;10%:</strong> High churn - requires immediate attention</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+          <h3 class="text-sm font-semibold text-green-900 mb-3">Churn Reduction Tactics</h3>
+          <div class="space-y-2 text-sm text-green-800">
+            <div class="flex items-start">
+              <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>Improve onboarding to drive activation</span>
+            </div>
+            <div class="flex items-start">
+              <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>Proactive outreach to at-risk customers</span>
+            </div>
+            <div class="flex items-start">
+              <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>Offer pause/downgrade before cancellation</span>
+            </div>
+            <div class="flex items-start">
+              <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>Collect and act on cancellation feedback</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

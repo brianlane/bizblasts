@@ -38,38 +38,40 @@ module Analytics
     # @param limit [Integer] Number of products to return
     # @return [Array<Hash>] Top products with metrics
     def top_products(start_date: 30.days.ago, end_date: Time.current, limit: 10)
-      # Get product sales from line items
+      # Get product sales from line items through product_variants
+      # LineItem uses product_variant_id to reference products (not item_id/item_type)
+      order_ids = business.orders.where(created_at: start_date..end_date).pluck(:id)
+      
       product_sales = LineItem
-        .joins(:order)
-        .where(orders: { business_id: business.id, created_at: start_date..end_date })
-        .where(item_type: 'Product')
-        .group(:item_id)
+        .where(lineable_type: 'Order', lineable_id: order_ids)
+        .where.not(product_variant_id: nil)
+        .joins(product_variant: :product)
+        .group('products.id')
         .select(
-          'item_id',
-          'SUM(quantity) as total_quantity',
-          'SUM(quantity * unit_price) as total_revenue',
-          'COUNT(DISTINCT order_id) as order_count'
+          'products.id as product_id',
+          'products.name as product_name',
+          'products.category as product_category',
+          'SUM(line_items.quantity) as total_quantity',
+          'SUM(line_items.quantity * line_items.price) as total_revenue',
+          'COUNT(DISTINCT line_items.lineable_id) as order_count'
         )
         .order('total_revenue DESC')
         .limit(limit)
       
       product_sales.map do |sale|
-        product = Product.find_by(id: sale.item_id)
-        next nil unless product
-        
-        views = product_views_for(product.id, start_date, end_date)
+        views = product_views_for(sale.product_id, start_date, end_date)
         
         {
-          product_id: product.id,
-          product_name: product.name,
-          category: product.category,
-          quantity_sold: sale.total_quantity,
+          product_id: sale.product_id,
+          product_name: sale.product_name,
+          category: sale.product_category,
+          quantity_sold: sale.total_quantity.to_i,
           revenue: sale.total_revenue.to_f,
-          order_count: sale.order_count,
+          order_count: sale.order_count.to_i,
           views: views,
           conversion_rate: views > 0 ? (sale.order_count.to_f / views * 100).round(2) : 0
         }
-      end.compact
+      end
     end
 
     # Get product performance by category
@@ -77,23 +79,24 @@ module Analytics
     # @param end_date [Date] End of period
     # @return [Hash] Revenue and sales by category
     def revenue_by_category(orders)
-      # Get line items with product info
+      # Get line items with product info through product_variant -> product
+      # LineItem uses product_variant_id to reference products (not item_id/item_type)
+      order_ids = orders.pluck(:id)
       category_sales = LineItem
-        .joins(:order)
-        .joins("LEFT JOIN products ON line_items.item_id = products.id AND line_items.item_type = 'Product'")
-        .where(orders: { business_id: business.id })
-        .where(item_type: 'Product')
+        .where(lineable_type: 'Order', lineable_id: order_ids)
+        .where.not(product_variant_id: nil)
+        .joins(product_variant: :product)
         .group('products.category')
         .select(
           'products.category',
           'SUM(line_items.quantity) as quantity',
-          'SUM(line_items.quantity * line_items.unit_price) as revenue'
+          'SUM(line_items.quantity * line_items.price) as revenue'
         )
       
       category_sales.each_with_object({}) do |sale, hash|
         category = sale.category.presence || 'Uncategorized'
         hash[category] = {
-          quantity: sale.quantity,
+          quantity: sale.quantity.to_i,
           revenue: sale.revenue.to_f
         }
       end
@@ -160,7 +163,7 @@ module Analytics
       business.orders
         .where(created_at: start_date..end_date)
         .group("DATE(created_at)")
-        .select("DATE(created_at) as date, COUNT(*) as orders, SUM(total) as revenue")
+        .select("DATE(created_at) as date, COUNT(*) as orders, SUM(total_amount) as revenue")
         .map do |row|
           {
             date: row.date,
@@ -187,29 +190,32 @@ module Analytics
     end
 
     def calculate_total_revenue(orders)
-      orders.where(status: [:completed, :delivered]).sum(:total).to_f
+      orders.where(status: [:completed, :delivered]).sum(:total_amount).to_f
     end
 
     def calculate_average_order_value(orders)
       completed = orders.where(status: [:completed, :delivered])
       return 0.0 if completed.count.zero?
-      
-      (completed.sum(:total).to_f / completed.count).round(2)
+
+      (completed.sum(:total_amount).to_f / completed.count).round(2)
     end
 
     def calculate_total_items_sold(orders)
+      order_ids = orders.pluck(:id)
       LineItem
-        .joins(:order)
-        .where(orders: { id: orders.pluck(:id) })
+        .where(lineable_type: 'Order', lineable_id: order_ids)
         .sum(:quantity)
     end
 
     def calculate_unique_products_sold(orders)
+      order_ids = orders.pluck(:id)
+      # Count unique products through product_variant -> product relationship
       LineItem
-        .joins(:order)
-        .where(orders: { id: orders.pluck(:id) }, item_type: 'Product')
+        .where(lineable_type: 'Order', lineable_id: order_ids)
+        .where.not(product_variant_id: nil)
+        .joins(product_variant: :product)
         .distinct
-        .count(:item_id)
+        .count('products.id')
     end
 
     def calculate_view_to_purchase_rate(views, orders)

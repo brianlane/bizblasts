@@ -38,16 +38,46 @@
     <%= form_with url: business_manager_perform_export_analytics_path, method: :post, local: true, class: "space-y-6" do |f| %>
       <!-- Export Type -->
       <div>
-        <label for="export_type" class="block text-sm font-medium text-gray-700 mb-2">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
           Data Type
         </label>
-        <select name="export_type" id="export_type"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-          <% @export_types.each do |type| %>
-            <option value="<%= type %>"><%= type.humanize %></option>
-          <% end %>
-        </select>
-        <p class="mt-1 text-sm text-gray-500">
+        <div class="relative inline-block w-48"
+             data-controller="dropdown"
+             data-dropdown-selected-value-value="<%= @export_types.first %>">
+          
+          <!-- Hidden Input for form submission -->
+          <input type="hidden" name="export_type" value="<%= @export_types.first %>" data-dropdown-target="hidden">
+          
+          <!-- Dropdown Button -->
+          <button type="button"
+                  class="flex items-center justify-between w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  data-dropdown-target="button"
+                  data-action="click->dropdown#toggle"
+                  aria-haspopup="listbox"
+                  aria-expanded="false">
+            <span class="rich-dropdown-text text-gray-900"><%= @export_types.first.humanize %></span>
+            <svg class="w-4 h-4 text-gray-400 ml-2 flex-shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          
+          <!-- Dropdown Menu -->
+          <div class="hidden absolute left-0 mt-1 w-full bg-white shadow-xl rounded-lg py-1 border border-gray-200 z-50"
+               data-dropdown-target="menu"
+               role="listbox">
+            <% @export_types.each_with_index do |type, index| %>
+              <div class="relative flex items-center px-4 py-2.5 text-sm cursor-pointer hover:bg-gray-100 transition-colors"
+                   data-dropdown-target="option"
+                   data-action="click->dropdown#select"
+                   data-item-id="<%= type %>"
+                   data-item-text="<%= type.humanize %>"
+                   role="option">
+                <span><%= type.humanize %></span>
+              </div>
+            <% end %>
+          </div>
+        </div>
+        <p class="mt-2 text-sm text-gray-500">
           Choose what type of analytics data you want to export.
         </p>
       </div>

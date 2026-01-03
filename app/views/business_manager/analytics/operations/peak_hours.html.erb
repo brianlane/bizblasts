@@ -1,0 +1,225 @@
+<% content_for :title, "Peak Hours Heatmap" %>
+
+<div class="space-y-6">
+  <!-- Header with Period Selector -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Peak Hours Heatmap</h1>
+      <p class="text-sm text-gray-600 mt-1">Visual heatmap showing busy hours and booking patterns</p>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <%= render 'shared/period_selector', period: @period || :last_90_days, base_path: peak_hours_business_manager_analytics_operations_path %>
+      <%= link_to "Export CSV", export_business_manager_analytics_operations_path(format: :csv, period: @period),
+                  class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" %>
+    </div>
+  </div>
+
+  <!-- Back Link -->
+  <%= link_to business_manager_analytics_operations_path, class: "inline-flex items-center text-sm text-gray-600 hover:text-gray-900" do %>
+    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Back to Operations Analytics
+  <% end %>
+
+  <!-- Summary Stats -->
+  <% if @heatmap_data.present? %>
+    <% total_bookings = @heatmap_data.values.sum { |hours| hours.values.sum } %>
+    <% busiest_day = @heatmap_data.max_by { |day, hours| hours.values.sum } %>
+    <% busiest_hour = @heatmap_data.flat_map { |day, hours| hours.map { |hour, count| [hour, count] } }.max_by { |hour, count| count } %>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Total Bookings</p>
+            <p class="text-2xl font-semibold text-gray-900 mt-2"><%= total_bookings %></p>
+          </div>
+          <div class="bg-blue-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <% if busiest_day.present? %>
+        <div class="bg-white rounded-lg shadow p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600">Busiest Day</p>
+              <p class="text-lg font-semibold text-gray-900 mt-2"><%= busiest_day[0].to_s.titleize %></p>
+              <p class="text-sm text-gray-500"><%= busiest_day[1].values.sum %> bookings</p>
+            </div>
+            <div class="bg-green-100 p-3 rounded-full">
+              <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <% if busiest_hour.present? %>
+        <div class="bg-white rounded-lg shadow p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600">Busiest Hour</p>
+              <p class="text-lg font-semibold text-gray-900 mt-2"><%= busiest_hour[0] %>:00</p>
+              <p class="text-sm text-gray-500"><%= busiest_hour[1] %> bookings</p>
+            </div>
+            <div class="bg-purple-100 p-3 rounded-full">
+              <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Daily Average</p>
+            <p class="text-2xl font-semibold text-gray-900 mt-2">
+              <%= (total_bookings / @heatmap_data.keys.count.to_f).round(1) %>
+            </p>
+          </div>
+          <div class="bg-yellow-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Heatmap Visualization -->
+  <div class="bg-white rounded-lg shadow">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-xl font-semibold text-gray-900">Booking Heatmap</h2>
+      <p class="text-sm text-gray-600 mt-1">Color intensity represents booking volume</p>
+    </div>
+
+    <div class="p-6">
+      <% if @heatmap_data.present? && @heatmap_data.any? %>
+        <% max_bookings = @heatmap_data.flat_map { |day, hours| hours.values }.max || 1 %>
+        <% days_of_week = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] %>
+        <% hours_range = (8..20).to_a %> <!-- Typical business hours 8am - 8pm -->
+
+        <!-- Mobile View: Day by Day -->
+        <div class="lg:hidden space-y-4">
+          <% days_of_week.each do |day| %>
+            <div class="border rounded-lg p-4">
+              <h3 class="font-semibold text-gray-900 mb-3"><%= day.titleize %></h3>
+              <div class="grid grid-cols-6 gap-2">
+                <% hours_range.each do |hour| %>
+                  <% count = @heatmap_data.dig(day.to_sym, hour) || 0 %>
+                  <% intensity = count > 0 ? (count.to_f / max_bookings * 100).round : 0 %>
+                  <div class="text-center">
+                    <div class="text-xs text-gray-600 mb-1"><%= hour %>:00</div>
+                    <div class="h-12 rounded flex items-center justify-center text-xs font-medium <%=
+                      if intensity >= 75
+                        'bg-red-500 text-white'
+                      elsif intensity >= 50
+                        'bg-orange-400 text-white'
+                      elsif intensity >= 25
+                        'bg-yellow-300 text-gray-900'
+                      elsif intensity > 0
+                        'bg-green-200 text-gray-900'
+                      else
+                        'bg-gray-100 text-gray-400'
+                      end
+                    %>">
+                      <%= count %>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Desktop View: Grid Heatmap -->
+        <div class="hidden lg:block overflow-x-auto">
+          <div class="inline-block min-w-full">
+            <!-- Hour labels -->
+            <div class="flex mb-2">
+              <div class="w-24"></div>
+              <% hours_range.each do |hour| %>
+                <div class="flex-1 text-center text-xs text-gray-600 px-1">
+                  <%= hour %>:00
+                </div>
+              <% end %>
+            </div>
+
+            <!-- Heatmap grid -->
+            <% days_of_week.each do |day| %>
+              <div class="flex mb-2">
+                <div class="w-24 flex items-center">
+                  <span class="text-sm font-medium text-gray-700"><%= day.titleize %></span>
+                </div>
+                <% hours_range.each do |hour| %>
+                  <% count = @heatmap_data.dig(day.to_sym, hour) || 0 %>
+                  <% intensity = count > 0 ? (count.to_f / max_bookings * 100).round : 0 %>
+                  <div class="flex-1 px-1">
+                    <div class="h-12 rounded flex items-center justify-center text-sm font-medium <%=
+                      if intensity >= 75
+                        'bg-red-500 text-white'
+                      elsif intensity >= 50
+                        'bg-orange-400 text-white'
+                      elsif intensity >= 25
+                        'bg-yellow-300 text-gray-900'
+                      elsif intensity > 0
+                        'bg-green-200 text-gray-900'
+                      else
+                        'bg-gray-100 text-gray-400'
+                      end
+                    %>" title="<%= count %> bookings at <%= hour %>:00 on <%= day.titleize %>">
+                      <%= count %>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+
+            <!-- Legend -->
+            <div class="mt-6 flex items-center justify-center gap-4">
+              <span class="text-sm text-gray-600">Booking Volume:</span>
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-gray-100 rounded"></div>
+                <span class="text-xs text-gray-600">None</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-green-200 rounded"></div>
+                <span class="text-xs text-gray-600">Low</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-yellow-300 rounded"></div>
+                <span class="text-xs text-gray-600">Medium</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-orange-400 rounded"></div>
+                <span class="text-xs text-gray-600">High</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-red-500 rounded"></div>
+                <span class="text-xs text-gray-600">Peak</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% else %>
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No heatmap data</h3>
+          <p class="mt-1 text-sm text-gray-500">No bookings found in the selected period.</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

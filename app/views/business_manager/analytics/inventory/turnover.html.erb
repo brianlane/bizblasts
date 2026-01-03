@@ -1,0 +1,229 @@
+<% content_for :title, "Stock Turnover Analysis" %>
+
+<div class="space-y-6">
+  <!-- Header with Period Selector -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Stock Turnover Analysis</h1>
+      <p class="text-sm text-gray-600 mt-1">Turnover rate analysis by product</p>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <%= render 'shared/period_selector', period: @period || :last_90_days, base_path: turnover_business_manager_analytics_inventory_index_path %>
+      <%= link_to "Export CSV", export_business_manager_analytics_inventory_index_path(format: :csv, period: @period),
+                  class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" %>
+    </div>
+  </div>
+
+  <!-- Back Link -->
+  <%= link_to business_manager_analytics_inventory_index_path, class: "inline-flex items-center text-sm text-gray-600 hover:text-gray-900" do %>
+    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Back to Inventory Analytics
+  <% end %>
+
+  <!-- Summary Stats -->
+  <% if @turnover_data.present? && @turnover_data.any? %>
+    <% avg_turnover = @turnover_data.sum { |d| d[:turnover_rate] } / @turnover_data.count.to_f %>
+    <% fast_movers = @turnover_data.select { |d| d[:turnover_rate] >= 4 } %>
+    <% slow_movers = @turnover_data.select { |d| d[:turnover_rate] < 2 } %>
+    <% best_performer = @turnover_data.max_by { |d| d[:turnover_rate] } %>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Avg Turnover Rate</p>
+            <p class="text-2xl font-semibold text-gray-900 mt-2"><%= number_with_precision(avg_turnover, precision: 2) %>x</p>
+            <p class="text-xs text-gray-500 mt-1">Per period</p>
+          </div>
+          <div class="bg-blue-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Fast Movers</p>
+            <p class="text-2xl font-semibold text-green-600 mt-2"><%= fast_movers.count %></p>
+            <p class="text-xs text-gray-500 mt-1">Turnover &ge; 4x</p>
+          </div>
+          <div class="bg-green-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Slow Movers</p>
+            <p class="text-2xl font-semibold text-red-600 mt-2"><%= slow_movers.count %></p>
+            <p class="text-xs text-gray-500 mt-1">Turnover &lt; 2x</p>
+          </div>
+          <div class="bg-red-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <% if best_performer.present? %>
+        <div class="bg-white rounded-lg shadow p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600">Best Performer</p>
+              <p class="text-lg font-semibold text-gray-900 mt-2"><%= best_performer[:product_name].truncate(15) %></p>
+              <p class="text-sm text-green-600 font-medium"><%= number_with_precision(best_performer[:turnover_rate], precision: 2) %>x turnover</p>
+            </div>
+            <div class="bg-purple-100 p-3 rounded-full">
+              <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <!-- Stock Turnover Table -->
+  <div class="bg-white rounded-lg shadow">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-xl font-semibold text-gray-900">Product Turnover Rates</h2>
+      <p class="text-sm text-gray-600 mt-1">Higher rates indicate faster-selling products</p>
+    </div>
+
+    <div class="p-6">
+      <% if @turnover_data.present? && @turnover_data.any? %>
+        <!-- Mobile Cards -->
+        <div class="lg:hidden space-y-4">
+          <% @turnover_data.each_with_index do |data, index| %>
+            <% performance_class = data[:turnover_rate] >= 4 ? 'border-green-500 bg-green-50' : data[:turnover_rate] >= 2 ? 'border-blue-500 bg-blue-50' : 'border-red-500 bg-red-50' %>
+            <div class="border-l-4 <%= performance_class %> rounded-lg p-4">
+              <div class="flex items-start justify-between mb-2">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-semibold text-gray-500">#<%= index + 1 %></span>
+                    <h3 class="font-semibold text-gray-900"><%= data[:product_name] %></h3>
+                  </div>
+                </div>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= data[:turnover_rate] >= 4 ? 'bg-green-100 text-green-800' : data[:turnover_rate] >= 2 ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800' %>">
+                  <%= data[:turnover_rate] >= 4 ? 'Fast' : data[:turnover_rate] >= 2 ? 'Normal' : 'Slow' %>
+                </span>
+              </div>
+
+              <div class="text-center py-4">
+                <div class="text-3xl font-bold <%= data[:turnover_rate] >= 4 ? 'text-green-600' : data[:turnover_rate] >= 2 ? 'text-blue-600' : 'text-red-600' %>">
+                  <%= number_with_precision(data[:turnover_rate], precision: 2) %>x
+                </div>
+                <div class="text-xs text-gray-600 mt-1">Turnover Rate</div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Desktop Table -->
+        <div class="hidden lg:block overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Rank
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Product
+                </th>
+                <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Turnover Rate
+                </th>
+                <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Performance
+                </th>
+                <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Visual
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <% @turnover_data.each_with_index do |data, index| %>
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full <%= index < 3 ? 'bg-blue-100 text-blue-600 font-semibold' : 'bg-gray-100 text-gray-600' %>">
+                      <%= index + 1 %>
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900"><%= data[:product_name] %></div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-center">
+                    <div class="text-2xl font-bold <%= data[:turnover_rate] >= 4 ? 'text-green-600' : data[:turnover_rate] >= 2 ? 'text-blue-600' : 'text-red-600' %>">
+                      <%= number_with_precision(data[:turnover_rate], precision: 2) %>x
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-center">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium <%= data[:turnover_rate] >= 4 ? 'bg-green-100 text-green-800' : data[:turnover_rate] >= 2 ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800' %>">
+                      <%= data[:turnover_rate] >= 4 ? 'Fast Mover' : data[:turnover_rate] >= 2 ? 'Normal' : 'Slow Mover' %>
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                      <% max_turnover = [@turnover_data.max_by { |d| d[:turnover_rate] }[:turnover_rate], 10].min %>
+                      <% bar_width = max_turnover > 0 ? [(data[:turnover_rate] / max_turnover * 100).round(1), 100].min : 0 %>
+                      <div class="<%= data[:turnover_rate] >= 4 ? 'bg-green-500' : data[:turnover_rate] >= 2 ? 'bg-blue-500' : 'bg-red-500' %> h-3 rounded-full"
+                           style="width: <%= bar_width %>%"></div>
+                    </div>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Turnover Rate Guide -->
+        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 class="text-sm font-semibold text-blue-900 mb-3">Understanding Turnover Rates</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div class="flex items-start">
+              <div class="bg-green-500 w-3 h-3 rounded-full mt-1 mr-2 flex-shrink-0"></div>
+              <div>
+                <div class="font-medium text-green-900">Fast Movers (&ge; 4x)</div>
+                <div class="text-green-800">Excellent performance. Stock turns over 4+ times per period.</div>
+              </div>
+            </div>
+            <div class="flex items-start">
+              <div class="bg-blue-500 w-3 h-3 rounded-full mt-1 mr-2 flex-shrink-0"></div>
+              <div>
+                <div class="font-medium text-blue-900">Normal (2-4x)</div>
+                <div class="text-blue-800">Healthy turnover. Stock moves at a steady pace.</div>
+              </div>
+            </div>
+            <div class="flex items-start">
+              <div class="bg-red-500 w-3 h-3 rounded-full mt-1 mr-2 flex-shrink-0"></div>
+              <div>
+                <div class="font-medium text-red-900">Slow Movers (&lt; 2x)</div>
+                <div class="text-red-800">Consider promotions or reducing inventory levels.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% else %>
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No turnover data</h3>
+          <p class="mt-1 text-sm text-gray-500">Insufficient data to calculate turnover rates.</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

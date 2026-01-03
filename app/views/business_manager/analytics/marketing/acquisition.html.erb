@@ -1,0 +1,250 @@
+<% content_for :title, "Customer Acquisition Sources" %>
+
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Customer Acquisition Sources</h1>
+      <p class="text-sm text-gray-600 mt-1">Track which sources are bringing in new customers</p>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <%= render 'shared/period_selector', period: params[:period] || 30, base_path: acquisition_business_manager_analytics_marketing_index_path %>
+      <%= link_to "Export CSV", export_business_manager_analytics_marketing_index_path(format: :csv, period: params[:period]),
+                  class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" %>
+    </div>
+  </div>
+
+  <!-- Back Link -->
+  <%= link_to business_manager_analytics_marketing_index_path, class: "inline-flex items-center text-sm text-gray-600 hover:text-gray-900" do %>
+    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Back to Marketing Analytics
+  <% end %>
+
+  <!-- Summary Stats -->
+  <% if @acquisition_data.present? %>
+    <% total_customers = @acquisition_data[:total_customers] || 0 %>
+    <% top_source = @acquisition_data[:top_source] || {} %>
+    <% avg_cac = @acquisition_data[:avg_customer_acquisition_cost] || 0 %>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Total New Customers</p>
+            <p class="text-2xl font-semibold text-blue-600 mt-2"><%= number_with_delimiter(total_customers) %></p>
+            <p class="text-xs text-gray-500 mt-1">Last <%= params[:period] || 30 %> days</p>
+          </div>
+          <div class="bg-blue-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Top Source</p>
+            <p class="text-2xl font-semibold text-green-600 mt-2"><%= top_source[:source_name] || 'N/A' %></p>
+            <p class="text-xs text-gray-500 mt-1"><%= top_source[:customer_count] || 0 %> customers</p>
+          </div>
+          <div class="bg-green-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Avg CAC</p>
+            <p class="text-2xl font-semibold text-purple-600 mt-2"><%= number_to_currency(avg_cac) %></p>
+            <p class="text-xs text-gray-500 mt-1">Customer acquisition cost</p>
+          </div>
+          <div class="bg-purple-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Total Sources</p>
+            <p class="text-2xl font-semibold text-gray-900 mt-2"><%= @acquisition_data[:sources]&.length || 0 %></p>
+            <p class="text-xs text-gray-500 mt-1">Active channels</p>
+          </div>
+          <div class="bg-gray-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Acquisition Sources Breakdown -->
+  <div class="bg-white rounded-lg shadow">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-xl font-semibold text-gray-900">Acquisition Sources</h2>
+      <p class="text-sm text-gray-600 mt-1">Customer count and cost by acquisition source</p>
+    </div>
+
+    <div class="p-6">
+      <% if @acquisition_data.present? && @acquisition_data[:sources].present? && @acquisition_data[:sources].any? %>
+        <% total_customers = @acquisition_data[:total_customers] || 1 %>
+
+        <!-- Mobile Cards -->
+        <div class="space-y-4 lg:hidden">
+          <% @acquisition_data[:sources].each do |source| %>
+            <% customer_pct = (source[:customer_count].to_f / total_customers * 100).round(1) %>
+            <div class="border border-gray-200 rounded-lg p-4">
+              <div class="flex justify-between items-start mb-3">
+                <div class="flex-1">
+                  <h3 class="font-semibold text-gray-900"><%= source[:source_name] %></h3>
+                  <p class="text-sm text-gray-600"><%= number_to_percentage(customer_pct, precision: 1) %> of customers</p>
+                </div>
+                <span class="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  <%= source[:customer_count] %> customers
+                </span>
+              </div>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <span class="text-gray-600">CAC:</span>
+                  <span class="font-medium text-purple-600"><%= number_to_currency(source[:cac] || 0) %></span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Total Spent:</span>
+                  <span class="font-medium text-gray-900"><%= number_to_currency(source[:total_spent] || 0) %></span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">LTV:</span>
+                  <span class="font-medium text-green-600"><%= number_to_currency(source[:avg_ltv] || 0) %></span>
+                </div>
+              </div>
+              <!-- Progress bar -->
+              <div class="mt-3 w-full bg-gray-200 rounded-full h-2">
+                <div class="bg-blue-500 h-2 rounded-full" style="width: <%= [customer_pct, 100].min %>%"></div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Desktop Table -->
+        <div class="hidden lg:block overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Source
+                </th>
+                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Customers
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  % of Total
+                </th>
+                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Total Spent
+                </th>
+                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  CAC
+                </th>
+                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Avg LTV
+                </th>
+                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  LTV:CAC Ratio
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <% @acquisition_data[:sources].each do |source| %>
+                <% customer_pct = (source[:customer_count].to_f / total_customers * 100).round(1) %>
+                <% ltv_cac_ratio = source[:cac] > 0 ? (source[:avg_ltv].to_f / source[:cac]) : 0 %>
+                <tr>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900"><%= source[:source_name] %></div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <div class="text-sm font-semibold text-blue-600"><%= source[:customer_count] %></div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                      <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                        <div class="bg-blue-500 h-2 rounded-full" style="width: <%= [customer_pct, 100].min %>%"></div>
+                      </div>
+                      <span class="text-sm text-gray-900"><%= number_to_percentage(customer_pct, precision: 0) %></span>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <div class="text-sm text-gray-900"><%= number_to_currency(source[:total_spent] || 0) %></div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <div class="text-sm font-medium text-purple-600"><%= number_to_currency(source[:cac] || 0) %></div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <div class="text-sm font-medium text-green-600"><%= number_to_currency(source[:avg_ltv] || 0) %></div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= ltv_cac_ratio >= 3 ? 'bg-green-100 text-green-800' : ltv_cac_ratio >= 1 ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800' %>">
+                      <%= number_with_precision(ltv_cac_ratio, precision: 1) %>:1
+                    </span>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Acquisition Insights -->
+        <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 class="text-sm font-semibold text-blue-900 mb-3">Customer Acquisition Insights</h3>
+          <div class="space-y-2 text-sm text-blue-800">
+            <div class="flex items-start">
+              <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span><strong>LTV:CAC Ratio 3:1 or higher:</strong> Excellent - sustainable growth with healthy margins</span>
+            </div>
+            <div class="flex items-start">
+              <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span><strong>Focus budget on top-performing sources</strong> with highest customer counts and best LTV:CAC ratios</span>
+            </div>
+            <div class="flex items-start">
+              <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span><strong>Test and optimize underperforming sources</strong> before cutting them entirely</span>
+            </div>
+            <div class="flex items-start">
+              <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>Diversify across multiple channels to reduce dependency on single source</span>
+            </div>
+          </div>
+        </div>
+      <% else %>
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No acquisition data</h3>
+          <p class="mt-1 text-sm text-gray-500">No customer acquisition sources found for the selected period.</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

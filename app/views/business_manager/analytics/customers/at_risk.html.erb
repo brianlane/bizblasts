@@ -1,0 +1,195 @@
+<div class="container mx-auto px-4 py-8">
+  <div class="flex justify-between items-center mb-8">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">At-Risk Customers</h1>
+      <p class="text-gray-600 mt-2">Customers with high probability of churning</p>
+    </div>
+    <%= link_to "Back to Analytics", business_manager_analytics_customers_path, class: "btn btn-secondary cursor-pointer" %>
+  </div>
+
+  <!-- Churn Statistics Summary -->
+  <div class="bg-white rounded-lg shadow mb-8 p-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div>
+        <p class="text-sm text-gray-600">Total At-Risk</p>
+        <p class="text-3xl font-bold text-red-600"><%= @at_risk_customers.length %></p>
+      </div>
+      <div>
+        <p class="text-sm text-gray-600">High Risk (70%+)</p>
+        <p class="text-3xl font-bold text-red-800">
+          <%= @at_risk_customers.count { |c| c[:churn_probability] >= 70 } %>
+        </p>
+      </div>
+      <div>
+        <p class="text-sm text-gray-600">Medium Risk (40-70%)</p>
+        <p class="text-3xl font-bold text-orange-600">
+          <%= @at_risk_customers.count { |c| c[:churn_probability] >= 40 && c[:churn_probability] < 70 } %>
+        </p>
+      </div>
+      <div>
+        <p class="text-sm text-gray-600">Avg Churn Probability</p>
+        <p class="text-3xl font-bold text-yellow-600"><%= @churn_stats[:avg_churn_probability] %>%</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- At-Risk Customers Table -->
+  <div class="bg-white rounded-lg shadow">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-xl font-semibold text-gray-900">Customer Details</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Customer
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Churn Risk
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Days Inactive
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Total Revenue
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Purchases
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Risk Factors
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Actions
+            </th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <% @at_risk_customers.each do |customer_data| %>
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                  <div>
+                    <div class="text-sm font-medium text-gray-900">
+                      <%= link_to customer_data[:customer].full_name,
+                                  business_manager_customer_path(customer_data[:customer]),
+                                  class: "text-blue-600 hover:text-blue-800" %>
+                    </div>
+                    <div class="text-sm text-gray-500"><%= customer_data[:customer].email %></div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <% probability = customer_data[:churn_probability] %>
+                <% color_class = probability >= 70 ? 'bg-red-100 text-red-800' : probability >= 40 ? 'bg-orange-100 text-orange-800' : 'bg-yellow-100 text-yellow-800' %>
+                <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full <%= color_class %>">
+                  <%= probability %>%
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <%= customer_data[:days_since_purchase] || 'N/A' %> days
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <%= number_to_currency(customer_data[:total_revenue]) %>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <%= customer_data[:purchase_count] %>
+              </td>
+              <td class="px-6 py-4">
+                <div class="flex flex-wrap gap-1">
+                  <% customer_data[:risk_factors].each do |factor| %>
+                    <%
+                      factor_label = case factor
+                      when :long_absence then { text: 'Long Absence', color: 'red' }
+                      when :declining_frequency then { text: 'Declining Freq', color: 'orange' }
+                      when :declining_spend then { text: 'Lower Spend', color: 'yellow' }
+                      when :missed_appointments then { text: 'Missed Appts', color: 'purple' }
+                      when :single_purchase then { text: 'Single Purchase', color: 'blue' }
+                      else { text: factor.to_s.humanize, color: 'gray' }
+                      end
+                    %>
+                    <span class="px-2 py-1 text-xs font-medium rounded bg-<%= factor_label[:color] %>-100 text-<%= factor_label[:color] %>-800">
+                      <%= factor_label[:text] %>
+                    </span>
+                  <% end %>
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <%= link_to "View Details",
+                            business_manager_customer_path(customer_data[:customer]),
+                            class: "text-blue-600 hover:text-blue-900" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <% if @at_risk_customers.empty? %>
+      <div class="text-center py-12">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">No at-risk customers</h3>
+        <p class="mt-1 text-sm text-gray-500">All customers are engaged and active</p>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Recommended Actions Section -->
+  <% if @at_risk_customers.any? %>
+    <div class="mt-8 bg-blue-50 rounded-lg shadow p-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Recommended Actions</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-white rounded-lg p-4">
+          <h3 class="font-semibold text-gray-900 mb-2">High Priority</h3>
+          <ul class="space-y-2 text-sm text-gray-700">
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-red-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <span>Send personalized win-back campaigns to customers with long absences</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-red-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <span>Personal outreach for customers with missed appointments</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-red-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <span>Offer special incentives to high-value customers at risk</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="bg-white rounded-lg p-4">
+          <h3 class="font-semibold text-gray-900 mb-2">Medium Priority</h3>
+          <ul class="space-y-2 text-sm text-gray-700">
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-yellow-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <span>Re-engagement campaigns for declining frequency customers</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-yellow-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <span>Loyalty points boost for customers with declining spend</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-yellow-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <span>Showcase new services/products to maintain interest</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>

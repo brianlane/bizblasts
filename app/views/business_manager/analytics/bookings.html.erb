@@ -1,0 +1,179 @@
+<% content_for :title, "Booking Analytics" %>
+
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Booking Analytics</h1>
+      <p class="text-sm text-gray-600 mt-1">Track booking performance and trends</p>
+    </div>
+
+    <!-- Period Selector -->
+    <%= render 'shared/period_selector', period: @period, base_path: business_manager_analytics_bookings_path %>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <%= render 'business_manager/analytics/navigation_tabs', period: @period, active_tab: 'bookings' %>
+
+  <!-- Booking Metrics Summary -->
+  <% if @metrics.present? %>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white p-6 rounded-lg shadow">
+        <div class="text-sm font-medium text-gray-500 mb-2">Total Bookings</div>
+        <div class="text-3xl font-bold text-gray-900"><%= number_with_delimiter(@metrics[:total] || 0) %></div>
+      </div>
+
+      <div class="bg-white p-6 rounded-lg shadow">
+        <div class="text-sm font-medium text-gray-500 mb-2">Completed</div>
+        <div class="text-3xl font-bold text-green-600"><%= @metrics[:completed] || 0 %></div>
+        <div class="text-xs text-gray-500 mt-1"><%= @metrics[:completion_rate] %>% rate</div>
+      </div>
+
+      <div class="bg-white p-6 rounded-lg shadow">
+        <div class="text-sm font-medium text-gray-500 mb-2">Total Revenue</div>
+        <div class="text-3xl font-bold text-gray-900"><%= number_to_currency(@metrics[:total_revenue] || 0) %></div>
+      </div>
+
+      <div class="bg-white p-6 rounded-lg shadow">
+        <div class="text-sm font-medium text-gray-500 mb-2">Avg Value</div>
+        <div class="text-3xl font-bold text-gray-900"><%= number_to_currency(@metrics[:average_value] || 0) %></div>
+      </div>
+    </div>
+
+    <!-- Status Breakdown -->
+    <div class="bg-white p-6 rounded-lg shadow">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Status Breakdown</h2>
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div class="text-center p-4 bg-blue-50 rounded-lg">
+          <div class="text-2xl font-bold text-blue-600"><%= @metrics[:pending] || 0 %></div>
+          <div class="text-sm text-blue-700">Pending</div>
+        </div>
+        <div class="text-center p-4 bg-green-50 rounded-lg">
+          <div class="text-2xl font-bold text-green-600"><%= @metrics[:confirmed] || 0 %></div>
+          <div class="text-sm text-green-700">Confirmed</div>
+        </div>
+        <div class="text-center p-4 bg-purple-50 rounded-lg">
+          <div class="text-2xl font-bold text-purple-600"><%= @metrics[:completed] || 0 %></div>
+          <div class="text-sm text-purple-700">Completed</div>
+        </div>
+        <div class="text-center p-4 bg-red-50 rounded-lg">
+          <div class="text-2xl font-bold text-red-600"><%= @metrics[:cancelled] || 0 %></div>
+          <div class="text-sm text-red-700">Cancelled (<%= @metrics[:cancellation_rate] %>%)</div>
+        </div>
+        <div class="text-center p-4 bg-yellow-50 rounded-lg">
+          <div class="text-2xl font-bold text-yellow-600"><%= @metrics[:no_show] || 0 %></div>
+          <div class="text-sm text-yellow-700">No-Show (<%= @metrics[:no_show_rate] %>%)</div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Top Services -->
+  <% if @top_services.present? && @top_services.any? %>
+    <div class="bg-white p-6 rounded-lg shadow">
+      <h2 class="text-lg font-semibold text-gray-900 mb-6">Top Services by Bookings</h2>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bookings</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completed</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completion Rate</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <% @top_services.each do |service| %>
+              <tr>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900"><%= service[:service_name] %></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <%= number_to_currency(service[:price] || 0) %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <%= service[:bookings] %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <%= service[:completed] %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <%= number_to_currency(service[:revenue] || 0) %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= service[:completion_rate] > 80 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' %>">
+                    <%= service[:completion_rate] %>%
+                  </span>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Staff Performance -->
+  <% if @staff_performance.present? && @staff_performance.any? %>
+    <div class="bg-white p-6 rounded-lg shadow">
+      <h2 class="text-lg font-semibold text-gray-900 mb-6">Staff Performance</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <% @staff_performance.each do |staff| %>
+          <div class="border border-gray-200 rounded-lg p-4">
+            <h3 class="text-sm font-semibold text-gray-900 mb-3"><%= staff[:staff_name] %></h3>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-500">Total Bookings</span>
+                <span class="font-medium text-gray-900"><%= staff[:total_bookings] %></span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Completed</span>
+                <span class="font-medium text-green-600"><%= staff[:completed_bookings] %></span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Completion Rate</span>
+                <span class="font-medium text-gray-900"><%= staff[:completion_rate] %>%</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Avg Value</span>
+                <span class="font-medium text-gray-900"><%= number_to_currency(staff[:avg_booking_value] || 0) %></span>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Booking Heatmap -->
+  <% if @heatmap.present? && @heatmap.any? %>
+    <div class="bg-white p-6 rounded-lg shadow">
+      <h2 class="text-lg font-semibold text-gray-900 mb-6">Booking Heatmap (Day × Hour)</h2>
+      <div class="text-sm text-gray-600 mb-4">
+        Peak booking times help optimize staff scheduling and resource allocation.
+      </div>
+
+      <div class="overflow-x-auto">
+        <div class="inline-block min-w-full">
+          <div class="text-xs text-gray-500 mb-2">Darker colors indicate higher booking volume</div>
+          <!-- Simplified heatmap visualization -->
+          <% if @heatmap[:peak_day].present? && @heatmap[:peak_hour].present? %>
+            <div class="grid grid-cols-2 gap-4 mt-4">
+              <div class="bg-blue-50 p-4 rounded-lg">
+                <div class="text-sm text-gray-600 mb-1">Peak Day</div>
+                <div class="text-xl font-bold text-blue-600"><%= @heatmap[:peak_day] %></div>
+              </div>
+              <div class="bg-purple-50 p-4 rounded-lg">
+                <div class="text-sm text-gray-600 mb-1">Peak Hour</div>
+                <div class="text-xl font-bold text-purple-600"><%= @heatmap[:peak_hour] %>:00</div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>
+

@@ -66,6 +66,12 @@ RSpec.describe 'Tenant Isolation Security', type: :request do
   end
 
   describe 'Email enumeration protection' do
+    before do
+      # Ensure mailer has host configured for URL generation
+      ActionMailer::Base.default_url_options[:host] = 'lvh.me'
+      ActionMailer::Base.default_url_options[:port] = 3000
+    end
+
     it 'returns same response for existing and non-existing emails' do
       existing_email = manager1.email
       non_existing_email = 'nonexistent@example.com'

@@ -180,9 +180,10 @@
       
       <!-- Mobile List View (visible on mobile) -->
       <div class="block sm:hidden">
-        <% current_date = @calendar_start_date %>
-        <% today = Date.current %>
-        <% while current_date <= @calendar_end_date %>
+        <% if @calendar_start_date && @calendar_end_date %>
+          <% current_date = @calendar_start_date %>
+          <% today = Date.current %>
+          <% while current_date <= @calendar_end_date %>
           <% slots_count = (@calendar_data[current_date.to_s] || []).length %>
           <% is_past_date = current_date < today %>
           <% next current_date += 1.day if is_past_date %>
@@ -209,14 +210,20 @@
               </div>
             </button>
           </div>
-          <% current_date += 1.day %>
+            <% current_date += 1.day %>
+          <% end %>
+        <% else %>
+          <div class="p-4 text-center text-gray-500">
+            Please select a service to view available appointment times.
+          </div>
         <% end %>
       </div>
-      
+
       <!-- Desktop Calendar Grid (hidden on mobile) -->
       <div class="hidden sm:block p-4 sm:p-6">
-        <div class="calendar-container">
-          <%= month_calendar(start_date: @calendar_start_date, end_date: @calendar_end_date, today: @calendar_base_date || @date) do |date| %>
+        <% if @calendar_start_date && @calendar_end_date %>
+          <div class="calendar-container">
+            <%= month_calendar(start_date: @calendar_start_date, end_date: @calendar_end_date, today: @calendar_base_date || @date) do |date| %>
             <% is_past_date = date < Date.current.in_time_zone(@business.time_zone).to_date %>
             <div class="calendar-day <%= 'past-date' if is_past_date %>"
                  data-date="<%= date.to_s %>"
@@ -228,9 +235,14 @@
                   <span><%= slots_count %></span>
                 </div>
               <% end %>
-            </div>
-          <% end %>
-        </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="p-6 text-center text-gray-500">
+            Please select a service to view available appointment times.
+          </div>
+        <% end %>
       </div>
       
       <!-- Service Details -->

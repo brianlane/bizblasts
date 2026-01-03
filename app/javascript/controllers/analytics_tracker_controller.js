@@ -39,13 +39,22 @@ export default class extends Controller {
     }
 
     this.initializeSession()
+
+    // If session initialization failed (e.g., no crypto API), disable tracking
+    if (!this.sessionId) {
+      console.error("[Analytics] Session initialization failed, tracking disabled")
+      return
+    }
+
     this.trackPageView()
     this.setupEventListeners()
     this.startBatchProcessor()
   }
 
   disconnect() {
-    this.sendBeacon() // Send remaining events on disconnect
+    // Use sendBeacon if available for guaranteed delivery on page unload
+    // Falls back to synchronous request if sendBeacon not supported
+    this.sendBeaconOrFallback()
     this.cleanup()
   }
 
@@ -59,12 +68,19 @@ export default class extends Controller {
 
   getOrCreateSessionId() {
     // Use sessionStorage for session-scoped ID (clears on browser close)
-    let sessionId = sessionStorage.getItem("bz_session_id")
-    if (!sessionId) {
-      sessionId = this.generateUUID()
-      sessionStorage.setItem("bz_session_id", sessionId)
+    try {
+      let sessionId = sessionStorage.getItem("bz_session_id")
+      if (!sessionId) {
+        sessionId = this.generateUUID()
+        sessionStorage.setItem("bz_session_id", sessionId)
+      }
+      return sessionId
+    } catch (error) {
+      // Handle storage access errors (sandboxed iframes, disabled storage, security policies)
+      // and UUID generation failures
+      console.error("[Analytics] Failed to access sessionStorage or generate session ID:", error)
+      return null
     }
-    return sessionId
   }
 
   generateFingerprint() {
@@ -84,9 +100,14 @@ export default class extends Controller {
     const bytes = new Uint8Array(16)
     // Prefer window.crypto if available; fall back to globalThis.crypto
     const cryptoObj = (typeof window !== "undefined" && window.crypto) || (typeof globalThis !== "undefined" && globalThis.crypto)
+
     if (!cryptoObj || !cryptoObj.getRandomValues) {
-      throw new Error("Secure random number generator is not available")
+      // SECURITY: Do not fall back to Math.random() as it's cryptographically insecure
+      // Session IDs must be unpredictable to prevent session prediction attacks
+      console.error("[Analytics] Crypto API unavailable. Cannot generate secure session ID. Analytics disabled.")
+      throw new Error("Crypto API required for secure session ID generation")
     }
+
     cryptoObj.getRandomValues(bytes)
 
     // Set version (4) and variant (RFC4122) bits
@@ -478,9 +499,17 @@ export default class extends Controller {
     event.session_id = this.sessionId
     event.visitor_fingerprint = this.visitorFingerprint
     event.business_id = this.businessIdValue
-    
+
     this.eventQueue.push(event)
-    
+
+    // Memory management: prevent queue from growing too large
+    // Drop oldest events if queue exceeds limit to prevent memory leaks
+    const MAX_QUEUE_SIZE = 100
+    if (this.eventQueue.length > MAX_QUEUE_SIZE) {
+      console.warn(`[Analytics] Queue exceeded ${MAX_QUEUE_SIZE} events, dropping oldest ${this.eventQueue.length - MAX_QUEUE_SIZE} events`)
+      this.eventQueue = this.eventQueue.slice(-MAX_QUEUE_SIZE)
+    }
+
     // Send immediately if queue is large
     if (this.eventQueue.length >= 10) {
       this.sendBatch()
@@ -500,24 +529,38 @@ export default class extends Controller {
     this.eventQueue = []
 
     try {
+      // Set timeout for fetch request
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+
       const response = await fetch(this.endpointValue, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-CSRF-Token": this.getCSRFToken()
         },
-        body: JSON.stringify({ events })
+        body: JSON.stringify({ events }),
+        signal: controller.signal
       })
 
+      clearTimeout(timeout)
+
       if (!response.ok) {
-        // Re-queue events on failure
-        this.eventQueue = [...events, ...this.eventQueue]
+        // Re-queue events on failure (but limit retry queue size)
+        const requeueEvents = [...events, ...this.eventQueue].slice(-50)
+        this.eventQueue = requeueEvents
         console.error("[Analytics] Failed to send events:", response.status)
       }
     } catch (error) {
-      // Re-queue events on network error
-      this.eventQueue = [...events, ...this.eventQueue]
-      console.error("[Analytics] Network error:", error)
+      if (error.name === 'AbortError') {
+        console.error("[Analytics] Request timeout after 10s")
+      } else {
+        console.error("[Analytics] Network error:", error)
+      }
+
+      // Re-queue events on network error (but limit retry queue size)
+      const requeueEvents = [...events, ...this.eventQueue].slice(-50)
+      this.eventQueue = requeueEvents
     }
   }
 
@@ -529,11 +572,48 @@ export default class extends Controller {
 
     // Use sendBeacon for reliable delivery on page unload
     const data = JSON.stringify({ events })
-    
+
     try {
       navigator.sendBeacon(this.endpointValue, new Blob([data], { type: "application/json" }))
     } catch (error) {
       console.error("[Analytics] Beacon send failed:", error)
+    }
+  }
+
+  sendBeaconOrFallback() {
+    if (this.eventQueue.length === 0) return
+
+    const events = [...this.eventQueue]
+    this.eventQueue = []
+
+    // Try sendBeacon first (preferred for page unload)
+    if (navigator.sendBeacon) {
+      const data = JSON.stringify({ events })
+      const blob = new Blob([data], { type: "application/json" })
+
+      try {
+        const success = navigator.sendBeacon(this.endpointValue, blob)
+        if (success) {
+          return // Successfully queued
+        }
+        console.warn("[Analytics] sendBeacon returned false, falling back to sync request")
+      } catch (error) {
+        console.warn("[Analytics] sendBeacon failed, falling back to sync request:", error)
+      }
+    }
+
+    // Fallback to synchronous XMLHttpRequest for guaranteed send
+    try {
+      const xhr = new XMLHttpRequest()
+      xhr.open("POST", this.endpointValue, false) // Synchronous
+      xhr.setRequestHeader("Content-Type", "application/json")
+      const csrfToken = this.getCSRFToken()
+      if (csrfToken) {
+        xhr.setRequestHeader("X-CSRF-Token", csrfToken)
+      }
+      xhr.send(JSON.stringify({ events }))
+    } catch (error) {
+      console.error("[Analytics] Fallback send failed:", error)
     }
   }
 
@@ -549,6 +629,12 @@ export default class extends Controller {
     // Respect Do Not Track - external callers must not bypass privacy settings
     if (this.shouldNotTrack()) {
       console.debug("[Analytics] DNT enabled, conversion tracking skipped")
+      return
+    }
+
+    // Check if tracking is initialized (session ID exists)
+    if (!this.sessionId) {
+      console.debug("[Analytics] Session not initialized, conversion tracking skipped")
       return
     }
 

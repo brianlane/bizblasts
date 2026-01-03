@@ -5,7 +5,7 @@ require 'rails_helper'
 RSpec.describe Analytics::DailySnapshotJob, type: :job do
   include ActiveJob::TestHelper
 
-  let!(:business) { create(:business) }
+  let!(:business) { create(:business, active: true) }
   let(:date) { Date.yesterday }
 
   describe '#perform' do
@@ -144,7 +144,7 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
     end
 
     context 'with multiple businesses' do
-      let(:other_business) { create(:business) }
+      let(:other_business) { create(:business, active: true) }
 
       before do
         create(:visitor_session, business: business, session_start: date.beginning_of_day + 2.hours)
@@ -159,7 +159,7 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
     end
 
     context 'when business processing fails' do
-      let(:other_business) { create(:business) }
+      let(:other_business) { create(:business, active: true) }
 
       before do
         create(:visitor_session, business: business, session_start: date.beginning_of_day + 2.hours)
@@ -186,7 +186,10 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
     context 'with bookings' do
       let!(:completed_booking) do
         service = create(:service, business: business, price: 100)
-        create(:booking, :completed, business: business, service: service, created_at: date.beginning_of_day + 3.hours)
+        booking = create(:booking, :completed, business: business, service: service, created_at: date.beginning_of_day + 3.hours)
+        invoice = create(:invoice, business: business, booking: booking, total_amount: 100, created_at: date.beginning_of_day + 3.hours)
+        create(:payment, business: business, invoice: invoice, amount: 100, status: 'completed', created_at: date.beginning_of_day + 3.hours)
+        booking
       end
 
       let!(:cancelled_booking) do
@@ -211,9 +214,11 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
       end
 
       it 'calculates average booking value correctly' do
-        # Create another completed booking
+        # Create another completed booking with invoice and payment
         service = create(:service, business: business, price: 200)
-        create(:booking, :completed, business: business, service: service, created_at: date.beginning_of_day + 5.hours)
+        booking2 = create(:booking, :completed, business: business, service: service, created_at: date.beginning_of_day + 5.hours)
+        invoice2 = create(:invoice, business: business, booking: booking2, total_amount: 200, created_at: date.beginning_of_day + 5.hours)
+        create(:payment, business: business, invoice: invoice2, amount: 200, status: 'completed', created_at: date.beginning_of_day + 5.hours)
 
         described_class.perform_now(date)
 
@@ -274,6 +279,67 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
     end
   end
 
+  describe 'inventory metrics calculation' do
+    context 'with orders having multiple payments' do
+      let!(:product) { create(:product, business: business, stock_quantity: 100) }
+      let!(:product_variant) { create(:product_variant, product: product, stock_quantity: 50) }
+      let!(:tenant_customer) { create(:tenant_customer, business: business) }
+
+      it 'does not inflate units_sold when order has multiple payments' do
+        # Create an order with a line item
+        order = create(:order, business: business, tenant_customer: tenant_customer, created_at: date.beginning_of_day + 2.hours)
+        create(:line_item, lineable: order, product_variant: product_variant, quantity: 5)
+
+        # Create an invoice associated with the order, with TWO completed payments (partial payments scenario)
+        invoice = create(:invoice, business: business, order: order, tenant_customer: tenant_customer, created_at: date.beginning_of_day + 2.hours)
+        create(:payment, business: business, invoice: invoice, tenant_customer: tenant_customer, amount: 50, status: 'completed', created_at: date.beginning_of_day + 2.hours)
+        create(:payment, business: business, invoice: invoice, tenant_customer: tenant_customer, amount: 50, status: 'completed', created_at: date.beginning_of_day + 3.hours)
+
+        described_class.perform_now(date)
+
+        snapshot = business.analytics_snapshots.find_by(period_start: date)
+        # BUG FIX: units_sold should be 5, NOT 10 (5 * 2 payments)
+        expect(snapshot.inventory_metrics['units_sold']).to eq(5)
+      end
+
+      it 'correctly sums units across multiple orders with multiple payments' do
+        # Order 1: 3 units with 2 payments
+        order1 = create(:order, business: business, tenant_customer: tenant_customer, created_at: date.beginning_of_day + 1.hour)
+        create(:line_item, lineable: order1, product_variant: product_variant, quantity: 3)
+        invoice1 = create(:invoice, business: business, order: order1, tenant_customer: tenant_customer, created_at: date.beginning_of_day + 1.hour)
+        create(:payment, business: business, invoice: invoice1, tenant_customer: tenant_customer, amount: 30, status: 'completed', created_at: date.beginning_of_day + 1.hour)
+        create(:payment, business: business, invoice: invoice1, tenant_customer: tenant_customer, amount: 30, status: 'completed', created_at: date.beginning_of_day + 2.hours)
+
+        # Order 2: 7 units with 3 payments
+        order2 = create(:order, business: business, tenant_customer: tenant_customer, created_at: date.beginning_of_day + 3.hours)
+        create(:line_item, lineable: order2, product_variant: product_variant, quantity: 7)
+        invoice2 = create(:invoice, business: business, order: order2, tenant_customer: tenant_customer, created_at: date.beginning_of_day + 3.hours)
+        create(:payment, business: business, invoice: invoice2, tenant_customer: tenant_customer, amount: 20, status: 'completed', created_at: date.beginning_of_day + 3.hours)
+        create(:payment, business: business, invoice: invoice2, tenant_customer: tenant_customer, amount: 25, status: 'completed', created_at: date.beginning_of_day + 4.hours)
+        create(:payment, business: business, invoice: invoice2, tenant_customer: tenant_customer, amount: 25, status: 'completed', created_at: date.beginning_of_day + 5.hours)
+
+        described_class.perform_now(date)
+
+        snapshot = business.analytics_snapshots.find_by(period_start: date)
+        # Should be 3 + 7 = 10, NOT 3*2 + 7*3 = 27
+        expect(snapshot.inventory_metrics['units_sold']).to eq(10)
+      end
+
+      it 'excludes orders with only pending/failed payments' do
+        # Order with pending payment should not count
+        order = create(:order, business: business, tenant_customer: tenant_customer, created_at: date.beginning_of_day + 2.hours)
+        create(:line_item, lineable: order, product_variant: product_variant, quantity: 5)
+        invoice = create(:invoice, business: business, order: order, tenant_customer: tenant_customer, created_at: date.beginning_of_day + 2.hours)
+        create(:payment, business: business, invoice: invoice, tenant_customer: tenant_customer, amount: 100, status: 'pending', created_at: date.beginning_of_day + 2.hours)
+
+        described_class.perform_now(date)
+
+        snapshot = business.analytics_snapshots.find_by(period_start: date)
+        expect(snapshot.inventory_metrics['units_sold']).to eq(0)
+      end
+    end
+  end
+
   describe 'slow query monitoring' do
     it 'logs slow queries' do
       # Create a lot of data to potentially trigger slow query
@@ -296,9 +362,13 @@ RSpec.describe Analytics::DailySnapshotJob, type: :job do
     end
   end
 
-  describe 'SLOW_QUERY_THRESHOLD constant' do
-    it 'is set to 1 second' do
-      expect(described_class::SLOW_QUERY_THRESHOLD).to eq(1.0)
+  describe 'slow_threshold class method' do
+    it 'returns the configured threshold from Rails config' do
+      expect(described_class.slow_threshold).to eq(Rails.application.config.analytics.snapshot_slow_threshold)
+    end
+
+    it 'defaults to 5 seconds' do
+      expect(described_class.slow_threshold).to be >= 5.0
     end
   end
 end

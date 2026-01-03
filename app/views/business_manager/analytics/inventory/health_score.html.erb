@@ -1,0 +1,149 @@
+<% content_for :title, "Inventory Health Score" %>
+
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Inventory Health Score</h1>
+      <p class="text-sm text-gray-600 mt-1">Detailed breakdown of inventory health components</p>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <%= link_to "Export CSV", export_business_manager_analytics_inventory_index_path(format: :csv),
+                  class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" %>
+    </div>
+  </div>
+
+  <!-- Back Link -->
+  <%= link_to business_manager_analytics_inventory_index_path, class: "inline-flex items-center text-sm text-gray-600 hover:text-gray-900" do %>
+    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Back to Inventory Analytics
+  <% end %>
+
+  <% if @score_data.present? %>
+    <!-- Overall Health Score -->
+    <div class="bg-white rounded-lg shadow p-8">
+      <div class="text-center">
+        <h2 class="text-lg font-medium text-gray-900 mb-4">Overall Health Score</h2>
+        <div class="relative inline-flex items-center justify-center w-48 h-48">
+          <svg class="w-48 h-48 transform -rotate-90">
+            <circle cx="96" cy="96" r="88" stroke="#e5e7eb" stroke-width="16" fill="none" />
+            <circle cx="96" cy="96" r="88"
+                    stroke="<%= @score_data[:score] >= 80 ? '#10b981' : @score_data[:score] >= 60 ? '#f59e0b' : '#ef4444' %>"
+                    stroke-width="16"
+                    fill="none"
+                    stroke-dasharray="<%= 2 * Math::PI * 88 %>"
+                    stroke-dashoffset="<%= 2 * Math::PI * 88 * (1 - @score_data[:score] / 100.0) %>"
+                    stroke-linecap="round" />
+          </svg>
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <span class="text-5xl font-bold <%= @score_data[:score] >= 80 ? 'text-green-600' : @score_data[:score] >= 60 ? 'text-yellow-600' : 'text-red-600' %>">
+              <%= @score_data[:score] %>
+            </span>
+            <span class="text-2xl font-semibold <%= @score_data[:score] >= 80 ? 'text-green-600' : @score_data[:score] >= 60 ? 'text-yellow-600' : 'text-red-600' %>">
+              <%= @score_data[:grade] %>
+            </span>
+          </div>
+        </div>
+        <p class="mt-4 text-gray-600">
+          <%= case @score_data[:grade]
+              when 'A' then 'Excellent! Your inventory is well-managed.'
+              when 'B' then 'Good inventory health with room for improvement.'
+              when 'C' then 'Fair health. Consider addressing low stock items.'
+              when 'D' then 'Needs attention. Multiple issues detected.'
+              else 'Critical issues require immediate action.'
+              end %>
+        </p>
+      </div>
+    </div>
+
+    <!-- Health Components Breakdown -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-xl font-semibold text-gray-900">Health Score Components</h2>
+      </div>
+
+      <div class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Stock Level Health -->
+          <% if @score_data[:components] && @score_data[:components][:stock_level_score] %>
+            <div class="border rounded-lg p-4">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-medium text-gray-900">Stock Levels</h3>
+                <span class="text-2xl font-bold <%= @score_data[:components][:stock_level_score] >= 80 ? 'text-green-600' : @score_data[:components][:stock_level_score] >= 60 ? 'text-yellow-600' : 'text-red-600' %>">
+                  <%= @score_data[:components][:stock_level_score] %>%
+                </span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="<%= @score_data[:components][:stock_level_score] >= 80 ? 'bg-green-600' : @score_data[:components][:stock_level_score] >= 60 ? 'bg-yellow-600' : 'bg-red-600' %> h-2 rounded-full"
+                     style="width: <%= @score_data[:components][:stock_level_score] %>%"></div>
+              </div>
+              <p class="mt-2 text-xs text-gray-600">Percentage of products with adequate stock</p>
+            </div>
+          <% end %>
+
+          <!-- Turnover Health -->
+          <% if @score_data[:components] && @score_data[:components][:turnover_score] %>
+            <div class="border rounded-lg p-4">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-medium text-gray-900">Stock Turnover</h3>
+                <span class="text-2xl font-bold <%= @score_data[:components][:turnover_score] >= 80 ? 'text-green-600' : @score_data[:components][:turnover_score] >= 60 ? 'text-yellow-600' : 'text-red-600' %>">
+                  <%= @score_data[:components][:turnover_score] %>%
+                </span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="<%= @score_data[:components][:turnover_score] >= 80 ? 'bg-green-600' : @score_data[:components][:turnover_score] >= 60 ? 'bg-yellow-600' : 'bg-red-600' %> h-2 rounded-full"
+                     style="width: <%= @score_data[:components][:turnover_score] %>%"></div>
+              </div>
+              <p class="mt-2 text-xs text-gray-600">How quickly inventory is sold and replaced</p>
+            </div>
+          <% end %>
+
+          <!-- Dead Stock Health -->
+          <% if @score_data[:components] && @score_data[:components][:dead_stock_score] %>
+            <div class="border rounded-lg p-4">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-medium text-gray-900">Dead Stock</h3>
+                <span class="text-2xl font-bold <%= @score_data[:components][:dead_stock_score] >= 80 ? 'text-green-600' : @score_data[:components][:dead_stock_score] >= 60 ? 'text-yellow-600' : 'text-red-600' %>">
+                  <%= @score_data[:components][:dead_stock_score] %>%
+                </span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="<%= @score_data[:components][:dead_stock_score] >= 80 ? 'bg-green-600' : @score_data[:components][:dead_stock_score] >= 60 ? 'bg-yellow-600' : 'bg-red-600' %> h-2 rounded-full"
+                     style="width: <%= @score_data[:components][:dead_stock_score] %>%"></div>
+              </div>
+              <p class="mt-2 text-xs text-gray-600">Percentage of inventory moving regularly</p>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Recommendations -->
+        <% if @score_data[:recommendations] && @score_data[:recommendations].any? %>
+          <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 class="text-sm font-semibold text-blue-900 mb-2">Recommendations</h3>
+            <ul class="space-y-1">
+              <% @score_data[:recommendations].each do |recommendation| %>
+                <li class="text-sm text-blue-800 flex items-start">
+                  <svg class="w-4 h-4 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                  </svg>
+                  <%= recommendation %>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% else %>
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+      </svg>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">No health score data</h3>
+      <p class="mt-1 text-sm text-gray-500">Unable to calculate inventory health score.</p>
+    </div>
+  <% end %>
+</div>

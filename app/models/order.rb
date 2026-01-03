@@ -10,7 +10,8 @@ class Order < ApplicationRecord
   has_many :line_items, as: :lineable, dependent: :destroy, foreign_key: :lineable_id
   has_many :stock_reservations
   has_one :invoice
-  
+  has_many :payments, dependent: :nullify
+
   # Add association for test compatibility (orders can be created from subscriptions)
   has_many :customer_subscriptions, through: :tenant_customer
 
@@ -54,6 +55,7 @@ class Order < ApplicationRecord
   after_create :create_invoice_for_service_orders
   after_create :send_staggered_emails
   after_update :send_order_status_update_email, if: :saved_change_to_status?
+  after_commit :clear_customer_revenue_cache, on: [:create, :update, :destroy]
 
   accepts_nested_attributes_for :line_items, allow_destroy: true
   accepts_nested_attributes_for :tenant_customer
@@ -389,4 +391,9 @@ class Order < ApplicationRecord
     false
   end
 
+  private
+
+  def clear_customer_revenue_cache
+    tenant_customer&.clear_revenue_cache
+  end
 end

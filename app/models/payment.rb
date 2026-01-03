@@ -13,7 +13,10 @@ class Payment < ApplicationRecord
   validates :business, presence: true, unless: :orphaned_payment?
   validates :tenant_customer, presence: true, unless: :orphaned_payment?
   validates :invoice, presence: true, unless: :orphaned_payment?
-  
+
+  # Callbacks
+  after_commit :clear_customer_revenue_cache, on: [:create, :update, :destroy]
+
   enum :payment_method, {
     credit_card: 'credit_card',
     cash: 'cash',
@@ -118,7 +121,31 @@ class Payment < ApplicationRecord
   end
   
   private
-  
+
+  def clear_customer_revenue_cache
+    return unless tenant_customer
+
+    tenant_customer.clear_revenue_cache
+
+    # Update cached analytics fields asynchronously to avoid slowing down payment processing
+    # Trigger update if:
+    # 1. Payment status changed to completed or refunded (adds revenue to analytics)
+    # 2. Payment status changed FROM completed or refunded to something else (removes revenue)
+    # 3. A completed/refunded payment was destroyed (removes revenue from analytics)
+    status_changed_to_counted = saved_change_to_status? && (completed? || refunded?)
+    status_changed_from_counted = saved_change_to_status? &&
+                                  %w[completed refunded].include?(status_before_last_save)
+    destroyed_while_counted = destroyed? && (completed? || refunded?)
+
+    should_update_cache = status_changed_to_counted ||
+                          status_changed_from_counted ||
+                          destroyed_while_counted
+
+    if should_update_cache
+      UpdateCustomerAnalyticsCacheJob.perform_later(tenant_customer.id)
+    end
+  end
+
   def orphaned_payment?
     business_id.nil? || tenant_customer_id.nil? || invoice_id.nil?
   end

@@ -1,0 +1,58 @@
+<%# Period Selector Dropdown Component %>
+<%# Usage: render 'shared/period_selector', period: @period, base_path: business_manager_analytics_path %>
+
+<% period ||= :last_30_days %>
+<% base_path ||= business_manager_analytics_path %>
+
+<% period_options = [
+  { value: 'today', text: 'Today' },
+  { value: 'last_7_days', text: 'Last 7 Days' },
+  { value: 'last_30_days', text: 'Last 30 Days' },
+  { value: 'last_90_days', text: 'Last 90 Days' }
+] %>
+
+<% current_period_text = period_options.find { |opt| opt[:value] == period.to_s }&.dig(:text) || 'Last 30 Days' %>
+
+<div class="flex items-center gap-2 relative z-[9999]">
+  <label class="text-sm text-gray-600 whitespace-nowrap">Period:</label>
+  <div class="relative" 
+       data-controller="period-selector"
+       data-period-selector-base-path-value="<%= base_path %>"
+       data-period-selector-current-period-value="<%= period %>">
+    
+    <!-- Dropdown Button -->
+    <button type="button"
+            class="flex items-center justify-between min-w-[140px] sm:w-40 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            data-period-selector-target="button"
+            data-action="click->period-selector#toggle"
+            aria-haspopup="listbox"
+            aria-expanded="false">
+      <span class="period-selector-text text-gray-900 truncate"><%= current_period_text %></span>
+      <svg class="w-4 h-4 text-gray-400 ml-2 flex-shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+      </svg>
+    </button>
+    
+    <!-- Dropdown Menu - z-[9999] to be above fixed navbar elements -->
+    <div class="absolute right-0 z-[9999] mt-1 min-w-[140px] sm:w-40 bg-white shadow-xl rounded-lg py-1 border border-gray-200 hidden"
+         data-period-selector-target="menu"
+         role="listbox"
+         style="max-height: calc(100vh - 200px); overflow-y: auto;">
+      <% period_options.each do |option| %>
+        <% is_selected = option[:value] == period.to_s %>
+        <div class="relative flex items-center justify-between px-3 py-2.5 text-sm cursor-pointer hover:bg-gray-100 transition-colors <%= is_selected ? 'bg-blue-50 text-blue-700' : 'text-gray-700' %>"
+             data-period-selector-target="option"
+             data-action="click->period-selector#select"
+             data-period-value="<%= option[:value] %>"
+             data-period-text="<%= option[:text] %>"
+             role="option"
+             aria-selected="<%= is_selected %>">
+          <span class="truncate"><%= option[:text] %></span>
+          <svg class="period-check-icon w-4 h-4 text-blue-600 flex-shrink-0 ml-2 <%= is_selected ? '' : 'hidden' %>" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+          </svg>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

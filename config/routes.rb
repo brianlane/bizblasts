@@ -274,6 +274,115 @@ Rails.application.routes.draw do
       get '/analytics/export', to: 'analytics#export', as: :export_analytics
       post '/analytics/export', to: 'analytics#perform_export', as: :perform_export_analytics
 
+      # Customer Lifecycle Analytics routes
+      namespace :analytics do
+        resources :customers, only: [:index, :show] do
+          collection do
+            get :segments
+            get :at_risk
+            get :export
+          end
+        end
+
+        # Staff Performance Analytics routes
+        resources :staff, only: [:index, :show] do
+          collection do
+            get :compare
+          end
+        end
+
+        # Revenue & Financial Analytics routes
+        resources :revenue, only: [:index] do
+          collection do
+            get :forecast
+            get :payment_aging
+            get :refunds
+            get :by_service
+            get :gross_margin
+            get :cash_flow
+            get :export
+          end
+        end
+
+        # Operational Efficiency Analytics routes
+        resources :operations, only: [:index] do
+          collection do
+            get :no_shows
+            get :peak_hours
+            get :capacity
+            get :staff_idle_time
+            get :lead_time
+            get :export
+          end
+        end
+
+        # Inventory Intelligence Analytics routes
+        resources :inventory, only: [:index] do
+          collection do
+            get :low_stock
+            get :dead_stock
+            get :turnover
+            get :profitability
+            get :reorder_recommendations
+            get :valuation
+            get :movements
+            get :health_score
+            get :export
+          end
+        end
+
+        # Marketing Performance Analytics routes
+        resources :marketing, only: [:index] do
+          collection do
+            get :campaigns
+            get :email_campaigns
+            get :sms_campaigns
+            get :promotions
+            get :referrals
+            get :acquisition
+            get :channels
+            get :attribution
+            get :spend_efficiency
+            get :export
+          end
+          member do
+            get :campaign_roi
+            get :promotion_effectiveness
+          end
+        end
+
+        # Subscription Analytics routes
+        resources :subscriptions, only: [:index] do
+          collection do
+            get :mrr_trend
+            get :churn
+            get :health_scores
+            get :at_risk
+            get :expansion
+            get :export
+          end
+        end
+
+        # Predictive Analytics routes (Phase 8)
+        resources :predictive, only: [:index] do
+          collection do
+            get :demand_forecast
+            get :pricing_recommendations
+            post :apply_pricing
+            post :apply_all_pricing
+            get :anomalies
+            post :save_anomaly_settings
+            get :next_purchase
+            get :staff_scheduling
+            get :restock_predictions
+            get :export_restock_predictions
+            post :create_purchase_orders
+            get :revenue_prediction
+            get :export
+          end
+        end
+      end
+
       resources :services do
         member do
           patch :update_position

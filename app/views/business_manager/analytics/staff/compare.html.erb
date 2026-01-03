@@ -1,0 +1,232 @@
+<div class="container mx-auto px-4 py-8">
+  <div class="flex justify-between items-center mb-8">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">Compare Staff Performance</h1>
+      <p class="text-gray-600 mt-1">Side-by-side comparison of team members</p>
+    </div>
+    <div class="flex gap-3">
+      <%= link_to "Back to Staff Analytics", business_manager_analytics_staff_index_path,
+                  class: "px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors" %>
+    </div>
+  </div>
+
+  <!-- Staff Selection -->
+  <div class="bg-white rounded-lg shadow p-6 mb-8">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Select Staff Members to Compare</h2>
+    
+    <%= form_with url: compare_business_manager_analytics_staff_index_path, method: :get, local: true, class: "space-y-4" do %>
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <% @all_staff.each do |staff| %>
+          <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors
+                        <%= params[:staff_ids]&.include?(staff.id.to_s) ? 'border-blue-500 bg-blue-50' : 'border-gray-200' %>">
+            <input type="checkbox" name="staff_ids[]" value="<%= staff.id %>"
+                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                   <%= 'checked' if params[:staff_ids]&.include?(staff.id.to_s) %>>
+            <div class="ml-3">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center mr-2">
+                  <span class="text-xs font-medium text-gray-600">
+                    <%= staff.name.split(' ').map(&:first).join('') %>
+                  </span>
+                </div>
+                <span class="text-sm font-medium text-gray-900"><%= staff.name %></span>
+              </div>
+            </div>
+          </label>
+        <% end %>
+      </div>
+      
+      <div class="flex justify-end pt-4">
+        <button type="submit" 
+                class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+          Compare Selected
+        </button>
+      </div>
+    <% end %>
+  </div>
+
+  <% if @comparison_data.present? && @comparison_data[:staff_members].any? %>
+    <!-- Comparison Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Metric</th>
+              <% @comparison_data[:staff_members].each do |staff_data| %>
+                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <div class="flex flex-col items-center">
+                    <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center mb-1">
+                      <span class="text-sm font-medium text-gray-600">
+                        <%= staff_data[:name].split(' ').map(&:first).join('') %>
+                      </span>
+                    </div>
+                    <%= staff_data[:name] %>
+                  </div>
+                </th>
+              <% end %>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <!-- Revenue -->
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Revenue (30 days)</td>
+              <% @comparison_data[:staff_members].each do |staff_data| %>
+                <td class="px-6 py-4 whitespace-nowrap text-center">
+                  <span class="text-sm font-bold text-green-600"><%= number_to_currency(staff_data[:metrics][:revenue] || 0) %></span>
+                </td>
+              <% end %>
+            </tr>
+            
+            <!-- Bookings -->
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Bookings</td>
+              <% @comparison_data[:staff_members].each do |staff_data| %>
+                <td class="px-6 py-4 whitespace-nowrap text-center">
+                  <span class="text-sm font-bold text-purple-600"><%= staff_data[:metrics][:bookings] || 0 %></span>
+                </td>
+              <% end %>
+            </tr>
+            
+            <!-- Avg Booking Value -->
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Avg Booking Value</td>
+              <% @comparison_data[:staff_members].each do |staff_data| %>
+                <td class="px-6 py-4 whitespace-nowrap text-center">
+                  <% bookings = staff_data[:metrics][:bookings] || 0 %>
+                  <% revenue = staff_data[:metrics][:revenue] || 0 %>
+                  <% avg = bookings > 0 ? revenue / bookings : 0 %>
+                  <span class="text-sm text-gray-900"><%= number_to_currency(avg) %></span>
+                </td>
+              <% end %>
+            </tr>
+            
+            <!-- Utilization -->
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Utilization Rate</td>
+              <% @comparison_data[:staff_members].each do |staff_data| %>
+                <td class="px-6 py-4 whitespace-nowrap text-center">
+                  <% util = staff_data[:metrics][:utilization] || 0 %>
+                  <div class="flex items-center justify-center">
+                    <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                      <div class="<%= utilization_color(util) %> h-2 rounded-full" 
+                           style="width: <%= [util, 100].min %>%"></div>
+                    </div>
+                    <span class="text-sm text-gray-900"><%= util.round(1) %>%</span>
+                  </div>
+                </td>
+              <% end %>
+            </tr>
+            
+            <!-- Completion Rate -->
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Completion Rate</td>
+              <% @comparison_data[:staff_members].each do |staff_data| %>
+                <td class="px-6 py-4 whitespace-nowrap text-center">
+                  <span class="text-sm text-gray-900"><%= (staff_data[:metrics][:completion_rate] || 0).round(1) %>%</span>
+                </td>
+              <% end %>
+            </tr>
+            
+            <!-- Avg Rating -->
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Average Rating</td>
+              <% @comparison_data[:staff_members].each do |staff_data| %>
+                <td class="px-6 py-4 whitespace-nowrap text-center">
+                  <% rating = staff_data[:metrics][:avg_rating] || 0 %>
+                  <div class="flex items-center justify-center">
+                    <svg class="w-4 h-4 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                    </svg>
+                    <span class="text-sm text-gray-900"><%= rating.round(1) %></span>
+                  </div>
+                </td>
+              <% end %>
+            </tr>
+            
+            <!-- Avg Service Duration -->
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Avg Service Duration</td>
+              <% @comparison_data[:staff_members].each do |staff_data| %>
+                <td class="px-6 py-4 whitespace-nowrap text-center">
+                  <% duration = staff_data[:metrics][:avg_service_duration] || 0 %>
+                  <span class="text-sm text-gray-900"><%= duration %> min</span>
+                </td>
+              <% end %>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+      <!-- Top Performer by Revenue -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-sm font-medium text-gray-500 mb-2">Top Revenue Generator</h3>
+        <% top_revenue = @comparison_data[:staff_members].max_by { |s| s[:metrics][:revenue] || 0 } %>
+        <% if top_revenue %>
+          <div class="flex items-center">
+            <div class="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center mr-3">
+              <span class="text-lg font-medium text-green-600">
+                <%= top_revenue[:name].split(' ').map(&:first).join('') %>
+              </span>
+            </div>
+            <div>
+              <div class="text-lg font-bold text-gray-900"><%= top_revenue[:name] %></div>
+              <div class="text-sm text-green-600"><%= number_to_currency(top_revenue[:metrics][:revenue] || 0) %></div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      
+      <!-- Top Performer by Bookings -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-sm font-medium text-gray-500 mb-2">Most Bookings</h3>
+        <% top_bookings = @comparison_data[:staff_members].max_by { |s| s[:metrics][:bookings] || 0 } %>
+        <% if top_bookings %>
+          <div class="flex items-center">
+            <div class="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center mr-3">
+              <span class="text-lg font-medium text-purple-600">
+                <%= top_bookings[:name].split(' ').map(&:first).join('') %>
+              </span>
+            </div>
+            <div>
+              <div class="text-lg font-bold text-gray-900"><%= top_bookings[:name] %></div>
+              <div class="text-sm text-purple-600"><%= top_bookings[:metrics][:bookings] || 0 %> bookings</div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      
+      <!-- Best Utilization -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-sm font-medium text-gray-500 mb-2">Best Utilization</h3>
+        <% best_util = @comparison_data[:staff_members].max_by { |s| s[:metrics][:utilization] || 0 } %>
+        <% if best_util %>
+          <div class="flex items-center">
+            <div class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+              <span class="text-lg font-medium text-blue-600">
+                <%= best_util[:name].split(' ').map(&:first).join('') %>
+              </span>
+            </div>
+            <div>
+              <div class="text-lg font-bold text-gray-900"><%= best_util[:name] %></div>
+              <div class="text-sm text-blue-600"><%= (best_util[:metrics][:utilization] || 0).round(1) %>% utilization</div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% else %>
+    <!-- No Selection -->
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+      <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+      </svg>
+      <h3 class="text-lg font-medium text-gray-900 mb-2">Select Staff Members</h3>
+      <p class="text-gray-500">Choose at least 2 staff members above to compare their performance</p>
+    </div>
+  <% end %>
+</div>
+

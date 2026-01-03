@@ -1,0 +1,329 @@
+<div class="container mx-auto px-4 py-8">
+  <div class="flex justify-between items-center mb-8">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">Staff Performance Analytics</h1>
+      <p class="text-gray-600 mt-1">Track team productivity and utilization</p>
+    </div>
+    <% if @staff_summary[:total_active] && @staff_summary[:total_active] >= 2 %>
+      <div class="flex gap-3">
+        <%= link_to "Compare Staff", compare_business_manager_analytics_staff_index_path,
+                    class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" %>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Key Metrics -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-600">Active Staff</p>
+          <p class="text-3xl font-bold text-gray-900"><%= @staff_summary[:total_active] %></p>
+        </div>
+        <div class="bg-blue-100 p-3 rounded-full">
+          <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+          </svg>
+        </div>
+      </div>
+      <p class="text-sm text-gray-500 mt-2">
+        <%= @staff_summary[:total_staff] %> total team members
+      </p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-600">Avg Utilization</p>
+          <p class="text-3xl font-bold text-green-600">
+            <%= number_to_percentage(@staff_summary[:avg_utilization], precision: 1) %>
+          </p>
+        </div>
+        <div class="bg-green-100 p-3 rounded-full">
+          <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+        </div>
+      </div>
+      <p class="text-sm text-gray-500 mt-2">
+        Last 30 days
+      </p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-600">Total Bookings</p>
+          <p class="text-3xl font-bold text-purple-600"><%= number_with_delimiter(@staff_summary[:total_bookings]) %></p>
+        </div>
+        <div class="bg-purple-100 p-3 rounded-full">
+          <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+        </div>
+      </div>
+      <p class="text-sm text-gray-500 mt-2">
+        Across all team members
+      </p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-600">Total Revenue</p>
+          <p class="text-3xl font-bold text-indigo-600"><%= number_to_currency(@staff_summary[:total_revenue]) %></p>
+        </div>
+        <div class="bg-indigo-100 p-3 rounded-full">
+          <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+      </div>
+      <p class="text-sm text-gray-500 mt-2">
+        Last 30 days
+      </p>
+    </div>
+  </div>
+
+  <!-- Leaderboard Tabs -->
+  <div class="bg-white rounded-lg shadow mb-8">
+    <div class="border-b border-gray-200">
+      <nav class="flex -mb-px">
+        <button onclick="showLeaderboard('revenue')"
+                id="tab-revenue"
+                class="leaderboard-tab px-6 py-4 text-sm font-medium border-b-2 border-blue-500 text-blue-600">
+          By Revenue
+        </button>
+        <button onclick="showLeaderboard('bookings')"
+                id="tab-bookings"
+                class="leaderboard-tab px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+          By Bookings
+        </button>
+        <button onclick="showLeaderboard('utilization')"
+                id="tab-utilization"
+                class="leaderboard-tab px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+          By Utilization
+        </button>
+      </nav>
+    </div>
+
+    <!-- Revenue Leaderboard -->
+    <div id="leaderboard-revenue" class="leaderboard-content p-6">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Member</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bookings</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilization</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completion Rate</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <% @leaderboard[:by_revenue].each_with_index do |staff_data, index| %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <% if index < 3 %>
+                      <span class="inline-flex items-center justify-center w-8 h-8 rounded-full <%= index == 0 ? 'bg-yellow-100 text-yellow-800' : index == 1 ? 'bg-gray-100 text-gray-800' : 'bg-orange-100 text-orange-800' %> font-bold">
+                        <%= index + 1 %>
+                      </span>
+                    <% else %>
+                      <span class="text-sm font-medium text-gray-500"><%= index + 1 %></span>
+                    <% end %>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <div class="flex-shrink-0 h-10 w-10">
+                      <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                        <span class="text-sm font-medium text-gray-600">
+                          <%= staff_data[:name].split(' ').map(&:first).join('') %>
+                        </span>
+                      </div>
+                    </div>
+                    <div class="ml-4">
+                      <div class="text-sm font-medium text-gray-900">
+                        <%= link_to staff_data[:name], business_manager_analytics_staff_path(staff_data[:staff_id]),
+                                    class: "text-blue-600 hover:text-blue-800" %>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-bold text-green-600"><%= number_to_currency(staff_data[:revenue]) %></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <%= staff_data[:bookings_count] %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                      <div class="<%= utilization_color(staff_data[:utilization_rate]) %> h-2 rounded-full"
+                           style="width: <%= [staff_data[:utilization_rate], 100].min %>%"></div>
+                    </div>
+                    <span class="text-sm text-gray-900"><%= staff_data[:utilization_rate].round(1) %>%</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <%= staff_data[:completion_rate].round(1) %>%
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bookings Leaderboard -->
+    <div id="leaderboard-bookings" class="leaderboard-content hidden p-6">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Member</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bookings</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg per Booking</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <% @leaderboard[:by_bookings].each_with_index do |staff_data, index| %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <% if index < 3 %>
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full <%= index == 0 ? 'bg-yellow-100 text-yellow-800' : index == 1 ? 'bg-gray-100 text-gray-800' : 'bg-orange-100 text-orange-800' %> font-bold">
+                      <%= index + 1 %>
+                    </span>
+                  <% else %>
+                    <span class="text-sm font-medium text-gray-500"><%= index + 1 %></span>
+                  <% end %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-blue-600">
+                    <%= link_to staff_data[:name], business_manager_analytics_staff_path(staff_data[:staff_id]),
+                                class: "hover:text-blue-800" %>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-bold text-purple-600"><%= staff_data[:bookings_count] %></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <%= number_to_currency(staff_data[:revenue]) %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <%= number_to_currency(staff_data[:revenue] / [staff_data[:bookings_count], 1].max) %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Utilization Leaderboard -->
+    <div id="leaderboard-utilization" class="leaderboard-content hidden p-6">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Member</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilization</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booked Hours</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <% @leaderboard[:by_utilization].each_with_index do |staff_data, index| %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="text-sm font-medium text-gray-500"><%= index + 1 %></span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-blue-600">
+                    <%= link_to staff_data[:name], business_manager_analytics_staff_path(staff_data[:staff_id]),
+                                class: "hover:text-blue-800" %>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <div class="w-24 bg-gray-200 rounded-full h-3 mr-3">
+                      <div class="<%= utilization_color(staff_data[:utilization_rate]) %> h-3 rounded-full"
+                           style="width: <%= [staff_data[:utilization_rate], 100].min %>%"></div>
+                    </div>
+                    <span class="text-sm font-bold text-gray-900"><%= staff_data[:utilization_rate].round(1) %>%</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <%= staff_data[:booked_hours] || 0 %> hrs
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <%= utilization_badge_color(staff_data[:utilization_rate]) %>">
+                    <%= utilization_status(staff_data[:utilization_rate]) %>
+                  </span>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Capacity Analysis -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="bg-white rounded-lg shadow p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Underutilized</h3>
+      <div class="text-3xl font-bold text-yellow-600 mb-2"><%= @capacity_analysis[:summary][:underutilized] %></div>
+      <p class="text-sm text-gray-600 mb-4">Staff members below 60% utilization</p>
+      <div class="bg-yellow-50 rounded-lg p-3">
+        <p class="text-xs text-yellow-800">Consider scheduling training or additional services</p>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Optimal</h3>
+      <div class="text-3xl font-bold text-green-600 mb-2"><%= @capacity_analysis[:summary][:optimal] %></div>
+      <p class="text-sm text-gray-600 mb-4">Staff members at 60-85% utilization</p>
+      <div class="bg-green-50 rounded-lg p-3">
+        <p class="text-xs text-green-800">Well-balanced workload</p>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Overbooked</h3>
+      <div class="text-3xl font-bold text-red-600 mb-2"><%= @capacity_analysis[:summary][:overbooked] %></div>
+      <p class="text-sm text-gray-600 mb-4">Staff members above 85% utilization</p>
+      <div class="bg-red-50 rounded-lg p-3">
+        <p class="text-xs text-red-800">Risk of burnout - consider hiring</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<% content_for :head do %>
+<script>
+  function showLeaderboard(type) {
+    // Hide all leaderboards
+    document.querySelectorAll('.leaderboard-content').forEach(el => el.classList.add('hidden'));
+
+    // Remove active styles from all tabs
+    document.querySelectorAll('.leaderboard-tab').forEach(el => {
+      el.classList.remove('border-blue-500', 'text-blue-600');
+      el.classList.add('border-transparent', 'text-gray-500');
+    });
+
+    // Show selected leaderboard
+    document.getElementById('leaderboard-' + type).classList.remove('hidden');
+
+    // Activate selected tab
+    const activeTab = document.getElementById('tab-' + type);
+    activeTab.classList.remove('border-transparent', 'text-gray-500');
+    activeTab.classList.add('border-blue-500', 'text-blue-600');
+  }
+</script>
+<% end %>

@@ -139,6 +139,35 @@ class AnalyticsSnapshot < ApplicationRecord
     (campaign_metrics.presence || {}).with_indifferent_access
   end
 
+  # New aggregator accessor methods
+  def customer_stats
+    (customer_metrics.presence || {}).with_indifferent_access
+  end
+
+  def staff_stats
+    (staff_metrics.presence || {}).with_indifferent_access
+  end
+
+  def inventory_stats
+    (inventory_metrics.presence || {}).with_indifferent_access
+  end
+
+  def operational_stats
+    (operational_metrics.presence || {}).with_indifferent_access
+  end
+
+  def marketing_stats
+    (marketing_metrics.presence || {}).with_indifferent_access
+  end
+
+  def subscription_stats
+    (subscription_metrics.presence || {}).with_indifferent_access
+  end
+
+  def prediction_data
+    (predictions.presence || {}).with_indifferent_access
+  end
+
   def period_label
     case snapshot_type
     when 'daily'

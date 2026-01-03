@@ -27,8 +27,8 @@ module BusinessManager
     # GET /manage/analytics/conversions
     def conversions
       @period = params[:period]&.to_sym || :last_30_days
-      
-      @conversion_service = Analytics::ConversionAttributionService.new(@current_business)
+
+      @conversion_service = ::Analytics::ConversionAttributionService.new(@current_business)
       
       @conversion_rates = @conversion_service.conversion_rates_by_source(
         start_date: period_start(@period),
@@ -50,8 +50,8 @@ module BusinessManager
     # GET /manage/analytics/bookings
     def bookings
       @period = params[:period]&.to_sym || :last_30_days
-      
-      @booking_service = Analytics::BookingAnalyticsService.new(@current_business)
+
+      @booking_service = ::Analytics::BookingAnalyticsService.new(@current_business)
       
       @metrics = @booking_service.metrics(
         start_date: period_start(@period),
@@ -77,8 +77,8 @@ module BusinessManager
     # GET /manage/analytics/products
     def products
       @period = params[:period]&.to_sym || :last_30_days
-      
-      @product_service = Analytics::ProductAnalyticsService.new(@current_business)
+
+      @product_service = ::Analytics::ProductAnalyticsService.new(@current_business)
       
       @metrics = @product_service.metrics(
         start_date: period_start(@period),
@@ -99,8 +99,8 @@ module BusinessManager
     # GET /manage/analytics/services
     def services
       @period = params[:period]&.to_sym || :last_30_days
-      
-      @service_analytics = Analytics::ServiceAnalyticsService.new(@current_business)
+
+      @service_analytics = ::Analytics::ServiceAnalyticsService.new(@current_business)
       
       @metrics = @service_analytics.metrics(
         start_date: period_start(@period),
@@ -131,24 +131,25 @@ module BusinessManager
     end
 
     # GET /manage/analytics/realtime
+    # Redirects to dashboard - realtime data is shown there
     def realtime
       @realtime = @dashboard_service.realtime_metrics
 
       respond_to do |format|
-        format.html
+        format.html { redirect_to business_manager_root_path }
         format.json { render json: @realtime }
       end
     end
 
     # GET /manage/analytics/export
     def export
-      @export_types = Analytics::ExportService.available_export_types
+      @export_types = ::Analytics::ExportService.available_export_types
       @period = params[:period]&.to_sym || :last_30_days
     end
 
     # POST /manage/analytics/export
     def perform_export
-      export_service = Analytics::ExportService.new(@current_business)
+      export_service = ::Analytics::ExportService.new(@current_business)
 
       export_type = params[:export_type]&.to_sym
       format = params[:format_type] || 'csv'
@@ -176,7 +177,7 @@ module BusinessManager
     private
 
     def set_analytics_services
-      @dashboard_service = Analytics::DashboardService.new(@current_business)
+      @dashboard_service = ::Analytics::DashboardService.new(@current_business)
     end
 
     def period_start(period)

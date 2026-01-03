@@ -1,0 +1,265 @@
+<% content_for :title, "Lead Time Distribution" %>
+
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Lead Time Distribution</h1>
+      <p class="text-sm text-gray-600 mt-1">How far in advance customers book appointments</p>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <%= render 'shared/period_selector', period: params[:period] || 30, base_path: lead_time_business_manager_analytics_operations_path %>
+      <%= link_to "Export CSV", export_business_manager_analytics_operations_path(format: :csv, period: params[:period]),
+                  class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" %>
+    </div>
+  </div>
+
+  <!-- Back Link -->
+  <%= link_to business_manager_analytics_operations_path, class: "inline-flex items-center text-sm text-gray-600 hover:text-gray-900" do %>
+    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Back to Operations Analytics
+  <% end %>
+
+  <!-- Summary Stats -->
+  <% if @lead_time_data.present? %>
+    <% avg_lead_time = @lead_time_data[:avg_lead_time_days] || 0 %>
+    <% total_bookings = @lead_time_data[:total_bookings] || 0 %>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Avg Lead Time</p>
+            <p class="text-2xl font-semibold text-blue-600 mt-2">
+              <%= number_with_precision(avg_lead_time, precision: 1) %> days
+            </p>
+            <p class="text-xs text-gray-500 mt-1">Average advance booking</p>
+          </div>
+          <div class="bg-blue-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Same-Day Bookings</p>
+            <p class="text-2xl font-semibold text-red-600 mt-2"><%= @lead_time_data[:same_day] || 0 %></p>
+            <p class="text-xs text-gray-500 mt-1">
+              <%= total_bookings > 0 ? number_to_percentage((@lead_time_data[:same_day].to_f / total_bookings * 100), precision: 0) : '0%' %>
+            </p>
+          </div>
+          <div class="bg-red-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Next-Day Bookings</p>
+            <p class="text-2xl font-semibold text-orange-600 mt-2"><%= @lead_time_data[:next_day] || 0 %></p>
+            <p class="text-xs text-gray-500 mt-1">
+              <%= total_bookings > 0 ? number_to_percentage((@lead_time_data[:next_day].to_f / total_bookings * 100), precision: 0) : '0%' %>
+            </p>
+          </div>
+          <div class="bg-orange-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Week+ Advance</p>
+            <p class="text-2xl font-semibold text-green-600 mt-2"><%= @lead_time_data[:over_week] || 0 %></p>
+            <p class="text-xs text-gray-500 mt-1">
+              <%= total_bookings > 0 ? number_to_percentage((@lead_time_data[:over_week].to_f / total_bookings * 100), precision: 0) : '0%' %>
+            </p>
+          </div>
+          <div class="bg-green-100 p-3 rounded-full">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Lead Time Breakdown -->
+  <div class="bg-white rounded-lg shadow">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-xl font-semibold text-gray-900">Booking Lead Time Breakdown</h2>
+      <p class="text-sm text-gray-600 mt-1">Distribution of advance booking periods</p>
+    </div>
+
+    <div class="p-6">
+      <% if @lead_time_data.present? %>
+        <% total_bookings = @lead_time_data[:total_bookings] || 1 %>
+        <% same_day = @lead_time_data[:same_day] || 0 %>
+        <% next_day = @lead_time_data[:next_day] || 0 %>
+        <% within_week = @lead_time_data[:within_week] || 0 %>
+        <% over_week = @lead_time_data[:over_week] || 0 %>
+
+        <div class="space-y-6">
+          <!-- Same-Day Bookings -->
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <div>
+                <span class="text-sm font-medium text-gray-700">Same-Day Bookings</span>
+                <span class="ml-2 text-xs text-gray-500">(Booked on service date)</span>
+              </div>
+              <div class="text-right">
+                <span class="text-sm font-semibold text-red-600"><%= same_day %> bookings</span>
+                <span class="ml-2 text-xs text-gray-500">
+                  <%= number_to_percentage((same_day.to_f / total_bookings * 100), precision: 1) %>
+                </span>
+              </div>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-8">
+              <% same_day_pct = (same_day.to_f / total_bookings * 100).round(1) %>
+              <div class="bg-red-500 h-8 rounded-full flex items-center justify-end pr-3" style="width: <%= [same_day_pct, 100].min %>%">
+                <span class="text-white text-xs font-medium"><%= number_to_percentage(same_day_pct, precision: 0) %></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Next-Day Bookings -->
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <div>
+                <span class="text-sm font-medium text-gray-700">Next-Day Bookings</span>
+                <span class="ml-2 text-xs text-gray-500">(1 day advance)</span>
+              </div>
+              <div class="text-right">
+                <span class="text-sm font-semibold text-orange-600"><%= next_day %> bookings</span>
+                <span class="ml-2 text-xs text-gray-500">
+                  <%= number_to_percentage((next_day.to_f / total_bookings * 100), precision: 1) %>
+                </span>
+              </div>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-8">
+              <% next_day_pct = (next_day.to_f / total_bookings * 100).round(1) %>
+              <div class="bg-orange-500 h-8 rounded-full flex items-center justify-end pr-3" style="width: <%= [next_day_pct, 100].min %>%">
+                <span class="text-white text-xs font-medium"><%= number_to_percentage(next_day_pct, precision: 0) %></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Within Week Bookings -->
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <div>
+                <span class="text-sm font-medium text-gray-700">Within Week</span>
+                <span class="ml-2 text-xs text-gray-500">(2-7 days advance)</span>
+              </div>
+              <div class="text-right">
+                <span class="text-sm font-semibold text-blue-600"><%= within_week %> bookings</span>
+                <span class="ml-2 text-xs text-gray-500">
+                  <%= number_to_percentage((within_week.to_f / total_bookings * 100), precision: 1) %>
+                </span>
+              </div>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-8">
+              <% within_week_pct = (within_week.to_f / total_bookings * 100).round(1) %>
+              <div class="bg-blue-500 h-8 rounded-full flex items-center justify-end pr-3" style="width: <%= [within_week_pct, 100].min %>%">
+                <span class="text-white text-xs font-medium"><%= number_to_percentage(within_week_pct, precision: 0) %></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Over Week Bookings -->
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <div>
+                <span class="text-sm font-medium text-gray-700">Over a Week</span>
+                <span class="ml-2 text-xs text-gray-500">(8+ days advance)</span>
+              </div>
+              <div class="text-right">
+                <span class="text-sm font-semibold text-green-600"><%= over_week %> bookings</span>
+                <span class="ml-2 text-xs text-gray-500">
+                  <%= number_to_percentage((over_week.to_f / total_bookings * 100), precision: 1) %>
+                </span>
+              </div>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-8">
+              <% over_week_pct = (over_week.to_f / total_bookings * 100).round(1) %>
+              <div class="bg-green-500 h-8 rounded-full flex items-center justify-end pr-3" style="width: <%= [over_week_pct, 100].min %>%">
+                <span class="text-white text-xs font-medium"><%= number_to_percentage(over_week_pct, precision: 0) %></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lead Time Insights -->
+        <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 class="text-sm font-semibold text-blue-900 mb-3">Lead Time Insights & Strategies</h3>
+          <div class="space-y-3 text-sm text-blue-800">
+            <% same_day_rate = (same_day.to_f / total_bookings * 100) %>
+            <% advance_rate = ((within_week + over_week).to_f / total_bookings * 100) %>
+
+            <% if same_day_rate > 30 %>
+              <div class="flex items-start">
+                <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <span><strong>High same-day demand (<%= number_to_percentage(same_day_rate, precision: 0) %>):</strong> Consider implementing minimum lead time requirements or premium pricing for last-minute bookings</span>
+              </div>
+            <% end %>
+
+            <% if advance_rate > 60 %>
+              <div class="flex items-start">
+                <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <span><strong>Strong advance planning (<%= number_to_percentage(advance_rate, precision: 0) %>):</strong> Customers plan ahead - great for forecasting and inventory management</span>
+              </div>
+            <% else %>
+              <div class="flex items-start">
+                <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <span><strong>Low advance planning:</strong> Encourage earlier bookings with incentives or advance booking discounts</span>
+              </div>
+            <% end %>
+
+            <div class="flex items-start">
+              <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>Use lead time data to optimize inventory levels and staff scheduling</span>
+            </div>
+
+            <div class="flex items-start">
+              <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>Consider automated reminders for advance bookings to reduce no-shows</span>
+            </div>
+          </div>
+        </div>
+      <% else %>
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No lead time data</h3>
+          <p class="mt-1 text-sm text-gray-500">Insufficient booking data to analyze lead times.</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

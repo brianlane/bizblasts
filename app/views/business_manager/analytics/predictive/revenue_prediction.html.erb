@@ -1,0 +1,372 @@
+<div class="container mx-auto px-4 py-8">
+  <!-- Header -->
+  <div class="flex justify-between items-center mb-8">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">Revenue Prediction</h1>
+      <p class="text-gray-600 mt-1">Machine learning-powered revenue forecasting and trend analysis</p>
+    </div>
+    <%= link_to "← Back to Predictive Analytics", business_manager_analytics_predictive_index_path,
+                class: "text-blue-600 hover:text-blue-800 font-medium" %>
+  </div>
+
+  <!-- Time Period Selector -->
+  <div class="bg-white rounded-lg shadow mb-6 p-6">
+    <div class="flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-gray-900">Forecast Horizon</h2>
+      <div class="flex space-x-2">
+        <%= link_to '30 Days', revenue_prediction_business_manager_analytics_predictive_index_path(period: 30),
+                    class: "px-4 py-2 text-sm font-medium rounded-lg #{params[:period] == '30' || params[:period].nil? ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}" %>
+        <%= link_to '60 Days', revenue_prediction_business_manager_analytics_predictive_index_path(period: 60),
+                    class: "px-4 py-2 text-sm font-medium rounded-lg #{params[:period] == '60' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}" %>
+        <%= link_to '90 Days', revenue_prediction_business_manager_analytics_predictive_index_path(period: 90),
+                    class: "px-4 py-2 text-sm font-medium rounded-lg #{params[:period] == '90' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}" %>
+        <%= link_to '1 Year', revenue_prediction_business_manager_analytics_predictive_index_path(period: 365),
+                    class: "px-4 py-2 text-sm font-medium rounded-lg #{params[:period] == '365' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}" %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Revenue Forecast Summary -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow p-6">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-sm text-blue-700 font-medium">Historical Daily Avg</p>
+        <div class="bg-white p-2 rounded-lg">
+          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+        </div>
+      </div>
+      <p class="text-3xl font-bold text-blue-900"><%= number_to_currency(@revenue_forecast[:historical_daily_avg]) %></p>
+      <p class="text-xs text-blue-600 mt-2">Based on last 90 days</p>
+    </div>
+
+    <div class="bg-gradient-to-br from-green-50 to-emerald-100 rounded-lg shadow p-6">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-sm text-green-700 font-medium">Predicted Total</p>
+        <div class="bg-white p-2 rounded-lg">
+          <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+      </div>
+      <p class="text-3xl font-bold text-green-900"><%= number_to_currency(@revenue_forecast[:predicted_total]) %></p>
+      <p class="text-xs text-green-600 mt-2">Next <%= params[:period] || 30 %> days forecast</p>
+    </div>
+
+    <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow p-6">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-sm text-purple-700 font-medium">Trend Direction</p>
+        <div class="bg-white p-2 rounded-lg">
+          <% if @revenue_forecast[:trend] == 'increasing' %>
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+            </svg>
+          <% elsif @revenue_forecast[:trend] == 'decreasing' %>
+            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
+            </svg>
+          <% else %>
+            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14"/>
+            </svg>
+          <% end %>
+        </div>
+      </div>
+      <p class="text-3xl font-bold text-purple-900 capitalize"><%= @revenue_forecast[:trend] %></p>
+      <p class="text-xs text-purple-600 mt-2">
+        <%= @revenue_forecast[:trend_percentage].abs.round(1) %>% <%= @revenue_forecast[:trend] == 'increasing' ? 'growth' : @revenue_forecast[:trend] == 'decreasing' ? 'decline' : 'stable' %>
+      </p>
+    </div>
+
+    <div class="bg-gradient-to-br from-yellow-50 to-amber-100 rounded-lg shadow p-6">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-sm text-yellow-700 font-medium">Confidence Level</p>
+        <div class="bg-white p-2 rounded-lg">
+          <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+      </div>
+      <p class="text-3xl font-bold text-yellow-900"><%= @revenue_forecast[:confidence].round(1) %>%</p>
+      <span class="<%= prediction_confidence_badge(@revenue_forecast[:confidence]) %>">
+        <%= @revenue_forecast[:confidence] >= 85 ? 'High Accuracy' : @revenue_forecast[:confidence] >= 70 ? 'Good Accuracy' : 'Moderate Accuracy' %>
+      </span>
+    </div>
+  </div>
+
+  <!-- Revenue Forecast Chart -->
+  <div class="bg-white rounded-lg shadow mb-8">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-xl font-semibold text-gray-900">Daily Revenue Forecast</h2>
+      <p class="text-sm text-gray-500 mt-1">Predicted vs. historical revenue trends</p>
+    </div>
+    <div class="p-6">
+      <!-- Simple visualization using CSS bars -->
+      <div class="space-y-2">
+        <% @daily_forecast.each_with_index do |day, index| %>
+          <div class="flex items-center">
+            <div class="w-24 text-sm text-gray-600">
+              <%= day[:date].strftime('%b %d') %>
+            </div>
+            <div class="flex-1 mx-4">
+              <div class="flex items-center space-x-2">
+                <!-- Historical bar (if available) -->
+                <% if day[:historical].present? %>
+                  <div class="flex-1">
+                    <div class="bg-gray-200 rounded-full h-8 relative">
+                      <div class="bg-gray-400 h-8 rounded-full flex items-center justify-end px-3"
+                           style="width: <%= [(day[:historical].to_f / @revenue_forecast[:max_daily] * 100).round, 100].min %>%">
+                        <span class="text-white text-xs font-medium"><%= number_to_currency(day[:historical], precision: 0) %></span>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+                <!-- Predicted bar -->
+                <div class="flex-1">
+                  <div class="bg-gray-200 rounded-full h-8 relative">
+                    <div class="<%= day[:is_future] ? 'bg-blue-500' : 'bg-green-500' %> h-8 rounded-full flex items-center justify-end px-3"
+                         style="width: <%= [(day[:predicted].to_f / @revenue_forecast[:max_daily] * 100).round, 100].min %>%">
+                      <span class="text-white text-xs font-medium"><%= number_to_currency(day[:predicted], precision: 0) %></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="w-20 text-right">
+              <% if day[:variance].present? %>
+                <div class="text-xs <%= day[:variance] >= 0 ? 'text-green-600' : 'text-red-600' %>">
+                  <%= day[:variance] >= 0 ? '+' : '' %><%= day[:variance].round(1) %>%
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      <div class="mt-6 flex items-center justify-end space-x-6 text-xs">
+        <div class="flex items-center">
+          <div class="w-4 h-4 bg-gray-400 rounded mr-2"></div>
+          <span class="text-gray-600">Historical</span>
+        </div>
+        <div class="flex items-center">
+          <div class="w-4 h-4 bg-green-500 rounded mr-2"></div>
+          <span class="text-gray-600">Actual (Recent)</span>
+        </div>
+        <div class="flex items-center">
+          <div class="w-4 h-4 bg-blue-500 rounded mr-2"></div>
+          <span class="text-gray-600">Predicted (Future)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Revenue Breakdown by Source -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <!-- By Service Category -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">Forecast by Service Category</h3>
+        <p class="text-sm text-gray-500 mt-1">Expected revenue distribution</p>
+      </div>
+      <div class="p-6">
+        <div class="space-y-4">
+          <% @revenue_by_category.each do |category| %>
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-medium text-gray-900"><%= category[:name] %></span>
+                <div class="text-right">
+                  <div class="text-sm font-bold text-gray-900"><%= number_to_currency(category[:predicted_revenue]) %></div>
+                  <div class="text-xs text-gray-500"><%= category[:percentage] %>% of total</div>
+                </div>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-3">
+                <div class="bg-blue-500 h-3 rounded-full" style="width: <%= category[:percentage] %>%"></div>
+              </div>
+              <div class="flex justify-between text-xs text-gray-500 mt-1">
+                <span><%= category[:booking_count] %> expected bookings</span>
+                <span class="<%= revenue_trend_color(category[:trend]) %>">
+                  <%= category[:trend] >= 0 ? '↑' : '↓' %> <%= category[:trend].abs.round(1) %>%
+                </span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- By Revenue Stream -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">Revenue Stream Analysis</h3>
+        <p class="text-sm text-gray-500 mt-1">Breakdown by business model</p>
+      </div>
+      <div class="p-6">
+        <div class="space-y-6">
+          <% @revenue_by_stream.each do |stream| %>
+            <div class="border-l-4 <%= stream[:name] == 'Bookings' ? 'border-blue-500' : stream[:name] == 'Products' ? 'border-green-500' : stream[:name] == 'Subscriptions' ? 'border-purple-500' : 'border-yellow-500' %> pl-4">
+              <div class="flex items-center justify-between mb-2">
+                <div>
+                  <div class="text-sm font-medium text-gray-900"><%= stream[:name] %></div>
+                  <div class="text-xs text-gray-500"><%= stream[:count] %> transactions expected</div>
+                </div>
+                <div class="text-right">
+                  <div class="text-lg font-bold text-gray-900"><%= number_to_currency(stream[:predicted_revenue]) %></div>
+                  <%= percentage_change_badge(stream[:growth_rate]) %>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-4 text-xs mt-3">
+                <div class="bg-gray-50 rounded p-2">
+                  <div class="text-gray-500">Avg Transaction</div>
+                  <div class="font-medium text-gray-900"><%= number_to_currency(stream[:avg_transaction]) %></div>
+                </div>
+                <div class="bg-gray-50 rounded p-2">
+                  <div class="text-gray-500">Contribution</div>
+                  <div class="font-medium text-gray-900"><%= stream[:contribution_percent] %>%</div>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Prediction Model Performance -->
+  <div class="bg-white rounded-lg shadow mb-8">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-xl font-semibold text-gray-900">Prediction Model Accuracy</h2>
+      <p class="text-sm text-gray-500 mt-1">How well our predictions match actual results</p>
+    </div>
+    <div class="p-6">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="text-center">
+          <div class="text-sm text-gray-600 mb-2">Model Accuracy</div>
+          <div class="text-4xl font-bold text-green-600"><%= @model_performance[:accuracy] %>%</div>
+          <div class="text-xs text-gray-500 mt-1">Last 30 days</div>
+        </div>
+        <div class="text-center">
+          <div class="text-sm text-gray-600 mb-2">Mean Absolute Error</div>
+          <div class="text-4xl font-bold text-gray-900"><%= @model_performance[:mae].round(1) %>%</div>
+          <div class="text-xs text-gray-500 mt-1">Average deviation</div>
+        </div>
+        <div class="text-center">
+          <div class="text-sm text-gray-600 mb-2">Prediction Precision</div>
+          <div class="text-4xl font-bold text-blue-600"><%= @model_performance[:precision] %>%</div>
+          <div class="text-xs text-gray-500 mt-1">Within ±10%</div>
+        </div>
+        <div class="text-center">
+          <div class="text-sm text-gray-600 mb-2">Last Updated</div>
+          <div class="text-xl font-bold text-gray-900"><%= @model_performance[:last_trained].strftime('%b %d') %></div>
+          <div class="text-xs text-gray-500 mt-1"><%= relative_time_description((Time.current - @model_performance[:last_trained]).to_i / 86400) %></div>
+        </div>
+      </div>
+      <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <p class="text-sm text-blue-800">
+          <strong>Model Details:</strong> <%= @model_performance[:model_type] %> trained on <%= @model_performance[:training_data_points] %> historical data points.
+          Factors considered: <%= @model_performance[:features].join(', ') %>.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Risk Factors & Opportunities -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <!-- Risk Factors -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="px-6 py-4 border-b border-gray-200 bg-red-50">
+        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+          <svg class="w-5 h-5 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          Downside Risks
+        </h3>
+        <p class="text-sm text-gray-600 mt-1">Factors that could reduce revenue</p>
+      </div>
+      <div class="p-6">
+        <div class="space-y-4">
+          <% @risk_factors.each do |risk| %>
+            <div class="border-l-4 border-red-500 pl-4">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <h4 class="text-sm font-medium text-gray-900"><%= risk[:title] %></h4>
+                  <p class="text-sm text-gray-600 mt-1"><%= risk[:description] %></p>
+                </div>
+                <span class="ml-4 px-2 py-1 text-xs font-medium rounded <%= risk[:severity] == 'high' ? 'bg-red-100 text-red-800' : risk[:severity] == 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800' %>">
+                  <%= risk[:severity].titleize %>
+                </span>
+              </div>
+              <div class="mt-2 text-sm text-red-600 font-medium">
+                Potential Impact: <%= number_to_currency(risk[:potential_impact].abs) %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Growth Opportunities -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="px-6 py-4 border-b border-gray-200 bg-green-50">
+        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+          <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+          </svg>
+          Growth Opportunities
+        </h3>
+        <p class="text-sm text-gray-600 mt-1">Potential to exceed forecast</p>
+      </div>
+      <div class="p-6">
+        <div class="space-y-4">
+          <% @growth_opportunities.each do |opportunity| %>
+            <div class="border-l-4 border-green-500 pl-4">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <h4 class="text-sm font-medium text-gray-900"><%= opportunity[:title] %></h4>
+                  <p class="text-sm text-gray-600 mt-1"><%= opportunity[:description] %></p>
+                </div>
+                <span class="ml-4 px-2 py-1 text-xs font-medium rounded <%= opportunity[:likelihood] == 'high' ? 'bg-green-100 text-green-800' : opportunity[:likelihood] == 'medium' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800' %>">
+                  <%= opportunity[:likelihood].titleize %>
+                </span>
+              </div>
+              <div class="mt-2 text-sm text-green-600 font-medium">
+                Upside Potential: +<%= number_to_currency(opportunity[:potential_upside]) %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actionable Recommendations -->
+  <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+      <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+      </svg>
+      Strategic Recommendations
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <% @strategic_recommendations.each do |rec| %>
+        <div class="bg-white rounded-lg p-4 shadow-sm">
+          <div class="flex items-start">
+            <div class="flex-shrink-0">
+              <div class="<%= rec[:type] == 'revenue' ? 'bg-green-100' : rec[:type] == 'efficiency' ? 'bg-blue-100' : 'bg-yellow-100' %> rounded-full p-2">
+                <svg class="w-5 h-5 <%= rec[:type] == 'revenue' ? 'text-green-600' : rec[:type] == 'efficiency' ? 'text-blue-600' : 'text-yellow-600' %>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+              </div>
+            </div>
+            <div class="ml-3">
+              <h4 class="text-sm font-medium text-gray-900"><%= rec[:title] %></h4>
+              <p class="text-sm text-gray-600 mt-1"><%= rec[:description] %></p>
+              <div class="mt-2 text-xs font-medium text-blue-600">
+                Expected Impact: <%= number_to_currency(rec[:expected_impact]) %>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
