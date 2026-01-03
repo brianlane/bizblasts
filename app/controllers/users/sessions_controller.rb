@@ -346,23 +346,34 @@ module Users
 
     private
 
-    # Handle invalid CSRF tokens by resetting and showing the login form again
+    # Handle invalid CSRF tokens gracefully based on the action being attempted
     # This provides a better UX than a 500 error when sessions expire
     def handle_invalid_csrf_token
-      Rails.logger.warn "[Sessions] Invalid CSRF token detected for sign-in attempt from IP: #{request.remote_ip}"
+      Rails.logger.warn "[Sessions] Invalid CSRF token detected for #{action_name} from IP: #{request.remote_ip}"
       
       # Regenerate CSRF token for fresh attempt
       session[:_csrf_token] = nil
       form_authenticity_token
       
-      # Create a fresh resource for the form
-      self.resource = resource_class.new
-      
-      # Show user-friendly message
-      flash.now[:alert] = "Your session has expired. Please try signing in again."
-      
-      # Re-render login form with fresh CSRF token
-      render :new, status: :unprocessable_content
+      case action_name
+      when 'destroy'
+        # For sign-out attempts with expired CSRF, just sign out and redirect
+        # The user wanted to sign out anyway, so complete that intent
+        Rails.logger.info "[Sessions] Completing sign-out despite expired CSRF token"
+        sign_out_all_scopes
+        reset_session
+        flash[:notice] = "You have been signed out."
+        redirect_to root_path
+      when 'create'
+        # For sign-in attempts, show the login form again
+        self.resource = resource_class.new
+        flash.now[:alert] = "Your session has expired. Please try signing in again."
+        render :new, status: :unprocessable_content
+      else
+        # For any other action, redirect to sign-in page
+        flash[:alert] = "Your session has expired. Please sign in again."
+        redirect_to new_session_path(resource_name)
+      end
     end
 
     def redirect_with_cross_domain_support(target, status: Devise::Controllers::Responder.redirect_status, external_redirect: nil)
