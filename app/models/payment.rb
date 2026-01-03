@@ -123,7 +123,15 @@ class Payment < ApplicationRecord
   private
 
   def clear_customer_revenue_cache
-    tenant_customer&.clear_revenue_cache
+    return unless tenant_customer
+
+    tenant_customer.clear_revenue_cache
+
+    # Update cached analytics fields asynchronously to avoid slowing down payment processing
+    # Only update if the payment status changed to completed or refunded (affects analytics)
+    if saved_change_to_status? && (completed? || refunded?)
+      UpdateCustomerAnalyticsCacheJob.perform_later(tenant_customer.id)
+    end
   end
 
   def orphaned_payment?

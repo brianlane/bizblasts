@@ -1,0 +1,24 @@
+{
+  "ignored_warnings": [
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": ".*churn_probability_case_sql.*",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/services/analytics/churn_prediction_service.rb",
+      "note": "SQL generated from internal method churn_probability_case_sql, not from user input"
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": ".*calculate_days_remaining_sql.*",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/services/analytics/inventory_intelligence_service.rb",
+      "note": "SQL generated from internal methods calculate_days_remaining_sql/calculate_days_remaining_sql_raw, not from user input"
+    }
+  ],
+  "updated": "2026-01-02 00:00:00 +0000",
+  "brakeman_version": "6.0.0"
+}

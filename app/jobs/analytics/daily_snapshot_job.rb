@@ -85,35 +85,35 @@ module Analytics
     private
 
     def generate_snapshot(business, date)
-      # OPTIMIZATION: Wrap in transaction to ensure memory cleanup
-      ActiveRecord::Base.transaction do
-        ActsAsTenant.with_tenant(business) do
-          # Skip if snapshot already exists
-          existing = business.analytics_snapshots.find_by(
-            snapshot_type: 'daily',
-            period_start: date,
-            period_end: date
-          )
-
-          if existing
-            Rails.logger.debug "[DailySnapshot] Snapshot already exists for business #{business.id} on #{date}"
-            return
-          end
-
-          # Calculate metrics for the date
-          metrics = calculate_metrics(business, date)
-
-          # Create snapshot
-          business.analytics_snapshots.create!(
+      # Set tenant context
+      ActsAsTenant.with_tenant(business) do
+        # Skip if snapshot already exists
+        existing = business.analytics_snapshots.find_by(
           snapshot_type: 'daily',
           period_start: date,
-          period_end: date,
-          generated_at: Time.current,
-          **metrics
+          period_end: date
         )
 
-        Rails.logger.info "[DailySnapshot] Created snapshot for business #{business.id} on #{date}"
+        if existing
+          Rails.logger.debug "[DailySnapshot] Snapshot already exists for business #{business.id} on #{date}"
+          return
         end
+
+        # Calculate metrics for the date
+        metrics = calculate_metrics(business, date)
+
+        # Create snapshot in a transaction for atomicity
+        ActiveRecord::Base.transaction do
+          business.analytics_snapshots.create!(
+            snapshot_type: 'daily',
+            period_start: date,
+            period_end: date,
+            generated_at: Time.current,
+            **metrics
+          )
+        end
+
+        Rails.logger.info "[DailySnapshot] Created snapshot for business #{business.id} on #{date}"
       end
       # OPTIMIZATION: Ensure memory cleanup after each business
       GC.start

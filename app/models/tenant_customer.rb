@@ -609,4 +609,89 @@ class TenantCustomer < ApplicationRecord
   rescue StandardError => e
     Rails.logger.error "[TenantCustomer] Failed to queue email marketing sync on update: #{e.message}"
   end
+
+  # Update all cached analytics fields for this customer
+  # Called after payment/booking/order changes to keep analytics performant
+  def update_cached_analytics_fields!
+    # Calculate first and last purchase dates
+    completed_booking_dates = bookings.joins(invoice: :payments)
+                                      .where(payments: { status: :completed })
+                                      .pluck('MIN(bookings.created_at) as first_date', 'MAX(bookings.created_at) as last_date')
+                                      .first
+
+    completed_order_dates = orders.joins(invoice: :payments)
+                                  .where(payments: { status: :completed })
+                                  .pluck('MIN(orders.created_at) as first_date', 'MAX(orders.created_at) as last_date')
+                                  .first
+
+    booking_first = completed_booking_dates&.first
+    booking_last = completed_booking_dates&.last
+    order_first = completed_order_dates&.first
+    order_last = completed_order_dates&.last
+
+    first_purchase = [booking_first, order_first].compact.min
+    last_purchase = [booking_last, order_last].compact.max
+
+    # Calculate total revenue
+    revenue = booking_revenue + order_revenue
+
+    # Calculate purchase frequency
+    completed_bookings_count = bookings.joins(invoice: :payments)
+                                       .where(payments: { status: :completed })
+                                       .distinct
+                                       .count
+
+    completed_orders_count = orders.joins(invoice: :payments)
+                                   .where(payments: { status: :completed })
+                                   .distinct
+                                   .count
+
+    frequency = completed_bookings_count + completed_orders_count
+
+    # Calculate days since last purchase
+    days_since = if last_purchase
+                   ((Time.current - last_purchase).to_i / 1.day)
+                 else
+                   nil
+                 end
+
+    # Calculate average days between purchases
+    avg_days = if frequency >= 2
+                 completed_booking_dates_list = bookings.joins(invoice: :payments)
+                                                        .where(payments: { status: :completed })
+                                                        .distinct
+                                                        .pluck('bookings.created_at')
+
+                 completed_order_dates_list = orders.joins(invoice: :payments)
+                                                    .where(payments: { status: :completed })
+                                                    .distinct
+                                                    .pluck('orders.created_at')
+
+                 all_purchases = (completed_booking_dates_list + completed_order_dates_list).compact.sort
+
+                 if all_purchases.length >= 2
+                   intervals = []
+                   (1...all_purchases.length).each do |i|
+                     intervals << (all_purchases[i] - all_purchases[i - 1]).to_i / 1.day
+                   end
+                   intervals.sum.to_f / intervals.length
+                 else
+                   nil
+                 end
+               else
+                 nil
+               end
+
+    # Update all cached fields in a single UPDATE query
+    update_columns(
+      cached_total_revenue: revenue.round(2),
+      cached_purchase_frequency: frequency,
+      cached_first_purchase_at: first_purchase,
+      cached_last_purchase_at: last_purchase,
+      cached_days_since_last_purchase: days_since,
+      cached_avg_days_between_purchases: avg_days&.round(2)
+    )
+  rescue StandardError => e
+    Rails.logger.error "[TenantCustomer] Failed to update cached analytics fields for customer #{id}: #{e.message}"
+  end
 end

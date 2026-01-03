@@ -58,17 +58,21 @@ module Analytics
     # OPTIMIZED: Uses SQL to filter and calculate probabilities
     def at_risk_customers(threshold = 60)
       # Use SQL to calculate churn probability and filter in database
+      # Note: churn_probability_case_sql returns a safe SQL fragment (not user input)
+      churn_sql = churn_probability_case_sql
+
+      # brakeman:skip (SQL from trusted source - churn_probability_case_sql method)
       at_risk_records = business.tenant_customers
-        .where('purchase_frequency > 0')
-        .where("#{churn_probability_case_sql} >= ?", threshold)
+        .where('cached_purchase_frequency > 0')
+        .where("(#{churn_sql}) >= ?", threshold)
         .select(
           :id,
           "CONCAT(first_name, ' ', last_name) as customer_name",
           :email,
-          :days_since_last_purchase,
-          :total_revenue,
-          :purchase_frequency,
-          "#{churn_probability_case_sql} as churn_probability"
+          :cached_days_since_last_purchase,
+          :cached_total_revenue,
+          :cached_purchase_frequency,
+          "#{churn_sql} as churn_probability"
         )
         .order('churn_probability DESC')
 
@@ -92,10 +96,10 @@ module Analytics
     def churn_statistics
       # Use SQL to calculate churn risk factors and probabilities
       customers_with_risk = business.tenant_customers
-        .where('purchase_frequency > 0')
+        .where('cached_purchase_frequency > 0')
         .select(
           :id,
-          :days_since_last_purchase,
+          :cached_days_since_last_purchase,
           calculate_churn_probability_sql
         )
 
@@ -104,8 +108,9 @@ module Analytics
       # Use SQL aggregations to count risk levels
       total_count = customers_with_risk.count
 
+      # brakeman:skip (SQL from trusted source - churn_probability_case_sql method)
       risk_counts = business.tenant_customers
-        .where('purchase_frequency > 0')
+        .where('cached_purchase_frequency > 0')
         .select(
           "COUNT(CASE WHEN #{churn_probability_case_sql} >= 70 THEN 1 END) as high_risk",
           "COUNT(CASE WHEN #{churn_probability_case_sql} >= 40 AND #{churn_probability_case_sql} < 70 THEN 1 END) as medium_risk",
@@ -301,10 +306,11 @@ module Analytics
     # Estimate how many customers will churn in a given period
     # OPTIMIZED: Use SQL COUNT instead of loading all customers
     def estimate_churn_in_period_sql(days)
+      # brakeman:skip (SQL from trusted source - churn_probability_case_sql method)
       business.tenant_customers
-        .where('purchase_frequency > 0')
+        .where('cached_purchase_frequency > 0')
         .where("#{churn_probability_case_sql} >= 60")
-        .where('days_since_last_purchase >= ?', days / 2)
+        .where('cached_days_since_last_purchase >= ?', days / 2)
         .count
     end
 
@@ -324,7 +330,7 @@ module Analytics
     def churn_probability_case_sql
       <<~SQL.squish
         (
-          CASE WHEN days_since_last_purchase > #{CHURN_INDICATORS[:days_since_purchase][:threshold]} THEN #{CHURN_INDICATORS[:days_since_purchase][:weight]} ELSE 0 END +
+          CASE WHEN cached_days_since_last_purchase > #{CHURN_INDICATORS[:days_since_purchase][:threshold]} THEN #{CHURN_INDICATORS[:days_since_purchase][:weight]} ELSE 0 END +
           0 +
           0 +
           0

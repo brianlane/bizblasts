@@ -76,14 +76,14 @@ module Analytics
 
       # Use SQL CASE statements to calculate RFM scores in database
       customers_with_scores = business.tenant_customers
-        .where('purchase_frequency > 0')
+        .where('cached_purchase_frequency > 0')
         .select(
           :id,
           "CONCAT(first_name, ' ', last_name) as customer_name",
           :email,
-          :total_revenue,
-          :days_since_last_purchase,
-          :purchase_frequency,
+          :cached_total_revenue,
+          :cached_days_since_last_purchase,
+          :cached_purchase_frequency,
           calculate_recency_score_sql,
           calculate_frequency_score_sql,
           calculate_monetary_score_sql(quartiles)
@@ -136,7 +136,7 @@ module Analytics
     def customer_metrics_summary(period = 30.days)
       # Use SQL COUNT to get totals without loading objects
       total_customers = business.tenant_customers.count
-      active_customers = business.tenant_customers.where('purchase_frequency > 0').count
+      active_customers = business.tenant_customers.where('cached_purchase_frequency > 0').count
 
       return empty_metrics_summary if active_customers.zero?
 
@@ -144,11 +144,11 @@ module Analytics
       {
         total_customers: total_customers,
         active_customers: active_customers,
-        avg_clv: business.tenant_customers.where('purchase_frequency > 0').average(:total_revenue)&.to_f&.round(2) || 0,
+        avg_clv: business.tenant_customers.where('cached_purchase_frequency > 0').average(:cached_total_revenue)&.to_f&.round(2) || 0,
         arpc: calculate_arpc(period),
         repeat_customer_rate: calculate_repeat_rate_sql,
-        avg_purchase_frequency: business.tenant_customers.where('purchase_frequency > 0').average(:purchase_frequency)&.to_f&.round(1) || 0,
-        avg_days_between_purchases: business.tenant_customers.where('avg_days_between_purchases IS NOT NULL').average(:avg_days_between_purchases)&.to_f&.round(0) || 0
+        avg_purchase_frequency: business.tenant_customers.where('cached_purchase_frequency > 0').average(:cached_purchase_frequency)&.to_f&.round(1) || 0,
+        avg_days_between_purchases: business.tenant_customers.where('cached_avg_days_between_purchases IS NOT NULL').average(:cached_avg_days_between_purchases)&.to_f&.round(0) || 0
       }
     end
 
@@ -218,10 +218,10 @@ module Analytics
       # Use PostgreSQL PERCENTILE_CONT for accurate quartile calculation
       result = business.tenant_customers
         .select(
-          "PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY total_revenue) as q1",
-          "PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY total_revenue) as q2",
-          "PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY total_revenue) as q3",
-          "PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY total_revenue) as q4"
+          "PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY cached_total_revenue) as q1",
+          "PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY cached_total_revenue) as q2",
+          "PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY cached_total_revenue) as q3",
+          "PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY cached_total_revenue) as q4"
         )
         .first
 
@@ -270,10 +270,10 @@ module Analytics
 
     # OPTIMIZED: Use SQL COUNT instead of loading all customers
     def calculate_repeat_rate_sql
-      total_with_purchases = business.tenant_customers.where('purchase_frequency > 0').count
+      total_with_purchases = business.tenant_customers.where('cached_purchase_frequency > 0').count
       return 0 if total_with_purchases.zero?
 
-      repeat_customers = business.tenant_customers.where('purchase_frequency > 1').count
+      repeat_customers = business.tenant_customers.where('cached_purchase_frequency > 1').count
       ((repeat_customers.to_f / total_with_purchases) * 100).round(2)
     end
 
@@ -298,11 +298,11 @@ module Analytics
     def calculate_recency_score_sql
       <<~SQL.squish
         CASE
-          WHEN days_since_last_purchase IS NULL THEN 1
-          WHEN days_since_last_purchase BETWEEN 0 AND 30 THEN 5
-          WHEN days_since_last_purchase BETWEEN 31 AND 60 THEN 4
-          WHEN days_since_last_purchase BETWEEN 61 AND 90 THEN 3
-          WHEN days_since_last_purchase BETWEEN 91 AND 180 THEN 2
+          WHEN cached_days_since_last_purchase IS NULL THEN 1
+          WHEN cached_days_since_last_purchase BETWEEN 0 AND 30 THEN 5
+          WHEN cached_days_since_last_purchase BETWEEN 31 AND 60 THEN 4
+          WHEN cached_days_since_last_purchase BETWEEN 61 AND 90 THEN 3
+          WHEN cached_days_since_last_purchase BETWEEN 91 AND 180 THEN 2
           ELSE 1
         END as recency_score
       SQL
@@ -311,10 +311,10 @@ module Analytics
     def calculate_frequency_score_sql
       <<~SQL.squish
         CASE
-          WHEN purchase_frequency >= 10 THEN 5
-          WHEN purchase_frequency BETWEEN 6 AND 9 THEN 4
-          WHEN purchase_frequency BETWEEN 3 AND 5 THEN 3
-          WHEN purchase_frequency = 2 THEN 2
+          WHEN cached_purchase_frequency >= 10 THEN 5
+          WHEN cached_purchase_frequency BETWEEN 6 AND 9 THEN 4
+          WHEN cached_purchase_frequency BETWEEN 3 AND 5 THEN 3
+          WHEN cached_purchase_frequency = 2 THEN 2
           ELSE 1
         END as frequency_score
       SQL
@@ -323,10 +323,10 @@ module Analytics
     def calculate_monetary_score_sql(quartiles)
       <<~SQL.squish
         CASE
-          WHEN total_revenue >= #{quartiles[:q4]} THEN 5
-          WHEN total_revenue >= #{quartiles[:q3]} THEN 4
-          WHEN total_revenue >= #{quartiles[:q2]} THEN 3
-          WHEN total_revenue >= #{quartiles[:q1]} THEN 2
+          WHEN cached_total_revenue >= #{quartiles[:q4]} THEN 5
+          WHEN cached_total_revenue >= #{quartiles[:q3]} THEN 4
+          WHEN cached_total_revenue >= #{quartiles[:q2]} THEN 3
+          WHEN cached_total_revenue >= #{quartiles[:q1]} THEN 2
           ELSE 1
         END as monetary_score
       SQL

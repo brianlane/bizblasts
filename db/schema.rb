@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_31_160003) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_02_225437) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -2204,6 +2204,12 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_31_160003) do
     t.boolean "active", default: true
     t.string "address"
     t.bigint "business_id", null: false
+    t.decimal "cached_avg_days_between_purchases", precision: 8, scale: 2
+    t.integer "cached_days_since_last_purchase"
+    t.datetime "cached_first_purchase_at"
+    t.datetime "cached_last_purchase_at"
+    t.integer "cached_purchase_frequency", default: 0, null: false
+    t.decimal "cached_total_revenue", precision: 10, scale: 2, default: "0.0", null: false
     t.string "constant_contact_id"
     t.datetime "created_at", null: false
     t.string "email"
@@ -2230,6 +2236,10 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_31_160003) do
     t.index "lower((email)::text)", name: "index_tenant_customers_on_lower_email"
     t.index ["business_id", "phone"], name: "index_tenant_customers_on_business_phone_for_users", unique: true, where: "(user_id IS NOT NULL)"
     t.index ["business_id"], name: "index_tenant_customers_on_business_id"
+    t.index ["cached_days_since_last_purchase"], name: "index_tenant_customers_on_cached_days_since_purchase"
+    t.index ["cached_last_purchase_at"], name: "index_tenant_customers_on_cached_last_purchase"
+    t.index ["cached_purchase_frequency"], name: "index_tenant_customers_on_cached_purchase_freq"
+    t.index ["cached_total_revenue"], name: "index_tenant_customers_on_cached_total_revenue"
     t.index ["constant_contact_id"], name: "index_tenant_customers_on_constant_contact_id"
     t.index ["email", "business_id"], name: "index_tenant_customers_on_email_and_business_id", unique: true
     t.index ["email_marketing_synced_at"], name: "index_tenant_customers_on_email_marketing_synced_at"

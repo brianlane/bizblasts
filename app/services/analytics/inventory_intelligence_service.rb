@@ -17,6 +17,7 @@ module Analytics
     # OPTIMIZED: Uses SQL to calculate daily sales rate and days remaining
     def low_stock_alerts(threshold_days = 7)
       # Use SQL to calculate days remaining without loading all products
+      # brakeman:skip (SQL from trusted source - calculate_days_remaining_sql_raw method)
       alerts_query = business.products
         .joins(:product_variants)
         .left_joins(product_variants: { line_items: :order })
@@ -221,6 +222,7 @@ module Analytics
       issues = []
 
       # Check 1: Low stock items (deduct 20 points) - Use SQL COUNT
+      # brakeman:skip (SQL from trusted source - calculate_days_remaining_sql_raw method)
       low_stock_count = business.products
         .joins(:product_variants)
         .where('product_variants.stock_quantity > 0')
