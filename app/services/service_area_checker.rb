@@ -95,21 +95,29 @@ class ServiceAreaChecker
   end
 
   # Clears the cached business coordinates (useful for testing or if business location changes)
-  def clear_cache!
+  # @param clear_all [Boolean] If true, clears all cached ZIPs from tracking and memory cache
+  def clear_cache!(clear_all: false)
     @center_coordinates = nil
     @memory_cache&.clear
+
+    if Rails.env.test?
+      if clear_all
+        # Clear all test cache tracking to force fresh lookups
+        self.class.test_cache_mutex.synchronize do
+          self.class.test_checked_cache_keys.clear
+        end
+      elsif business&.zip.present?
+        # Remove only business zip from tracking
+        self.class.test_cache_mutex.synchronize do
+          self.class.test_checked_cache_keys.delete(normalize_zip(business.zip))
+        end
+      end
+    end
 
     if business&.zip.present?
       cache_key = cache_key_for(normalize_zip(business.zip))
       begin
         Rails.cache.delete(cache_key)
-
-        # Remove from class-level test cache tracking
-        if Rails.env.test?
-          self.class.test_cache_mutex.synchronize do
-            self.class.test_checked_cache_keys.delete(normalize_zip(business.zip))
-          end
-        end
       rescue StandardError => e
         Rails.logger.debug "[ServiceAreaChecker] Failed to clear cache key #{cache_key}: #{e.class} - #{e.message}"
       end
