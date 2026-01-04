@@ -8,8 +8,12 @@ module Users
   # 3. Dynamic domain support (subdomains and custom domains)
   # 4. Environment-aware URL generation (development vs production)
   class SessionsController < Devise::SessionsController
+    # Handle CSRF token errors gracefully instead of returning 500
+    # This can happen when sessions expire or cookies are cleared between GET/POST
+    rescue_from ActionController::InvalidAuthenticityToken, with: :handle_invalid_csrf_token
+
     # Redirect any new or create (sign-in) request that occurs on a tenant
-    # subdomain or custom domain back to the platform’s main domain. All
+    # subdomain or custom domain back to the platform's main domain. All
     # authentication should be performed on the base domain to avoid cross-
     # domain cookie issues and for a consistent user experience.
     before_action :redirect_auth_from_subdomain, only: [:new, :create]
@@ -341,6 +345,32 @@ module Users
     end
 
     private
+
+    # Handle invalid CSRF tokens gracefully for sign-in attempts only
+    # This provides a better UX than a 500 error when sessions expire during login
+    #
+    # SECURITY: Only handle the 'create' (sign-in) action gracefully.
+    # For other actions (like 'destroy'/sign-out), re-raise the exception to maintain
+    # CSRF protection. Completing logout without valid CSRF would create an attack vector
+    # where malicious pages could log users out without their consent.
+    # See: Admin::SessionsController which uses the same pattern.
+    def handle_invalid_csrf_token
+      Rails.logger.warn "[Sessions] Invalid CSRF token detected for #{action_name} from IP: #{request.remote_ip}"
+      
+      if action_name == 'create'
+        # For sign-in attempts, regenerate CSRF and show the login form again
+        session[:_csrf_token] = nil
+        form_authenticity_token
+        
+        self.resource = resource_class.new
+        flash.now[:alert] = "Your session has expired. Please try signing in again."
+        render :new, status: :unprocessable_content
+      else
+        # For other actions (destroy, etc.), re-raise to maintain CSRF protection
+        # This is consistent with Admin::SessionsController behavior
+        raise ActionController::InvalidAuthenticityToken
+      end
+    end
 
     def redirect_with_cross_domain_support(target, status: Devise::Controllers::Responder.redirect_status, external_redirect: nil)
       url = target.to_s
