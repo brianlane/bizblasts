@@ -346,33 +346,29 @@ module Users
 
     private
 
-    # Handle invalid CSRF tokens gracefully based on the action being attempted
-    # This provides a better UX than a 500 error when sessions expire
+    # Handle invalid CSRF tokens gracefully for sign-in attempts only
+    # This provides a better UX than a 500 error when sessions expire during login
+    #
+    # SECURITY: Only handle the 'create' (sign-in) action gracefully.
+    # For other actions (like 'destroy'/sign-out), re-raise the exception to maintain
+    # CSRF protection. Completing logout without valid CSRF would create an attack vector
+    # where malicious pages could log users out without their consent.
+    # See: Admin::SessionsController which uses the same pattern.
     def handle_invalid_csrf_token
       Rails.logger.warn "[Sessions] Invalid CSRF token detected for #{action_name} from IP: #{request.remote_ip}"
       
-      # Regenerate CSRF token for fresh attempt
-      session[:_csrf_token] = nil
-      form_authenticity_token
-      
-      case action_name
-      when 'destroy'
-        # For sign-out attempts with expired CSRF, just sign out and redirect
-        # The user wanted to sign out anyway, so complete that intent
-        Rails.logger.info "[Sessions] Completing sign-out despite expired CSRF token"
-        sign_out_all_scopes
-        reset_session
-        flash[:notice] = "You have been signed out."
-        redirect_to root_path
-      when 'create'
-        # For sign-in attempts, show the login form again
+      if action_name == 'create'
+        # For sign-in attempts, regenerate CSRF and show the login form again
+        session[:_csrf_token] = nil
+        form_authenticity_token
+        
         self.resource = resource_class.new
         flash.now[:alert] = "Your session has expired. Please try signing in again."
         render :new, status: :unprocessable_content
       else
-        # For any other action, redirect to sign-in page
-        flash[:alert] = "Your session has expired. Please sign in again."
-        redirect_to new_session_path(resource_name)
+        # For other actions (destroy, etc.), re-raise to maintain CSRF protection
+        # This is consistent with Admin::SessionsController behavior
+        raise ActionController::InvalidAuthenticityToken
       end
     end
 
