@@ -169,6 +169,54 @@ class BusinessSetupService
       }
     end
 
+    # 12. Enable booking notifications (SUGGESTION - Only if they have services and notifications are not enabled)
+    if has_services? && !has_booking_notifications_enabled?
+      items << {
+        key: :enable_booking_notifications,
+        text: "Enable email notifications to be alerted when customers book services",
+        action: "Enable Notifications",
+        url: edit_business_manager_settings_profile_path,
+        priority: :medium,
+        essential: false
+      }
+    end
+
+    # 13. Enable order notifications (SUGGESTION - Only if they have products and notifications are not enabled)
+    if has_products? && !has_order_notifications_enabled?
+      items << {
+        key: :enable_order_notifications,
+        text: "Enable email notifications to be alerted when customers place orders",
+        action: "Enable Notifications",
+        url: edit_business_manager_settings_profile_path,
+        priority: :medium,
+        essential: false
+      }
+    end
+
+    # 14. Enable rental notifications (SUGGESTION - Only if they have rental products and notifications are not enabled)
+    if has_rentals? && !has_rental_notifications_enabled?
+      items << {
+        key: :enable_rental_notifications,
+        text: "Enable email notifications to be alerted when customers book rentals",
+        action: "Enable Notifications",
+        url: edit_business_manager_settings_profile_path,
+        priority: :medium,
+        essential: false
+      }
+    end
+
+    # 15. Enable estimate notifications (SUGGESTION - Only if they have estimates and notifications are not enabled)
+    if has_estimates? && !has_estimate_notifications_enabled?
+      items << {
+        key: :enable_estimate_notifications,
+        text: "Enable email notifications to be alerted when customers request estimates",
+        action: "Enable Notifications",
+        url: edit_business_manager_settings_profile_path,
+        priority: :medium,
+        essential: false
+      }
+    end
+
     items
   end
 
@@ -259,4 +307,68 @@ class BusinessSetupService
     # Users can dismiss via setup_reminder_dismissals
     false
   end
-end 
+
+  def has_booking_notifications_enabled?
+    # Check if the user has booking notifications enabled
+    return true unless user # If no user provided, assume enabled (don't show todo)
+
+    prefs = user.notification_preferences
+    return true unless prefs.is_a?(Hash) # Default to true if no preferences set
+
+    # Use fetch with default true to match view's behavior
+    # Try string key first, then symbol key, default to true if neither exists
+    prefs.fetch('email_booking_notifications') do
+      prefs.fetch(:email_booking_notifications, true)
+    end
+  end
+
+  def has_order_notifications_enabled?
+    # Check if the user has order notifications enabled
+    return true unless user # If no user provided, assume enabled (don't show todo)
+
+    prefs = user.notification_preferences
+    return true unless prefs.is_a?(Hash) # Default to true if no preferences set
+
+    # Use fetch with default true to match view's behavior
+    # Try string key first, then symbol key, default to true if neither exists
+    prefs.fetch('email_order_notifications') do
+      prefs.fetch(:email_order_notifications, true)
+    end
+  end
+
+  def has_rentals?
+    business.products.rentals.active.exists?
+  end
+
+  def has_rental_notifications_enabled?
+    # Check if the user has rental notifications enabled
+    return true unless user # If no user provided, assume enabled (don't show todo)
+
+    prefs = user.notification_preferences
+    return true unless prefs.is_a?(Hash) # Default to true if no preferences set
+
+    # Use fetch with default true to match view's behavior
+    # Try string key first, then symbol key, default to true if neither exists
+    prefs.fetch('email_rental_notifications') do
+      prefs.fetch(:email_rental_notifications, true)
+    end
+  end
+
+  def has_estimates?
+    business.estimates.exists?
+  end
+
+  def has_estimate_notifications_enabled?
+    # Check if the user has estimate notifications enabled
+    return true unless user # If no user provided, assume enabled (don't show todo)
+
+    prefs = user.notification_preferences
+    return true unless prefs.is_a?(Hash) # Default to true if no preferences set
+
+    # Use fetch with default true to match view's behavior
+    # Try string key first, then symbol key, default to true if neither exists
+    prefs.fetch('email_estimate_notifications') do
+      prefs.fetch(:email_estimate_notifications, true)
+    end
+  end
+end
