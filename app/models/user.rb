@@ -565,6 +565,9 @@ class User < ApplicationRecord
       
       # Additional notification types from the system
       email_booking_notifications: consent_given,
+      email_order_notifications: consent_given,
+      email_rental_notifications: consent_given,
+      email_estimate_notifications: consent_given,
       email_customer_notifications: consent_given,
       email_payment_notifications: consent_given,
       email_subscription_notifications: consent_given,

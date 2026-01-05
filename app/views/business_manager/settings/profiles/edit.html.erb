@@ -93,6 +93,22 @@
                 </div>
                 
                 <div class="checkbox-field">
+                  <%= prefs_fields.check_box :email_rental_notifications,
+                      { checked: (@user.notification_preferences.is_a?(Hash) ? @user.notification_preferences.fetch('email_rental_notifications', true) : true) },
+                      '1', '0' %>
+                  <%= prefs_fields.label :email_rental_notifications, "New Rental Notifications" %>
+                  <small>Get notified when customers book rentals</small>
+                </div>
+                
+                <div class="checkbox-field">
+                  <%= prefs_fields.check_box :email_estimate_notifications,
+                      { checked: (@user.notification_preferences.is_a?(Hash) ? @user.notification_preferences.fetch('email_estimate_notifications', true) : true) },
+                      '1', '0' %>
+                  <%= prefs_fields.label :email_estimate_notifications, "New Estimate Request Notifications" %>
+                  <small>Get notified when customers request estimates</small>
+                </div>
+                
+                <div class="checkbox-field">
                   <%= prefs_fields.check_box :email_customer_notifications,
                       { checked: (@user.notification_preferences.is_a?(Hash) ? @user.notification_preferences.fetch('email_customer_notifications', true) : true) },
                       '1', '0' %>
