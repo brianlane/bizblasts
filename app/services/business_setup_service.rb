@@ -311,23 +311,29 @@ class BusinessSetupService
   def has_booking_notifications_enabled?
     # Check if the user has booking notifications enabled
     return true unless user # If no user provided, assume enabled (don't show todo)
-    
+
     prefs = user.notification_preferences
-    return false unless prefs.is_a?(Hash)
-    
-    # Check if email_booking_notifications is explicitly enabled
-    prefs['email_booking_notifications'] == true || prefs[:email_booking_notifications] == true
+    return true unless prefs.is_a?(Hash) # Default to true if no preferences set
+
+    # Use fetch with default true to match view's behavior
+    # Try string key first, then symbol key, default to true if neither exists
+    prefs.fetch('email_booking_notifications') do
+      prefs.fetch(:email_booking_notifications, true)
+    end
   end
 
   def has_order_notifications_enabled?
     # Check if the user has order notifications enabled
     return true unless user # If no user provided, assume enabled (don't show todo)
-    
+
     prefs = user.notification_preferences
-    return false unless prefs.is_a?(Hash)
-    
-    # Check if email_order_notifications is explicitly enabled
-    prefs['email_order_notifications'] == true || prefs[:email_order_notifications] == true
+    return true unless prefs.is_a?(Hash) # Default to true if no preferences set
+
+    # Use fetch with default true to match view's behavior
+    # Try string key first, then symbol key, default to true if neither exists
+    prefs.fetch('email_order_notifications') do
+      prefs.fetch(:email_order_notifications, true)
+    end
   end
 
   def has_rentals?
@@ -337,12 +343,15 @@ class BusinessSetupService
   def has_rental_notifications_enabled?
     # Check if the user has rental notifications enabled
     return true unless user # If no user provided, assume enabled (don't show todo)
-    
+
     prefs = user.notification_preferences
-    return false unless prefs.is_a?(Hash)
-    
-    # Check if email_rental_notifications is explicitly enabled
-    prefs['email_rental_notifications'] == true || prefs[:email_rental_notifications] == true
+    return true unless prefs.is_a?(Hash) # Default to true if no preferences set
+
+    # Use fetch with default true to match view's behavior
+    # Try string key first, then symbol key, default to true if neither exists
+    prefs.fetch('email_rental_notifications') do
+      prefs.fetch(:email_rental_notifications, true)
+    end
   end
 
   def has_estimates?
@@ -352,11 +361,14 @@ class BusinessSetupService
   def has_estimate_notifications_enabled?
     # Check if the user has estimate notifications enabled
     return true unless user # If no user provided, assume enabled (don't show todo)
-    
+
     prefs = user.notification_preferences
-    return false unless prefs.is_a?(Hash)
-    
-    # Check if email_estimate_notifications is explicitly enabled
-    prefs['email_estimate_notifications'] == true || prefs[:email_estimate_notifications] == true
+    return true unless prefs.is_a?(Hash) # Default to true if no preferences set
+
+    # Use fetch with default true to match view's behavior
+    # Try string key first, then symbol key, default to true if neither exists
+    prefs.fetch('email_estimate_notifications') do
+      prefs.fetch(:email_estimate_notifications, true)
+    end
   end
 end

@@ -211,6 +211,31 @@ RSpec.describe BusinessSetupService, type: :service do
         booking_item = service.todo_items.find { |item| item[:key] == :enable_booking_notifications }
         expect(booking_item).to be_nil
       end
+
+      it 'excludes booking notifications setup when key is missing from preferences (defaults to true)' do
+        create(:service, business: business, active: true)
+        # Set other preferences but don't include email_booking_notifications
+        user.update!(notification_preferences: { 'email_customer_notifications' => true })
+
+        booking_item = service_with_user.todo_items.find { |item| item[:key] == :enable_booking_notifications }
+        expect(booking_item).to be_nil
+      end
+
+      it 'excludes booking notifications setup when preferences hash is empty (defaults to true)' do
+        create(:service, business: business, active: true)
+        user.update!(notification_preferences: {})
+
+        booking_item = service_with_user.todo_items.find { |item| item[:key] == :enable_booking_notifications }
+        expect(booking_item).to be_nil
+      end
+
+      it 'excludes booking notifications setup when preferences is nil (defaults to true)' do
+        create(:service, business: business, active: true)
+        user.update!(notification_preferences: nil)
+
+        booking_item = service_with_user.todo_items.find { |item| item[:key] == :enable_booking_notifications }
+        expect(booking_item).to be_nil
+      end
     end
 
     context 'order notifications todo' do
@@ -250,6 +275,15 @@ RSpec.describe BusinessSetupService, type: :service do
 
         # Service without user should not show the notification todo
         order_item = service.todo_items.find { |item| item[:key] == :enable_order_notifications }
+        expect(order_item).to be_nil
+      end
+
+      it 'excludes order notifications setup when key is missing from preferences (defaults to true)' do
+        create(:product, business: business, active: true)
+        # Set other preferences but don't include email_order_notifications
+        user.update!(notification_preferences: { 'email_customer_notifications' => true })
+
+        order_item = service_with_user.todo_items.find { |item| item[:key] == :enable_order_notifications }
         expect(order_item).to be_nil
       end
     end
@@ -293,6 +327,15 @@ RSpec.describe BusinessSetupService, type: :service do
         rental_item = service.todo_items.find { |item| item[:key] == :enable_rental_notifications }
         expect(rental_item).to be_nil
       end
+
+      it 'excludes rental notifications setup when key is missing from preferences (defaults to true)' do
+        create(:product, :rental, business: business, active: true)
+        # Set other preferences but don't include email_rental_notifications
+        user.update!(notification_preferences: { 'email_customer_notifications' => true })
+
+        rental_item = service_with_user.todo_items.find { |item| item[:key] == :enable_rental_notifications }
+        expect(rental_item).to be_nil
+      end
     end
 
     context 'estimate notifications todo' do
@@ -332,6 +375,15 @@ RSpec.describe BusinessSetupService, type: :service do
 
         # Service without user should not show the notification todo
         estimate_item = service.todo_items.find { |item| item[:key] == :enable_estimate_notifications }
+        expect(estimate_item).to be_nil
+      end
+
+      it 'excludes estimate notifications setup when key is missing from preferences (defaults to true)' do
+        create(:estimate, business: business)
+        # Set other preferences but don't include email_estimate_notifications
+        user.update!(notification_preferences: { 'email_customer_notifications' => true })
+
+        estimate_item = service_with_user.todo_items.find { |item| item[:key] == :enable_estimate_notifications }
         expect(estimate_item).to be_nil
       end
     end
