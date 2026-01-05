@@ -26,8 +26,9 @@ class GalleryPhoto < ApplicationRecord
   }, prefix: true
 
   # Associations
-  belongs_to :business
+  belongs_to :business, optional: true
   belongs_to :source, polymorphic: true, optional: true
+  belongs_to :owner, polymorphic: true, optional: true
 
   # ActiveStorage for gallery-uploaded photos
   has_one_attached :image
@@ -48,11 +49,17 @@ class GalleryPhoto < ApplicationRecord
   # Validate image size and format for gallery photos
   validate :validate_image_attachment, if: -> { photo_source_gallery? && image.attached? }
 
+  # Validate that photo has either owner or business
+  validate :owner_or_business_present
+
   # Scopes
   scope :by_position, -> { order(:position) }
   scope :gallery_uploads, -> { where(photo_source: :gallery) }
   scope :from_services, -> { where(photo_source: :service) }
   scope :from_products, -> { where(photo_source: :product) }
+  scope :business_owned, -> { where(owner_type: 'Business') }
+  scope :section_owned, -> { where(owner_type: 'PageSection') }
+  scope :for_owner, ->(owner) { where(owner: owner) }
 
   # Callbacks
   before_validation :acquire_lock_and_set_position, on: :create, if: -> { position.blank? }
@@ -229,5 +236,12 @@ class GalleryPhoto < ApplicationRecord
     return unless image.attached?
 
     ProcessGalleryPhotoJob.perform_later(id)
+  end
+
+  # Validate that photo has either owner or business
+  def owner_or_business_present
+    if owner_id.nil? && business_id.nil?
+      errors.add(:base, "Must belong to either a business or a section")
+    end
   end
 end

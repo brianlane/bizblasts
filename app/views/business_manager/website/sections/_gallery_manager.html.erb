@@ -1,0 +1,163 @@
+<%# Gallery Manager Modal for Page Section %>
+<% section = local_assigns[:section] %>
+<% page = local_assigns[:page] %>
+
+<div id="gallery-manager-modal"
+     class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden"
+     data-controller="section-gallery-manager"
+     data-section-gallery-manager-section-id-value="<%= section.id %>"
+     data-section-gallery-manager-page-id-value="<%= page.id %>">
+
+  <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
+    <!-- Modal Header -->
+    <div class="flex justify-between items-center pb-3 border-b">
+      <h3 class="text-2xl font-bold text-gray-900">Manage Gallery Photos & Video</h3>
+      <button type="button"
+              class="text-gray-400 hover:text-gray-600 transition"
+              data-action="click->section-gallery-manager#closeModal">
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="border-b border-gray-200 mt-4">
+      <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+        <button type="button"
+                class="tab-button border-blue-500 text-blue-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                data-action="click->section-gallery-manager#switchTab"
+                data-tab="photos">
+          Photos (<span data-section-gallery-manager-target="photoCount"><%= section.gallery_photos.count %></span>)
+        </button>
+        <button type="button"
+                class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                data-action="click->section-gallery-manager#switchTab"
+                data-tab="video">
+          Video
+        </button>
+      </nav>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="mt-6">
+      <!-- Photos Tab -->
+      <div data-section-gallery-manager-target="photosTab">
+        <!-- Upload Area -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Upload Photos</label>
+          <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition">
+            <input type="file"
+                   multiple
+                   accept="image/*"
+                   class="hidden"
+                   data-section-gallery-manager-target="photoInput"
+                   data-action="change->section-gallery-manager#uploadPhotos">
+            <button type="button"
+                    class="text-blue-600 hover:text-blue-700 font-medium"
+                    data-action="click->section-gallery-manager#triggerPhotoUpload">
+              📷 Choose Photos to Upload
+            </button>
+            <p class="text-sm text-gray-500 mt-2">Max 50 photos per section. JPG, PNG, GIF, WebP, HEIC formats.</p>
+          </div>
+        </div>
+
+        <!-- Photos Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4"
+             data-section-gallery-manager-target="photoGrid">
+          <% section.gallery_photos.by_position.each do |photo| %>
+            <div class="relative group" data-photo-id="<%= photo.id %>">
+              <%= image_tag photo.image_url(:thumb),
+                           alt: photo.title || "Photo",
+                           class: "w-full h-40 object-cover rounded-lg" %>
+
+              <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition rounded-lg flex items-center justify-center">
+                <button type="button"
+                        class="opacity-0 group-hover:opacity-100 bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition"
+                        data-action="click->section-gallery-manager#deletePhoto"
+                        data-photo-id="<%= photo.id %>">
+                  Delete
+                </button>
+              </div>
+
+              <% if photo.title.present? %>
+                <div class="mt-1 text-xs text-gray-600 truncate"><%= photo.title %></div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+
+        <% if section.gallery_photos.empty? %>
+          <div class="text-center py-8 text-gray-500">
+            <p>No photos uploaded yet. Add your first photo above!</p>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Video Tab -->
+      <div data-section-gallery-manager-target="videoTab" class="hidden">
+        <% if section.gallery_video.attached? %>
+          <!-- Existing Video -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Current Video</label>
+            <video controls class="w-full max-w-2xl rounded-lg">
+              <source src="<%= rails_blob_path(section.gallery_video, only_path: true) %>"
+                      type="<%= section.gallery_video.content_type %>">
+            </video>
+            <button type="button"
+                    class="mt-3 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+                    data-action="click->section-gallery-manager#removeVideo">
+              Remove Video
+            </button>
+          </div>
+        <% else %>
+          <!-- Upload Video -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Upload Video</label>
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition">
+              <input type="file"
+                     accept="video/mp4,video/webm,video/quicktime,video/x-msvideo"
+                     class="hidden"
+                     data-section-gallery-manager-target="videoInput"
+                     data-action="change->section-gallery-manager#uploadVideo">
+              <button type="button"
+                      class="text-blue-600 hover:text-blue-700 font-medium"
+                      data-action="click->section-gallery-manager#triggerVideoUpload">
+                🎥 Choose Video to Upload
+              </button>
+              <p class="text-sm text-gray-500 mt-2">MP4, WebM, MOV, AVI. Max 50MB, 5 minutes.</p>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Video Settings -->
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Video Title</label>
+            <input type="text"
+                   value="<%= section.section_config&.dig('video_title') %>"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                   data-section-gallery-manager-target="videoTitle"
+                   placeholder="Optional title for the video">
+          </div>
+          <div class="flex items-center">
+            <input type="checkbox"
+                   <%= 'checked' if section.section_config&.dig('video_autoplay') %>
+                   class="rounded border-gray-300"
+                   data-section-gallery-manager-target="videoAutoplay">
+            <label class="ml-2 text-sm text-gray-700">Auto-play video</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="flex justify-end space-x-3 mt-6 pt-4 border-t">
+      <button type="button"
+              class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition"
+              data-action="click->section-gallery-manager#closeModal">
+        Close
+      </button>
+    </div>
+  </div>
+</div>

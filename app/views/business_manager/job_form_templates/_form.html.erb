@@ -139,7 +139,8 @@
                   <label class="block text-gray-700 text-xs font-bold mb-1">Type</label>
                   <div class="field-type-dropdown"
                        data-controller="dropdown"
-                       data-dropdown-selected-value-value="<%= field['type'] || 'text' %>">
+                       data-dropdown-selected-value-value="<%= field['type'] || 'text' %>"
+                       data-action="dropdown:selected->job-form-builder#fieldTypeChanged">
                     <input type="hidden" data-field="type" value="<%= field['type'] || 'text' %>" data-dropdown-target="hidden">
                     <button type="button"
                             class="flex items-center justify-between w-full px-3 py-2 bg-white border border-gray-300 rounded shadow-sm text-sm cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
@@ -158,7 +159,7 @@
                              data-dropdown-target="option"
                              data-item-id="<%= type %>"
                              data-item-text="<%= type.humanize %>"
-                             data-action="click->dropdown#select dropdown:selected->job-form-builder#fieldTypeChanged">
+                             data-action="click->dropdown#select">
                           <span><%= type.humanize %></span>
                         </div>
                       <% end %>

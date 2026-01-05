@@ -7,14 +7,15 @@ class ProcessGalleryVideoJob < ApplicationJob
   # Maximum video file size in bytes (50 MB)
   MAX_FILE_SIZE = 50.megabytes
 
-  # @param business_id [Integer] The business ID
+  # @param owner_id [Integer] The owner ID (Business or PageSection)
+  # @param owner_type [String] The owner type ('Business' or 'PageSection')
   # @param expected_blob_id [Integer, nil] Optional blob ID to verify video hasn't changed
-  def perform(business_id, expected_blob_id = nil)
-    business = Business.find(business_id)
+  def perform(owner_id, owner_type = 'Business', expected_blob_id = nil)
+    owner = owner_type.constantize.find(owner_id)
 
-    return unless business.gallery_video.attached?
+    return unless owner.gallery_video.attached?
 
-    blob = business.gallery_video.blob
+    blob = owner.gallery_video.blob
 
     # If expected_blob_id is provided, verify video hasn't changed (race condition check)
     if expected_blob_id.present? && blob.id != expected_blob_id
@@ -29,22 +30,22 @@ class ProcessGalleryVideoJob < ApplicationJob
     validate_video!(blob)
 
     # Log video info for debugging
-    log_video_info(business, blob)
+    log_video_info(owner, blob, owner_type)
 
-    # Convert to MP4 if needed for web compatibility
-    convert_to_mp4_if_needed(business)
+    # Convert to MP4 if needed for web compatibility (only for Business)
+    convert_to_mp4_if_needed(owner) if owner_type == 'Business'
 
     # Generate video thumbnail if needed
-    # generate_thumbnail(business) if thumbnail_generation_supported?
+    # generate_thumbnail(owner) if thumbnail_generation_supported?
 
-    Rails.logger.info "[GALLERY_VIDEO_PROCESSING] Successfully processed video for business #{business_id}"
+    Rails.logger.info "[GALLERY_VIDEO_PROCESSING] Successfully processed video for #{owner_type} #{owner_id}"
   rescue ActiveRecord::RecordNotFound => e
-    Rails.logger.error "Business #{business_id} not found: #{e.message}"
+    Rails.logger.error "#{owner_type} #{owner_id} not found: #{e.message}"
   rescue VideoProcessingError => e
-    Rails.logger.error "Video validation failed for business #{business_id}: #{e.message}"
-    handle_invalid_video(business_id, e.message)
+    Rails.logger.error "Video validation failed for #{owner_type} #{owner_id}: #{e.message}"
+    handle_invalid_video(owner_id, owner_type, e.message)
   rescue => e
-    Rails.logger.error "Failed to process gallery video for business #{business_id}: #{e.message}"
+    Rails.logger.error "Failed to process gallery video for #{owner_type} #{owner_id}: #{e.message}"
     Rails.logger.error e.backtrace.join("\n")
   end
 
@@ -65,9 +66,9 @@ class ProcessGalleryVideoJob < ApplicationJob
     Rails.logger.info "[GALLERY_VIDEO_VALIDATION] Video validation passed for blob #{blob.id}"
   end
 
-  def log_video_info(business, blob)
+  def log_video_info(owner, blob, owner_type)
     Rails.logger.info <<~LOG
-      [GALLERY_VIDEO_INFO] Processing video for business #{business.id}:
+      [GALLERY_VIDEO_INFO] Processing video for #{owner_type} #{owner.id}:
         - Filename: #{blob.filename}
         - Content Type: #{blob.content_type}
         - Size: #{(blob.byte_size / 1.megabyte.to_f).round(2)}MB
@@ -113,16 +114,16 @@ class ProcessGalleryVideoJob < ApplicationJob
     Rails.logger.info "[GALLERY_VIDEO_PROCESSING] Thumbnail generation not yet implemented for business #{business.id}"
   end
 
-  def handle_invalid_video(business_id, error_message)
-    # Future enhancement: Notify business owner of invalid video
+  def handle_invalid_video(owner_id, owner_type, error_message)
+    # Future enhancement: Notify owner of invalid video
     # Could send an email or create a notification
-    Rails.logger.error "[GALLERY_VIDEO_PROCESSING] Invalid video for business #{business_id}: #{error_message}"
+    Rails.logger.error "[GALLERY_VIDEO_PROCESSING] Invalid video for #{owner_type} #{owner_id}: #{error_message}"
 
     begin
-      business = Business.find(business_id)
+      owner = owner_type.constantize.find(owner_id)
       # Remove the invalid video attachment
-      business.gallery_video.purge_later if business.gallery_video.attached?
-      Rails.logger.info "[GALLERY_VIDEO_PROCESSING] Removed invalid video for business #{business_id}"
+      owner.gallery_video.purge_later if owner.gallery_video.attached?
+      Rails.logger.info "[GALLERY_VIDEO_PROCESSING] Removed invalid video for #{owner_type} #{owner_id}"
     rescue => e
       Rails.logger.error "[GALLERY_VIDEO_PROCESSING] Failed to remove invalid video: #{e.message}"
     end

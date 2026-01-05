@@ -53,10 +53,10 @@ export default class extends Controller {
     if (!fieldItem) return
     
     const optionsContainer = fieldItem.querySelector('.options-container')
-    const hiddenInput = fieldItem.querySelector('[data-field="type"]')
-    const selectedType = hiddenInput?.value || event.detail?.value
+    // Get selected type from the event detail (dispatched by dropdown controller)
+    const selectedType = event.detail?.value
     
-    if (optionsContainer) {
+    if (optionsContainer && selectedType) {
       if (selectedType === 'select') {
         optionsContainer.classList.remove('hidden')
       } else {
@@ -74,18 +74,21 @@ export default class extends Controller {
     const dropdown = button.closest('.field-type-dropdown')
     const menu = dropdown.querySelector('.field-type-menu')
 
+    // Capture current state BEFORE closing other dropdowns
+    const wasOpen = !menu.classList.contains('hidden')
+
     // Close all other dropdowns first
     this.closeAllFieldTypeDropdowns()
 
-    // Toggle this menu
-    if (menu.classList.contains('hidden')) {
+    // Toggle this menu based on its previous state
+    if (wasOpen) {
+      // Menu was open, it's now closed by closeAllFieldTypeDropdowns - stay closed
+      return
+    } else {
+      // Menu was closed, open it
       menu.classList.remove('hidden')
       const arrow = button.querySelector('svg')
       if (arrow) arrow.classList.add('rotate-180')
-    } else {
-      menu.classList.add('hidden')
-      const arrow = button.querySelector('svg')
-      if (arrow) arrow.classList.remove('rotate-180')
     }
   }
 

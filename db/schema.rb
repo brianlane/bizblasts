@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_02_225437) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_05_212818) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -915,9 +915,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_02_225437) do
   end
 
   create_table "gallery_photos", force: :cascade do |t|
-    t.bigint "business_id", null: false
+    t.bigint "business_id"
     t.datetime "created_at", null: false
     t.text "description"
+    t.bigint "owner_id"
+    t.string "owner_type"
     t.integer "photo_source", default: 0, null: false
     t.integer "position", null: false
     t.integer "source_attachment_id"
@@ -927,6 +929,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_02_225437) do
     t.datetime "updated_at", null: false
     t.index ["business_id", "position"], name: "index_gallery_photos_on_business_id_and_position", unique: true
     t.index ["business_id"], name: "index_gallery_photos_on_business_id"
+    t.index ["owner_type", "owner_id"], name: "index_gallery_photos_on_owner_type_and_owner_id"
     t.index ["source_type", "source_id"], name: "index_gallery_photos_on_source_type_and_source_id", where: "(source_type IS NOT NULL)"
   end
 
