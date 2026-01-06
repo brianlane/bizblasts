@@ -93,8 +93,9 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
       'video_autoplay' => params[:video_autoplay] == 'true'
     }
 
-    @section.section_config ||= {}
-    @section.section_config.merge!(config_updates)
+    # Assign new hash to ensure Rails marks attribute as changed
+    # In-place mutations with merge! can fail dirty tracking for JSON columns
+    @section.section_config = (@section.section_config || {}).merge(config_updates)
     @section.instance_variable_set(:@video_just_attached, true)
     @section.save!
 
