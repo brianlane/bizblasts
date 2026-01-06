@@ -61,7 +61,7 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
 
   # POST /manage/website/pages/:page_id/sections/:id/gallery/reorder
   def reorder_photos
-    photo_ids = params[:photo_ids] || []
+    photo_ids = Array(params[:photo_ids])
 
     # Use a transaction with pessimistic locking to prevent race conditions
     # CRITICAL: Must lock section BEFORE modifying positions to prevent

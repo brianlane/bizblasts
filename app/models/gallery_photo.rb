@@ -26,7 +26,7 @@ class GalleryPhoto < ApplicationRecord
   }, prefix: true
 
   # Associations
-  belongs_to :business
+  belongs_to :business, optional: true  # Optional for section-owned photos
   belongs_to :source, polymorphic: true, optional: true
   belongs_to :owner, polymorphic: true, optional: true
 
