@@ -29,7 +29,7 @@ RSpec.describe ProcessGalleryVideoJob, type: :job do
     it 'logs video information' do
       ProcessGalleryVideoJob.perform_now(business.id)
 
-      expect(logger).to have_received(:info).with(/Processing video for business/)
+      expect(logger).to have_received(:info).with(/Processing video for Business/)
     end
 
     context 'when business not found' do

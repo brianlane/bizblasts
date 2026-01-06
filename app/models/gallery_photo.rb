@@ -26,7 +26,7 @@ class GalleryPhoto < ApplicationRecord
   }, prefix: true
 
   # Associations
-  belongs_to :business, optional: true
+  belongs_to :business
   belongs_to :source, polymorphic: true, optional: true
   belongs_to :owner, polymorphic: true, optional: true
 
@@ -35,7 +35,7 @@ class GalleryPhoto < ApplicationRecord
 
   # Validations
   validates :position, presence: true,
-                       uniqueness: { scope: :business_id },
+                       uniqueness: { scope: [:owner_type, :owner_id] },
                        numericality: { only_integer: true, greater_than: 0 }
 
   validates :photo_source, presence: true
@@ -49,8 +49,8 @@ class GalleryPhoto < ApplicationRecord
   # Validate image size and format for gallery photos
   validate :validate_image_attachment, if: -> { photo_source_gallery? && image.attached? }
 
-  # Validate that photo has either owner or business
-  validate :owner_or_business_present
+  # Validate that photo has owner set
+  validate :owner_must_be_present
 
   # Scopes
   scope :by_position, -> { order(:position) }
@@ -62,6 +62,7 @@ class GalleryPhoto < ApplicationRecord
   scope :for_owner, ->(owner) { where(owner: owner) }
 
   # Callbacks
+  before_validation :set_owner_from_business, on: :create, if: -> { owner.nil? && business.present? }
   before_validation :acquire_lock_and_set_position, on: :create, if: -> { position.blank? }
   after_destroy :reorder_positions
   after_commit :process_image_async, on: [:create, :update], if: :should_process_image?
@@ -96,16 +97,18 @@ class GalleryPhoto < ApplicationRecord
     return if position == new_position
 
     transaction do
-      ordered_ids = business.gallery_photos.order(:position).lock.pluck(:id)
+      # Get all photos for the same owner (scoped properly)
+      sibling_photos = owner.gallery_photos.order(:position).lock
+      ordered_ids = sibling_photos.pluck(:id)
       ordered_ids.delete(id)
       ordered_ids.insert(new_position - 1, id)
 
       ordered_ids.each_with_index do |photo_id, index|
-        business.gallery_photos.where(id: photo_id).update_all(position: -(index + 1))
+        sibling_photos.where(id: photo_id).update_all(position: -(index + 1))
       end
 
       ordered_ids.each_with_index do |photo_id, index|
-        business.gallery_photos.where(id: photo_id).update_all(position: index + 1)
+        sibling_photos.where(id: photo_id).update_all(position: index + 1)
       end
     end
   end
@@ -129,7 +132,7 @@ class GalleryPhoto < ApplicationRecord
       (changes.key?('blob_id') && changes['blob_id'].present?)
   end
 
-  # Acquire a row-level lock on the business record, then set the next position.
+  # Acquire a row-level lock on the owner record, then set the next position.
   # This prevents race conditions where two concurrent requests could:
   # 1. Both see the same max position and create duplicates
   # 2. Both pass the max_photos validation when at 99 photos
@@ -137,21 +140,28 @@ class GalleryPhoto < ApplicationRecord
   # The lock is held for the duration of the save transaction, ensuring
   # atomicity of both the count check (in validation) and position assignment.
   def acquire_lock_and_set_position
-    return unless business
-
-    # Acquire a row-level lock on the business record
-    # This ensures only one gallery photo can be created at a time per business
-    business.lock!
-
-    # Now safely get the next position with the lock held
-    max_position = business.gallery_photos.maximum(:position) || 0
-    self.position = max_position + 1
+    # Lock the owner (section or business) to prevent race conditions
+    if owner.present?
+      owner.lock!
+      max_position = owner.gallery_photos.maximum(:position) || 0
+      self.position = max_position + 1
+    elsif business.present?
+      business.lock!
+      max_position = business.gallery_photos.business_owned.maximum(:position) || 0
+      self.position = max_position + 1
+    end
   end
 
   # Reorder positions after deletion to maintain sequence
   def reorder_positions
-    business.gallery_photos.where("position > ?", position)
-            .update_all("position = position - 1")
+    # Only reorder photos for the same owner to avoid corrupting positions across sections
+    if owner.present?
+      owner.gallery_photos.where("position > ?", position)
+           .update_all("position = position - 1")
+    elsif business.present?
+      business.gallery_photos.business_owned.where("position > ?", position)
+              .update_all("position = position - 1")
+    end
   end
 
   # Validate max 100 photos per business
@@ -160,15 +170,18 @@ class GalleryPhoto < ApplicationRecord
   # The lock is acquired on the business record, ensuring only one photo
   # creation can proceed at a time per business.
   def max_photos_per_business
-    return unless business
+    return unless owner
 
-    # Acquire a row-level lock on the business record for accurate count
+    # Acquire a row-level lock on the owner record for accurate count
     # This is safe to call even if acquire_lock_and_set_position already
     # acquired the lock - subsequent lock! calls in the same transaction are no-ops
-    business.lock!
+    owner.lock!
 
-    if business.gallery_photos.count >= 100
+    # Different limits for different owner types
+    if owner_type == 'Business' && owner.gallery_photos.count >= 100
       errors.add(:base, "Maximum 100 photos allowed per gallery")
+    elsif owner_type == 'PageSection' && owner.gallery_photos.count >= 50
+      errors.add(:base, "Maximum 50 photos allowed per section")
     end
   end
 
@@ -239,9 +252,15 @@ class GalleryPhoto < ApplicationRecord
   end
 
   # Validate that photo has either owner or business
-  def owner_or_business_present
-    if owner_id.nil? && business_id.nil?
-      errors.add(:base, "Must belong to either a business or a section")
+  def owner_must_be_present
+    if owner_type.nil? || owner_id.nil?
+      errors.add(:base, "Must have an owner (business or section)")
     end
+  end
+
+  # Automatically set owner to business if not explicitly set
+  # This maintains backward compatibility with existing code that creates photos with just business:
+  def set_owner_from_business
+    self.owner = business
   end
 end

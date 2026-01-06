@@ -51,7 +51,8 @@ class PageSection < ApplicationRecord
 
   before_save :set_default_config
   after_commit :process_gallery_video, if: -> {
-    section_type == 'gallery' && gallery_video.attached? && saved_change_to_id?
+    section_type == 'gallery' && gallery_video.attached? &&
+    (saved_change_to_id? || @video_just_attached)
   }
   
   def background_color
@@ -132,6 +133,9 @@ class PageSection < ApplicationRecord
                           .where.not(id: section_photos.map(&:id))
                           .limit(50 - section_photos.size)
       section_photos + business_photos.to_a
+    else
+      # Fallback for invalid or nil source mode - default to business gallery
+      page.business.gallery_photos.business_owned.by_position.limit(50)
     end
   end
 

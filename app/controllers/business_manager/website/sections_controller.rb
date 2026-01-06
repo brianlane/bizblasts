@@ -50,8 +50,17 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
   def reorder_photos
     photo_ids = params[:photo_ids] || []
 
-    photo_ids.each_with_index do |photo_id, index|
-      @section.gallery_photos.find(photo_id).update(position: index + 1)
+    # Use a transaction to safely reorder photos
+    # First set all to negative positions to avoid uniqueness conflicts,
+    # then update to final positions
+    ActiveRecord::Base.transaction do
+      # Step 1: Set all section photos to negative temporary positions
+      @section.gallery_photos.update_all("position = -position - 1000000")
+
+      # Step 2: Update to final positions
+      photo_ids.each_with_index do |photo_id, index|
+        @section.gallery_photos.find(photo_id).update_column(:position, index + 1)
+      end
     end
 
     respond_to do |format|
@@ -70,6 +79,7 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
 
     @section.section_config ||= {}
     @section.section_config.merge!(config_updates)
+    @section.instance_variable_set(:@video_just_attached, true)
     @section.save!
 
     respond_to do |format|
@@ -348,8 +358,8 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
       photo = locked_section.gallery_photos.build(
         business: locked_section.page.business,
         photo_source: :gallery,
-        title: attributes[:title],
-        description: attributes[:description]
+        title: attributes['title'],
+        description: attributes['description']
       )
 
       photo.image.attach(file)

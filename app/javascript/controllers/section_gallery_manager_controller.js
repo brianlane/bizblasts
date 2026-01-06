@@ -10,7 +10,7 @@ export default class extends Controller {
   }
 
   connect() {
-    console.log("Section Gallery Manager connected")
+    // Controller connected and ready
   }
 
   // Open the modal
