@@ -135,6 +135,9 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
     end
   rescue ActiveRecord::RecordInvalid => e
     # Handle validation errors (e.g., wrong format, size exceeds 50MB)
+    # Purge the invalid attachment to prevent it from persisting
+    @section.gallery_video.purge if @section.gallery_video.attached?
+
     respond_to do |format|
       format.json {
         render json: {
@@ -145,6 +148,9 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
     end
   rescue StandardError => e
     # Handle other errors
+    # Purge the invalid attachment to prevent it from persisting
+    @section.gallery_video.purge if @section.gallery_video.attached?
+
     Rails.logger.error("Video upload error: #{e.message}")
     respond_to do |format|
       format.json {
