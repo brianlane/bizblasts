@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_05_212818) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_06_045220) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -927,8 +927,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_05_212818) do
     t.string "source_type"
     t.string "title"
     t.datetime "updated_at", null: false
-    t.index ["business_id", "position"], name: "index_gallery_photos_on_business_id_and_position", unique: true
     t.index ["business_id"], name: "index_gallery_photos_on_business_id"
+    t.index ["owner_type", "owner_id", "position"], name: "index_gallery_photos_on_owner_and_position", unique: true
     t.index ["owner_type", "owner_id"], name: "index_gallery_photos_on_owner_type_and_owner_id"
     t.index ["source_type", "source_id"], name: "index_gallery_photos_on_source_type_and_source_id", where: "(source_type IS NOT NULL)"
   end
@@ -1259,7 +1259,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_05_212818) do
     t.index ["tenant_customer_id", "created_at"], name: "index_orders_on_tenant_customer_id_and_created_at"
     t.index ["tenant_customer_id"], name: "index_orders_on_tenant_customer_id"
     t.index ["tip_amount"], name: "index_orders_on_tip_amount"
-    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying, 'paid'::character varying, 'cancelled'::character varying, 'shipped'::character varying, 'refunded'::character varying, 'processing'::character varying, 'completed'::character varying, 'business_deleted'::character varying]::text[])", name: "status_enum_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending_payment'::character varying::text, 'paid'::character varying::text, 'cancelled'::character varying::text, 'shipped'::character varying::text, 'refunded'::character varying::text, 'processing'::character varying::text, 'completed'::character varying::text, 'business_deleted'::character varying::text])", name: "status_enum_check"
   end
 
   create_table "page_sections", force: :cascade do |t|
@@ -1729,7 +1729,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_05_212818) do
     t.index ["business_id", "status"], name: "index_rental_bookings_on_business_id_and_status"
     t.index ["business_id"], name: "index_rental_bookings_on_business_id"
     t.index ["deposit_authorization_id"], name: "index_rental_bookings_on_deposit_authorization_id"
-    t.index ["end_time"], name: "index_rental_bookings_on_end_time_for_overdue", where: "((status)::text = ANY ((ARRAY['checked_out'::character varying, 'overdue'::character varying])::text[]))"
+    t.index ["end_time"], name: "index_rental_bookings_on_end_time_for_overdue", where: "((status)::text = ANY (ARRAY[('checked_out'::character varying)::text, ('overdue'::character varying)::text]))"
     t.index ["guest_access_token"], name: "index_rental_bookings_on_guest_access_token", unique: true
     t.index ["location_id"], name: "index_rental_bookings_on_location_id"
     t.index ["product_id", "start_time", "end_time"], name: "idx_on_product_id_start_time_end_time_f527c29028"

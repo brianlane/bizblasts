@@ -170,7 +170,7 @@
             <input type="checkbox"
                    name="page_section[section_config][show_hover_effects]"
                    value="true"
-                   <%= 'checked' if section.section_config&.dig('show_hover_effects') != false %>
+                   <%= 'checked' if section.section_config&.dig('show_hover_effects') == true || section.section_config&.dig('show_hover_effects').nil? %>
                    class="rounded border-gray-300 text-primary shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
             <label class="ml-2 text-sm text-gray-700">Show hover effects (zoom, overlay)</label>
           </div>
@@ -178,7 +178,7 @@
             <input type="checkbox"
                    name="page_section[section_config][show_photo_titles]"
                    value="true"
-                   <%= 'checked' if section.section_config&.dig('show_photo_titles') != false %>
+                   <%= 'checked' if section.section_config&.dig('show_photo_titles') == true || section.section_config&.dig('show_photo_titles').nil? %>
                    class="rounded border-gray-300 text-primary shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
             <label class="ml-2 text-sm text-gray-700">Show photo titles on hover</label>
           </div>
@@ -300,7 +300,12 @@
             data-action="click->edit-section#close">
       Cancel
     </button>
-    <%= form.submit "Update Section", 
+    <%= form.submit "Update Section",
           class: "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary" %>
   </div>
+<% end %>
+
+<%# Render gallery manager modal for gallery sections %>
+<% if section.section_type == 'gallery' %>
+  <%= render 'gallery_manager', section: section, page: section.page %>
 <% end %> 

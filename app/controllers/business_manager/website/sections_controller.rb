@@ -50,6 +50,22 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
   def reorder_photos
     photo_ids = params[:photo_ids] || []
 
+    # Validate that all section photos are included
+    all_photo_ids = @section.gallery_photos.pluck(:id).sort
+    provided_photo_ids = photo_ids.map(&:to_i).sort
+
+    if all_photo_ids != provided_photo_ids
+      respond_to do |format|
+        format.json {
+          render json: {
+            status: 'error',
+            error: 'All photos must be included in reorder request'
+          }, status: :unprocessable_entity
+        }
+      end
+      return
+    end
+
     # Use a transaction to safely reorder photos
     # First set all to negative positions to avoid uniqueness conflicts,
     # then update to final positions
@@ -84,6 +100,27 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
 
     respond_to do |format|
       format.json { render json: { status: 'success' } }
+    end
+  rescue ActiveRecord::RecordInvalid => e
+    # Handle validation errors (e.g., wrong format, size exceeds 50MB)
+    respond_to do |format|
+      format.json {
+        render json: {
+          status: 'error',
+          error: e.record.errors.full_messages.join(', ')
+        }, status: :unprocessable_entity
+      }
+    end
+  rescue StandardError => e
+    # Handle other errors
+    Rails.logger.error("Video upload error: #{e.message}")
+    respond_to do |format|
+      format.json {
+        render json: {
+          status: 'error',
+          error: 'Error uploading video'
+        }, status: :internal_server_error
+      }
     end
   end
 
