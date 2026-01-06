@@ -127,11 +127,16 @@ class PageSection < ApplicationRecord
     when 'business'
       page.business.gallery_photos.business_owned.by_position.limit(50)
     when 'mixed'
-      section_photos = gallery_photos.by_position.to_a
+      # Limit section photos to 50 to prevent negative limit for business photos
+      section_photos = gallery_photos.by_position.limit(50).to_a
+
+      # Calculate remaining slots for business photos, ensuring non-negative
+      remaining_slots = [50 - section_photos.size, 0].max
+
       business_photos = page.business.gallery_photos.business_owned
                           .by_position
                           .where.not(id: section_photos.map(&:id))
-                          .limit(50 - section_photos.size)
+                          .limit(remaining_slots)
       section_photos + business_photos.to_a
     else
       # Fallback for invalid or nil source mode - default to business gallery

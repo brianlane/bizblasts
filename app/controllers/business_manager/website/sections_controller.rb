@@ -14,6 +14,19 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
 
   # POST /manage/website/pages/:page_id/sections/:id/gallery/upload_photo
   def upload_photo
+    # Validate that photo file is present
+    unless params[:photo].present?
+      respond_to do |format|
+        format.json {
+          render json: {
+            status: 'error',
+            error: 'No photo file provided'
+          }, status: :unprocessable_entity
+        }
+      end
+      return
+    end
+
     file = params[:photo]
     attributes = params.permit(:title, :description).to_h
 
@@ -91,6 +104,19 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
 
   # POST /manage/website/pages/:page_id/sections/:id/gallery/upload_video
   def upload_video
+    # Validate that video file is present
+    unless params[:video].present?
+      respond_to do |format|
+        format.json {
+          render json: {
+            status: 'error',
+            error: 'No video file provided'
+          }, status: :unprocessable_entity
+        }
+      end
+      return
+    end
+
     @section.gallery_video.attach(params[:video])
 
     config_updates = {
