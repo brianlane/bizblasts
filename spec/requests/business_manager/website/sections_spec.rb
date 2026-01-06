@@ -23,9 +23,9 @@ RSpec.describe "BusinessManager::Website::Sections", type: :request do
   end
 
   describe "POST /manage/website/pages/:page_id/sections/:id/gallery/reorder" do
-    let!(:photo1) { create(:gallery_photo, owner: section, business: nil, position: 1) }
-    let!(:photo2) { create(:gallery_photo, owner: section, business: nil, position: 2) }
-    let!(:photo3) { create(:gallery_photo, owner: section, business: nil, position: 3) }
+    let!(:photo1) { create(:gallery_photo, owner: section, business: business, position: 1) }
+    let!(:photo2) { create(:gallery_photo, owner: section, business: business, position: 2) }
+    let!(:photo3) { create(:gallery_photo, owner: section, business: business, position: 3) }
 
     let(:reorder_url) { "/manage/website/pages/#{page.id}/sections/#{section.id}/gallery/reorder" }
 
@@ -77,7 +77,7 @@ RSpec.describe "BusinessManager::Website::Sections", type: :request do
              as: :json
 
         # Should return error (not all photos included), not crash
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json = JSON.parse(response.body)
         expect(json['status']).to eq('error')
       end

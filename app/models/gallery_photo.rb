@@ -26,7 +26,7 @@ class GalleryPhoto < ApplicationRecord
   }, prefix: true
 
   # Associations
-  belongs_to :business
+  belongs_to :business, optional: true
   belongs_to :source, polymorphic: true, optional: true
   belongs_to :owner, polymorphic: true, optional: true
 
@@ -39,6 +39,9 @@ class GalleryPhoto < ApplicationRecord
                        numericality: { only_integer: true, greater_than: 0 }
 
   validates :photo_source, presence: true
+
+  # Validate that business is present for business-owned photos
+  validates :business, presence: true, if: -> { owner_type == 'Business' }
 
   # Validate that business doesn't exceed 100 photos
   validate :max_photos_per_business, on: :create

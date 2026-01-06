@@ -24,7 +24,8 @@ class GalleryPhotoService
       locked_business = Business.lock.find(business.id)
 
       # Check photo count limit with lock held
-      if locked_business.gallery_photos.count >= 100
+      # Only count business-owned photos to avoid counting section-owned photos
+      if locked_business.gallery_photos.business_owned.count >= 100
         raise MaxPhotosExceededError, "Maximum 100 photos allowed per gallery"
       end
 
@@ -76,7 +77,8 @@ class GalleryPhotoService
       locked_business = Business.lock.find(business.id)
 
       # Check photo count limit with lock held
-      if locked_business.gallery_photos.count >= 100
+      # Only count business-owned photos to avoid counting section-owned photos
+      if locked_business.gallery_photos.business_owned.count >= 100
         raise MaxPhotosExceededError, "Maximum 100 photos allowed per gallery"
       end
 

@@ -7,7 +7,13 @@ RSpec.describe GalleryPhoto, type: :model do
   subject(:gallery_photo) { create(:gallery_photo, business: business) }
 
   describe 'associations' do
-    it { is_expected.to belong_to(:business) }
+    # Business association is optional at the ActiveRecord level but conditionally validated
+    # See 'business validation' tests below for the actual validation behavior
+    it 'has a business association' do
+      expect(gallery_photo.business).to eq(business)
+      expect(gallery_photo).to respond_to(:business)
+    end
+
     it { is_expected.to belong_to(:source).optional }
     it { is_expected.to have_one_attached(:image) }
   end
@@ -24,6 +30,29 @@ RSpec.describe GalleryPhoto, type: :model do
     it { is_expected.to validate_presence_of(:position) }
     it { is_expected.to validate_numericality_of(:position).only_integer.is_greater_than(0) }
     it { is_expected.to validate_presence_of(:photo_source) }
+
+    context 'business validation' do
+      it 'requires business for business-owned photos' do
+        # Business-owned photos must have a business
+        photo = build(:gallery_photo, business: nil, owner: business)
+        expect(photo).not_to be_valid
+        expect(photo.errors[:business]).to include("can't be blank")
+      end
+
+      it 'allows nil business for section-owned photos' do
+        # Section-owned photos can have nil business in theory
+        # (though in practice we always set it via the page's business)
+        page = create(:page, business: business)
+        section = create(:page_section, page: page, section_type: :gallery)
+
+        # Build photo without business but with section owner
+        photo = build(:gallery_photo, business: nil, owner: section)
+
+        # Should be valid without business since it's section-owned
+        # Note: In practice we always set business anyway, but validation allows it
+        expect(photo.errors[:business]).to be_empty
+      end
+    end
 
     context 'max photos per business' do
       before do

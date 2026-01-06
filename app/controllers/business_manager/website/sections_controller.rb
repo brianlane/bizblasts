@@ -21,7 +21,7 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
           render json: {
             status: 'error',
             error: 'No photo file provided'
-          }, status: :unprocessable_entity
+          }, status: :unprocessable_content
         }
       end
       return
@@ -44,7 +44,7 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
     respond_to do |format|
       format.json {
         render json: { status: 'error', error: e.message },
-               status: :unprocessable_entity
+               status: :unprocessable_content
       }
     end
   end
@@ -80,7 +80,7 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
             render json: {
               status: 'error',
               error: 'All photos must be included in reorder request'
-            }, status: :unprocessable_entity
+            }, status: :unprocessable_content
           }
         end
         return
@@ -111,7 +111,7 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
           render json: {
             status: 'error',
             error: 'No video file provided'
-          }, status: :unprocessable_entity
+          }, status: :unprocessable_content
         }
       end
       return
@@ -140,7 +140,7 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
         render json: {
           status: 'error',
           error: e.record.errors.full_messages.join(', ')
-        }, status: :unprocessable_entity
+        }, status: :unprocessable_content
       }
     end
   rescue StandardError => e

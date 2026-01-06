@@ -7,7 +7,8 @@
 <% subtitle_classes = accent_enabled ? "text-lg text-gray-300 max-w-3xl mx-auto" : "text-lg text-gray-600 max-w-3xl mx-auto" %>
 <% section_subheading_classes = accent_enabled ? "text-2xl font-semibold text-white mb-6 text-center" : "text-2xl font-semibold text-gray-900 mb-6 text-center" %>
 <% grid_heading_classes = accent_enabled ? "text-2xl font-semibold text-white mb-8 text-center" : "text-2xl font-semibold text-gray-900 mb-8 text-center" %>
-<% all_photos = current_business.gallery_photos.by_position.limit(6) %>
+<%# Only show business-owned photos in the enhanced layout gallery section, not section photos %>
+<% all_photos = current_business.gallery_photos.business_owned.by_position.limit(6) %>
 
 <% if current_business&.gallery_ready? && current_business.show_gallery_section? %>
   <div class="<%= section_classes %>" id="gallery">

@@ -334,7 +334,8 @@ module Seo
       score += 25 if business.logo.attached?
       
       # Gallery photos
-      gallery_count = business.gallery_photos.count
+      # Only count business-owned photos, not section-owned photos
+      gallery_count = business.gallery_photos.business_owned.count
       score += [gallery_count * 5, 25].min if gallery_count > 0
       
       # Gallery video (bonus)
@@ -686,7 +687,8 @@ module Seo
         }
       end
       
-      if business.gallery_photos.count < 5
+      # Only count business-owned photos, not section-owned photos
+      if business.gallery_photos.business_owned.count < 5
         suggestions << {
           priority: 'medium',
           category: 'images',

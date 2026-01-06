@@ -11,7 +11,8 @@
 <% heading_classes = accent_enabled ? "text-3xl md:text-4xl font-bold text-white mb-4" : "text-3xl md:text-4xl font-bold text-gray-900 mb-4" %>
 <% subtitle_classes = accent_enabled ? "text-lg text-gray-300 max-w-3xl mx-auto" : "text-lg text-gray-600 max-w-3xl mx-auto" %>
 <% grid_heading_classes = accent_enabled ? "text-2xl font-semibold text-white mb-8 text-center" : "text-2xl font-semibold text-gray-900 mb-8 text-center" %>
-<% photos = business.gallery_photos.by_position %>
+<%# Only show business-owned photos on the business gallery page, not section photos %>
+<% photos = business.gallery_photos.business_owned.by_position %>
 
 </div><%# Close main container %>
 
