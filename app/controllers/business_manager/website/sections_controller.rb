@@ -50,32 +50,37 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
   def reorder_photos
     photo_ids = params[:photo_ids] || []
 
-    # Validate that all section photos are included
-    all_photo_ids = @section.gallery_photos.pluck(:id).sort
-    provided_photo_ids = photo_ids.map(&:to_i).sort
-
-    if all_photo_ids != provided_photo_ids
-      respond_to do |format|
-        format.json {
-          render json: {
-            status: 'error',
-            error: 'All photos must be included in reorder request'
-          }, status: :unprocessable_entity
-        }
-      end
-      return
-    end
-
-    # Use a transaction to safely reorder photos
-    # First set all to negative positions to avoid uniqueness conflicts,
-    # then update to final positions
+    # Use a transaction with pessimistic locking to prevent race conditions
+    # CRITICAL: Must lock section BEFORE modifying positions to prevent
+    # concurrent photo uploads from reading negative temporary positions
     ActiveRecord::Base.transaction do
+      # Lock the section to prevent concurrent modifications
+      locked_section = PageSection.lock.find(@section.id)
+
+      # Validate that all section photos are included
+      all_photo_ids = locked_section.gallery_photos.pluck(:id).sort
+      provided_photo_ids = photo_ids.map(&:to_i).sort
+
+      if all_photo_ids != provided_photo_ids
+        respond_to do |format|
+          format.json {
+            render json: {
+              status: 'error',
+              error: 'All photos must be included in reorder request'
+            }, status: :unprocessable_entity
+          }
+        end
+        return
+      end
+
+      # First set all to negative positions to avoid uniqueness conflicts,
+      # then update to final positions
       # Step 1: Set all section photos to negative temporary positions
-      @section.gallery_photos.update_all("position = -position - 1000000")
+      locked_section.gallery_photos.update_all("position = -position - 1000000")
 
       # Step 2: Update to final positions
       photo_ids.each_with_index do |photo_id, index|
-        @section.gallery_photos.find(photo_id).update_column(:position, index + 1)
+        locked_section.gallery_photos.find(photo_id).update_column(:position, index + 1)
       end
     end
 
