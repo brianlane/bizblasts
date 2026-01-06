@@ -26,18 +26,22 @@ class GalleryPhoto < ApplicationRecord
   }, prefix: true
 
   # Associations
-  belongs_to :business
+  belongs_to :business, optional: true
   belongs_to :source, polymorphic: true, optional: true
+  belongs_to :owner, polymorphic: true, optional: true
 
   # ActiveStorage for gallery-uploaded photos
   has_one_attached :image
 
   # Validations
   validates :position, presence: true,
-                       uniqueness: { scope: :business_id },
+                       uniqueness: { scope: [:owner_type, :owner_id] },
                        numericality: { only_integer: true, greater_than: 0 }
 
   validates :photo_source, presence: true
+
+  # Validate that business is present for business-owned photos
+  validates :business, presence: true, if: -> { owner_type == 'Business' }
 
   # Validate that business doesn't exceed 100 photos
   validate :max_photos_per_business, on: :create
@@ -48,13 +52,20 @@ class GalleryPhoto < ApplicationRecord
   # Validate image size and format for gallery photos
   validate :validate_image_attachment, if: -> { photo_source_gallery? && image.attached? }
 
+  # Validate that photo has owner set
+  validate :owner_must_be_present
+
   # Scopes
   scope :by_position, -> { order(:position) }
   scope :gallery_uploads, -> { where(photo_source: :gallery) }
   scope :from_services, -> { where(photo_source: :service) }
   scope :from_products, -> { where(photo_source: :product) }
+  scope :business_owned, -> { where(owner_type: 'Business') }
+  scope :section_owned, -> { where(owner_type: 'PageSection') }
+  scope :for_owner, ->(owner) { where(owner: owner) }
 
   # Callbacks
+  before_validation :set_owner_from_business, on: :create, if: -> { owner.nil? && business.present? }
   before_validation :acquire_lock_and_set_position, on: :create, if: -> { position.blank? }
   after_destroy :reorder_positions
   after_commit :process_image_async, on: [:create, :update], if: :should_process_image?
@@ -89,16 +100,24 @@ class GalleryPhoto < ApplicationRecord
     return if position == new_position
 
     transaction do
-      ordered_ids = business.gallery_photos.order(:position).lock.pluck(:id)
+      # Get all photos for the same owner (scoped properly)
+      # For business owners, only get business-owned photos to avoid affecting section photos
+      if owner_type == 'Business'
+        sibling_photos = owner.gallery_photos.business_owned.order(:position).lock
+      else
+        sibling_photos = owner.gallery_photos.order(:position).lock
+      end
+
+      ordered_ids = sibling_photos.pluck(:id)
       ordered_ids.delete(id)
       ordered_ids.insert(new_position - 1, id)
 
       ordered_ids.each_with_index do |photo_id, index|
-        business.gallery_photos.where(id: photo_id).update_all(position: -(index + 1))
+        sibling_photos.where(id: photo_id).update_all(position: -(index + 1))
       end
 
       ordered_ids.each_with_index do |photo_id, index|
-        business.gallery_photos.where(id: photo_id).update_all(position: index + 1)
+        sibling_photos.where(id: photo_id).update_all(position: index + 1)
       end
     end
   end
@@ -122,7 +141,7 @@ class GalleryPhoto < ApplicationRecord
       (changes.key?('blob_id') && changes['blob_id'].present?)
   end
 
-  # Acquire a row-level lock on the business record, then set the next position.
+  # Acquire a row-level lock on the owner record, then set the next position.
   # This prevents race conditions where two concurrent requests could:
   # 1. Both see the same max position and create duplicates
   # 2. Both pass the max_photos validation when at 99 photos
@@ -130,38 +149,60 @@ class GalleryPhoto < ApplicationRecord
   # The lock is held for the duration of the save transaction, ensuring
   # atomicity of both the count check (in validation) and position assignment.
   def acquire_lock_and_set_position
-    return unless business
-
-    # Acquire a row-level lock on the business record
-    # This ensures only one gallery photo can be created at a time per business
-    business.lock!
-
-    # Now safely get the next position with the lock held
-    max_position = business.gallery_photos.maximum(:position) || 0
-    self.position = max_position + 1
+    # Lock the owner (section or business) to prevent race conditions
+    if owner.present?
+      owner.lock!
+      # For business owners, only count business-owned photos to avoid position conflicts
+      # with section-owned photos that share the same business_id
+      if owner_type == 'Business'
+        max_position = owner.gallery_photos.business_owned.maximum(:position) || 0
+      else
+        max_position = owner.gallery_photos.maximum(:position) || 0
+      end
+      self.position = max_position + 1
+    elsif business.present?
+      business.lock!
+      max_position = business.gallery_photos.business_owned.maximum(:position) || 0
+      self.position = max_position + 1
+    end
   end
 
   # Reorder positions after deletion to maintain sequence
   def reorder_positions
-    business.gallery_photos.where("position > ?", position)
-            .update_all("position = position - 1")
+    # Only reorder photos for the same owner to avoid corrupting positions across sections
+    if owner.present?
+      # For business owners, only reorder business-owned photos
+      if owner_type == 'Business'
+        owner.gallery_photos.business_owned.where("position > ?", position)
+             .update_all("position = position - 1")
+      else
+        owner.gallery_photos.where("position > ?", position)
+             .update_all("position = position - 1")
+      end
+    elsif business.present?
+      business.gallery_photos.business_owned.where("position > ?", position)
+              .update_all("position = position - 1")
+    end
   end
 
   # Validate max 100 photos per business
   # Uses pessimistic locking to prevent race conditions where concurrent requests
   # could both see 99 photos and both create a new one, exceeding the limit.
-  # The lock is acquired on the business record, ensuring only one photo
+  # The lock is acquired on the owner record, ensuring only one photo
   # creation can proceed at a time per business.
   def max_photos_per_business
-    return unless business
+    return unless owner
 
-    # Acquire a row-level lock on the business record for accurate count
+    # Acquire a row-level lock on the owner record for accurate count
     # This is safe to call even if acquire_lock_and_set_position already
     # acquired the lock - subsequent lock! calls in the same transaction are no-ops
-    business.lock!
+    owner.lock!
 
-    if business.gallery_photos.count >= 100
+    # Different limits for different owner types
+    if owner_type == 'Business' && owner.gallery_photos.business_owned.count >= 100
       errors.add(:base, "Maximum 100 photos allowed per gallery")
+    elsif owner_type == 'PageSection' && owner.gallery_photos.count >= 50
+      errors.add(:base, "Maximum 50 photos allowed per section")
     end
   end
 
@@ -229,5 +270,18 @@ class GalleryPhoto < ApplicationRecord
     return unless image.attached?
 
     ProcessGalleryPhotoJob.perform_later(id)
+  end
+
+  # Validate that photo has either owner or business
+  def owner_must_be_present
+    if owner_type.nil? || owner_id.nil?
+      errors.add(:base, "Must have an owner (business or section)")
+    end
+  end
+
+  # Automatically set owner to business if not explicitly set
+  # This maintains backward compatibility with existing code that creates photos with just business:
+  def set_owner_from_business
+    self.owner = business
   end
 end

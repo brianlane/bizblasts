@@ -1,7 +1,176 @@
 class BusinessManager::Website::SectionsController < BusinessManager::Website::BaseController
   before_action :set_page
   before_action :set_section, except: [:index, :create, :reorder]
-  
+
+  # GET /manage/website/pages/:page_id/sections/:id/manage_gallery
+  def manage_gallery
+    respond_to do |format|
+      format.html {
+        render partial: 'gallery_manager',
+               locals: { section: @section, page: @page }
+      }
+    end
+  end
+
+  # POST /manage/website/pages/:page_id/sections/:id/gallery/upload_photo
+  def upload_photo
+    # Validate that photo file is present
+    unless params[:photo].present?
+      respond_to do |format|
+        format.json {
+          render json: {
+            status: 'error',
+            error: 'No photo file provided'
+          }, status: :unprocessable_content
+        }
+      end
+      return
+    end
+
+    file = params[:photo]
+    attributes = params.permit(:title, :description).to_h
+
+    photo = add_photo_to_section(@section, file, attributes)
+
+    respond_to do |format|
+      format.json {
+        render json: {
+          status: 'success',
+          photo: photo_json(photo)
+        }
+      }
+    end
+  rescue StandardError => e
+    respond_to do |format|
+      format.json {
+        render json: { status: 'error', error: e.message },
+               status: :unprocessable_content
+      }
+    end
+  end
+
+  # DELETE /manage/website/pages/:page_id/sections/:id/gallery/photos/:photo_id
+  def remove_photo
+    photo = @section.gallery_photos.find(params[:photo_id])
+    photo.destroy
+
+    respond_to do |format|
+      format.json { render json: { status: 'success' } }
+    end
+  end
+
+  # POST /manage/website/pages/:page_id/sections/:id/gallery/reorder
+  def reorder_photos
+    photo_ids = Array(params[:photo_ids])
+
+    # Use a transaction with pessimistic locking to prevent race conditions
+    # CRITICAL: Must lock section BEFORE modifying positions to prevent
+    # concurrent photo uploads from reading negative temporary positions
+    ActiveRecord::Base.transaction do
+      # Lock the section to prevent concurrent modifications
+      locked_section = PageSection.lock.find(@section.id)
+
+      # Validate that all section photos are included
+      all_photo_ids = locked_section.gallery_photos.pluck(:id).sort
+      provided_photo_ids = photo_ids.map(&:to_i).sort
+
+      if all_photo_ids != provided_photo_ids
+        respond_to do |format|
+          format.json {
+            render json: {
+              status: 'error',
+              error: 'All photos must be included in reorder request'
+            }, status: :unprocessable_content
+          }
+        end
+        return
+      end
+
+      # First set all to negative positions to avoid uniqueness conflicts,
+      # then update to final positions
+      # Step 1: Set all section photos to negative temporary positions
+      locked_section.gallery_photos.update_all("position = -position - 1000000")
+
+      # Step 2: Update to final positions
+      photo_ids.each_with_index do |photo_id, index|
+        locked_section.gallery_photos.find(photo_id).update_column(:position, index + 1)
+      end
+    end
+
+    respond_to do |format|
+      format.json { render json: { status: 'success' } }
+    end
+  end
+
+  # POST /manage/website/pages/:page_id/sections/:id/gallery/upload_video
+  def upload_video
+    # Validate that video file is present
+    unless params[:video].present?
+      respond_to do |format|
+        format.json {
+          render json: {
+            status: 'error',
+            error: 'No video file provided'
+          }, status: :unprocessable_content
+        }
+      end
+      return
+    end
+
+    @section.gallery_video.attach(params[:video])
+
+    config_updates = {
+      'video_title' => params[:video_title],
+      'video_autoplay' => params[:video_autoplay] == 'true'
+    }
+
+    # Assign new hash to ensure Rails marks attribute as changed
+    # In-place mutations with merge! can fail dirty tracking for JSON columns
+    @section.section_config = (@section.section_config || {}).merge(config_updates)
+    @section.instance_variable_set(:@video_just_attached, true)
+    @section.save!
+
+    respond_to do |format|
+      format.json { render json: { status: 'success' } }
+    end
+  rescue ActiveRecord::RecordInvalid => e
+    # Handle validation errors (e.g., wrong format, size exceeds 50MB)
+    # Purge the invalid attachment to prevent it from persisting
+    @section.gallery_video.purge if @section.gallery_video.attached?
+
+    respond_to do |format|
+      format.json {
+        render json: {
+          status: 'error',
+          error: e.record.errors.full_messages.join(', ')
+        }, status: :unprocessable_content
+      }
+    end
+  rescue StandardError => e
+    # Handle other errors
+    # Purge the invalid attachment to prevent it from persisting
+    @section.gallery_video.purge if @section.gallery_video.attached?
+
+    Rails.logger.error("Video upload error: #{e.message}")
+    respond_to do |format|
+      format.json {
+        render json: {
+          status: 'error',
+          error: 'Error uploading video'
+        }, status: :internal_server_error
+      }
+    end
+  end
+
+  # DELETE /manage/website/pages/:page_id/sections/:id/gallery/remove_video
+  def remove_video
+    @section.gallery_video.purge if @section.gallery_video.attached?
+
+    respond_to do |format|
+      format.json { render json: { status: 'success' } }
+    end
+  end
+
   # GET /manage/website/pages/:page_id/sections
   # Renders the page-builder interface initially and is also used by the
   # Stimulus controller (refreshSections) to fetch an updated DOM snippet.
@@ -194,6 +363,9 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
       :show_contact_form, :show_map, :show_hours, :show_social_links,
       :grid_columns, :max_items, :show_pricing, :show_descriptions,
       :company_name, :address, :phone, :email, :hours, :social_links,
+      :gallery_layout, :gallery_columns, :gallery_photo_source_mode,
+      :show_video, :video_position, :video_title, :video_autoplay,
+      :show_hover_effects, :show_photo_titles,
       items: [], social_links: {}
     ]
     
@@ -246,6 +418,40 @@ class BusinessManager::Website::SectionsController < BusinessManager::Website::B
       config: section.section_config,
       css_classes: section.css_classes,
       active: section.active?
+    }
+  end
+
+  # Add photo to section with locking
+  def add_photo_to_section(section, file, attributes)
+    ActiveRecord::Base.transaction do
+      locked_section = PageSection.lock.find(section.id)
+
+      if locked_section.gallery_photos.count >= 50
+        raise StandardError, "Maximum 50 photos per section"
+      end
+
+      photo = locked_section.gallery_photos.build(
+        business: locked_section.page.business,
+        photo_source: :gallery,
+        title: attributes['title'],
+        description: attributes['description']
+      )
+
+      photo.image.attach(file)
+      photo.save!
+      photo
+    end
+  end
+
+  # JSON representation of photo
+  def photo_json(photo)
+    {
+      id: photo.id,
+      title: photo.title,
+      description: photo.description,
+      position: photo.position,
+      image_url: photo.image_url(:medium),
+      thumb_url: photo.image_url(:thumb)
     }
   end
 end 

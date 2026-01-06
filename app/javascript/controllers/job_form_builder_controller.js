@@ -7,6 +7,11 @@ export default class extends Controller {
   connect() {
     this.updateFieldNumbers()
     this.initializeDragAndDrop()
+    this.setupOutsideClickListener()
+  }
+
+  disconnect() {
+    this.removeOutsideClickListener()
   }
 
   addField(event) {
@@ -22,6 +27,7 @@ export default class extends Controller {
     // Only initialize drag-and-drop for the newly added field
     const newField = this.fieldsContainerTarget.lastElementChild
     this.initializeDragAndDropForItem(newField)
+    this.initializeFieldTypeDropdown(newField)
 
     // Focus on the label input of the new field
     const labelInput = newField.querySelector('[data-field="label"]')
@@ -41,16 +47,111 @@ export default class extends Controller {
     }
   }
 
+  // Handle field type change from the dropdown controller
   fieldTypeChanged(event) {
     const fieldItem = event.target.closest('.field-item')
+    if (!fieldItem) return
+    
     const optionsContainer = fieldItem.querySelector('.options-container')
-    const selectedType = event.target.value
-
-    if (selectedType === 'select') {
-      optionsContainer.classList.remove('hidden')
-    } else {
-      optionsContainer.classList.add('hidden')
+    // Get selected type from the event detail (dispatched by dropdown controller)
+    const selectedType = event.detail?.value
+    
+    if (optionsContainer && selectedType) {
+      if (selectedType === 'select') {
+        optionsContainer.classList.remove('hidden')
+      } else {
+        optionsContainer.classList.add('hidden')
+      }
     }
+  }
+
+  // Toggle field type dropdown (for template-based fields)
+  toggleFieldTypeDropdown(event) {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const button = event.currentTarget
+    const dropdown = button.closest('.field-type-dropdown')
+    const menu = dropdown.querySelector('.field-type-menu')
+
+    // Capture current state BEFORE closing other dropdowns
+    const wasOpen = !menu.classList.contains('hidden')
+
+    // Close all other dropdowns first
+    this.closeAllFieldTypeDropdowns()
+
+    // Toggle this menu based on its previous state
+    if (wasOpen) {
+      // Menu was open, it's now closed by closeAllFieldTypeDropdowns - stay closed
+      return
+    } else {
+      // Menu was closed, open it
+      menu.classList.remove('hidden')
+      const arrow = button.querySelector('svg')
+      if (arrow) arrow.classList.add('rotate-180')
+    }
+  }
+
+  // Select field type from dropdown (for template-based fields)
+  selectFieldType(event) {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const option = event.currentTarget
+    const typeValue = option.dataset.typeValue
+    const dropdown = option.closest('.field-type-dropdown')
+    const fieldItem = option.closest('.field-item')
+
+    // Update hidden input
+    const hiddenInput = dropdown.querySelector('[data-field="type"]')
+    if (hiddenInput) {
+      hiddenInput.value = typeValue
+    }
+
+    // Update button text
+    const textEl = dropdown.querySelector('.field-type-text')
+    if (textEl) {
+      textEl.textContent = this.humanize(typeValue)
+    }
+
+    // Close menu
+    const menu = dropdown.querySelector('.field-type-menu')
+    if (menu) {
+      menu.classList.add('hidden')
+    }
+
+    // Reset arrow rotation
+    const arrow = dropdown.querySelector('button svg')
+    if (arrow) arrow.classList.remove('rotate-180')
+
+    // Toggle options container
+    const optionsContainer = fieldItem.querySelector('.options-container')
+    if (optionsContainer) {
+      if (typeValue === 'select') {
+        optionsContainer.classList.remove('hidden')
+      } else {
+        optionsContainer.classList.add('hidden')
+      }
+    }
+  }
+
+  closeAllFieldTypeDropdowns() {
+    const allDropdowns = this.element.querySelectorAll('.field-type-dropdown')
+    allDropdowns.forEach(dropdown => {
+      const menu = dropdown.querySelector('.field-type-menu')
+      const arrow = dropdown.querySelector('button svg')
+      if (menu) menu.classList.add('hidden')
+      if (arrow) arrow.classList.remove('rotate-180')
+    })
+  }
+
+  initializeFieldTypeDropdown(fieldItem) {
+    // The dropdown is already set up with data-action attributes
+    // Just need to make sure it works with the Stimulus actions
+  }
+
+  humanize(str) {
+    return str.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
   }
 
   updateFieldNumbers() {
@@ -138,6 +239,22 @@ export default class extends Controller {
     })
   }
 
+  setupOutsideClickListener() {
+    this.outsideClickHandler = (event) => {
+      // Close field type dropdowns when clicking outside
+      if (!event.target.closest('.field-type-dropdown')) {
+        this.closeAllFieldTypeDropdowns()
+      }
+    }
+    document.addEventListener('click', this.outsideClickHandler)
+  }
+
+  removeOutsideClickListener() {
+    if (this.outsideClickHandler) {
+      document.removeEventListener('click', this.outsideClickHandler)
+    }
+  }
+
   beforeSubmit(event) {
     // Collect all field data and serialize to JSON
     const fields = []
@@ -145,7 +262,7 @@ export default class extends Controller {
 
     fieldItems.forEach((item, index) => {
       const labelInput = item.querySelector('[data-field="label"]')
-      const typeSelect = item.querySelector('[data-field="type"]')
+      const typeInput = item.querySelector('[data-field="type"]')
       const helpTextInput = item.querySelector('[data-field="help_text"]')
       const optionsTextarea = item.querySelector('[data-field="options"]')
       const requiredCheckbox = item.querySelector('[data-field="required"]')
@@ -156,7 +273,7 @@ export default class extends Controller {
         id: existingFieldId || this.generateFieldId(),
         position: index,
         label: labelInput?.value || '',
-        type: typeSelect?.value || 'text',
+        type: typeInput?.value || 'text',
         help_text: helpTextInput?.value || '',
         required: requiredCheckbox?.checked || false
       }

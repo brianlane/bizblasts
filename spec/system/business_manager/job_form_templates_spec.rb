@@ -36,7 +36,9 @@ RSpec.describe 'Job Form Templates Management', type: :system do
 
       fill_in 'Name', with: 'Pre-Service Checklist'
       fill_in 'Description', with: 'Checklist before starting service'
-      select 'Checklist', from: 'Form type'
+      # The form type uses a custom JavaScript dropdown with a hidden field
+      # Since rack_test doesn't execute JS, we set the hidden field directly
+      find('input[name="job_form_template[form_type]"]', visible: false).set('checklist')
       uncheck 'Active' # Uncheck active since we're not adding form fields
 
       click_button 'Create Template'

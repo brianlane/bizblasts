@@ -3,9 +3,22 @@ class PageSection < ApplicationRecord
   # Remove has_rich_text :content since we're using JSON instead
   # has_rich_text :content  # Add ActionText support
 
+  # Gallery associations
+  has_many :gallery_photos, -> { order(:position) },
+           as: :owner,
+           dependent: :destroy
+  has_one_attached :gallery_video
+
   validates :section_type, presence: true
   validates :content, presence: true, unless: :content_optional_section?
   validates :position, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+
+  # Gallery video validation
+  validates :gallery_video,
+            content_type: { in: %w[video/mp4 video/webm video/quicktime video/x-msvideo],
+                            message: 'must be a valid video format' },
+            size: { less_than: 50.megabytes },
+            if: -> { section_type == 'gallery' && gallery_video.attached? }
 
   enum :section_type, {
     header: 0,
@@ -35,8 +48,12 @@ class PageSection < ApplicationRecord
   scope :active, -> { where(active: true) }
   scope :ordered, -> { order(:position) }
   scope :by_type, ->(type) { where(section_type: type) }
-  
+
   before_save :set_default_config
+  after_commit :process_gallery_video, if: -> {
+    section_type == 'gallery' && gallery_video.attached? &&
+    (saved_change_to_id? || @video_just_attached)
+  }
   
   def background_color
     background_settings&.dig('color') || '#ffffff'
@@ -74,7 +91,7 @@ class PageSection < ApplicationRecord
   # Now this will work properly with JSON storage
   def content_data
     return {} unless content.present?
-    
+
     case content
     when Hash
       content
@@ -88,7 +105,45 @@ class PageSection < ApplicationRecord
       {}
     end
   end
-  
+
+  # Gallery configuration helpers
+  def gallery_layout
+    section_config&.dig('layout') || 'grid'
+  end
+
+  def gallery_columns
+    section_config&.dig('columns') || 3
+  end
+
+  def gallery_photo_source_mode
+    section_config&.dig('photo_source_mode') || 'business'
+  end
+
+  # Get photos to display based on source mode
+  def display_photos
+    case gallery_photo_source_mode
+    when 'own'
+      gallery_photos.by_position.limit(50)
+    when 'business'
+      page.business.gallery_photos.business_owned.by_position.limit(50)
+    when 'mixed'
+      # Limit section photos to 50 to prevent negative limit for business photos
+      section_photos = gallery_photos.by_position.limit(50).to_a
+
+      # Calculate remaining slots for business photos, ensuring non-negative
+      remaining_slots = [50 - section_photos.size, 0].max
+
+      business_photos = page.business.gallery_photos.business_owned
+                          .by_position
+                          .where.not(id: section_photos.map(&:id))
+                          .limit(remaining_slots)
+      section_photos + business_photos.to_a
+    else
+      # Fallback for invalid or nil source mode - default to business gallery
+      page.business.gallery_photos.business_owned.by_position.limit(50)
+    end
+  end
+
   private
   
   # Content is optional for sections that generate their own content dynamically
@@ -119,8 +174,26 @@ class PageSection < ApplicationRecord
       { 'layout' => 'grid', 'columns' => 4, 'limit' => 4 }
     when 'pricing_table'
       { 'layout' => 'grid', 'columns' => 3 }
+    when 'gallery'
+      {
+        'layout' => 'grid',
+        'columns' => 3,
+        'photo_source_mode' => 'business',
+        'show_video' => false,
+        'video_position' => 'before',
+        'video_title' => '',
+        'video_autoplay' => false,
+        'show_hover_effects' => true,
+        'show_photo_titles' => true,
+        'max_photos' => 50
+      }
     else
       {}
     end
+  end
+
+  # Process gallery video after commit
+  def process_gallery_video
+    ProcessGalleryVideoJob.perform_later(id, 'PageSection')
   end
 end

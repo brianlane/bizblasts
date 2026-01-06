@@ -831,13 +831,15 @@ class Business < ApplicationRecord
   # Get total count of gallery photos
   # @return [Integer]
   def gallery_photos_count
-    gallery_photos.count
+    # Only count business-owned photos, not section-owned photos
+    gallery_photos.business_owned.count
   end
 
   # Check if gallery is ready to display (has photos or video)
   # @return [Boolean]
   def gallery_ready?
-    gallery_enabled? && (gallery_photos.exists? || gallery_video.attached?)
+    # Only check business-owned photos, not section-owned photos
+    gallery_enabled? && (gallery_photos.business_owned.exists? || gallery_video.attached?)
   end
 
   # Get gallery columns for responsive layout

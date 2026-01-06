@@ -1,15 +1,13 @@
 <%= form_with model: [:business_manager, @job_form_template], local: true, class: "space-y-6", data: { controller: "job-form-builder", action: "submit->job-form-builder#beforeSubmit" } do |f| %>
   <% if @job_form_template.errors.any? %>
-    <div class="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-lg p-4">
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
       <div class="flex">
         <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
         </svg>
         <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800 dark:text-red-200">
-            <%= pluralize(@job_form_template.errors.count, "error") %> prevented this template from being saved:
-          </h3>
-          <ul class="mt-2 text-sm text-red-700 dark:text-red-300 list-disc list-inside">
+          <strong class="font-bold"><%= pluralize(@job_form_template.errors.count, "error") %> prevented this template from being saved:</strong>
+          <ul class="mt-2 list-disc list-inside">
             <% @job_form_template.errors.full_messages.each do |message| %>
               <li><%= message %></li>
             <% end %>
@@ -19,30 +17,76 @@
     </div>
   <% end %>
 
-  <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
-    <!-- Basic Information -->
-    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-      <h2 class="text-lg font-medium text-gray-900 dark:text-white">Basic Information</h2>
+  <!-- Basic Information -->
+  <div class="bg-white border border-gray-200 rounded-lg">
+    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+      <h2 class="text-lg font-medium text-gray-900">Basic Information</h2>
     </div>
     <div class="px-6 py-4 space-y-4">
       <div>
-        <%= f.label :name, class: "block text-sm font-medium text-gray-700 dark:text-gray-300" %>
-        <%= f.text_field :name, class: "mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500", placeholder: "e.g., Pre-Service Checklist" %>
+        <%= f.label :name, class: "block text-gray-700 text-sm font-bold mb-2" %>
+        <%= f.text_field :name, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500", placeholder: "e.g., Pre-Service Checklist" %>
       </div>
 
       <div>
-        <%= f.label :description, class: "block text-sm font-medium text-gray-700 dark:text-gray-300" %>
-        <%= f.text_area :description, rows: 2, class: "mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500", placeholder: "Describe the purpose of this form..." %>
+        <%= f.label :description, class: "block text-gray-700 text-sm font-bold mb-2" %>
+        <%= f.text_area :description, rows: 2, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500", placeholder: "Describe the purpose of this form..." %>
       </div>
 
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <%= f.label :form_type, class: "block text-sm font-medium text-gray-700 dark:text-gray-300" %>
-          <%= f.select :form_type, JobFormTemplate.form_types.keys.map { |t| [t.humanize, t] }, {}, class: "mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+          <%= f.label :form_type, class: "block text-gray-700 text-sm font-bold mb-2" %>
+          <% current_form_type = @job_form_template.form_type || 'checklist' %>
+          <div class="relative" 
+               data-controller="dropdown"
+               data-dropdown-selected-value-value="<%= current_form_type %>"
+               data-dropdown-selected-text-value="<%= current_form_type.humanize %>">
+            
+            <!-- Hidden Input for form submission -->
+            <%= f.hidden_field :form_type, value: current_form_type, data: { dropdown_target: "hidden" } %>
+            
+            <!-- Dropdown Button -->
+            <button type="button"
+                    class="flex items-center justify-between w-full px-3 py-2 bg-white border border-gray-300 rounded shadow-sm text-sm cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    data-dropdown-target="button"
+                    data-action="click->dropdown#toggle"
+                    aria-haspopup="listbox"
+                    aria-expanded="false">
+              <span class="rich-dropdown-text text-gray-700"><%= current_form_type.humanize %></span>
+              <svg class="w-4 h-4 text-gray-400 ml-2 flex-shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div class="hidden absolute left-0 mt-1 w-full bg-white shadow-lg rounded-md py-1 border border-gray-200 z-50 max-h-60 overflow-auto"
+                 data-dropdown-target="menu"
+                 role="listbox">
+              <% JobFormTemplate.form_types.keys.each do |type| %>
+                <% is_selected = type == current_form_type %>
+                <div class="relative flex items-center px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 transition-colors <%= is_selected ? 'bg-blue-50 text-blue-700' : 'text-gray-700' %>"
+                     data-dropdown-target="option"
+                     data-item-id="<%= type %>"
+                     data-item-text="<%= type.humanize %>"
+                     data-action="click->dropdown#select"
+                     role="option"
+                     aria-selected="<%= is_selected %>">
+                  <span><%= type.humanize %></span>
+                  <% if is_selected %>
+                    <span class="absolute inset-y-0 right-2 flex items-center text-blue-600">
+                      <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                      </svg>
+                    </span>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          </div>
         </div>
-        <div class="flex items-center pt-6">
-          <%= f.check_box :active, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded" %>
-          <%= f.label :active, "Active", class: "ml-2 block text-sm text-gray-700 dark:text-gray-300" %>
+        <div class="flex items-center pt-0 sm:pt-6">
+          <%= f.check_box :active, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+          <%= f.label :active, "Active", class: "ml-2 text-gray-700 text-sm font-bold" %>
           <span class="ml-2 text-xs text-gray-500">(only active templates can be assigned to services)</span>
         </div>
       </div>
@@ -50,12 +94,12 @@
   </div>
 
   <!-- Form Fields Builder -->
-  <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
-    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-      <h2 class="text-lg font-medium text-gray-900 dark:text-white">Form Fields</h2>
+  <div class="bg-white border border-gray-200 rounded-lg">
+    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 rounded-t-lg flex justify-between items-center">
+      <h2 class="text-lg font-medium text-gray-900">Form Fields</h2>
       <button type="button"
               data-action="job-form-builder#addField"
-              class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer">
         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
@@ -71,13 +115,13 @@
       <div data-job-form-builder-target="fieldsContainer" class="space-y-4">
         <% if @job_form_template.form_fields.any? %>
           <% @job_form_template.form_fields.sort_by { |field| field['position'] || 0 }.each_with_index do |field, index| %>
-            <div class="field-item border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900" data-job-form-builder-target="fieldItem" data-position="<%= index %>" data-field-id="<%= field['id'] %>">
+            <div class="field-item border border-gray-200 rounded-lg p-4 bg-gray-50" data-job-form-builder-target="fieldItem" data-position="<%= index %>" data-field-id="<%= field['id'] %>">
               <div class="flex items-start justify-between mb-3">
                 <div class="flex items-center cursor-move" data-job-form-builder-target="dragHandle">
                   <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
                   </svg>
-                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Field <%= index + 1 %></span>
+                  <span class="text-sm font-medium text-gray-700 field-number">Field <%= index + 1 %></span>
                 </div>
                 <button type="button" data-action="job-form-builder#removeField" class="text-red-500 hover:text-red-700 cursor-pointer">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,35 +130,58 @@
                 </button>
               </div>
 
-              <div class="grid grid-cols-2 gap-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Label</label>
-                  <input type="text" data-field="label" value="<%= field['label'] %>" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Field label">
+                  <label class="block text-gray-700 text-xs font-bold mb-1">Label</label>
+                  <input type="text" data-field="label" value="<%= field['label'] %>" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 text-sm leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" placeholder="Field label">
                 </div>
-                <div>
-                  <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Type</label>
-                  <select data-field="type" data-action="change->job-form-builder#fieldTypeChanged" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                    <% JobFormTemplate::FIELD_TYPES.each do |type| %>
-                      <option value="<%= type %>" <%= 'selected' if field['type'] == type %>><%= type.humanize %></option>
-                    <% end %>
-                  </select>
+                <div class="relative">
+                  <label class="block text-gray-700 text-xs font-bold mb-1">Type</label>
+                  <div class="field-type-dropdown"
+                       data-controller="dropdown"
+                       data-dropdown-selected-value-value="<%= field['type'] || 'text' %>"
+                       data-action="dropdown:selected->job-form-builder#fieldTypeChanged">
+                    <input type="hidden" data-field="type" value="<%= field['type'] || 'text' %>" data-dropdown-target="hidden">
+                    <button type="button"
+                            class="flex items-center justify-between w-full px-3 py-2 bg-white border border-gray-300 rounded shadow-sm text-sm cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                            data-dropdown-target="button"
+                            data-action="click->dropdown#toggle">
+                      <span class="rich-dropdown-text text-gray-700"><%= (field['type'] || 'text').humanize %></span>
+                      <svg class="w-4 h-4 text-gray-400 ml-2 flex-shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                      </svg>
+                    </button>
+                    <div class="hidden absolute left-0 mt-1 w-full bg-white shadow-lg rounded-md py-1 border border-gray-200 z-50 max-h-60 overflow-auto"
+                         data-dropdown-target="menu">
+                      <% JobFormTemplate::FIELD_TYPES.each do |type| %>
+                        <% is_selected = type == (field['type'] || 'text') %>
+                        <div class="relative flex items-center px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 transition-colors <%= is_selected ? 'bg-blue-50 text-blue-700' : 'text-gray-700' %>"
+                             data-dropdown-target="option"
+                             data-item-id="<%= type %>"
+                             data-item-text="<%= type.humanize %>"
+                             data-action="click->dropdown#select">
+                          <span><%= type.humanize %></span>
+                        </div>
+                      <% end %>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <div class="mt-3">
-                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Help Text (optional)</label>
-                <input type="text" data-field="help_text" value="<%= field['help_text'] %>" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Instructions for filling this field">
+                <label class="block text-gray-700 text-xs font-bold mb-1">Help Text (optional)</label>
+                <input type="text" data-field="help_text" value="<%= field['help_text'] %>" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 text-sm leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" placeholder="Instructions for filling this field">
               </div>
 
               <!-- Options container (for select fields) -->
               <div class="mt-3 options-container <%= 'hidden' unless field['type'] == 'select' %>">
-                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Options (one per line)</label>
-                <textarea data-field="options" rows="3" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Option 1&#10;Option 2&#10;Option 3"><%= field['options']&.join("\n") %></textarea>
+                <label class="block text-gray-700 text-xs font-bold mb-1">Options (one per line)</label>
+                <textarea data-field="options" rows="3" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 text-sm leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" placeholder="Option 1&#10;Option 2&#10;Option 3"><%= field['options']&.join("\n") %></textarea>
               </div>
 
               <div class="mt-3 flex items-center">
-                <input type="checkbox" data-field="required" <%= 'checked' if field['required'] %> class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded">
-                <label class="ml-2 text-sm text-gray-600 dark:text-gray-400">Required field</label>
+                <input type="checkbox" data-field="required" <%= 'checked' if field['required'] %> class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                <label class="ml-2 text-sm text-gray-600">Required field</label>
               </div>
             </div>
           <% end %>
@@ -122,7 +189,7 @@
       </div>
 
       <!-- Empty State -->
-      <div data-job-form-builder-target="emptyState" class="<%= 'hidden' if @job_form_template.form_fields.any? %> text-center py-8 text-gray-500 dark:text-gray-400">
+      <div data-job-form-builder-target="emptyState" class="<%= 'hidden' if @job_form_template.form_fields.any? %> text-center py-8 text-gray-500">
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
         </svg>
@@ -133,57 +200,72 @@
 
   <!-- Form Actions -->
   <div class="flex justify-end space-x-3">
-    <%= link_to "Cancel", @job_form_template.persisted? ? business_manager_job_form_template_path(@job_form_template) : business_manager_job_form_templates_path, class: "px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition" %>
+    <%= link_to "Cancel", @job_form_template.persisted? ? business_manager_job_form_template_path(@job_form_template) : business_manager_job_form_templates_path, class: "px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition" %>
     <%= f.submit @job_form_template.persisted? ? "Update Template" : "Create Template", class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition cursor-pointer" %>
   </div>
+
+  <!-- Field Template (for JavaScript cloning) - MUST be inside the form for Stimulus controller scope -->
+  <template data-job-form-builder-target="fieldTemplate">
+    <div class="field-item border border-gray-200 rounded-lg p-4 bg-gray-50" data-job-form-builder-target="fieldItem">
+      <div class="flex items-start justify-between mb-3">
+        <div class="flex items-center cursor-move" data-job-form-builder-target="dragHandle">
+          <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+          </svg>
+          <span class="text-sm font-medium text-gray-700 field-number">Field 1</span>
+        </div>
+        <button type="button" data-action="job-form-builder#removeField" class="text-red-500 hover:text-red-700 cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-gray-700 text-xs font-bold mb-1">Label</label>
+          <input type="text" data-field="label" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 text-sm leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" placeholder="Field label">
+        </div>
+        <div class="relative">
+          <label class="block text-gray-700 text-xs font-bold mb-1">Type</label>
+          <div class="field-type-dropdown">
+            <input type="hidden" data-field="type" value="text">
+            <button type="button"
+                    class="field-type-button flex items-center justify-between w-full px-3 py-2 bg-white border border-gray-300 rounded shadow-sm text-sm cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    data-action="click->job-form-builder#toggleFieldTypeDropdown">
+              <span class="field-type-text text-gray-700">Text</span>
+              <svg class="w-4 h-4 text-gray-400 ml-2 flex-shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+            <div class="field-type-menu hidden absolute left-0 mt-1 w-full bg-white shadow-lg rounded-md py-1 border border-gray-200 z-50 max-h-60 overflow-auto">
+              <% JobFormTemplate::FIELD_TYPES.each do |type| %>
+                <div class="field-type-option relative flex items-center px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 transition-colors text-gray-700"
+                     data-type-value="<%= type %>"
+                     data-action="click->job-form-builder#selectFieldType">
+                  <span><%= type.humanize %></span>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <label class="block text-gray-700 text-xs font-bold mb-1">Help Text (optional)</label>
+        <input type="text" data-field="help_text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 text-sm leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" placeholder="Instructions for filling this field">
+      </div>
+
+      <!-- Options container (for select fields) -->
+      <div class="mt-3 options-container hidden">
+        <label class="block text-gray-700 text-xs font-bold mb-1">Options (one per line)</label>
+        <textarea data-field="options" rows="3" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 text-sm leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" placeholder="Option 1&#10;Option 2&#10;Option 3"></textarea>
+      </div>
+
+      <div class="mt-3 flex items-center">
+        <input type="checkbox" data-field="required" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+        <label class="ml-2 text-sm text-gray-600">Required field</label>
+      </div>
+    </div>
+  </template>
 <% end %>
-
-<!-- Field Template (for JavaScript cloning) -->
-<template data-job-form-builder-target="fieldTemplate">
-  <div class="field-item border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900" data-job-form-builder-target="fieldItem">
-    <div class="flex items-start justify-between mb-3">
-      <div class="flex items-center cursor-move" data-job-form-builder-target="dragHandle">
-        <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
-        </svg>
-        <span class="text-sm font-medium text-gray-700 dark:text-gray-300 field-number">Field 1</span>
-      </div>
-      <button type="button" data-action="job-form-builder#removeField" class="text-red-500 hover:text-red-700 cursor-pointer">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
-      </button>
-    </div>
-
-    <div class="grid grid-cols-2 gap-4">
-      <div>
-        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Label</label>
-        <input type="text" data-field="label" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Field label">
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Type</label>
-        <select data-field="type" data-action="change->job-form-builder#fieldTypeChanged" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
-          <% JobFormTemplate::FIELD_TYPES.each do |type| %>
-            <option value="<%= type %>"><%= type.humanize %></option>
-          <% end %>
-        </select>
-      </div>
-    </div>
-
-    <div class="mt-3">
-      <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Help Text (optional)</label>
-      <input type="text" data-field="help_text" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Instructions for filling this field">
-    </div>
-
-    <!-- Options container (for select fields) -->
-    <div class="mt-3 options-container hidden">
-      <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Options (one per line)</label>
-      <textarea data-field="options" rows="3" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Option 1&#10;Option 2&#10;Option 3"></textarea>
-    </div>
-
-    <div class="mt-3 flex items-center">
-      <input type="checkbox" data-field="required" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded">
-      <label class="ml-2 text-sm text-gray-600 dark:text-gray-400">Required field</label>
-    </div>
-  </div>
-</template>

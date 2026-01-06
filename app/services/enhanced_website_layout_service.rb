@@ -251,7 +251,7 @@ class EnhancedWebsiteLayoutService
   def include_gallery_section?
     business.gallery_enabled? &&
     business.show_gallery_section? &&
-    (business.gallery_photos.any? || business.gallery_video.attached?)
+    (business.gallery_photos.business_owned.any? || business.gallery_video.attached?)
   end
 
   def gallery_section_definition

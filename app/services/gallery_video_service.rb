@@ -35,6 +35,9 @@ class GalleryVideoService
       Rails.logger.info "Gallery video uploaded for business #{business.id}"
       business
     else
+      # Purge the invalid attachment to prevent it from persisting
+      business.gallery_video.purge if business.gallery_video.attached?
+
       Rails.logger.error "Failed to upload gallery video for business #{business.id}: #{business.errors.full_messages.join(', ')}"
       raise VideoUploadError, business.errors.full_messages.join(', ')
     end

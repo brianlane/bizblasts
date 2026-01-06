@@ -758,6 +758,12 @@ Rails.application.routes.draw do
               patch :move_down
               post :duplicate
               patch :reorder
+              get :manage_gallery
+              post 'gallery/upload_photo', to: 'sections#upload_photo'
+              delete 'gallery/photos/:photo_id', to: 'sections#remove_photo'
+              post 'gallery/reorder', to: 'sections#reorder_photos'
+              post 'gallery/upload_video', to: 'sections#upload_video'
+              delete 'gallery/remove_video', to: 'sections#remove_video'
             end
 
             collection do
