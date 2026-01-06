@@ -50,6 +50,7 @@ RSpec.describe GalleryPhoto, type: :model do
 
         # Should be valid without business since it's section-owned
         # Note: In practice we always set business anyway, but validation allows it
+        expect(photo).to be_valid
         expect(photo.errors[:business]).to be_empty
       end
     end
