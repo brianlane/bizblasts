@@ -26,7 +26,7 @@ class GalleryPhoto < ApplicationRecord
   }, prefix: true
 
   # Associations
-  belongs_to :business, optional: true  # Optional for section-owned photos
+  belongs_to :business
   belongs_to :source, polymorphic: true, optional: true
   belongs_to :owner, polymorphic: true, optional: true
 
@@ -98,7 +98,13 @@ class GalleryPhoto < ApplicationRecord
 
     transaction do
       # Get all photos for the same owner (scoped properly)
-      sibling_photos = owner.gallery_photos.order(:position).lock
+      # For business owners, only get business-owned photos to avoid affecting section photos
+      if owner_type == 'Business'
+        sibling_photos = owner.gallery_photos.business_owned.order(:position).lock
+      else
+        sibling_photos = owner.gallery_photos.order(:position).lock
+      end
+
       ordered_ids = sibling_photos.pluck(:id)
       ordered_ids.delete(id)
       ordered_ids.insert(new_position - 1, id)
@@ -143,7 +149,13 @@ class GalleryPhoto < ApplicationRecord
     # Lock the owner (section or business) to prevent race conditions
     if owner.present?
       owner.lock!
-      max_position = owner.gallery_photos.maximum(:position) || 0
+      # For business owners, only count business-owned photos to avoid position conflicts
+      # with section-owned photos that share the same business_id
+      if owner_type == 'Business'
+        max_position = owner.gallery_photos.business_owned.maximum(:position) || 0
+      else
+        max_position = owner.gallery_photos.maximum(:position) || 0
+      end
       self.position = max_position + 1
     elsif business.present?
       business.lock!
@@ -156,8 +168,14 @@ class GalleryPhoto < ApplicationRecord
   def reorder_positions
     # Only reorder photos for the same owner to avoid corrupting positions across sections
     if owner.present?
-      owner.gallery_photos.where("position > ?", position)
-           .update_all("position = position - 1")
+      # For business owners, only reorder business-owned photos
+      if owner_type == 'Business'
+        owner.gallery_photos.business_owned.where("position > ?", position)
+             .update_all("position = position - 1")
+      else
+        owner.gallery_photos.where("position > ?", position)
+             .update_all("position = position - 1")
+      end
     elsif business.present?
       business.gallery_photos.business_owned.where("position > ?", position)
               .update_all("position = position - 1")
@@ -167,7 +185,7 @@ class GalleryPhoto < ApplicationRecord
   # Validate max 100 photos per business
   # Uses pessimistic locking to prevent race conditions where concurrent requests
   # could both see 99 photos and both create a new one, exceeding the limit.
-  # The lock is acquired on the business record, ensuring only one photo
+  # The lock is acquired on the owner record, ensuring only one photo
   # creation can proceed at a time per business.
   def max_photos_per_business
     return unless owner
@@ -178,7 +196,7 @@ class GalleryPhoto < ApplicationRecord
     owner.lock!
 
     # Different limits for different owner types
-    if owner_type == 'Business' && owner.gallery_photos.count >= 100
+    if owner_type == 'Business' && owner.gallery_photos.business_owned.count >= 100
       errors.add(:base, "Maximum 100 photos allowed per gallery")
     elsif owner_type == 'PageSection' && owner.gallery_photos.count >= 50
       errors.add(:base, "Maximum 50 photos allowed per section")

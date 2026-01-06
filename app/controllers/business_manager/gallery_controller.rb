@@ -10,7 +10,7 @@ module BusinessManager
 
     # GET /manage/gallery
     def index
-      @gallery_photos = @business.gallery_photos.includes(:source).order(:position)
+      @gallery_photos = @business.gallery_photos.business_owned.includes(:source).order(:position)
       @available_images = GalleryPhotoService.available_images_for_gallery(@business)
       @video_info = GalleryVideoService.video_info(@business)
       @photos_count = @gallery_photos.count
@@ -206,7 +206,7 @@ module BusinessManager
     end
 
     def set_gallery_photo
-      @gallery_photo = @business.gallery_photos.find(params[:id])
+      @gallery_photo = @business.gallery_photos.business_owned.find(params[:id])
     end
 
     # Maximum size for a single image (10MB)

@@ -110,8 +110,9 @@ class GalleryPhotoService
     end
 
     ActiveRecord::Base.transaction do
-      # Lock all photos for this business to prevent concurrent reorders from conflicting
-      locked_photos = business.gallery_photos.order(:position).lock.to_a
+      # Lock all business-owned photos to prevent concurrent reorders from conflicting
+      # Only include business-owned photos, not section-owned photos
+      locked_photos = business.gallery_photos.business_owned.order(:position).lock.to_a
       photos_by_id = locked_photos.index_by(&:id)
       current_ids = locked_photos.map(&:id)
 
@@ -234,7 +235,7 @@ class GalleryPhotoService
   # @param attachment_id [Integer]
   # @return [Boolean]
   def self.gallery_has_attachment?(business, source_type, source_id, attachment_id)
-    business.gallery_photos.exists?(
+    business.gallery_photos.business_owned.exists?(
       source_type: source_type,
       source_id: source_id,
       source_attachment_id: attachment_id
