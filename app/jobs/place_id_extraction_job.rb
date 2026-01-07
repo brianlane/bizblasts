@@ -101,6 +101,18 @@ class PlaceIdExtractionJob < ApplicationJob
   private
 
   def extract_place_id_from_maps(url, job_id)
+    # Strategy 0: Try to extract Place ID directly from URL hex CID format
+    # This is the fastest method - no browser needed
+    # Google Maps URLs contain: !1s0x{hex1}:0x{hex2} which encodes the Place ID
+    place_id = extract_place_id_from_hex_cid(url)
+    if place_id
+      Rails.logger.info "[PlaceIdExtractionJob] Extracted Place ID from hex CID in URL: #{place_id}"
+      track_extraction_metric('hex_cid_success')
+      return place_id
+    end
+
+    Rails.logger.info "[PlaceIdExtractionJob] No hex CID found in URL, falling back to browser extraction"
+
     require 'capybara/cuprite'
 
     browser = nil
@@ -316,6 +328,55 @@ class PlaceIdExtractionJob < ApplicationJob
       return candidate if candidate =~ /^(ChIJ|GhIJ|E|I)/
     end
     nil
+  end
+
+  # Convert hex CID format from Google Maps URLs to ChIJ Place ID
+  # Google Maps URLs contain place identifiers in format: !1s0x{hex1}:0x{hex2}
+  # These two 64-bit hex values encode the same data as the ChIJ Place ID
+  # The ChIJ format is a protobuf structure containing these values, base64 encoded
+  def extract_place_id_from_hex_cid(url)
+    require 'base64'
+
+    # Match hex CID format: !1s0x{hex1}:0x{hex2} (case-insensitive for 0x prefix)
+    match = url.match(/!1s0x([a-fA-F0-9]+):0x([a-fA-F0-9]+)/i)
+    return nil unless match
+
+    hex1, hex2 = match[1], match[2]
+
+    # Validate hex values are reasonable (should be 16 hex chars for 64-bit)
+    return nil if hex1.length > 16 || hex2.length > 16
+
+    begin
+      int1 = hex1.to_i(16)
+      int2 = hex2.to_i(16)
+
+      # Build protobuf structure that encodes the Place ID
+      # Field 1, wire type 2 (length-delimited) = 0x0a
+      # Length = 18 (0x12)
+      # Field 1, wire type 1 (64-bit fixed) = 0x09
+      # 8 bytes of first int (little endian)
+      # Field 2, wire type 1 (64-bit fixed) = 0x11
+      # 8 bytes of second int (little endian)
+      protobuf = String.new(encoding: 'ASCII-8BIT')
+      protobuf << 0x0a.chr  # field 1, wire type 2 (length-delimited)
+      protobuf << 0x12.chr  # length 18
+      protobuf << 0x09.chr  # field 1, wire type 1 (64-bit fixed)
+      protobuf << [int1].pack('Q<')  # first 64-bit value, little endian
+      protobuf << 0x11.chr  # field 2, wire type 1 (64-bit fixed)
+      protobuf << [int2].pack('Q<')  # second 64-bit value, little endian
+
+      # URL-safe base64 encode (same as ChIJ format)
+      place_id = Base64.strict_encode64(protobuf).tr('+/', '-_').delete('=')
+
+      # Validate it starts with expected prefix (ChIJ is most common)
+      return place_id if place_id =~ /^(ChIJ|GhIJ)/
+
+      Rails.logger.warn "[PlaceIdExtractionJob] Converted hex CID but got unexpected prefix: #{place_id[0..10]}"
+      place_id
+    rescue => e
+      Rails.logger.error "[PlaceIdExtractionJob] Failed to convert hex CID: #{e.message}"
+      nil
+    end
   end
 
   def store_status(job_id, status:, place_id: nil, message: nil, error: nil)
