@@ -43,6 +43,63 @@ export default class extends Controller {
     }
   }
 
+  // Convert hex CID format from Google Maps URLs to ChIJ Place ID
+  // Google Maps URLs contain: !1s0x{hex1}:0x{hex2} which encodes the Place ID
+  // These two 64-bit hex values encode the same data as the ChIJ Place ID
+  // The ChIJ format is a protobuf structure containing these values, base64 encoded
+  extractPlaceIdFromHexCid(url) {
+    const match = url.match(/!1s0x([a-fA-F0-9]+):0x([a-fA-F0-9]+)/i)
+    if (!match) return null
+
+    const hex1 = match[1]
+    const hex2 = match[2]
+
+    // Validate hex values are reasonable (should be up to 16 hex chars for 64-bit)
+    if (hex1.length > 16 || hex2.length > 16) return null
+
+    try {
+      // Convert hex to BigInt for proper 64-bit handling
+      const int1 = BigInt('0x' + hex1)
+      const int2 = BigInt('0x' + hex2)
+
+      // Build protobuf bytes structure:
+      // Field 1, wire type 2 (length-delimited) = 0x0a
+      // Length = 18 (0x12)
+      // Field 1, wire type 1 (64-bit fixed) = 0x09
+      // 8 bytes of first int (little endian)
+      // Field 2, wire type 1 (64-bit fixed) = 0x11
+      // 8 bytes of second int (little endian)
+      const bytes = new Uint8Array(20)
+      bytes[0] = 0x0a  // field 1, wire type 2
+      bytes[1] = 0x12  // length 18
+      bytes[2] = 0x09  // field 1, wire type 1
+
+      // Pack int1 as little-endian 64-bit
+      for (let i = 0; i < 8; i++) {
+        bytes[3 + i] = Number((int1 >> BigInt(i * 8)) & BigInt(0xff))
+      }
+
+      bytes[11] = 0x11  // field 2, wire type 1
+
+      // Pack int2 as little-endian 64-bit
+      for (let i = 0; i < 8; i++) {
+        bytes[12 + i] = Number((int2 >> BigInt(i * 8)) & BigInt(0xff))
+      }
+
+      // URL-safe base64 encode
+      const placeId = btoa(String.fromCharCode(...bytes))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '')
+
+      console.log(`[GoogleBusinessSearch] Extracted Place ID from hex CID: ${placeId}`)
+      return placeId
+    } catch (error) {
+      console.error('[GoogleBusinessSearch] Failed to convert hex CID:', error)
+      return null
+    }
+  }
+
   // Prefill search input with business name if available
   prefillSearchInput() {
     if (this.businessNameValue && this.hasSearchInputTarget) {
@@ -764,53 +821,61 @@ export default class extends Controller {
     
     // If it's a Google Maps URL, try multiple extraction approaches
     if (value.includes('maps.google') || value.includes('google.com/maps')) {
-      // First, try to extract coordinates and search nearby
-      const coordMatch = value.match(/@([-\d.]+),([-\d.]+)/)
-      if (coordMatch) {
-        const latitude = parseFloat(coordMatch[1])
-        const longitude = parseFloat(coordMatch[2])
-        
-        // Extract business name from URL
-        const nameMatch = value.match(/place\/([^@/]+)/)
-        let businessName = ''
-        if (nameMatch) {
-          businessName = decodeURIComponent(nameMatch[1]).replace(/\+/g, ' ')
-        }
-        
-        alert(`Found coordinates in Google Maps URL: ${latitude}, ${longitude}
+      // Strategy 1: Try hex CID extraction first (most reliable for modern URLs)
+      // Google Maps URLs contain: !1s0x{hex1}:0x{hex2} which encodes the Place ID
+      const hexCidPlaceId = this.extractPlaceIdFromHexCid(value)
+      if (hexCidPlaceId) {
+        placeId = hexCidPlaceId
+        console.log('[GoogleBusinessSearch] Using hex CID extracted Place ID:', placeId)
+      } else {
+        // Strategy 2: Try to extract coordinates and search nearby
+        const coordMatch = value.match(/@([-\d.]+),([-\d.]+)/)
+        if (coordMatch) {
+          const latitude = parseFloat(coordMatch[1])
+          const longitude = parseFloat(coordMatch[2])
+          
+          // Extract business name from URL
+          const nameMatch = value.match(/place\/([^@/]+)/)
+          let businessName = ''
+          if (nameMatch) {
+            businessName = decodeURIComponent(nameMatch[1]).replace(/\+/g, ' ')
+          }
+          
+          alert(`Found coordinates in Google Maps URL: ${latitude}, ${longitude}
 
 We'll try to find your business using coordinate-based search...`)
-        
-        this.searchByCoordinates(latitude, longitude, businessName)
-        return
-      }
-      
-      // If no coordinates, try Place ID extraction patterns
-      const patterns = [
-        /\/place\/[^/]+\/([A-Za-z0-9_-]+)/,  // New format
-        /place\/([^/?#]+)/,                  // Basic format
-        /\/([A-Za-z0-9_-]{27,})/,              // Long ID format
-        /1s([A-Za-z0-9_-]+)/,                  // 1s parameter
-        /16s%2Fg%2F([a-zA-Z0-9_-]+)/,          // Encoded ftid
-        /ChIJ[A-Za-z0-9_-]+/                   // Direct ChIJ format
-      ]
-      
-      let extracted = null
-      for (const pattern of patterns) {
-        const match = value.match(pattern)
-        if (match) {
-          extracted = match[1] || match[0]
-          break
+          
+          this.searchByCoordinates(latitude, longitude, businessName)
+          return
         }
-      }
-      
-      if (extracted) {
-        placeId = extracted
-      } else {
-        alert(`Could not extract Place ID from this Google Maps URL. 
+        
+        // Strategy 3: Try legacy Place ID extraction patterns
+        const patterns = [
+          /\/place\/[^/]+\/([A-Za-z0-9_-]+)/,  // New format
+          /place\/([^/?#]+)/,                  // Basic format
+          /\/([A-Za-z0-9_-]{27,})/,              // Long ID format
+          /1s([A-Za-z0-9_-]+)/,                  // 1s parameter
+          /16s%2Fg%2F([a-zA-Z0-9_-]+)/,          // Encoded ftid
+          /ChIJ[A-Za-z0-9_-]+/                   // Direct ChIJ format
+        ]
+        
+        let extracted = null
+        for (const pattern of patterns) {
+          const match = value.match(pattern)
+          if (match) {
+            extracted = match[1] || match[0]
+            break
+          }
+        }
+        
+        if (extracted) {
+          placeId = extracted
+        } else {
+          alert(`Could not extract Place ID from this Google Maps URL. 
 
 This business may not be available through the Google Places API.`)
-        return
+          return
+        }
       }
     }
     
