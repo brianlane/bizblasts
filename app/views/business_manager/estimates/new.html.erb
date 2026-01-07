@@ -1,6 +1,26 @@
 <% content_for :title, 'New Estimate' %>
 
-<div class="container mx-auto px-4 py-6">
-  <h1 class="text-2xl font-bold mb-4">New Estimate</h1>
-  <%= render 'form' %>
-</div> 
+<%# app/views/business_manager/estimates/new.html.erb %>
+<div class="container mx-auto px-4 py-4 sm:py-8">
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <div class="px-4 py-5 sm:px-6">
+      <div class="mb-4">
+        <%= link_to business_manager_estimates_path, class: "inline-flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors" do %>
+          <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Estimates
+        <% end %>
+      </div>
+
+      <div>
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-900">New Estimate</h1>
+        <p class="mt-1 text-sm text-gray-600">Create a new estimate for a customer</p>
+      </div>
+    </div>
+
+    <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+      <%= render 'form' %>
+    </div>
+  </div>
+</div>
