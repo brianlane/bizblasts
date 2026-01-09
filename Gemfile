@@ -85,7 +85,7 @@ gem "rouge" # For syntax highlighting
 gem "stripe", "~> 18.1"
 
 # QR Code generation for in-person payments
-gem "rqrcode", "~> 3.1"
+gem "rqrcode", "~> 3.2"
 gem "chunky_png", "~> 1.4"
 
 # Headless browser for automated Place ID extraction
