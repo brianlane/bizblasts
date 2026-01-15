@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 class RentalMailer < ApplicationMailer
-  default from: -> { email_address_with_name("noreply@bizblasts.com", "BizBlasts") }
-  
   # Booking confirmation - sent when booking is created
   def booking_confirmation(rental_booking)
     @rental_booking = rental_booking
@@ -12,7 +10,8 @@ class RentalMailer < ApplicationMailer
     
     mail(
       to: @customer.email,
-      subject: "Rental Booking Confirmation - #{@business.name}"
+      subject: "Rental Booking Confirmation - #{@business.name}",
+      from: branding_from(@business)
     )
   end
   
@@ -25,7 +24,8 @@ class RentalMailer < ApplicationMailer
     
     mail(
       to: @customer.email,
-      subject: "Deposit Received - Your Rental is Confirmed! - #{@business.name}"
+      subject: "Deposit Received - Your Rental is Confirmed! - #{@business.name}",
+      from: branding_from(@business)
     )
   end
   
@@ -38,7 +38,8 @@ class RentalMailer < ApplicationMailer
     
     mail(
       to: @customer.email,
-      subject: "Reminder: Pickup Tomorrow - #{@rental.name}"
+      subject: "Reminder: Pickup Tomorrow - #{@rental.name}",
+      from: branding_from(@business)
     )
   end
   
@@ -51,7 +52,8 @@ class RentalMailer < ApplicationMailer
     
     mail(
       to: @customer.email,
-      subject: "Reminder: Return Due Tomorrow - #{@rental.name}"
+      subject: "Reminder: Return Due Tomorrow - #{@rental.name}",
+      from: branding_from(@business)
     )
   end
   
@@ -64,7 +66,8 @@ class RentalMailer < ApplicationMailer
     
     mail(
       to: @customer.email,
-      subject: "OVERDUE: Please Return Your Rental Immediately - #{@business.name}"
+      subject: "OVERDUE: Please Return Your Rental Immediately - #{@business.name}",
+      from: branding_from(@business)
     )
   end
   
@@ -77,7 +80,8 @@ class RentalMailer < ApplicationMailer
     
     mail(
       to: @customer.email,
-      subject: "Rental Completed - Deposit Refund Processed - #{@business.name}"
+      subject: "Rental Completed - Deposit Refund Processed - #{@business.name}",
+      from: branding_from(@business)
     )
   end
   
@@ -90,7 +94,8 @@ class RentalMailer < ApplicationMailer
     
     mail(
       to: @customer.email,
-      subject: "Rental Booking Cancelled - #{@business.name}"
+      subject: "Rental Booking Cancelled - #{@business.name}",
+      from: branding_from(@business)
     )
   end
   
@@ -105,11 +110,12 @@ class RentalMailer < ApplicationMailer
     manager_emails = @business.users.where(role: :manager).pluck(:email)
     
     # Return a no-op mail object if no managers to avoid NoMethodError on .deliver_later
-    return mail(to: nil, subject: "Skip - No Recipients") if manager_emails.empty?
+    return mail(to: nil, subject: "Skip - No Recipients", from: branding_from(@business)) if manager_emails.empty?
     
     mail(
       to: manager_emails,
-      subject: "New Rental Booking - #{@rental.name} - #{@customer.full_name}"
+      subject: "New Rental Booking - #{@rental.name} - #{@customer.full_name}",
+      from: branding_from(@business)
     )
   end
 end

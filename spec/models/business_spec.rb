@@ -120,6 +120,7 @@ RSpec.describe Business, type: :model do
     it { is_expected.to validate_presence_of(:description) }
     it { is_expected.to validate_presence_of(:hostname) }
     it { is_expected.to validate_presence_of(:host_type) }
+    it { is_expected.to validate_presence_of(:platform_fee_percentage) }
 
     # Hostname Format
     context 'when host type is subdomain' do
@@ -184,6 +185,14 @@ RSpec.describe Business, type: :model do
         existing_business.name = "New Name"
         expect(existing_business).to be_valid
       end
+    end
+  end
+
+  describe '#platform_branding_enabled?' do
+    it 'defaults to showing platform branding' do
+      business = create(:business)
+      expect(business.show_platform_branding).to be(true)
+      expect(business.platform_branding_enabled?).to be(true)
     end
   end
 

@@ -96,6 +96,18 @@ module ApplicationHelper
     "#{request.protocol}#{base_domain}#{port_string}#{path}"
   end
 
+  def platform_branding_enabled?
+    business = if defined?(current_tenant) && current_tenant.present?
+      current_tenant
+    elsif defined?(current_business) && current_business.present?
+      current_business
+    else
+      nil
+    end
+
+    business ? business.platform_branding_enabled? : true
+  end
+
   # Add this method to the ApplicationHelper module
   def settings_url_for_client
     # If we're on a subdomain, generate a URL to the main domain's settings page

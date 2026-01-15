@@ -4,8 +4,8 @@
     <% unless Rails.env.test? %>
       <script src="https://app.termly.io/resource-blocker/a04fa7ee-1569-4641-a484-951b2d9c587e?autoBlock=on"></script>
     <% end %>
-    <title><%= content_for(:title) || "BizBlasts" %></title>
-    <meta name="description" content="<%= content_for(:meta_description) || 'Professional websites, booking systems, and payment tools for businesses. Get your complete digital presence with online scheduling, payments, and marketing - all in one platform.' %>">
+    <title><%= content_for(:title) || (ActsAsTenant.current_tenant && !platform_branding_enabled? ? ActsAsTenant.current_tenant.name : "BizBlasts") %></title>
+    <meta name="description" content="<%= content_for(:meta_description) || (ActsAsTenant.current_tenant && !platform_branding_enabled? ? ActsAsTenant.current_tenant.description.to_s : 'Professional websites, booking systems, and payment tools for businesses. Get your complete digital presence with online scheduling, payments, and marketing - all in one platform.') %>">
     
     <!-- Canonical URL -->
     <link rel="canonical" href="<%= content_for(:canonical_url) || html_escape(request.original_url.split('?').first) %>">
@@ -14,102 +14,113 @@
     <meta name="robots" content="<%= content_for(:robots) || 'index, follow' %>">
     
     <!-- Brand Recognition and Alternative Spellings -->
-    <meta name="keywords" content="BizBlasts, Biz Blasts, Bizblast, Biz Blast, Bis Blasts, BisBlasts, Bis Blast, BisBlast, business websites, booking systems, business software, business management, business tools, business software, business management, business tools, service business software, product and products from business">
-    <meta name="author" content="BizBlasts">
-    <meta name="application-name" content="BizBlasts">
-    <meta name="brand" content="BizBlasts">
+    <% if ActsAsTenant.current_tenant && !platform_branding_enabled? %>
+      <meta name="keywords" content="<%= [ActsAsTenant.current_tenant.name, ActsAsTenant.current_tenant.industry, 'business website', 'booking', 'services'].compact.join(', ') %>">
+      <meta name="author" content="<%= ActsAsTenant.current_tenant.name %>">
+      <meta name="application-name" content="<%= ActsAsTenant.current_tenant.name %>">
+      <meta name="brand" content="<%= ActsAsTenant.current_tenant.name %>">
+    <% else %>
+      <meta name="keywords" content="BizBlasts, Biz Blasts, Bizblast, Biz Blast, Bis Blasts, BisBlasts, Bis Blast, BisBlast, business websites, booking systems, business software, business management, business tools, business software, business management, business tools, service business software, product and products from business">
+      <meta name="author" content="BizBlasts">
+      <meta name="application-name" content="BizBlasts">
+      <meta name="brand" content="BizBlasts">
+    <% end %>
     
     <!-- Open Graph / Social Media -->
-    <meta property="og:site_name" content="BizBlasts">
-    <meta property="og:title" content="<%= html_escape(content_for(:title) || 'BizBlasts - Professional Websites & Booking Systems for Businesses') %>">
-    <meta property="og:description" content="<%= html_escape(content_for(:meta_description) || 'Professional websites, booking systems, and payment tools for businesses. Get your complete digital presence with online scheduling, payments, and marketing - all in one platform.') %>">
+    <meta property="og:site_name" content="<%= ActsAsTenant.current_tenant && !platform_branding_enabled? ? ActsAsTenant.current_tenant.name : 'BizBlasts' %>">
+    <meta property="og:title" content="<%= html_escape(content_for(:title) || (ActsAsTenant.current_tenant && !platform_branding_enabled? ? ActsAsTenant.current_tenant.name : 'BizBlasts - Professional Websites & Booking Systems for Businesses')) %>">
+    <meta property="og:description" content="<%= html_escape(content_for(:meta_description) || (ActsAsTenant.current_tenant && !platform_branding_enabled? ? ActsAsTenant.current_tenant.description.to_s : 'Professional websites, booking systems, and payment tools for businesses. Get your complete digital presence with online scheduling, payments, and marketing - all in one platform.')) %>">
     <meta property="og:type" content="website">
     <meta property="og:url" content="<%= html_escape(request.original_url) %>">
-    <meta property="og:image" content="<%= html_escape("#{request.protocol}#{request.host_with_port}#{asset_path('bizblasts-logo.svg')}") %>">
-    <meta property="og:image:alt" content="BizBlasts - Professional Business Websites and Booking Systems">
+    <meta property="og:image" content="<%= html_escape(ActsAsTenant.current_tenant && !platform_branding_enabled? && ActsAsTenant.current_tenant.logo.attached? ? business_logo_url(ActsAsTenant.current_tenant, size: :large) : "#{request.protocol}#{request.host_with_port}#{asset_path('bizblasts-logo.svg')}") %>">
+    <meta property="og:image:alt" content="<%= ActsAsTenant.current_tenant && !platform_branding_enabled? ? "#{ActsAsTenant.current_tenant.name} Logo" : "BizBlasts - Professional Business Websites and Booking Systems" %>">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:site" content="@BizBlasts">
-    <meta name="twitter:title" content="<%= html_escape(content_for(:title) || 'BizBlasts - Professional Websites & Booking Systems') %>">
-    <meta name="twitter:description" content="<%= html_escape(content_for(:meta_description) || 'Professional websites, booking systems, and payment tools for businesses.') %>">
-    <meta name="twitter:image" content="<%= html_escape("#{request.protocol}#{request.host_with_port}#{asset_path('bizblasts-logo.svg')}") %>">
-    <meta name="twitter:image:alt" content="BizBlasts - Professional Business Websites and Booking Systems">
+    <meta name="twitter:site" content="<%= ActsAsTenant.current_tenant && !platform_branding_enabled? ? '' : '@BizBlasts' %>">
+    <meta name="twitter:title" content="<%= html_escape(content_for(:title) || (ActsAsTenant.current_tenant && !platform_branding_enabled? ? ActsAsTenant.current_tenant.name : 'BizBlasts - Professional Websites & Booking Systems')) %>">
+    <meta name="twitter:description" content="<%= html_escape(content_for(:meta_description) || (ActsAsTenant.current_tenant && !platform_branding_enabled? ? ActsAsTenant.current_tenant.description.to_s : 'Professional websites, booking systems, and payment tools for businesses.')) %>">
+    <meta name="twitter:image" content="<%= html_escape(ActsAsTenant.current_tenant && !platform_branding_enabled? && ActsAsTenant.current_tenant.logo.attached? ? business_logo_url(ActsAsTenant.current_tenant, size: :large) : "#{request.protocol}#{request.host_with_port}#{asset_path('bizblasts-logo.svg')}") %>">
+    <meta name="twitter:image:alt" content="<%= ActsAsTenant.current_tenant && !platform_branding_enabled? ? "#{ActsAsTenant.current_tenant.name} Logo" : "BizBlasts - Professional Business Websites and Booking Systems" %>">
 
     <!-- Business-specific meta tags when in tenant context -->
     <% if defined?(current_tenant) && current_tenant&.logo&.attached? %>
       <!-- Override default platform image with business logo -->
+    <% if platform_branding_enabled? %>
       <meta property="og:image" content="<%= html_escape(business_logo_url(current_tenant, size: :large)) %>">
       <meta property="og:image:alt" content="<%= html_escape(current_tenant.name) %> Logo">
       <meta name="twitter:image" content="<%= html_escape(business_logo_url(current_tenant, size: :large)) %>">
       <meta name="twitter:image:alt" content="<%= html_escape(current_tenant.name) %> Logo">
     <% end %>
+    <% end %>
 
-    <!-- Structured Data for Organization -->
-    <script type="application/ld+json">
-    <%
-      # Sanitize and validate URLs for structured data
-      safe_protocol = request.ssl? ? 'https://' : 'http://'
-      safe_host = request.host
-      safe_port = (request.port == 80 || request.port == 443) ? '' : ":#{request.port}"
-      safe_base_url = "#{safe_protocol}#{safe_host}#{safe_port}"
-      
-      # Validate host to prevent header injection
-      allowed_hosts = ['bizblasts.com', 'www.bizblasts.com', 'localhost']
-      unless allowed_hosts.include?(safe_host) || Rails.env.development?
-        safe_base_url = 'https://www.bizblasts.com'
-      end
-    %>
-    {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      "name": "BizBlasts",
-      "alternateName": ["Biz Blasts", "BizBlast", "Biz Blast"],
-      "url": "<%= safe_base_url %>",
-      "logo": "<%= safe_base_url %><%= asset_path('bizblasts-logo.svg') %>",
-      "description": "Professional websites, booking systems, and business management tools for businesses",
-      "sameAs": [
-        "https://www.facebook.com/bizblasts",
-        "https://www.twitter.com/bizblasts",
-        "https://www.linkedin.com/company/bizblasts"
-      ],
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "contactType": "customer service",
-        "url": "<%= safe_base_url %>/contact"
+    <% unless ActsAsTenant.current_tenant && !platform_branding_enabled? %>
+      <!-- Structured Data for Organization -->
+      <script type="application/ld+json">
+      <%
+        # Sanitize and validate URLs for structured data
+        safe_protocol = request.ssl? ? 'https://' : 'http://'
+        safe_host = request.host
+        safe_port = (request.port == 80 || request.port == 443) ? '' : ":#{request.port}"
+        safe_base_url = "#{safe_protocol}#{safe_host}#{safe_port}"
+        
+        # Validate host to prevent header injection
+        allowed_hosts = ['bizblasts.com', 'www.bizblasts.com', 'localhost']
+        unless allowed_hosts.include?(safe_host) || Rails.env.development?
+          safe_base_url = 'https://www.bizblasts.com'
+        end
+      %>
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "BizBlasts",
+        "alternateName": ["Biz Blasts", "BizBlast", "Biz Blast"],
+        "url": "<%= safe_base_url %>",
+        "logo": "<%= safe_base_url %><%= asset_path('bizblasts-logo.svg') %>",
+        "description": "Professional websites, booking systems, and business management tools for businesses",
+        "sameAs": [
+          "https://www.facebook.com/bizblasts",
+          "https://www.twitter.com/bizblasts",
+          "https://www.linkedin.com/company/bizblasts"
+        ],
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "contactType": "customer service",
+          "url": "<%= safe_base_url %>/contact"
+        }
       }
-    }
-    </script>
-    
-    <!-- Structured Data for Software Application -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "BizBlasts",
-      "alternateName": ["Biz Blasts", "BizBlast", "Biz Blast"],
-      "applicationCategory": "BusinessApplication",
-      "operatingSystem": "Web",
-      "description": "All-in-one platform for businesses featuring professional websites, online booking systems, and payment processing",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD",
-        "priceValidUntil": "2025-12-31",
-        "description": "Free to start"
-      },
-      "featureList": [
-        "Professional Website Creation",
-        "Online Booking System",
-        "Payment Processing",
-        "Customer Management",
-        "Email Notifications",
-        "Calendar Integration"
-      ]
-    }
-    </script>
+      </script>
+      
+      <!-- Structured Data for Software Application -->
+      <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "BizBlasts",
+        "alternateName": ["Biz Blasts", "BizBlast", "Biz Blast"],
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "description": "All-in-one platform for businesses featuring professional websites, online booking systems, and payment processing",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD",
+          "priceValidUntil": "2025-12-31",
+          "description": "Free to start"
+        },
+        "featureList": [
+          "Professional Website Creation",
+          "Online Booking System",
+          "Payment Processing",
+          "Customer Management",
+          "Email Notifications",
+          "Calendar Integration"
+        ]
+      }
+      </script>
+    <% end %>
     
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -158,9 +169,11 @@
           <!-- Logo and Brand -->
           <div class="flex items-center min-w-0 flex-shrink-0">
             <% if ActsAsTenant.current_tenant %>
-              <!-- BizBlasts Logo - links to main domain -->
-              <%= link_to main_domain_url_for('/'), class: "hover:opacity-80 transition-opacity mr-3" do %>
-                <%= image_tag "bizblasts-logo.svg", alt: "BizBlasts - Professional Business Websites and Booking Systems", class: "h-10 w-auto" %>
+              <% if platform_branding_enabled? %>
+                <!-- BizBlasts Logo - links to main domain -->
+                <%= link_to main_domain_url_for('/'), class: "hover:opacity-80 transition-opacity mr-3" do %>
+                  <%= image_tag "bizblasts-logo.svg", alt: "BizBlasts - Professional Business Websites and Booking Systems", class: "h-10 w-auto" %>
+                <% end %>
               <% end %>
 
               <!-- Business Logo (when not on homepage) -->
