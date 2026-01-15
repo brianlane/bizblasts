@@ -286,8 +286,8 @@ class Business < ApplicationRecord
   validates :google_place_id, uniqueness: true, allow_nil: true
   validates :tip_mailer_if_no_tip_received, inclusion: { in: [true, false] }
   validates :platform_fee_percentage,
-            numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 },
-            allow_nil: true
+            presence: true,
+            numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }
   validate :validate_timezone
 
   # New Validations for hostname/host_type
