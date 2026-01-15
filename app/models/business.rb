@@ -1080,6 +1080,7 @@ class Business < ApplicationRecord
   end
 
   def normalize_platform_fee_percentage
+    return unless will_save_change_to_platform_fee_percentage?
     return if platform_fee_percentage.blank?
 
     normalized = self.class.normalize_platform_fee_percentage_value(platform_fee_percentage)
