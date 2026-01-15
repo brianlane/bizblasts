@@ -27,6 +27,8 @@ Capybara.register_driver(:cuprite) do |app|
     )
   end
 
+  browser_path = ENV['BROWSER_PATH'] || ENV['CHROME_PATH']
+
   options = {
     window_size: [1200, 800],
     browser_options: browser_options,
@@ -39,11 +41,13 @@ Capybara.register_driver(:cuprite) do |app|
     pending_connection_errors: false,
     # Use generous timeouts by default - Chrome startup can be slow
     # These timeouts are increased for CI but reasonable for local dev too
-    process_timeout: 120,                  # Time for Chrome process to start (Ferrum default is too low)
-    timeout: is_ci ? 90 : 60,              # General command timeout
-    network_timeout: 120,                  # Network request timeout
+    process_timeout: (ENV['FERRUM_PROCESS_TIMEOUT'] || (is_ci ? 240 : 120)).to_i,
+    timeout: (ENV['FERRUM_TIMEOUT'] || (is_ci ? 120 : 90)).to_i,
+    network_timeout: (ENV['FERRUM_NETWORK_TIMEOUT'] || 180).to_i,
     slowmo: is_ci ? 0.1 : 0                # Slight delay in CI for stability
   }
+
+  options[:browser_path] = browser_path if browser_path && !browser_path.empty?
 
   Capybara::Cuprite::Driver.new(app, **options)
 end

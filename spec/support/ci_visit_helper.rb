@@ -31,6 +31,14 @@ module CIVisitHelper
     begin
       super(path)
     rescue Ferrum::PendingConnectionsError, Ferrum::TimeoutError, Ferrum::ProcessTimeoutError => e
+      if e.is_a?(Ferrum::ProcessTimeoutError) && !Thread.current[:visit_retrying]
+        Thread.current[:visit_retrying] = true
+        warn "[Visit Helper] Process timeout starting browser, resetting session and retrying..."
+        Capybara.reset!
+        sleep 1
+        return visit(path)
+      end
+
       # Log the error and verify if navigation actually succeeded
       log_prefix = ENV['CI'] == 'true' ? "[CI Visit Helper]" : "[Visit Helper]"
       warn "#{log_prefix} #{e.class.name} for #{path}, verifying navigation..."
@@ -110,6 +118,8 @@ module CIVisitHelper
           raise e
         end
       end
+    ensure
+      Thread.current[:visit_retrying] = false
     end
   end
 end

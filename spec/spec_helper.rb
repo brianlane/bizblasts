@@ -14,6 +14,27 @@
 #
 # See https://rubydoc.info/gems/rspec-core/RSpec/Core/Configuration
 
+# Suppress noisy RubyGems ambiguity warnings during tests.
+module Kernel
+  alias_method :warn_without_rubygems_ambiguity, :warn
+
+  def warn(message = nil, *rest)
+    if message&.include?("Unresolved or ambiguous specs during Gem::Specification.reset")
+      Thread.current[:suppress_rubygems_specs_warning] = true
+      return
+    end
+
+    if Thread.current[:suppress_rubygems_specs_warning]
+      if message&.include?("WARN: Clearing out unresolved specs.")
+        Thread.current[:suppress_rubygems_specs_warning] = false
+      end
+      return
+    end
+
+    warn_without_rubygems_ambiguity(message, *rest)
+  end
+end
+
 # For fast tests
 require 'active_record'
 
@@ -47,12 +68,8 @@ RSpec.configure do |config|
     ActiveRecord::Base.connection.rollback_transaction
   end
   
-  # These two settings work together to allow you to limit a spec run
-  # to individual examples or groups you care about by tagging them with
-  # `:focus` metadata. When nothing is tagged with `:focus`, all examples
-  # get run.
-  config.filter_run :focus
-  config.run_all_when_everything_filtered = true
+  # Allow focused runs when examples are tagged with `:focus`.
+  # Avoid forcing a focus filter when nothing is tagged.
 
   # Run specs in random order to surface order dependencies
   config.order = :random

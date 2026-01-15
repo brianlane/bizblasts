@@ -819,7 +819,7 @@ ActiveAdmin.register Business do
       f.input :stripe_customer_id, label: "Stripe Customer ID", hint: "Stripe customer identifier (rarely needed; typically managed by Stripe flows)"
       f.input :platform_fee_percentage,
               label: "Platform Fee (%)",
-              hint: "Enter percent (1.0 = 1%) or fraction (0.01 = 1%). Minimum 0."
+              hint: "Enter percent (0.5 = 0.5%, 1.0 = 1%, 50 = 50%) or fraction (0.01 = 1%). Range 0–100."
     end
 
     # Website Layout & Customization section
