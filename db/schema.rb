@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_06_045220) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_15_163336) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -355,6 +355,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_06_045220) do
     t.boolean "payment_reminders_enabled", default: false, null: false
     t.string "phone"
     t.string "pinterest_url"
+    t.decimal "platform_fee_percentage", precision: 5, scale: 2, default: "1.0", null: false
     t.decimal "points_per_dollar", precision: 8, scale: 2, default: "1.0", null: false
     t.decimal "points_per_product", precision: 8, scale: 2, default: "0.0", null: false
     t.decimal "points_per_service", precision: 8, scale: 2, default: "0.0", null: false
@@ -420,6 +421,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_06_045220) do
     t.index ["subscription_discount_enabled"], name: "index_businesses_on_subscription_discount_enabled"
     t.index ["video_display_location"], name: "index_businesses_on_video_display_location"
     t.index ["website_layout"], name: "index_businesses_on_website_layout"
+    t.check_constraint "platform_fee_percentage >= 0::numeric", name: "businesses_platform_fee_percentage_non_negative"
     t.check_constraint "subscription_discount_value >= 0::numeric", name: "businesses_subscription_discount_value_positive"
   end
 
