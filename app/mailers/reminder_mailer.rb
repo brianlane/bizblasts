@@ -3,7 +3,10 @@ class ReminderMailer < ApplicationMailer
     # Placeholder for booking reminder email
     @booking = booking
     @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
-    mail(to: booking.email, subject: 'Reminder: Your upcoming booking', reply_to: @support_email)
+    mail(to: booking.email,
+         subject: 'Reminder: Your upcoming booking',
+         from: branding_from(booking&.business),
+         reply_to: @support_email)
   end
 
   def follow_up(customer, service)
@@ -11,7 +14,10 @@ class ReminderMailer < ApplicationMailer
     @customer = customer
     @service = service
     @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
-    mail(to: customer.email, subject: 'How was your recent service?', reply_to: @support_email)
+    mail(to: customer.email,
+         subject: 'How was your recent service?',
+         from: branding_from(customer&.business),
+         reply_to: @support_email)
   end
 
   def document_expiration(customer, document)
@@ -19,6 +25,9 @@ class ReminderMailer < ApplicationMailer
     @customer = customer
     @document = document
     @support_email = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
-    mail(to: customer.email, subject: 'Document expiration reminder', reply_to: @support_email)
+    mail(to: customer.email,
+         subject: 'Document expiration reminder',
+         from: branding_from(customer&.business),
+         reply_to: @support_email)
   end
 end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_15_163336) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_15_210233) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -370,6 +370,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_15_163336) do
     t.bigint "service_template_id"
     t.boolean "show_estimate_page", default: true, null: false
     t.boolean "show_gallery_section", default: true, null: false
+    t.boolean "show_platform_branding", default: true, null: false
     t.boolean "show_products_section", default: true, null: false
     t.boolean "show_rentals_section", default: false
     t.boolean "show_services_section", default: true, null: false

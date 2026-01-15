@@ -450,6 +450,10 @@ class Business < ApplicationRecord
     true
   end
 
+  def platform_branding_enabled?
+    show_platform_branding
+  end
+
   def platform_fee_rate
     platform_fee_percentage.to_d / 100
   end

@@ -23,6 +23,7 @@ class BusinessMailer < ApplicationMailer
     mail(
       to: @user.email,
       subject: "Custom Domain Request Received - #{@business.name}",
+      from: branding_from(@business),
       reply_to: @support_email
     )
   rescue ActiveRecord::RecordNotFound => e
@@ -49,6 +50,7 @@ class BusinessMailer < ApplicationMailer
     mail(
       to: user.email,
       subject: "Action Needed: Connect Stripe for #{business.name}",
+      from: branding_from(@business),
       reply_to: @support_email
     )
   rescue => e
@@ -95,6 +97,7 @@ class BusinessMailer < ApplicationMailer
     mail(
       to: business_user.email,
       subject: "New Booking: #{@customer.full_name} - #{@service.name}",
+      from: branding_from(@business),
       reply_to: @support_email
     )
   rescue ActiveRecord::RecordNotFound => e
@@ -129,6 +132,7 @@ class BusinessMailer < ApplicationMailer
     mail(
       to: business_user.email,
       subject: "New Order: #{@customer.full_name} - Order ##{@order.id}",
+      from: branding_from(@business),
       reply_to: @support_email
     )
   rescue ActiveRecord::RecordNotFound => e
@@ -172,6 +176,7 @@ class BusinessMailer < ApplicationMailer
     mail(
       to: business_user.email,
       subject: "New Customer: #{@customer.full_name}",
+      from: branding_from(@business),
       reply_to: @support_email
     )
   rescue ActiveRecord::RecordNotFound => e
@@ -217,6 +222,7 @@ class BusinessMailer < ApplicationMailer
     mail(
       to: business_user.email,
       subject: subject,
+      from: branding_from(@business),
       reply_to: @support_email
     )
   rescue ActiveRecord::RecordNotFound => e
@@ -249,6 +255,7 @@ class BusinessMailer < ApplicationMailer
     mail(
       to: business_user.email,
       subject: "New Subscription: #{@customer.full_name} - #{@item.name}",
+      from: branding_from(@business),
       reply_to: @support_email
     )
   rescue ActiveRecord::RecordNotFound => e
@@ -291,6 +298,7 @@ class BusinessMailer < ApplicationMailer
     mail(
       to: business_user.email,
       subject: "Subscription Order: #{@customer.full_name} - Order ##{@order.id}",
+      from: branding_from(@business),
       reply_to: @support_email
     )
   rescue ActiveRecord::RecordNotFound => e
@@ -337,6 +345,7 @@ class BusinessMailer < ApplicationMailer
     mail(
       to: business_user.email,
       subject: "Subscription Booking: #{@customer.full_name} - #{@service.name}",
+      from: branding_from(@business),
       reply_to: @support_email
     )
   rescue ActiveRecord::RecordNotFound => e
@@ -369,6 +378,7 @@ class BusinessMailer < ApplicationMailer
     mail(
       to: business_user.email,
       subject: "Subscription Payment Failed: #{@customer.full_name} - #{@item.name}",
+      from: branding_from(@business),
       reply_to: @support_email
     )
   rescue ActiveRecord::RecordNotFound => e
@@ -401,6 +411,7 @@ class BusinessMailer < ApplicationMailer
     mail(
       to: business_user.email,
       subject: "Subscription Cancelled: #{@customer.full_name} - #{@item.name}",
+      from: branding_from(@business),
       reply_to: @support_email
       )
   rescue ActiveRecord::RecordNotFound => e
@@ -438,6 +449,7 @@ class BusinessMailer < ApplicationMailer
     mail(
       to: business_user.email,
       subject: "Video Meeting Failed: #{@service&.name || 'Booking'} - #{@customer&.full_name || 'Customer'}",
+      from: branding_from(@business),
       reply_to: @support_email
     )
   rescue ActiveRecord::RecordNotFound => e

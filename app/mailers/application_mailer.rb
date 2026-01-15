@@ -51,6 +51,16 @@ class ApplicationMailer < ActionMailer::Base
     end
   end
 
+  def branding_from(business)
+    from_email = ENV.fetch('MAILER_EMAIL', 'team@bizblasts.com')
+    brand_name = business&.platform_branding_enabled? ? "BizBlasts" : business&.name
+    email_address_with_name(from_email, brand_name.presence || "BizBlasts")
+  end
+
+  def platform_branding_enabled_for?(business)
+    business ? business.platform_branding_enabled? : true
+  end
+
   private
 
   # Ensures the recipient has an unsubscribe token, generating and persisting one if needed

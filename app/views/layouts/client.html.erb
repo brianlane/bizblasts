@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title><%= content_for(:title) || "My Estimates - BizBlasts" %></title>
+  <title><%= content_for(:title) || (ActsAsTenant.current_tenant && !platform_branding_enabled? ? "My Estimates - #{ActsAsTenant.current_tenant.name}" : "My Estimates - BizBlasts") %></title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
@@ -22,7 +22,7 @@
         <div class="flex items-center">
           <div class="flex-shrink-0">
             <%= link_to root_path, class: "text-white font-bold text-xl" do %>
-              BizBlasts
+              <%= ActsAsTenant.current_tenant && !platform_branding_enabled? ? ActsAsTenant.current_tenant.name : "BizBlasts" %>
             <% end %>
           </div>
           <div class="hidden md:block">

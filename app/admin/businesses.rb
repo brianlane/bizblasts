@@ -112,6 +112,7 @@ ActiveAdmin.register Business do
                 :hostname, :host_type, :canonical_preference, # Added new fields
                 :website_layout, :enhanced_accent_color, # Website layout customization
                 :stripe_customer_id, :platform_fee_percentage, # Stripe integration
+                :show_platform_branding,
                 :status, :cname_setup_email_sent_at, :cname_monitoring_active, :cname_check_attempts, :render_domain_added # CNAME fields
 
   # Enable batch actions
@@ -464,6 +465,9 @@ ActiveAdmin.register Business do
       end
       row "Platform Fee (%)" do |business|
         business.platform_fee_percentage
+      end
+      row "Platform Branding" do |business|
+        boolean_status_tag(business.show_platform_branding, "Shown", "Hidden")
       end
       row :industry do |business|
         Business.industries[business.industry]
@@ -820,6 +824,13 @@ ActiveAdmin.register Business do
       f.input :platform_fee_percentage,
               label: "Platform Fee (%)",
               hint: "Enter percent (0.5 = 0.5%, 1.0 = 1%, 50 = 50%) or fraction (0.01 = 1%). Range 0–100."
+    end
+
+    # Branding section
+    f.inputs "Branding (Optional)", class: "branding-section" do
+      f.input :show_platform_branding,
+              label: "Show BizBlasts Branding",
+              hint: "Controls whether BizBlasts branding is visible on this business's pages and emails."
     end
 
     # Website Layout & Customization section

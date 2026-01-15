@@ -94,6 +94,14 @@ RSpec.describe BusinessMailer, type: :mailer do
       expect(mail.body.encoded).to include(business.name)
     end
 
+    it 'uses business branding when platform branding is disabled' do
+      business.update!(show_platform_branding: false)
+      mail = BusinessMailer.new_booking_notification(booking)
+
+      expect(mail[:from].to_s).to include(business.name)
+      expect(mail[:from].to_s).not_to include('BizBlasts')
+    end
+
     it 'does not send email when no manager exists' do
       business_without_manager = create(:business)
       booking_no_manager = create(:booking, business: business_without_manager, tenant_customer: tenant_customer, service: service)

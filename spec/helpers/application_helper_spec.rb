@@ -247,6 +247,22 @@ RSpec.describe ApplicationHelper, type: :helper do
     end
   end
 
+  describe '#platform_branding_enabled?' do
+    it 'returns true when no tenant is present' do
+      allow(helper).to receive(:current_tenant).and_return(nil)
+      allow(helper).to receive(:current_business).and_return(nil)
+
+      expect(helper.platform_branding_enabled?).to be(true)
+    end
+
+    it 'respects the current tenant setting' do
+      business = create(:business, show_platform_branding: false)
+      allow(helper).to receive(:current_tenant).and_return(business)
+
+      expect(helper.platform_branding_enabled?).to be(false)
+    end
+  end
+
   # Note: Tests for sanitize_css_value and sanitize_css_property_name have been
   # moved to spec/concerns/css_sanitizer_spec.rb since these methods are now
   # provided by the CssSanitizer module
