@@ -48,7 +48,7 @@
     <!-- Business-specific meta tags when in tenant context -->
     <% if defined?(current_tenant) && current_tenant&.logo&.attached? %>
       <!-- Override default platform image with business logo -->
-    <% if platform_branding_enabled? %>
+    <% unless platform_branding_enabled? %>
       <meta property="og:image" content="<%= html_escape(business_logo_url(current_tenant, size: :large)) %>">
       <meta property="og:image:alt" content="<%= html_escape(current_tenant.name) %> Logo">
       <meta name="twitter:image" content="<%= html_escape(business_logo_url(current_tenant, size: :large)) %>">
