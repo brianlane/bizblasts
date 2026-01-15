@@ -29,6 +29,7 @@ RSpec.describe StripeService, type: :service do
     end
 
     it 'creates a checkout session with correct parameters' do
+      business.update!(platform_fee_percentage: 2.5)
       success_url = 'http://example.com/tip/success'
       cancel_url = 'http://example.com/tip/cancel'
 
@@ -59,7 +60,7 @@ RSpec.describe StripeService, type: :service do
             )
           ],
           payment_intent_data: hash_including(
-            application_fee_amount: 10, # 1% of $10.00 = $0.10
+            application_fee_amount: 25, # 2.5% of $10.00 = $0.25
             metadata: hash_including(
               business_id: business.id,
               tip_id: tip.id,
@@ -125,6 +126,7 @@ RSpec.describe StripeService, type: :service do
     end
 
     it 'updates tip record with payment completion and fee tracking' do
+      business.update!(platform_fee_percentage: 2.5)
       travel_to Time.current do
         StripeService.handle_tip_payment_completion(session_data)
         
@@ -134,18 +136,19 @@ RSpec.describe StripeService, type: :service do
         expect(tip.status).to eq('completed')
         expect(tip.paid_at).to be_within(1.second).of(Time.current)
         
-        # Check fee calculations for $10.00 tip (1% platform fee)
+        # Check fee calculations for $10.00 tip (2.5% platform fee)
         expect(tip.stripe_fee_amount).to eq(0.59) # 2.9% of $10.00 + $0.30 = $0.29 + $0.30 = $0.59
-        expect(tip.platform_fee_amount).to eq(0.10) # 1% of $10.00 = $0.10
+        expect(tip.platform_fee_amount).to eq(0.25) # 2.5% of $10.00 = $0.25
         # Business receives net after all fees
-        expect(tip.business_amount).to eq(9.31) # $10.00 - $0.59 (Stripe fee) - $0.10 (platform fee)
+        expect(tip.business_amount).to eq(9.16) # $10.00 - $0.59 (Stripe fee) - $0.25 (platform fee)
       end
     end
     
-    it 'calculates the 1% platform fee for tips' do
+    it 'calculates the business platform fee for tips' do
+      business.update!(platform_fee_percentage: 2.5)
       amount_cents = 1000 # $10.00
       platform_fee = StripeService.send(:calculate_platform_fee_cents, amount_cents, business)
-      expect(platform_fee).to eq(10) # 1% of $10.00 = 10 cents
+      expect(platform_fee).to eq(25) # 2.5% of $10.00 = 25 cents
     end
 
     it 'handles missing business gracefully' do

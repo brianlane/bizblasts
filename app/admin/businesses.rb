@@ -111,7 +111,7 @@ ActiveAdmin.register Business do
                 :active, :subdomain, :service_template_id,
                 :hostname, :host_type, :canonical_preference, # Added new fields
                 :website_layout, :enhanced_accent_color, # Website layout customization
-                :stripe_customer_id, # Stripe integration
+                :stripe_customer_id, :platform_fee_percentage, # Stripe integration
                 :status, :cname_setup_email_sent_at, :cname_monitoring_active, :cname_check_attempts, :render_domain_added # CNAME fields
 
   # Enable batch actions
@@ -461,6 +461,9 @@ ActiveAdmin.register Business do
         else
           status_tag "Not Connected", class: "error"
         end
+      end
+      row "Platform Fee (%)" do |business|
+        business.platform_fee_percentage
       end
       row :industry do |business|
         Business.industries[business.industry]
@@ -814,6 +817,9 @@ ActiveAdmin.register Business do
     f.inputs "Stripe Integration (Optional)", class: "stripe-section" do
       f.input :stripe_account_id, label: "Stripe Connect Account ID", hint: "The Stripe Connect account ID for accepting payments (automatically set when connected)"
       f.input :stripe_customer_id, label: "Stripe Customer ID", hint: "Stripe customer identifier (rarely needed; typically managed by Stripe flows)"
+      f.input :platform_fee_percentage,
+              label: "Platform Fee (%)",
+              hint: "Enter percent (0.5 = 0.5%, 1.0 = 1%, 50 = 50%) or fraction (0.01 = 1%). Range 0–100."
     end
 
     # Website Layout & Customization section

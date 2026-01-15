@@ -557,7 +557,7 @@ class StripeService
     end
     
     amount_cents = (tip_amount * 100).to_i
-    # Calculate platform fee for tips (1% via BizBlasts::PLATFORM_FEE_RATE)
+    # Calculate platform fee for tips (per-business rate)
     platform_fee_cents = calculate_platform_fee_cents(amount_cents, business)
 
     # Prepare session parameters
@@ -937,7 +937,7 @@ class StripeService
         customer_email: tenant_customer.email, # Pre-fill email
         # Stripe Checkout subscription mode (Connect): apply platform fee on recurring invoices.
         subscription_data: {
-          application_fee_percent: BizBlasts::PLATFORM_FEE_PERCENTAGE,
+          application_fee_percent: business.platform_fee_percentage,
           metadata: {
             business_id: business.id.to_s,
             tenant_customer_id: tenant_customer.id.to_s,
@@ -1002,9 +1002,9 @@ class StripeService
   # Calculate BizBlasts platform fee in cents.
   # Implemented via Stripe Connect application fees.
   #
-  # NOTE: `business` is accepted for call-site compatibility but not used.
-  def self.calculate_platform_fee_cents(amount_cents, _business = nil)
-    (amount_cents * BizBlasts::PLATFORM_FEE_RATE).round
+  def self.calculate_platform_fee_cents(amount_cents, business = nil)
+    platform_fee_rate = business&.platform_fee_rate || BizBlasts::PLATFORM_FEE_RATE
+    (amount_cents * platform_fee_rate).round
   end
 
   # Retrieve or create Stripe Customer for tenant

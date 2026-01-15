@@ -285,6 +285,9 @@ class Business < ApplicationRecord
   validates :website_layout, presence: true, inclusion: { in: website_layouts.keys }
   validates :google_place_id, uniqueness: true, allow_nil: true
   validates :tip_mailer_if_no_tip_received, inclusion: { in: [true, false] }
+  validates :platform_fee_percentage,
+            presence: true,
+            numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }
   validate :validate_timezone
 
   # New Validations for hostname/host_type
@@ -319,6 +322,7 @@ class Business < ApplicationRecord
   scope :monitoring_needed, -> { where(cname_monitoring_active: true, status: 'cname_monitoring') }
   
   before_validation :normalize_hostname
+  before_validation :normalize_platform_fee_percentage
   before_validation :ensure_hours_is_hash
   before_validation :normalize_stripe_customer_id
   before_validation :set_default_timezone, on: :create
@@ -446,6 +450,10 @@ class Business < ApplicationRecord
     true
   end
 
+  def platform_fee_rate
+    platform_fee_percentage.to_d / 100
+  end
+
   def subscription_discount_percentage
     # Default subscription discount percentage
     # This could be made configurable per business
@@ -492,12 +500,25 @@ class Business < ApplicationRecord
   
   # Define which attributes are allowed to be searched with Ransack
   def self.ransackable_attributes(auth_object = nil)
-    %w[id name hostname host_type industry time_zone active created_at updated_at status cname_monitoring_active stripe_customer_id stripe_status payment_reminders_enabled stock_management_enabled show_rentals_section rental_late_fee_enabled rental_late_fee_percentage rental_buffer_mins rental_require_deposit_upfront rental_reminder_hours_before rental_deposit_preauth_enabled]
+    %w[id name hostname host_type industry time_zone active created_at updated_at status cname_monitoring_active stripe_customer_id stripe_status payment_reminders_enabled stock_management_enabled show_rentals_section rental_late_fee_enabled rental_late_fee_percentage rental_buffer_mins rental_require_deposit_upfront rental_reminder_hours_before rental_deposit_preauth_enabled platform_fee_percentage]
   end
   
   # Define which associations are allowed to be searched with Ransack
   def self.ransackable_associations(auth_object = nil)
     %w[staff_members services bookings tenant_customers users clients client_businesses integrations rental_bookings products]
+  end
+
+  def self.normalize_platform_fee_percentage_value(value)
+    return nil if value.nil?
+
+    raw = value.is_a?(String) ? value.strip : value
+    return nil if raw == ''
+
+    decimal = BigDecimal(raw.to_s)
+    # Treat tiny values as fractions (0.01 => 1.0%), otherwise as percent.
+    decimal <= 0.01 ? (decimal * 100) : decimal
+  rescue ArgumentError
+    nil
   end
   
   # Custom ransacker for Stripe status filtering
@@ -1056,6 +1077,16 @@ class Business < ApplicationRecord
     self.hostname = hostname.to_s.downcase.strip
     # No longer perform aggressive gsub cleaning for subdomains here,
     # let the format validator handle invalid characters/structures.
+  end
+
+  def normalize_platform_fee_percentage
+    return unless will_save_change_to_platform_fee_percentage?
+    return if platform_fee_percentage.blank?
+
+    normalized = self.class.normalize_platform_fee_percentage_value(platform_fee_percentage)
+    return if normalized.nil?
+
+    write_attribute(:platform_fee_percentage, normalized)
   end
   # Keeps hostname in sync with subdomain for subdomain-based tenants.
   # • Never overwrites an explicitly provided hostname on create.

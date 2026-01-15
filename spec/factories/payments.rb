@@ -8,7 +8,8 @@ FactoryBot.define do
     amount { invoice.total_amount }
     platform_fee_amount do
       amount_cents = (amount * 100).to_i
-      (amount_cents * BizBlasts::PLATFORM_FEE_RATE).round / 100.0
+      platform_fee_rate = business&.platform_fee_rate || BizBlasts::PLATFORM_FEE_RATE
+      (amount_cents * platform_fee_rate).round / 100.0
     end
     stripe_fee_amount do
       amount_cents = (amount * 100).to_i

@@ -74,7 +74,7 @@ class Tip < ApplicationRecord
     self.stripe_fee_amount = (stripe_percentage_fee + 30) / 100.0
     
     # Calculate BizBlasts platform fee
-    self.platform_fee_amount = (amount_cents * BizBlasts::PLATFORM_FEE_RATE).round / 100.0
+    self.platform_fee_amount = (amount_cents * business.platform_fee_rate).round / 100.0
     
     # Calculate net amount business receives after all fees
     self.business_amount = amount - stripe_fee_amount - platform_fee_amount
