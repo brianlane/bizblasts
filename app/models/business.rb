@@ -285,7 +285,9 @@ class Business < ApplicationRecord
   validates :website_layout, presence: true, inclusion: { in: website_layouts.keys }
   validates :google_place_id, uniqueness: true, allow_nil: true
   validates :tip_mailer_if_no_tip_received, inclusion: { in: [true, false] }
-  validates :platform_fee_percentage, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }
+  validates :platform_fee_percentage,
+            numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 },
+            allow_nil: true
   validate :validate_timezone
 
   # New Validations for hostname/host_type
@@ -513,8 +515,8 @@ class Business < ApplicationRecord
     return nil if raw == ''
 
     decimal = BigDecimal(raw.to_s)
-    # Treat values < 0.1 as fractions (0.01 => 1.0%), otherwise as percent.
-    decimal < 0.1 ? (decimal * 100) : decimal
+    # Treat tiny values as fractions (0.01 => 1.0%), otherwise as percent.
+    decimal <= 0.01 ? (decimal * 100) : decimal
   rescue ArgumentError
     nil
   end
