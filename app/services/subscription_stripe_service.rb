@@ -361,9 +361,9 @@ class SubscriptionStripeService
   end
 
   # Get application fee percentage for Stripe subscriptions.
-  # BizBlasts uses a single platform fee for all businesses.
+  # Uses the per-business platform fee.
   def get_application_fee_percent
-    BizBlasts::PLATFORM_FEE_PERCENTAGE
+    business.platform_fee_percentage
   end
 end 
  

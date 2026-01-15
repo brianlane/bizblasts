@@ -28,8 +28,9 @@ FactoryBot.define do
           stripe_percentage_fee = (amount_cents * 0.029).round
           tip.stripe_fee_amount = (stripe_percentage_fee + 30) / 100.0
           
-          # Calculate BizBlasts platform fee (1%)
-          tip.platform_fee_amount = (amount_cents * BizBlasts::PLATFORM_FEE_RATE).round / 100.0
+          # Calculate BizBlasts platform fee (per-business rate)
+          platform_fee_rate = tip.business.platform_fee_rate
+          tip.platform_fee_amount = (amount_cents * platform_fee_rate).round / 100.0
           
           # Calculate business amount (tip amount - all fees)
           # Business receives net amount after deducting both Stripe and platform fees

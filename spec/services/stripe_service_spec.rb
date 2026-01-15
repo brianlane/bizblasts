@@ -17,13 +17,14 @@ RSpec.describe StripeService, type: :service do
   end
 
   describe '.calculate_platform_fee_cents' do
-    it 'uses 1% platform fee for all businesses' do
-      # For $10.00 = 1000 cents: 1% = 10 cents
-      expect(described_class.send(:calculate_platform_fee_cents, 1000, business)).to eq(10)
+    it 'uses the business platform fee percentage when provided' do
+      business.update!(platform_fee_percentage: 2.5)
+      # For $10.00 = 1000 cents: 2.5% = 25 cents
+      expect(described_class.send(:calculate_platform_fee_cents, 1000, business)).to eq(25)
     end
 
-    it 'uses 1% even without a business argument' do
-      # For $10.00 = 1000 cents: 1% = 10 cents
+    it 'uses the default fee without a business argument' do
+      # For $10.00 = 1000 cents: 1% default = 10 cents
       expect(described_class.send(:calculate_platform_fee_cents, 1000)).to eq(10)
     end
   end
@@ -44,6 +45,7 @@ RSpec.describe StripeService, type: :service do
     end
 
     it 'creates a checkout session with correct parameters' do
+      business.update!(platform_fee_percentage: 2.5)
       success_url = 'http://example.com/success'
       cancel_url = 'http://example.com/cancel'
 
@@ -60,7 +62,7 @@ RSpec.describe StripeService, type: :service do
           success_url: success_url,
           cancel_url: cancel_url,
           customer: 'cus_test123',
-          payment_intent_data: hash_including(application_fee_amount: 10)
+          payment_intent_data: hash_including(application_fee_amount: 25)
         ),
         { stripe_account: business.stripe_account_id }
       )
@@ -109,6 +111,7 @@ RSpec.describe StripeService, type: :service do
     end
 
     it 'creates a checkout session with booking data in metadata' do
+      business.update!(platform_fee_percentage: 2.5)
       success_url = 'http://example.com/success'
       cancel_url = 'http://example.com/cancel'
 
@@ -130,7 +133,7 @@ RSpec.describe StripeService, type: :service do
             booking_type: 'service_booking',
             booking_data: booking_data.to_json
           ),
-          payment_intent_data: hash_including(application_fee_amount: 10)
+          payment_intent_data: hash_including(application_fee_amount: 25)
         ),
         { stripe_account: business.stripe_account_id }
       )
@@ -563,23 +566,26 @@ RSpec.describe StripeService, type: :service do
     end
 
     describe ".calculate_tip_platform_fee" do
-      it "calculates 1% platform fee for tips" do
+      it "calculates business platform fee for tips" do
+        business.update!(platform_fee_percentage: 2.5)
         fee = StripeService.calculate_tip_platform_fee(100.0, business)
-        expect(fee).to eq(1.0) # 1% of $100.00 = $1.00
+        expect(fee).to eq(2.5) # 2.5% of $100.00 = $2.50
       end
 
-      it "calculates 1% for any business" do
+      it "calculates the configured fee for any business" do
         another_business = create(:business)
+        another_business.update!(platform_fee_percentage: 3.0)
         fee = StripeService.calculate_tip_platform_fee(100.0, another_business)
-        expect(fee).to eq(1.0) # 1% of $100.00 = $1.00
+        expect(fee).to eq(3.0) # 3% of $100.00 = $3.00
       end
     end
 
     describe ".calculate_tip_business_amount" do
       it "calculates business amount after fees (direct charges)" do
+        business.update!(platform_fee_percentage: 2.5)
         # In direct charges, business pays Stripe fees directly, so we deduct both Stripe and platform fees
         amount = StripeService.calculate_tip_business_amount(100.0, business)
-        expect(amount).to eq(95.8) # 100 - 3.20 (Stripe fee with flat fee) - 1.00 (1% platform fee)
+        expect(amount).to eq(94.3) # 100 - 3.20 (Stripe fee with flat fee) - 2.50 (platform fee)
       end
     end
   end

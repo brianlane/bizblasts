@@ -59,12 +59,13 @@ RSpec.describe SubscriptionStripeService, type: :service do
     end
 
     it 'creates a Stripe subscription successfully with application fee' do
+      business.update!(platform_fee_percentage: 2.5)
       customer_subscription.update!(stripe_subscription_id: nil)
       
       expect(Stripe::Subscription).to receive(:create).with(
         hash_including(
           customer: 'cus_test123',
-          application_fee_percent: BizBlasts::PLATFORM_FEE_PERCENTAGE,
+          application_fee_percent: 2.5,
           metadata: hash_including(
             customer_subscription_id: customer_subscription.id,
             business_id: business.id,
@@ -96,8 +97,9 @@ RSpec.describe SubscriptionStripeService, type: :service do
       expect(result).to be false
     end
 
-    it 'uses the 1% platform fee for subscriptions' do
-      expect(service_instance.send(:get_application_fee_percent)).to eq(BizBlasts::PLATFORM_FEE_PERCENTAGE)
+    it 'uses the business platform fee for subscriptions' do
+      business.update!(platform_fee_percentage: 2.5)
+      expect(service_instance.send(:get_application_fee_percent)).to eq(2.5)
     end
 
     it 'creates Stripe customer if needed' do
