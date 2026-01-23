@@ -422,7 +422,7 @@ class ApplicationController < ActionController::Base
 
     target = "https://www.bizblasts.com#{request.fullpath}"
     status = request.get? || request.head? ? :moved_permanently : :permanent_redirect
-    redirect_to target, status: status
+    redirect_to target, status: status, allow_other_host: true
   end
 
   def skip_user_authentication?
