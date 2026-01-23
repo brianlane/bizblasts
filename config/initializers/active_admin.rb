@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 if ENV.fetch("LOW_USAGE_MODE", "false") != "true"
+  require 'inherited_resources'
   require 'activeadmin'
 
   ActiveAdmin.setup do |config|
