@@ -11,7 +11,7 @@ gem "sprockets-rails"
 # Use postgresql as the database for Active Record
 gem "pg", "~> 1.6"
 # Use the Puma web server [https://github.com/puma/puma]
-gem "puma", "~> 7.1"
+gem "puma", "~> 7.2"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
 
@@ -38,7 +38,7 @@ gem "omniauth-rails_csrf_protection", "~> 2.0"
 gem "resend"
 
 # SMS delivery
-gem "twilio-ruby", "~> 7.9", require: false
+gem "twilio-ruby", "~> 7.10", require: false
 
 # Authorization
 gem "pundit"
@@ -82,7 +82,7 @@ gem "redcarpet"
 gem "rouge" # For syntax highlighting
 
 # Stripe for payments
-gem "stripe", "~> 18.1", require: false
+gem "stripe", "~> 18.2", require: false
 
 # QR Code generation for in-person payments
 gem "rqrcode", "~> 3.2", require: false
