@@ -14,7 +14,7 @@ production:
   rental_overdue_check:
     class: RentalOverdueCheckJob
     queue: default
-    schedule: every hour
+    schedule: <%= ENV.fetch("LOW_USAGE_MODE", "false") == "true" ? "every 6 hours" : "every hour" %>
   rental_reminder:
     class: RentalReminderJob
     queue: default
@@ -26,47 +26,47 @@ production:
   email_marketing_token_refresh:
     class: EmailMarketing::TokenRefreshJob
     queue: email_marketing
-    schedule: every hour
+    schedule: <%= ENV.fetch("LOW_USAGE_MODE", "false") == "true" ? "every 6 hours" : "every hour" %>
 
   # Auth token cleanup runs daily to remove expired cross-domain auth tokens
   auth_token_cleanup:
     class: AuthTokenCleanupJob
     queue: default
-    schedule: at 2am every day
+    schedule: <%= ENV.fetch("LOW_USAGE_MODE", "false") == "true" ? "at 3am every day" : "at 2am every day" %>
 
   # Invalidated session cleanup runs daily to remove old session blacklist entries
   invalidated_session_cleanup:
     class: InvalidatedSessionCleanupJob
     queue: default
-    schedule: at 3am every day
+    schedule: <%= ENV.fetch("LOW_USAGE_MODE", "false") == "true" ? "at 4am every day" : "at 3am every day" %>
 
   # OAuth flash message cleanup runs every 15 minutes to remove used/expired tokens
   oauth_flash_message_cleanup:
     class: OauthFlashMessageCleanupJob
     queue: default
-    schedule: every 15 minutes
+    schedule: <%= ENV.fetch("LOW_USAGE_MODE", "false") == "true" ? "every 6 hours" : "every 15 minutes" %>
 
   # Analytics Jobs
   # Session aggregation runs hourly to close inactive sessions
   analytics_session_aggregation:
     class: Analytics::SessionAggregationJob
     queue: analytics
-    schedule: every hour
+    schedule: <%= ENV.fetch("LOW_USAGE_MODE", "false") == "true" ? "at 2am every day" : "every hour" %>
 
   # Daily snapshot runs at 2am to generate previous day's analytics summary
   analytics_daily_snapshot:
     class: Analytics::DailySnapshotJob
     queue: analytics
-    schedule: at 2am every day
+    schedule: <%= ENV.fetch("LOW_USAGE_MODE", "false") == "true" ? "at 2am every Sunday" : "at 2am every day" %>
 
   # SEO analysis runs daily at 3am to update SEO scores and suggestions
   analytics_seo_analysis:
     class: Analytics::SeoAnalysisJob
     queue: analytics
-    schedule: at 3am every day
+    schedule: <%= ENV.fetch("LOW_USAGE_MODE", "false") == "true" ? "at 3am every Sunday" : "at 3am every day" %>
 
   # Analytics cleanup runs weekly on Sundays to remove old raw data
   analytics_cleanup:
     class: Analytics::CleanupJob
     queue: analytics
-    schedule: "0 4 * * 0"  # 4am UTC every Sunday (cron format)
+    schedule: <%= ENV.fetch("LOW_USAGE_MODE", "false") == "true" ? "0 4 1 * *" : "0 4 * * 0" %>  # monthly vs weekly

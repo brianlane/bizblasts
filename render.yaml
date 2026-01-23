@@ -61,6 +61,10 @@ services:
         sync: false
       - key: RAILS_ENV
         value: production
+      - key: LOW_USAGE_MODE
+        value: "true"
+      - key: RAILS_MAX_THREADS
+        value: "2"
       - key: RAILS_LOG_LEVEL
         value: info
       - key: RESEND_API_KEY

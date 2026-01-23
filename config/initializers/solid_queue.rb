@@ -21,9 +21,18 @@ if defined?(SolidQueue)
       
       Rails.application.config.active_job.queue_adapter = :solid_queue
 
-      # Schedule auto-cancel of unpaid product orders every 15 minutes
+      low_usage_mode = ENV.fetch('LOW_USAGE_MODE', 'false') == 'true'
+
+      schedule_for = lambda do |normal:, low_usage:|
+        low_usage_mode ? low_usage : normal
+      end
+
+      # Schedule auto-cancel of unpaid product orders
       SolidQueue::RecurringTask.find_or_create_by!(key: 'auto_cancel_unpaid_product_orders') do |task|
-        task.schedule    = '*/15 * * * *' # every 15 minutes
+        task.schedule    = schedule_for.call(
+          normal: '*/15 * * * *', # every 15 minutes
+          low_usage: '0 */2 * * *' # every 2 hours
+        )
         task.class_name  = 'AutoCancelUnpaidProductOrdersJob'
         task.arguments   = '[]'
         task.queue_name  = 'default'
@@ -32,9 +41,12 @@ if defined?(SolidQueue)
         task.description = 'Auto cancel unpaid product orders after tier-specific deadlines'
       end
       
-      # Schedule token refresh for calendar integrations every 5 minutes
+      # Schedule token refresh for calendar integrations
       SolidQueue::RecurringTask.find_or_create_by!(key: 'calendar_token_refresh') do |task|
-        task.schedule    = '*/5 * * * *' # every 5 minutes
+        task.schedule    = schedule_for.call(
+          normal: '*/5 * * * *', # every 5 minutes
+          low_usage: '0 * * * *' # every hour
+        )
         task.class_name  = 'Calendar::TokenRefreshJob'
         task.arguments   = '[]'
         task.queue_name  = 'low_priority'
@@ -43,9 +55,12 @@ if defined?(SolidQueue)
         task.description = 'Proactively refresh expiring calendar OAuth tokens'
       end
 
-      # Schedule rental overdue check every hour
+      # Schedule rental overdue check
       SolidQueue::RecurringTask.find_or_create_by!(key: 'rental_overdue_check') do |task|
-        task.schedule    = '0 * * * *' # every hour at minute 0
+        task.schedule    = schedule_for.call(
+          normal: '0 * * * *', # every hour at minute 0
+          low_usage: '0 */6 * * *' # every 6 hours
+        )
         task.class_name  = 'RentalOverdueCheckJob'
         task.arguments   = '[]'
         task.queue_name  = 'default'
@@ -65,9 +80,12 @@ if defined?(SolidQueue)
         task.description = 'Send rental pickup and return reminders'
       end
 
-      # Schedule invalidated session cleanup every 6 hours
+      # Schedule invalidated session cleanup
       SolidQueue::RecurringTask.find_or_create_by!(key: 'invalidated_session_cleanup') do |task|
-        task.schedule    = '0 */6 * * *'
+        task.schedule    = schedule_for.call(
+          normal: '0 */6 * * *',
+          low_usage: '0 3 * * *' # daily at 3 AM
+        )
         task.class_name  = 'InvalidatedSessionCleanupJob'
         task.arguments   = '[]'
         task.queue_name  = 'default'
@@ -78,7 +96,10 @@ if defined?(SolidQueue)
 
       # Schedule SolidQueue job pruning daily at 3 AM UTC
       SolidQueue::RecurringTask.find_or_create_by!(key: 'solid_queue_pruner') do |task|
-        task.schedule    = '0 3 * * *'
+        task.schedule    = schedule_for.call(
+          normal: '0 3 * * *',
+          low_usage: '0 4 * * 0' # weekly on Sunday at 4 AM UTC
+        )
         task.class_name  = 'SolidQueuePruneJob'
         task.arguments   = '[{"retention_days":14}]'
         task.queue_name  = 'default'
@@ -87,10 +108,13 @@ if defined?(SolidQueue)
         task.description = 'Remove completed SolidQueue jobs older than the retention window'
       end
 
-      # Schedule calendar availability imports every 2 hours
+      # Schedule calendar availability imports
       # This replaces the self-scheduling that was causing job pile-up
       SolidQueue::RecurringTask.find_or_create_by!(key: 'calendar_availability_import') do |task|
-        task.schedule    = '0 */2 * * *' # every 2 hours at minute 0
+        task.schedule    = schedule_for.call(
+          normal: '0 */2 * * *', # every 2 hours at minute 0
+          low_usage: '0 2 * * *' # daily at 2 AM
+        )
         task.class_name  = 'Calendar::ScheduleImportsJob'
         task.arguments   = '[]'
         task.queue_name  = 'default'
