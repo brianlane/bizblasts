@@ -1,5 +1,8 @@
 # frozen_string_literal: true
-ActiveAdmin.setup do |config|
+if ENV.fetch("LOW_USAGE_MODE", "false") != "true"
+  require 'activeadmin'
+
+  ActiveAdmin.setup do |config|
   # == Site Title
   #
   # Set the title that is displayed on the main layout
@@ -532,4 +535,5 @@ ActiveAdmin.setup do |config|
   #
   # config.order_clause = MyOrderClause
 
+  end
 end

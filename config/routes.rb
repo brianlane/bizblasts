@@ -191,10 +191,12 @@ Rails.application.routes.draw do
   get '/debug/available-slots', to: 'admin/booking_availability#available_slots'
   
   # ActiveAdmin routes
-  devise_for :admin_users, ActiveAdmin::Devise.config.merge(controllers: {
-    sessions: 'admin/sessions'
-  })
-  ActiveAdmin.routes(self)
+  unless ENV.fetch("LOW_USAGE_MODE", "false") == "true"
+    devise_for :admin_users, ActiveAdmin::Devise.config.merge(controllers: {
+      sessions: 'admin/sessions'
+    })
+    ActiveAdmin.routes(self)
+  end
 
   # Custom routes for SolidQueue job actions (Rails 8.1 compatible - avoids page_action deprecation)
   namespace :admin do
