@@ -192,6 +192,8 @@ Rails.application.routes.draw do
   
   # ActiveAdmin routes
   unless ENV.fetch("LOW_USAGE_MODE", "false") == "true"
+    require 'inherited_resources'
+    require 'activeadmin'
     devise_for :admin_users, ActiveAdmin::Devise.config.merge(controllers: {
       sessions: 'admin/sessions'
     })
