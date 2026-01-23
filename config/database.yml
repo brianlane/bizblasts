@@ -22,7 +22,7 @@ default: &default
   # The default is often too small for production environments.
   # It's recommended to set RAILS_MAX_THREADS based on your web server's thread count
   # and monitor database connection usage to find an optimal size.
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  pool: <%= ENV.fetch("DB_POOL") { ENV.fetch("RAILS_MAX_THREADS") { 5 } } %>
 
 development:
   <<: *default

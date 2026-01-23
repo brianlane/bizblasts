@@ -173,7 +173,7 @@ if defined?(SolidQueue)
         'analytics_daily_snapshot',
         schedule: schedule_for.call(
           normal: '31 2 * * *', # daily at 2:31 AM
-          low_usage: '31 2 * * 0' # weekly on Sunday at 2:31 AM
+          low_usage: '31 2 * * *' # daily at 2:31 AM
         ),
         class_name: 'Analytics::DailySnapshotJob',
         arguments: '[]',
