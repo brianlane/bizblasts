@@ -419,6 +419,7 @@ class ApplicationController < ActionController::Base
   def redirect_apex_to_www
     return unless Rails.env.production?
     return unless request.host == 'bizblasts.com'
+    return if request.path.start_with?('/webhooks/')
 
     target = "https://www.bizblasts.com#{request.fullpath}"
     status = request.get? || request.head? ? :moved_permanently : :permanent_redirect

@@ -5,9 +5,15 @@ module Calendar
     queue_as :low_priority
     
     def perform
-      # Find connections that will expire in the next 10 minutes
+      window = if ENV.fetch('LOW_USAGE_MODE', 'false') == 'true'
+        70.minutes
+      else
+        15.minutes
+      end
+
+      # Find connections that will expire within the refresh window
       expiring_soon = CalendarConnection.active
-                                       .where('token_expires_at <= ?', 10.minutes.from_now)
+                                       .where('token_expires_at <= ?', window.from_now)
                                        .where('refresh_token IS NOT NULL')
       
       Rails.logger.info("Found #{expiring_soon.count} calendar tokens expiring soon")
