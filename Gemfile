@@ -51,7 +51,7 @@ gem "rack-cors"
 
 # Admin interface
 gem "activeadmin", "~> 3.4.0", require: false
-gem "jquery-ui-rails", require: false # Required for jQuery UI in Sprockets
+gem "jquery-ui-rails" # Required for jQuery UI in Sprockets
 # NOTE: We use Bun/SASS for CSS compilation, not a Ruby gem
 
 # ActiveStorage Validations
