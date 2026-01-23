@@ -608,8 +608,8 @@ module Users
         main_domain = extract_main_domain_from_custom_domain(business.hostname)
         "https://#{main_domain}/"
       else
-        # Subdomain or unknown: Redirect to the main bizblasts.com site
-        "https://bizblasts.com/"
+        # Subdomain or unknown: Redirect to the canonical www site
+        "https://www.bizblasts.com/"
       end
     end
   end
