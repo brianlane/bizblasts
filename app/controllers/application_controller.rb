@@ -10,6 +10,10 @@ class ApplicationController < ActionController::Base
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   allow_browser versions: :modern
 
+  # Canonicalize apex requests to the www host in production.
+  # This avoids 404s when the apex domain is not configured.
+  before_action :redirect_apex_to_www, unless: -> { maintenance_mode? }
+
   # Security: Verify allowed hosts to prevent CWE-20 (Incomplete URL Substring Sanitization)
   # This provides defense-in-depth against malicious domains bypassing client-side validation
   # Uses AllowedHostService for centralized domain validation
@@ -410,6 +414,15 @@ class ApplicationController < ActionController::Base
       # Don't reveal why the request was rejected to prevent information disclosure
       head :bad_request
     end
+  end
+
+  def redirect_apex_to_www
+    return unless Rails.env.production?
+    return unless request.host == 'bizblasts.com'
+
+    target = "https://www.bizblasts.com#{request.fullpath}"
+    status = request.get? || request.head? ? :moved_permanently : :permanent_redirect
+    redirect_to target, status: status
   end
 
   def skip_user_authentication?
