@@ -184,25 +184,33 @@ Rails.application.routes.draw do
   # Email Marketing OAuth callbacks (Mailchimp, Constant Contact)
   get '/oauth/email-marketing/:provider/callback', to: 'email_marketing_oauth#callback', as: :email_marketing_oauth_callback
   # Add routes for admin bookings availability before ActiveAdmin is initialized
-  get '/admin/bookings-availability/slots', to: 'admin/booking_availability#available_slots', as: :available_slots_bookings
-  get '/admin/bookings-availability/new', to: 'admin/booking_availability#new', as: :new_admin_booking_from_slots
-  
-  # Debug route to test available slots
-  get '/debug/available-slots', to: 'admin/booking_availability#available_slots'
+  unless ENV.fetch("LOW_USAGE_MODE", "false") == "true"
+    get '/admin/bookings-availability/slots', to: 'admin/booking_availability#available_slots', as: :available_slots_bookings
+    get '/admin/bookings-availability/new', to: 'admin/booking_availability#new', as: :new_admin_booking_from_slots
+    
+    # Debug route to test available slots
+    get '/debug/available-slots', to: 'admin/booking_availability#available_slots'
+  end
   
   # ActiveAdmin routes
-  devise_for :admin_users, ActiveAdmin::Devise.config.merge(controllers: {
-    sessions: 'admin/sessions'
-  })
-  ActiveAdmin.routes(self)
+  unless ENV.fetch("LOW_USAGE_MODE", "false") == "true"
+    require 'inherited_resources'
+    require 'activeadmin'
+    devise_for :admin_users, ActiveAdmin::Devise.config.merge(controllers: {
+      sessions: 'admin/sessions'
+    })
+    ActiveAdmin.routes(self)
+  end
 
   # Custom routes for SolidQueue job actions (Rails 8.1 compatible - avoids page_action deprecation)
-  namespace :admin do
-    post 'solid_queue_jobs/retry_all_failed_jobs', to: 'solid_queue_jobs#retry_all_failed_jobs', as: :solid_queue_jobs_retry_all_failed_jobs
-    post 'solid_queue_jobs/retry_failed_job', to: 'solid_queue_jobs#retry_failed_job', as: :solid_queue_jobs_retry_failed_job
-    post 'solid_queue_jobs/cleanup_orphaned_jobs', to: 'solid_queue_jobs#cleanup_orphaned_jobs', as: :solid_queue_jobs_cleanup_orphaned_jobs
-    post 'solid_queue_jobs/remove_all_failed_jobs', to: 'solid_queue_jobs#remove_all_failed_jobs', as: :solid_queue_jobs_remove_all_failed_jobs
-    post 'solid_queue_jobs/discard_day_old_jobs', to: 'solid_queue_jobs#discard_day_old_jobs', as: :solid_queue_jobs_discard_day_old_jobs
+  unless ENV.fetch("LOW_USAGE_MODE", "false") == "true"
+    namespace :admin do
+      post 'solid_queue_jobs/retry_all_failed_jobs', to: 'solid_queue_jobs#retry_all_failed_jobs', as: :solid_queue_jobs_retry_all_failed_jobs
+      post 'solid_queue_jobs/retry_failed_job', to: 'solid_queue_jobs#retry_failed_job', as: :solid_queue_jobs_retry_failed_job
+      post 'solid_queue_jobs/cleanup_orphaned_jobs', to: 'solid_queue_jobs#cleanup_orphaned_jobs', as: :solid_queue_jobs_cleanup_orphaned_jobs
+      post 'solid_queue_jobs/remove_all_failed_jobs', to: 'solid_queue_jobs#remove_all_failed_jobs', as: :solid_queue_jobs_remove_all_failed_jobs
+      post 'solid_queue_jobs/discard_day_old_jobs', to: 'solid_queue_jobs#discard_day_old_jobs', as: :solid_queue_jobs_discard_day_old_jobs
+    end
   end
   
   devise_for :users, skip: [:registrations], controllers: {

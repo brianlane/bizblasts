@@ -63,10 +63,12 @@ services:
         value: production
       - key: LOW_USAGE_MODE
         value: "true"
+      - key: SOLID_QUEUE_IN_PUMA
+        value: "false"
       - key: RAILS_MAX_THREADS
-        value: "2"
+        value: "1"
       - key: DB_POOL
-        value: "5"
+        value: "2"
       - key: RAILS_LOG_LEVEL
         value: info
       - key: RESEND_API_KEY
@@ -75,8 +77,6 @@ services:
         sync: false
       - key: ADMIN_EMAIL
         sync: false
-      - key: SOLID_QUEUE_IN_PUMA
-        value: "true"
       - key: CUPRITE_BROWSER_PATH
         value: "/opt/render/project/src/vendor/chrome/chrome-linux64/chrome"
 

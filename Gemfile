@@ -38,7 +38,7 @@ gem "omniauth-rails_csrf_protection", "~> 2.0"
 gem "resend"
 
 # SMS delivery
-gem "twilio-ruby", "~> 7.10"
+gem "twilio-ruby", "~> 7.10", require: false
 
 # Authorization
 gem "pundit"
@@ -50,7 +50,7 @@ gem "rack-attack"
 gem "rack-cors"
 
 # Admin interface
-gem "activeadmin", "~> 3.4.0"
+gem "activeadmin", "~> 3.4.0", require: false
 gem "jquery-ui-rails" # Required for jQuery UI in Sprockets
 # NOTE: We use Bun/SASS for CSS compilation, not a Ruby gem
 
@@ -82,11 +82,11 @@ gem "redcarpet"
 gem "rouge" # For syntax highlighting
 
 # Stripe for payments
-gem "stripe", "~> 18.2"
+gem "stripe", "~> 18.2", require: false
 
 # QR Code generation for in-person payments
-gem "rqrcode", "~> 3.2"
-gem "chunky_png", "~> 1.4"
+gem "rqrcode", "~> 3.2", require: false
+gem "chunky_png", "~> 1.4", require: false
 
 # Headless browser for automated Place ID extraction
 gem "cuprite"
@@ -144,12 +144,12 @@ gem 'geocoder'
 gem 'zip-codes' # Offline US ZIP code database for fallback geocoding
 
 # Calendar integrations
-gem 'google-apis-calendar_v3', '~> 0.51'
-gem 'googleauth', '~> 1.16'
-gem 'microsoft_graph', '~> 0.22'
-gem 'oauth2', '~> 2.0'
-gem 'icalendar', '~> 2.12'
-gem 'httparty', '~> 0.24'
+gem 'google-apis-calendar_v3', '~> 0.51', require: false
+gem 'googleauth', '~> 1.16', require: false
+gem 'microsoft_graph', '~> 0.22', require: false
+gem 'oauth2', '~> 2.0', require: false
+gem 'icalendar', '~> 2.12', require: false
+gem 'httparty', '~> 0.24', require: false
 # gem 'calendav', '~> 0.3' # Temporarily disabled due to architecture compatibility issues
-gem 'prawn', '~> 2.4'
-gem 'prawn-table', '~> 0.2'
+gem 'prawn', '~> 2.4', require: false
+gem 'prawn-table', '~> 0.2', require: false
