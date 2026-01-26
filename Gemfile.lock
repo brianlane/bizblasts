@@ -166,10 +166,10 @@ GEM
       irb (~> 1.10)
       reline (>= 0.3.8)
     declarative (0.0.20)
-    devise (4.9.4)
+    devise (5.0.0)
       bcrypt (~> 3.0)
       orm_adapter (~> 0.1)
-      railties (>= 4.1.0)
+      railties (>= 7.0)
       responders
       warden (~> 1.2.3)
     devise-jwt (0.13.0)
@@ -829,7 +829,7 @@ CHECKSUMS
   date (3.5.1) sha256=750d06384d7b9c15d562c76291407d89e368dda4d4fff957eb94962d325a0dc0
   debug (1.11.1) sha256=2e0b0ac6119f2207a6f8ac7d4a73ca8eb4e440f64da0a3136c30343146e952b6
   declarative (0.0.20) sha256=8021dd6cb17ab2b61233c56903d3f5a259c5cf43c80ff332d447d395b17d9ff9
-  devise (4.9.4) sha256=920042fe5e704c548aa4eb65ebdd65980b83ffae67feb32c697206bfd975a7f8
+  devise (5.0.0) sha256=3ff37d39ccedf5d7dbe5971214d81fdf7a89b32d7071857f6585a0f7863f056b
   devise-jwt (0.13.0) sha256=19720e64815cd4ba8cdaf338a482f0237e7f1542cc6439212be7db211e731d64
   devise-passwordless (1.1.0) sha256=4a4b8c93e68fcc69a143140f8cdd53ca919751b07d0c2eeb2e598a77f9c39929
   diff-lcs (1.6.2) sha256=9ae0d2cba7d4df3075fe8cd8602a8604993efc0dfa934cff568969efb1909962
