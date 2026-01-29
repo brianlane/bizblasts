@@ -1,9 +1,5 @@
 # frozen_string_literal: true
-if ENV.fetch("LOW_USAGE_MODE", "false") != "true"
-  require 'inherited_resources'
-  require 'activeadmin'
-
-  ActiveAdmin.setup do |config|
+ActiveAdmin.setup do |config|
   # == Site Title
   #
   # Set the title that is displayed on the main layout
@@ -536,5 +532,4 @@ if ENV.fetch("LOW_USAGE_MODE", "false") != "true"
   #
   # config.order_clause = MyOrderClause
 
-  end
 end
