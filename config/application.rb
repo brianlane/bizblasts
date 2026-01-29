@@ -15,11 +15,6 @@ require "rails/all"
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
-if ENV.fetch("LOW_USAGE_MODE", "false") != "true"
-  require "inherited_resources"
-  require "activeadmin"
-end
-
 module Bizblasts
   # Main application configuration class for Bizblasts
   # Handles all Rails configuration settings and middleware setup
