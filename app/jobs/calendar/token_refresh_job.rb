@@ -5,13 +5,8 @@ module Calendar
     queue_as :low_priority
     
     def perform
-      window = if ENV.fetch('LOW_USAGE_MODE', 'false') == 'true'
-        70.minutes
-      else
-        15.minutes
-      end
-
-      # Find connections that will expire within the refresh window
+      # Find connections that will expire within the refresh window (15 minutes)
+      window = 15.minutes
       expiring_soon = CalendarConnection.active
                                        .where('token_expires_at <= ?', window.from_now)
                                        .where('refresh_token IS NOT NULL')
