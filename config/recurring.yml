@@ -1,3 +1,2 @@
-## Recurring tasks are configured in code to ensure LOW_USAGE_MODE and
-## schedule updates are applied to existing records. See:
-## - config/initializers/solid_queue.rb
+## Recurring tasks are configured in code for easier management.
+## See: config/initializers/solid_queue.rb
