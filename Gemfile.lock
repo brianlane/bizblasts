@@ -632,7 +632,7 @@ GEM
       sprockets (>= 3.0.0)
     stduritemplate (0.0.59)
     stringio (3.2.0)
-    stripe (18.2.0)
+    stripe (18.3.0)
     tailwindcss-rails (4.4.0)
       railties (>= 7.0.0)
       tailwindcss-ruby (~> 4.0)
@@ -769,7 +769,7 @@ DEPENDENCIES
   solid_cache
   solid_queue
   sprockets-rails
-  stripe (~> 18.2)
+  stripe (~> 18.3)
   tailwindcss-rails
   thruster
   timecop
@@ -1011,7 +1011,7 @@ CHECKSUMS
   sprockets-rails (3.5.2) sha256=a9e88e6ce9f8c912d349aa5401509165ec42326baf9e942a85de4b76dbc4119e
   stduritemplate (0.0.59) sha256=562e361b3f9f7c93d3eb00461366e908b1f172c2a7e8742ed3e266e6e1444af1
   stringio (3.2.0) sha256=c37cb2e58b4ffbd33fe5cd948c05934af997b36e0b6ca6fdf43afa234cf222e1
-  stripe (18.2.0) sha256=48c7e6cd7e98aebbd8dd7211557e11fc8f61b858cd2b8582c048c07fb9412a50
+  stripe (18.3.0) sha256=1e40b551485308be3c3d34d954b9564ad96494f22c7e0f12c2488cea8daa1c7b
   tailwindcss-rails (4.4.0) sha256=efa2961351a52acebe616e645a81a30bb4f27fde46cc06ce7688d1cd1131e916
   tailwindcss-ruby (4.1.18) sha256=b62fad5b00494e92987ee319dfb5c5ad272f0ed93649963d62f08d2ba0f03fa7
   tailwindcss-ruby (4.1.18-aarch64-linux-gnu) sha256=e10f9560bccddbb4955fd535b3bcc8c7071a7df07404dd473a23fa791ec4e46b
