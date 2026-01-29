@@ -24,7 +24,7 @@
 # Any libraries that use a connection pool or another resource pool should
 # be configured to provide at least as many connections as the number of
 # threads. This includes Active Record's `pool` parameter in `database.yml`.
-default_threads = ENV.fetch("LOW_USAGE_MODE", "false") == "true" ? 1 : 3
+default_threads = ENV.fetch("LOW_USAGE_MODE", "false") == "true" ? 2 : 3
 threads_count = ENV.fetch("RAILS_MAX_THREADS", default_threads).to_i
 threads threads_count, threads_count
 
