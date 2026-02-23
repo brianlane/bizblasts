@@ -144,7 +144,11 @@ class RentalAvailabilityService
         next if end_boundary <= current_time
 
         while current_time <= end_boundary
-          slot_end = current_time + duration_mins.minutes
+          slot_end = if is_multiday && (duration_mins % (24 * 60)).zero?
+            current_time.advance(days: duration_mins / (24 * 60))
+          else
+            current_time + duration_mins.minutes
+          end
           if available?(rental: rental, start_time: current_time, end_time: slot_end, quantity: quantity)
             pricing = rental.calculate_rental_price(current_time, slot_end)
             available_quantity = rental.available_rental_quantity(current_time, slot_end)
