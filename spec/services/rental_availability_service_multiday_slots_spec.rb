@@ -105,13 +105,15 @@ RSpec.describe RentalAvailabilityService, 'multi-day rental slot generation', ty
           first_slot = slots.first
           last_slot = slots.last
 
-          # First pickup slot at 9am Monday, ends Wednesday 9am
-          expect(first_slot[:start_time]).to eq(date.in_time_zone.change(hour: 9, min: 0))
-          expect(first_slot[:end_time]).to eq((date + 2.days).in_time_zone.change(hour: 9, min: 0))
+          # First pickup slot at 9am Monday, ends exactly 2880 minutes later
+          start_time = date.in_time_zone.change(hour: 9, min: 0)
+          expect(first_slot[:start_time]).to eq(start_time)
+          expect(first_slot[:end_time]).to eq(start_time + duration_mins.minutes)
 
-          # Last pickup slot at 5pm Monday, ends Wednesday 5pm
-          expect(last_slot[:start_time]).to eq(date.in_time_zone.change(hour: 17, min: 0))
-          expect(last_slot[:end_time]).to eq((date + 2.days).in_time_zone.change(hour: 17, min: 0))
+          # Last pickup slot at 5pm Monday, ends exactly 2880 minutes later
+          last_start_time = date.in_time_zone.change(hour: 17, min: 0)
+          expect(last_slot[:start_time]).to eq(last_start_time)
+          expect(last_slot[:end_time]).to eq(last_start_time + duration_mins.minutes)
         end
       end
 
@@ -127,20 +129,23 @@ RSpec.describe RentalAvailabilityService, 'multi-day rental slot generation', ty
           quantity: quantity
         )
 
-        # Should generate pickup time slots throughout Monday 9am-5pm
+        # Should generate pickup time slots for times that end within availability window
+        # During DST transitions, some pickup times may be unavailable because the
+        # fixed-minute duration causes the return time to fall outside business hours
         expect(slots).not_to be_empty
 
         Time.use_zone(business.time_zone) do
           first_slot = slots.first
-          last_slot = slots.last
 
-          # First pickup at 9am Monday, return next Monday 9am
-          expect(first_slot[:start_time]).to eq(date.in_time_zone.change(hour: 9, min: 0))
-          expect(first_slot[:end_time]).to eq((date + 7.days).in_time_zone.change(hour: 9, min: 0))
+          # First pickup at 9am Monday, return exactly 10080 minutes later
+          start_time = date.in_time_zone.change(hour: 9, min: 0)
+          expect(first_slot[:start_time]).to eq(start_time)
+          expect(first_slot[:end_time]).to eq(start_time + duration_mins.minutes)
 
-          # Last pickup at 5pm Monday, return next Monday 5pm
-          expect(last_slot[:start_time]).to eq(date.in_time_zone.change(hour: 17, min: 0))
-          expect(last_slot[:end_time]).to eq((date + 7.days).in_time_zone.change(hour: 17, min: 0))
+          # Verify all generated slots use fixed-minute durations
+          slots.each do |slot|
+            expect(slot[:end_time] - slot[:start_time]).to eq(duration_mins.minutes)
+          end
         end
       end
 
@@ -183,13 +188,15 @@ RSpec.describe RentalAvailabilityService, 'multi-day rental slot generation', ty
           first_slot = slots.first
           last_slot = slots.last
 
-          # Pickup Monday 9am, return Tuesday 9am
-          expect(first_slot[:start_time]).to eq(date.in_time_zone.change(hour: 9, min: 0))
-          expect(first_slot[:end_time]).to eq((date + 1.day).in_time_zone.change(hour: 9, min: 0))
+          # Pickup Monday 9am, return exactly 1440 minutes later
+          start_time = date.in_time_zone.change(hour: 9, min: 0)
+          expect(first_slot[:start_time]).to eq(start_time)
+          expect(first_slot[:end_time]).to eq(start_time + duration_mins.minutes)
 
-          # Pickup Monday 5pm, return Tuesday 5pm
-          expect(last_slot[:start_time]).to eq(date.in_time_zone.change(hour: 17, min: 0))
-          expect(last_slot[:end_time]).to eq((date + 1.day).in_time_zone.change(hour: 17, min: 0))
+          # Pickup Monday 5pm, return exactly 1440 minutes later
+          last_start_time = date.in_time_zone.change(hour: 17, min: 0)
+          expect(last_slot[:start_time]).to eq(last_start_time)
+          expect(last_slot[:end_time]).to eq(last_start_time + duration_mins.minutes)
         end
       end
     end
