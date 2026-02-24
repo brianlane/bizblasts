@@ -31,7 +31,7 @@ gem "aws-sdk-s3", require: false
 gem "devise"
 gem "devise-jwt"
 gem "devise-passwordless"
-gem "omniauth-google-oauth2", "~> 1.1"
+gem "omniauth-google-oauth2", "~> 1.2"
 gem "omniauth-rails_csrf_protection", "~> 2.0"
 
 # Email delivery
