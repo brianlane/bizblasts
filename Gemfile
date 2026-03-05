@@ -31,7 +31,7 @@ gem "aws-sdk-s3", require: false
 gem "devise"
 gem "devise-jwt"
 gem "devise-passwordless"
-gem "omniauth-google-oauth2", "~> 1.1"
+gem "omniauth-google-oauth2", "~> 1.2"
 gem "omniauth-rails_csrf_protection", "~> 2.0"
 
 # Email delivery
@@ -82,7 +82,7 @@ gem "redcarpet"
 gem "rouge" # For syntax highlighting
 
 # Stripe for payments
-gem "stripe", "~> 18.3"
+gem "stripe", "~> 18.4"
 
 # QR Code generation for in-person payments
 gem "rqrcode", "~> 3.2"
@@ -144,7 +144,7 @@ gem 'geocoder'
 gem 'zip-codes' # Offline US ZIP code database for fallback geocoding
 
 # Calendar integrations
-gem 'google-apis-calendar_v3', '~> 0.51'
+gem 'google-apis-calendar_v3', '~> 0.52'
 gem 'googleauth', '~> 1.16'
 gem 'microsoft_graph', '~> 0.22'
 gem 'oauth2', '~> 2.0'
