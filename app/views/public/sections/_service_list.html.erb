@@ -45,7 +45,7 @@
             <% end %>
           <div class="flex justify-between items-center">
               <span class="<%= price_classes %>">$<%= service.price %></span>
-            <% default_booking_path = new_tenant_booking_path(service_id: service.id) %>
+            <% default_booking_path = tenant_calendar_path(service_id: service.id) %>
             <% booking_path = book_now_path_with_service_area(fallback_path: default_booking_path, service: service) %>
               <%= link_to "Book Now", booking_path,
                           class: cta_classes %>
