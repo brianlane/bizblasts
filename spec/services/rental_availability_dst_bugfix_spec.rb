@@ -31,50 +31,50 @@ RSpec.describe 'DST Bug Fix: Consistent end-time calculation', type: :service do
         date = Date.parse('2026-03-07')
         duration_mins = 1440 # 1 day = 1440 minutes
 
-        travel_to Time.zone.parse('2026-03-07 00:00:00')
         Time.use_zone(business.time_zone) do
-          # Generate available slots
-          slots = RentalAvailabilityService.available_slots(
-            rental: rental_product,
-            date: date,
-            duration_mins: duration_mins,
-            quantity: 1
-          )
-
-          expect(slots).not_to be_empty
-          slot = slots.first
-
-          # Slot end time uses fixed minutes
-          start_time = date.in_time_zone.change(hour: 9, min: 0)
-          expected_end_time = start_time + duration_mins.minutes
-
-          expect(slot[:start_time]).to eq(start_time)
-          expect(slot[:end_time]).to eq(expected_end_time)
-
-          # Create a booking using the same parameters
-          customer = create(:tenant_customer, business: business)
-          service = RentalBookingService.new(
-            rental: rental_product,
-            tenant_customer: customer,
-            params: {
-              start_time: start_time,
+          travel_to Time.zone.parse('2026-03-07 00:00:00') do
+            # Generate available slots
+            slots = RentalAvailabilityService.available_slots(
+              rental: rental_product,
+              date: date,
               duration_mins: duration_mins,
               quantity: 1
-            }
-          )
+            )
 
-          result = service.create_booking
-          expect(result[:success]).to be true
+            expect(slots).not_to be_empty
+            slot = slots.first
 
-          booking = result[:booking]
-          # Booking should use the exact same end_time as the slot
-          expect(booking.start_time).to eq(slot[:start_time])
-          expect(booking.end_time).to eq(slot[:end_time])
+            # Slot end time uses fixed minutes
+            start_time = date.in_time_zone.change(hour: 9, min: 0)
+            expected_end_time = start_time + duration_mins.minutes
 
-          # Verify the end times match (no 1-hour discrepancy)
-          expect(booking.end_time).to eq(expected_end_time)
+            expect(slot[:start_time]).to eq(start_time)
+            expect(slot[:end_time]).to eq(expected_end_time)
+
+            # Create a booking using the same parameters
+            customer = create(:tenant_customer, business: business)
+            service = RentalBookingService.new(
+              rental: rental_product,
+              tenant_customer: customer,
+              params: {
+                start_time: start_time,
+                duration_mins: duration_mins,
+                quantity: 1
+              }
+            )
+
+            result = service.create_booking
+            expect(result[:success]).to be true
+
+            booking = result[:booking]
+            # Booking should use the exact same end_time as the slot
+            expect(booking.start_time).to eq(slot[:start_time])
+            expect(booking.end_time).to eq(slot[:end_time])
+
+            # Verify the end times match (no 1-hour discrepancy)
+            expect(booking.end_time).to eq(expected_end_time)
+          end
         end
-        travel_back
       end
     end
   end
