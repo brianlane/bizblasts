@@ -31,6 +31,7 @@ RSpec.describe 'DST Bug Fix: Consistent end-time calculation', type: :service do
         date = Date.parse('2026-03-07')
         duration_mins = 1440 # 1 day = 1440 minutes
 
+        travel_to Time.zone.parse('2026-03-07 00:00:00')
         Time.use_zone(business.time_zone) do
           # Generate available slots
           slots = RentalAvailabilityService.available_slots(
@@ -73,6 +74,7 @@ RSpec.describe 'DST Bug Fix: Consistent end-time calculation', type: :service do
           # Verify the end times match (no 1-hour discrepancy)
           expect(booking.end_time).to eq(expected_end_time)
         end
+        travel_back
       end
     end
   end
