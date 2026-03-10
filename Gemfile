@@ -50,7 +50,7 @@ gem "rack-attack"
 gem "rack-cors"
 
 # Admin interface
-gem "activeadmin", "~> 3.4.0"
+gem "activeadmin", "~> 3.5.0"
 gem "jquery-ui-rails" # Required for jQuery UI in Sprockets
 # NOTE: We use Bun/SASS for CSS compilation, not a Ruby gem
 
