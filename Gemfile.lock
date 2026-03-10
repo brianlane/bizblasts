@@ -53,7 +53,7 @@ GEM
       activestorage (>= 6.1.4)
       activesupport (>= 6.1.4)
       marcel (>= 1.0.3)
-    activeadmin (3.4.0)
+    activeadmin (3.5.0)
       arbre (~> 1.2, >= 1.2.1)
       csv
       formtastic (>= 3.1)
@@ -228,8 +228,8 @@ GEM
     ffi (1.17.2-x86_64-darwin)
     ffi (1.17.2-x86_64-linux-gnu)
     ffi (1.17.2-x86_64-linux-musl)
-    formtastic (5.0.0)
-      actionpack (>= 6.0.0)
+    formtastic (6.0.0)
+      actionpack (>= 7.2.0)
     formtastic_i18n (0.7.0)
     fugit (1.12.1)
       et-orbi (~> 1.4)
@@ -492,8 +492,8 @@ GEM
       activesupport (>= 5.0.0)
       minitest
       nokogiri (>= 1.6)
-    rails-html-sanitizer (1.6.2)
-      loofah (~> 2.21)
+    rails-html-sanitizer (1.7.0)
+      loofah (~> 2.25)
       nokogiri (>= 1.15.7, != 1.16.7, != 1.16.6, != 1.16.5, != 1.16.4, != 1.16.3, != 1.16.2, != 1.16.1, != 1.16.0.rc1, != 1.16.0)
     railties (8.1.2)
       actionpack (= 8.1.2)
@@ -652,7 +652,7 @@ GEM
     thruster (0.1.19-x86_64-darwin)
     thruster (0.1.19-x86_64-linux)
     timecop (0.9.10)
-    timeout (0.6.0)
+    timeout (0.6.1)
     tod (3.1.2)
     trailblazer-option (0.1.2)
     tsort (0.2.0)
@@ -711,7 +711,7 @@ PLATFORMS
 
 DEPENDENCIES
   active_storage_validations
-  activeadmin (~> 3.4.0)
+  activeadmin (~> 3.5.0)
   acts_as_tenant
   annotate
   aws-sdk-s3
@@ -790,7 +790,7 @@ CHECKSUMS
   actiontext (8.1.2) sha256=0bf57da22a9c19d970779c3ce24a56be31b51c7640f2763ec64aa72e358d2d2d
   actionview (8.1.2) sha256=80455b2588911c9b72cec22d240edacb7c150e800ef2234821269b2b2c3e2e5b
   active_storage_validations (3.0.3) sha256=b5be3c8b553a37c885f3ca4de7a63c5a1602987441ee92c89f57d7a2bae7f8c3
-  activeadmin (3.4.0) sha256=b4777b64868ff261d879a976c72d648c40fd081dc246d2236972d1b0008c21a2
+  activeadmin (3.5.0) sha256=b8f64361aa812ef1ccc9add76c852aca8d8a947b900937ebab56298eb2b85eda
   activejob (8.1.2) sha256=908dab3713b101859536375819f4156b07bdf4c232cc645e7538adb9e302f825
   activemodel (8.1.2) sha256=e21358c11ce68aed3f9838b7e464977bc007b4446c6e4059781e1d5c03bcf33e
   activerecord (8.1.2) sha256=acfbe0cadfcc50fa208011fe6f4eb01cae682ebae0ef57145ba45380c74bcc44
@@ -859,7 +859,7 @@ CHECKSUMS
   ffi (1.17.2-x86_64-darwin) sha256=981f2d4e32ea03712beb26e55e972797c2c5a7b0257955d8667ba58f2da6440e
   ffi (1.17.2-x86_64-linux-gnu) sha256=05d2026fc9dbb7cfd21a5934559f16293815b7ce0314846fee2ac8efbdb823ea
   ffi (1.17.2-x86_64-linux-musl) sha256=97c0eb3981414309285a64dc4d466bd149e981c279a56371ef811395d68cb95c
-  formtastic (5.0.0) sha256=71cc99c8227208f64da8d2b0926d97cef1e5f77e0105047cd57fddeccd3a6416
+  formtastic (6.0.0) sha256=c398906b65978fec3d045d6792f82cf9641f086ac9f17357b2b382f723126165
   formtastic_i18n (0.7.0) sha256=ecef51c9e9030c00f19e69d2483b77f4515c9587d74268b76cf4b6e7988c8e78
   fugit (1.12.1) sha256=5898f478ede9b415f0804e42b8f3fd53f814bd85eebffceebdbc34e1107aaf68
   geocoder (1.8.6) sha256=e0ca1554b499f466de9b003f7dff70f89a5888761c2ca68ed9f86b6e5e24e74c
@@ -964,7 +964,7 @@ CHECKSUMS
   rails (8.1.2) sha256=5069061b23dfa8706b9f0159ae8b9d35727359103178a26962b868a680ba7d95
   rails-controller-testing (1.0.5) sha256=741448db59366073e86fc965ba403f881c636b79a2c39a48d0486f2607182e94
   rails-dom-testing (2.3.0) sha256=8acc7953a7b911ca44588bf08737bc16719f431a1cc3091a292bca7317925c1d
-  rails-html-sanitizer (1.6.2) sha256=35fce2ca8242da8775c83b6ba9c1bcaad6751d9eb73c1abaa8403475ab89a560
+  rails-html-sanitizer (1.7.0) sha256=28b145cceaf9cc214a9874feaa183c3acba036c9592b19886e0e45efc62b1e89
   railties (8.1.2) sha256=1289ece76b4f7668fc46d07e55cc992b5b8751f2ad85548b7da351b8c59f8055
   rainbow (3.1.1) sha256=039491aa3a89f42efa1d6dec2fc4e62ede96eb6acd95e52f1ad581182b79bc6a
   rake (13.3.1) sha256=8c9e89d09f66a26a01264e7e3480ec0607f0c497a861ef16063604b1b08eb19c
@@ -1028,7 +1028,7 @@ CHECKSUMS
   thruster (0.1.19-x86_64-darwin) sha256=f026e833dc67048843919ce31a8b12b97b532df41a749d66b72f282efd2a0693
   thruster (0.1.19-x86_64-linux) sha256=7cddc1bd0c4fb2e26cc4878dc1f4eb7e883a45932e8d1cacda71b1aba1a645b6
   timecop (0.9.10) sha256=12ba45ce57cdcf6b1043cb6cdffa6381fd89ce10d369c28a7f6f04dc1b0cd8eb
-  timeout (0.6.0) sha256=6d722ad619f96ee383a0c557ec6eb8c4ecb08af3af62098a0be5057bf00de1af
+  timeout (0.6.1) sha256=78f57368a7e7bbadec56971f78a3f5ecbcfb59b7fcbb0a3ed6ddc08a5094accb
   tod (3.1.2) sha256=e67bf57dc67c8ec806edf0b61e6e499b27eea4e1eb23da1907ec77d45226fb08
   trailblazer-option (0.1.2) sha256=20e4f12ea4e1f718c8007e7944ca21a329eee4eed9e0fa5dde6e8ad8ac4344a3
   tsort (0.2.0) sha256=9650a793f6859a43b6641671278f79cfead60ac714148aabe4e3f0060480089f
