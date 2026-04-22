@@ -9,18 +9,12 @@ global.console = {
   // error: jest.fn(),
 };
 
-// Mock window.location
-delete window.location;
-window.location = {
-  href: 'http://localhost:3000',
-  host: 'localhost:3000',
-  hostname: 'localhost',
-  port: '3000',
-  protocol: 'http:',
-  pathname: '/',
-  search: '',
-  hash: ''
-};
+// Initial `window.location` is set via jest.config.js `testEnvironmentOptions.url`.
+// To change it during a test, use `jsdomInstance.reconfigure({ url })` (the
+// `jsdomInstance` global is exposed by the custom test environment in
+// spec/javascript/jsdom_environment.js). jsdom >= 22 makes `window.location`
+// a non-configurable accessor, so the old `delete window.location` pattern
+// and `Object.defineProperty(window, 'location', ...)` no longer work.
 
 // Mock process.env for tests
 global.process = {

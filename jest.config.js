@@ -1,7 +1,14 @@
 // Jest configuration for BizBlasts JavaScript tests
 module.exports = {
   // Test environment
-  testEnvironment: 'jsdom',
+  // Custom env extends jsdom and exposes the JSDOM instance as `jsdomInstance`
+  // so tests can call `jsdomInstance.reconfigure({ url })` to change
+  // window.location. Needed because jsdom>=22 makes location non-configurable.
+  testEnvironment: '<rootDir>/spec/javascript/jsdom_environment.js',
+  testEnvironmentOptions: {
+    url: 'http://localhost:3000'
+  },
+
   
   // Test file patterns
   testMatch: [
