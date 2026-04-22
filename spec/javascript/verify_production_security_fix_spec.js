@@ -6,21 +6,11 @@
 import { TurboTenantHelpers } from '../../app/javascript/modules/turbo_tenant_helpers.js';
 
 describe('Production Security Fix Verification', () => {
+  // jsdom >= 22 makes window.location non-configurable; use reconfigure via
+  // the JSDOM instance exposed by spec/javascript/jsdom_environment.js.
   const mockLocation = (href) => {
-    const url = new URL(href);
-    Object.defineProperty(window, 'location', {
-      value: {
-        href: url.href,
-        host: url.host,
-        hostname: url.hostname,
-        port: url.port,
-        protocol: url.protocol,
-        pathname: url.pathname,
-        search: url.search,
-        hash: url.hash
-      },
-      writable: true
-    });
+    // eslint-disable-next-line no-undef
+    jsdomInstance.reconfigure({ url: href });
   };
 
   beforeEach(() => {
