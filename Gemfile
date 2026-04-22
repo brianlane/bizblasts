@@ -3,7 +3,7 @@
 source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 8.1.2"
+gem "rails", "~> 8.1.3"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 # gem "propshaft" # DISABLED: Using Sprockets for ActiveAdmin compatibility
 # Traditional asset pipeline for ActiveAdmin compatibility
@@ -11,7 +11,7 @@ gem "sprockets-rails"
 # Use postgresql as the database for Active Record
 gem "pg", "~> 1.6"
 # Use the Puma web server [https://github.com/puma/puma]
-gem "puma", "~> 7.2"
+gem "puma", "~> 8.0"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
 
@@ -50,7 +50,7 @@ gem "rack-attack"
 gem "rack-cors"
 
 # Admin interface
-gem "activeadmin", "~> 3.4.0"
+gem "activeadmin", "~> 3.5.1"
 gem "jquery-ui-rails" # Required for jQuery UI in Sprockets
 # NOTE: We use Bun/SASS for CSS compilation, not a Ruby gem
 
@@ -82,7 +82,7 @@ gem "redcarpet"
 gem "rouge" # For syntax highlighting
 
 # Stripe for payments
-gem "stripe", "~> 18.4"
+gem "stripe", "~> 19.0"
 
 # QR Code generation for in-person payments
 gem "rqrcode", "~> 3.2"
@@ -144,7 +144,7 @@ gem 'geocoder'
 gem 'zip-codes' # Offline US ZIP code database for fallback geocoding
 
 # Calendar integrations
-gem 'google-apis-calendar_v3', '~> 0.52'
+gem 'google-apis-calendar_v3', '~> 0.53'
 gem 'googleauth', '~> 1.16'
 gem 'microsoft_graph', '~> 0.22'
 gem 'oauth2', '~> 2.0'
