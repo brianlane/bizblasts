@@ -296,8 +296,22 @@ ActiveAdmin.register Business do
         check_domain = business.canonical_domain || business.hostname
         dns_checker = CnameDnsChecker.new(check_domain)
         dns_result = dns_checker.verify_cname
+
+        # On Caddy the admin "✅ DNS Verified" badge must reflect the SAME
+        # gate the strategy uses to flip cname_success! — both apex AND
+        # www must verify (Bugbot MEDIUM: "DNS status flag ignores dual
+        # check"). Skip the dual check on Render so we don't add an extra
+        # round of DNS lookups to the admin status endpoint when it's not
+        # needed.
+        effective_verified = if defined?(DomainProvider) && DomainProvider.caddy?
+                               dual = DualDomainVerifier.new(business.hostname).verify_both_domains
+                               DomainVerificationStrategy.dns_verified_for(dns_result, dual)
+                             else
+                               dns_result[:verified]
+                             end
+
         status[:dns_check] = {
-          verified: dns_result[:verified],
+          verified: effective_verified,
           target: dns_result[:target],
           checked_at: dns_result[:checked_at],
           error: dns_result[:error]

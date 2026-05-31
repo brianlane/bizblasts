@@ -42,22 +42,35 @@ class DomainVerificationStrategy
     }
   end
 
-  private
-
+  # Provider-aware DNS verification gate.
+  #
   # On Caddy a single-host pass is not enough: the apex and www records each
   # have their own A record requirement (see DualDomainVerifier comments and
-  # CnameDnsChecker#apex_a_matches_expected? for the rationale). If the
-  # caller supplied a dual_result, gate dns_verified on its overall_verified
+  # CnameDnsChecker#apex_a_matches_expected? for the rationale). When the
+  # caller supplies a dual_result, gate dns_verified on its overall_verified
   # flag so cname_success! can't fire when www still lacks its A record.
   # On Render (or when no dual_result is given) keep the legacy single-host
-  # gate so existing controller actions and specs are unchanged.
-  def derive_dns_verified(dns_result, dual_result)
+  # gate so existing controller actions / specs are unchanged.
+  #
+  # Exposed as a class method so callers that only need the gate value (e.g.
+  # the live-status JSON in BusinessManager::Settings::BusinessController)
+  # can derive `dns_check.verified` from the SAME logic the strategy uses to
+  # gate cname_success! — otherwise the UI's "DNS verified" row can flash
+  # green on one host while activation correctly stays blocked (Bugbot
+  # MEDIUM: "DNS status flag ignores dual check").
+  def self.dns_verified_for(dns_result, dual_result = nil)
     caddy_mode = defined?(DomainProvider) && DomainProvider.caddy?
     if caddy_mode && dual_result.is_a?(Hash) && dual_result.key?(:overall_verified)
       return dual_result[:overall_verified] == true
     end
 
     dns_result[:verified] == true
+  end
+
+  private
+
+  def derive_dns_verified(dns_result, dual_result)
+    self.class.dns_verified_for(dns_result, dual_result)
   end
 
   def create_verification_policy(dns_verified, render_verified, health_verified, ssl_ready)
