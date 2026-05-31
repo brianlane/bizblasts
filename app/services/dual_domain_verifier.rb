@@ -25,6 +25,7 @@ class DualDomainVerifier
       # Determine overall verification status
       overall_verified = apex_result[:verified] && www_result[:verified]
       
+      www_record_type = CnameDnsChecker.expected_cname_target ? 'CNAME' : 'A'
       result = {
         domain: @domain_name,
         overall_verified: overall_verified,
@@ -39,7 +40,7 @@ class DualDomainVerifier
         www_domain: {
           domain: @www_domain,
           verified: www_result[:verified],
-          record_type: 'CNAME',
+          record_type: www_record_type,
           target: www_result[:target],
           expected_target: www_result[:expected_target],
           error: www_result[:error]
@@ -87,30 +88,32 @@ class DualDomainVerifier
 
   private
 
-  # Verify apex domain A record points to Render IP
+  # Verify apex domain A record points to the active provider's expected IP.
+  # (Render IP on Render, BIZBLASTS_PUBLIC_IP on Caddy.) See Bugbot HIGH:
+  # "DNS checks ignore Caddy targets".
   def verify_apex_domain
     Rails.logger.info "[DualDomainVerifier] Checking A record for: #{@apex_domain}"
-    
+
     resolver = Resolv::DNS.new
-    
+    expected_ip = CnameDnsChecker.expected_apex_ip
+
     begin
       a_records = resolver.getresources(@apex_domain, Resolv::DNS::Resource::IN::A)
       a_ips = a_records.map(&:address).map(&:to_s)
-      
-      render_ip = CnameDnsChecker::RENDER_APEX_IP
-      verified = a_ips.include?(render_ip)
-      
+
+      verified = expected_ip.present? && a_ips.include?(expected_ip)
+
       {
         verified: verified,
         target: a_ips.first,
-        expected_target: render_ip,
-        error: verified ? nil : "A record should point to #{render_ip}"
+        expected_target: expected_ip,
+        error: verified ? nil : "A record should point to #{expected_ip}"
       }
     rescue => e
       {
         verified: false,
         target: nil,
-        expected_target: CnameDnsChecker::RENDER_APEX_IP,
+        expected_target: expected_ip,
         error: "DNS lookup failed: #{e.message}"
       }
     ensure
@@ -118,39 +121,55 @@ class DualDomainVerifier
     end
   end
 
-  # Verify www subdomain CNAME record points to Render target
+  # Verify www subdomain record. On Render: expect CNAME → bizblasts.onrender.com.
+  # On Caddy: expect A → BIZBLASTS_PUBLIC_IP (CNAME-to-self is also accepted as
+  # an alternative, but our recommended docs say A-record for both apex and www).
   def verify_www_domain
-    Rails.logger.info "[DualDomainVerifier] Checking CNAME record for: #{@www_domain}"
-    
-    resolver = Resolv::DNS.new
-    
+    Rails.logger.info "[DualDomainVerifier] Checking www record for: #{@www_domain}"
+
+    expected_cname = CnameDnsChecker.expected_cname_target
+    expected_ip    = CnameDnsChecker.expected_apex_ip
+    resolver       = Resolv::DNS.new
+
     begin
-      cname_records = resolver.getresources(@www_domain, Resolv::DNS::Resource::IN::CNAME)
-      
-      if cname_records.empty?
-        return {
-          verified: false,
-          target: nil,
-          expected_target: CnameDnsChecker::RENDER_CNAME_TARGET,
-          error: "No CNAME record found"
+      if expected_cname
+        cname_records = resolver.getresources(@www_domain, Resolv::DNS::Resource::IN::CNAME)
+        if cname_records.empty?
+          return {
+            verified: false,
+            target: nil,
+            expected_target: expected_cname,
+            error: "No CNAME record found"
+          }
+        end
+
+        cname_target = cname_records.first.name.to_s.chomp('.')
+        verified = cname_target.downcase == expected_cname.downcase
+
+        {
+          verified: verified,
+          target: cname_target,
+          expected_target: expected_cname,
+          error: verified ? nil : "CNAME should point to #{expected_cname}"
+        }
+      else
+        # Caddy mode: verify www has an A record pointing to BIZBLASTS_PUBLIC_IP.
+        a_records = resolver.getresources(@www_domain, Resolv::DNS::Resource::IN::A)
+        a_ips = a_records.map(&:address).map(&:to_s)
+        verified = expected_ip.present? && a_ips.include?(expected_ip)
+
+        {
+          verified: verified,
+          target: a_ips.first,
+          expected_target: expected_ip,
+          error: verified ? nil : "www A record should point to #{expected_ip}"
         }
       end
-      
-      cname_target = cname_records.first.name.to_s.chomp('.')
-      render_target = CnameDnsChecker::RENDER_CNAME_TARGET
-      verified = cname_target.downcase == render_target.downcase
-      
-      {
-        verified: verified,
-        target: cname_target,
-        expected_target: render_target,
-        error: verified ? nil : "CNAME should point to #{render_target}"
-      }
     rescue => e
       {
         verified: false,
         target: nil,
-        expected_target: CnameDnsChecker::RENDER_CNAME_TARGET,
+        expected_target: expected_cname || expected_ip,
         error: "DNS lookup failed: #{e.message}"
       }
     ensure
@@ -174,15 +193,16 @@ class DualDomainVerifier
   # Generate next steps for incomplete configurations
   def generate_next_steps(result)
     steps = []
-    
+
     unless result[:apex_domain][:verified]
       steps << "Add A record: @ → #{result[:apex_domain][:expected_target]}"
     end
-    
+
     unless result[:www_domain][:verified]
-      steps << "Add CNAME record: www → #{result[:www_domain][:expected_target]}"
+      www_type = result[:www_domain][:record_type] || 'CNAME'
+      steps << "Add #{www_type} record: www → #{result[:www_domain][:expected_target]}"
     end
-    
+
     steps.empty? ? ["Domain configuration is complete!"] : steps
   end
 end

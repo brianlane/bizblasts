@@ -56,13 +56,35 @@ class CaddyDomainService
 
   # All managed custom domains are tracked in the Business table. Return a
   # Render-compatible payload so callers (e.g. find_domain_by_name) keep working.
+  #
+  # Two important behaviors here:
+  #
+  # 1. We emit BOTH the apex (`example.com`) and www (`www.example.com`)
+  #    variants for every persisted hostname, regardless of which one the
+  #    business stored. Monitoring (DomainMonitoringService) looks up the
+  #    *canonical* domain — which may be the opposite of the stored hostname
+  #    when canonical_preference flips — and a missing entry would otherwise
+  #    cause `find_domain_by_name` to return nil and verification to stall
+  #    indefinitely (Bugbot HIGH: WWW canonical domain lookup fails).
+  #
+  # 2. We deliberately set `'verified' => false`. RenderDomainVerificationJob
+  #    exits early when `verified` is true, so if we claimed pre-verified
+  #    status here the job would never actually call `verify_domain` to do
+  #    the live DNS check (Bugbot MEDIUM: Async verify skips DNS check).
+  #    Real verification state is computed lazily by verify_domain /
+  #    domain_status when callers need it.
   def list_domains
     return [] unless business_table_exists?
 
     Business.where(host_type: 'custom_domain')
             .where.not(hostname: [nil, ''])
             .pluck(:hostname)
-            .map { |h| { 'id' => "caddy:#{normalize(h)}", 'name' => normalize(h), 'verified' => true } }
+            .flat_map do |hostname|
+              apex = normalize(hostname).sub(/\Awww\./, '')
+              [apex, "www.#{apex}"].uniq.map do |name|
+                { 'id' => "caddy:#{name}", 'name' => name, 'verified' => false }
+              end
+            end
   end
 
   # Removing a domain is a no-op: as soon as the Business row transitions

@@ -38,14 +38,29 @@ module Api
 
       private
 
-      # Caddy and the deploy webhook both run on the same host as Puma. We use
-      # the raw TCP peer address (REMOTE_ADDR) rather than `request.remote_ip`
-      # because the latter is rewritten by the cloudflare-rails trusted-proxy
-      # chain and would treat us as the upstream CDN IP, not the loopback
-      # peer that Caddy actually came in on.
+      # Caddy is the *only* legitimate caller of this endpoint, and it always
+      # calls us with TWO loopback signals:
+      #
+      #   1. REMOTE_ADDR is a 127.0.0.0/8 / ::1 peer (Caddy → Puma over loopback).
+      #   2. The Host header is `localhost` or `127.0.0.1` (Caddy's on_demand_tls
+      #      `ask` HTTP client targets `http://localhost:3000/api/v1/...`).
+      #
+      # Requiring BOTH closes Bugbot MEDIUM ("Verify endpoint trusts all
+      # proxies"): if Puma sits behind ANOTHER reverse proxy on the same host
+      # (or simply behind Caddy serving a real customer hostname), every
+      # external request also has a loopback REMOTE_ADDR — but its Host
+      # header is the public hostname, not `localhost`. That host mismatch
+      # now rejects external traffic.
+      #
+      # We use REMOTE_ADDR (not request.remote_ip) because the cloudflare-rails
+      # trusted-proxy chain rewrites remote_ip to the upstream CDN IP.
       def localhost_request?
         peer = request.env['REMOTE_ADDR'].to_s
-        peer == '127.0.0.1' || peer == '::1' || peer.start_with?('127.')
+        loopback_peer = peer == '127.0.0.1' || peer == '::1' || peer.start_with?('127.')
+        return false unless loopback_peer
+
+        host = request.host.to_s.downcase
+        host == 'localhost' || host == '127.0.0.1' || host == '::1'
       end
     end
   end
