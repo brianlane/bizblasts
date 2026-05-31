@@ -26,7 +26,12 @@ module ApplicationHelper
     if defined?(DomainProvider) && DomainProvider.caddy?
       bizblasts_dns_apex_target_ip
     else
-      'bizblasts.onrender.com'
+      # Mirror DomainMailer#assign_dns_instructions! and
+      # CnameDnsChecker::RENDER_CNAME_TARGET, which use 'localhost' outside
+      # production so dev/test docs stay consistent across all three places.
+      # Otherwise the FAQ said `bizblasts.onrender.com` while the mailer
+      # said `localhost` — Bugbot MEDIUM: "Docs disagree on www DNS".
+      Rails.env.production? ? 'bizblasts.onrender.com' : 'localhost'
     end
   end
 
