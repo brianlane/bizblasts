@@ -237,20 +237,39 @@ class CnameDnsChecker
     false
   end
 
-  # Determine whether the domain (or its root form) has an A-record that
-  # points to the provider's expected apex IP (Render IP on Render, or
-  # BIZBLASTS_PUBLIC_IP on Caddy). This is used when an apex cannot use
-  # CNAME, and is the primary verification path under Caddy.
+  # Determine whether the domain has an A-record that points to the provider's
+  # expected apex IP (Render IP on Render, or BIZBLASTS_PUBLIC_IP on Caddy).
+  #
+  # Per-provider behavior (Bugbot MEDIUM: "WWW DNS checks apex only"):
+  #
+  # - Render: historic behavior. The www variant is verified via CNAME and we
+  #   only fall through to apex-A as a last-resort. In that fallback we accept
+  #   apex-A matching even if the caller passed `www.example.com`, because the
+  #   customer *must* have an apex A pointing at Render's IP for any traffic
+  #   to work and we don't want to flag the domain as broken just because
+  #   their www CNAME isn't observable.
+  #
+  # - Caddy: customers must independently set A records for BOTH apex and www
+  #   pointing at BIZBLASTS_PUBLIC_IP. Stripping www and checking only the
+  #   apex would mark www.example.com as verified when only the apex points
+  #   at us — and the on_demand_tls handshake for www would then 404 because
+  #   AllowedHostService would still say no. Check the EXACT host instead.
   def apex_a_matches_expected?(domain)
     expected = self.class.expected_apex_ip
     return false if expected.blank?
 
+    caddy_mode = defined?(DomainProvider) && DomainProvider.caddy?
+    name = if caddy_mode
+             domain
+           else
+             domain.start_with?('www.') ? domain.sub('www.', '') : domain
+           end
+
     begin
-      root = domain.start_with?('www.') ? domain.sub('www.', '') : domain
-      a_records = @resolver.getresources(root, Resolv::DNS::Resource::IN::A)
+      a_records = @resolver.getresources(name, Resolv::DNS::Resource::IN::A)
       a_records.map(&:address).map(&:to_s).include?(expected)
     rescue => e
-      Rails.logger.warn "[CnameDnsChecker] A-record lookup failed for #{domain}: #{e.message}"
+      Rails.logger.warn "[CnameDnsChecker] A-record lookup failed for #{name}: #{e.message}"
       false
     end
   end

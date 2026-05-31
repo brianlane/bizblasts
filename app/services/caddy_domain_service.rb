@@ -144,14 +144,20 @@ class CaddyDomainService
   # accept either a configured BIZBLASTS_PUBLIC_IP env var (preferred — set
   # by the cloudflare-ddns updater) or fall back to whatever bizblasts.com
   # itself resolves to (since both records must point at the same host).
+  #
+  # We deliberately check ONLY the exact hostname passed in. An earlier
+  # implementation also looked up the apex and the www-of-apex as siblings,
+  # which meant `dns_points_at_us?('www.example.com')` would return true
+  # whenever ONLY the apex was correctly pointed at us — leading
+  # CnameDnsChecker / monitoring to mark www as verified while Caddy's
+  # on_demand_tls would then refuse to mint a cert for it (Bugbot MEDIUM:
+  # "Caddy verify accepts sibling DNS"). Strict per-name verification
+  # matches what AllowedHostService and Let's Encrypt actually enforce.
   def dns_points_at_us?(name)
     target_ips = our_public_ips
     return false if target_ips.empty?
 
-    apex = name.sub(/\Awww\./, '')
-    [name, apex, "www.#{apex}"].uniq.any? do |h|
-      resolve_a(h).any? { |ip| target_ips.include?(ip) }
-    end
+    resolve_a(name).any? { |ip| target_ips.include?(ip) }
   rescue StandardError => e
     Rails.logger.warn "[CaddyDomainService] DNS check failed for #{name}: #{e.message}"
     false
