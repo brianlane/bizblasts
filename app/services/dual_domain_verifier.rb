@@ -177,16 +177,22 @@ class DualDomainVerifier
     end
   end
 
-  # Generate user-friendly status message
+  # Generate user-friendly status message. The www record type is
+  # provider-dependent (CNAME on Render, A on Caddy) so we read it from
+  # the verified result rather than hard-coding "CNAME" — otherwise
+  # Caddy users see misleading copy in status_summary (Bugbot LOW:
+  # "Status messages still say CNAME").
   def generate_status_message(result)
+    www_type = result[:www_domain][:record_type] || 'CNAME'
+
     if result[:overall_verified]
       "Both apex domain and www subdomain are correctly configured"
     elsif result[:apex_domain][:verified] && !result[:www_domain][:verified]
-      "Apex domain (A record) verified, www subdomain (CNAME) needs configuration"
+      "Apex domain (A record) verified, www subdomain (#{www_type}) needs configuration"
     elsif !result[:apex_domain][:verified] && result[:www_domain][:verified]
-      "www subdomain (CNAME) verified, apex domain (A record) needs configuration"
+      "www subdomain (#{www_type}) verified, apex domain (A record) needs configuration"
     else
-      "Both A record and CNAME record need configuration"
+      "Both A record and #{www_type} record need configuration"
     end
   end
 

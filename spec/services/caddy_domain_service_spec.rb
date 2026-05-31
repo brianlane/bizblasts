@@ -22,14 +22,16 @@ RSpec.describe CaddyDomainService, type: :service do
       create(:business,
              host_type: 'custom_domain',
              hostname: 'shop.example.com',
-             canonical_preference: 'apex')
+             canonical_preference: 'apex',
+             render_domain_added: true)
     end
 
     let!(:www_business) do
       create(:business,
              host_type: 'custom_domain',
              hostname: 'www.boutique.example',
-             canonical_preference: 'www')
+             canonical_preference: 'www',
+             render_domain_added: true)
     end
 
     it 'emits BOTH apex and www variants for every persisted hostname' do
@@ -54,6 +56,17 @@ RSpec.describe CaddyDomainService, type: :service do
       create(:business, host_type: 'subdomain', hostname: 'sub', subdomain: 'sub')
       names = service.list_domains.map { |d| d['name'] }
       expect(names).not_to include('sub', 'www.sub')
+    end
+
+    it 'skips custom-domain businesses that have not yet completed setup' do
+      create(:business,
+             host_type: 'custom_domain',
+             hostname: 'pending.example.org',
+             canonical_preference: 'apex',
+             render_domain_added: false)
+
+      names = service.list_domains.map { |d| d['name'] }
+      expect(names).not_to include('pending.example.org', 'www.pending.example.org')
     end
   end
 

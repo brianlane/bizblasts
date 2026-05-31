@@ -57,17 +57,25 @@ class CaddyDomainService
   # All managed custom domains are tracked in the Business table. Return a
   # Render-compatible payload so callers (e.g. find_domain_by_name) keep working.
   #
-  # Two important behaviors here:
+  # Three important behaviors here:
   #
-  # 1. We emit BOTH the apex (`example.com`) and www (`www.example.com`)
+  # 1. We only include businesses that have actually completed the
+  #    CnameSetupService.add_domain step (render_domain_added=true). Otherwise
+  #    find_domain_by_name would return a hit for any custom-domain Business
+  #    row, including ones still in cname_pending — which is the opposite of
+  #    Render's behavior (Render lists only registered domains) and lets
+  #    DomainMonitoringService report render_check.found=true before setup
+  #    has run (Bugbot MEDIUM: "Caddy lists unregistered hostnames").
+  #
+  # 2. We emit BOTH the apex (`example.com`) and www (`www.example.com`)
   #    variants for every persisted hostname, regardless of which one the
-  #    business stored. Monitoring (DomainMonitoringService) looks up the
-  #    *canonical* domain — which may be the opposite of the stored hostname
-  #    when canonical_preference flips — and a missing entry would otherwise
-  #    cause `find_domain_by_name` to return nil and verification to stall
-  #    indefinitely (Bugbot HIGH: WWW canonical domain lookup fails).
+  #    business stored. Monitoring looks up the *canonical* domain — which
+  #    may be the opposite of the stored hostname when canonical_preference
+  #    flips — and a missing entry would otherwise cause find_domain_by_name
+  #    to return nil and verification to stall indefinitely (Bugbot HIGH:
+  #    WWW canonical domain lookup fails).
   #
-  # 2. We deliberately set `'verified' => false`. RenderDomainVerificationJob
+  # 3. We deliberately set `'verified' => false`. RenderDomainVerificationJob
   #    exits early when `verified` is true, so if we claimed pre-verified
   #    status here the job would never actually call `verify_domain` to do
   #    the live DNS check (Bugbot MEDIUM: Async verify skips DNS check).
@@ -76,7 +84,7 @@ class CaddyDomainService
   def list_domains
     return [] unless business_table_exists?
 
-    Business.where(host_type: 'custom_domain')
+    Business.where(host_type: 'custom_domain', render_domain_added: true)
             .where.not(hostname: [nil, ''])
             .pluck(:hostname)
             .flat_map do |hostname|
@@ -163,11 +171,18 @@ class CaddyDomainService
     false
   end
 
+  # Source of truth for "the IP customers must point their DNS at". We
+  # deliberately use the SAME single value that CnameDnsChecker uses for
+  # its apex A-record assertion (ENV['BIZBLASTS_PUBLIC_IP'], else the
+  # first bizblasts.com A record). Otherwise the two checkers could
+  # disagree — provider verify would accept any of the multiple
+  # bizblasts.com A records while CnameDnsChecker would only accept the
+  # first one — and a customer pointed at a "non-primary" IP would
+  # show verified here but stuck in monitoring (Bugbot MEDIUM: "DNS
+  # checks disagree on IPs").
   def our_public_ips
-    ips = []
-    ips << ENV['BIZBLASTS_PUBLIC_IP'].to_s.strip if ENV['BIZBLASTS_PUBLIC_IP'].present?
-    ips.concat(resolve_a('bizblasts.com'))
-    ips.compact.uniq.reject(&:blank?)
+    expected = CnameDnsChecker.expected_apex_ip
+    expected.present? ? [expected.to_s.strip] : []
   end
 
   def resolve_a(host)
