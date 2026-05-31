@@ -9,7 +9,7 @@ class DomainMonitoringService
     @business = business
     @dns_checker = CnameDnsChecker.new(@business.hostname)
     @dual_verifier = DualDomainVerifier.new(@business.hostname)
-    @render_service = RenderDomainService.new
+    @render_service = DomainProvider.current
     # Use the canonical domain for health checks based on business preference
     @health_checker = DomainHealthChecker.new(canonical_domain_for_health_check)
     @verification_strategy = DomainVerificationStrategy.new(@business)

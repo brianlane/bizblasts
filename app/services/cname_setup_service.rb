@@ -25,10 +25,13 @@ class CnameSetupService
     @errors = []
   end
 
-  # Lazily build or return the RenderDomainService instance.  Use this helper
-  # everywhere instead of referring to `@render_service` directly.
+  # Lazily build or return the active domain-provider instance. On Render
+  # this returns a RenderDomainService; on the Ubuntu/Caddy deployment it
+  # returns a CaddyDomainService (selected by DomainProvider). The variable
+  # is named `render_service` for historical reasons — both providers
+  # implement the same public API.
   def render_service
-    @render_service ||= RenderDomainService.new
+    @render_service ||= DomainProvider.current
   end
 
   # Start the complete CNAME setup process

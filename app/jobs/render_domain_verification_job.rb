@@ -14,7 +14,7 @@ class RenderDomainVerificationJob < ApplicationJob
   def perform(domain_name)
     Rails.logger.info "[RenderDomainVerificationJob] Verifying domain by name: #{domain_name}"
 
-    service = RenderDomainService.new
+    service = DomainProvider.current
 
     domain = service.find_domain_by_name(domain_name)
     if domain.nil?

@@ -145,6 +145,11 @@ Rails.application.routes.draw do
       
       # Analytics tracking endpoint
       post 'analytics/track', to: 'analytics#track'
+
+      # Caddy on-demand TLS callback. Caddy probes this endpoint with
+      # `?domain=<sni>` to decide whether to issue a Let's Encrypt cert for
+      # the incoming hostname. See app/controllers/api/v1/custom_domains_controller.rb.
+      get 'custom_domains/verify', to: 'custom_domains#verify'
     end
   end
   

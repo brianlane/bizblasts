@@ -172,7 +172,7 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
       dns_checker = CnameDnsChecker.new(check_domain)
       dual_verifier = DualDomainVerifier.new(@business.hostname) # Dual verifier needs raw hostname to check both apex/www
       health_checker = DomainHealthChecker.new(check_domain)
-      render_service = RenderDomainService.new
+      render_service = DomainProvider.current
 
       # Perform all checks
       dns_result = dns_checker.verify_cname
@@ -262,7 +262,7 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
       dns_checker = CnameDnsChecker.new(check_domain)
       dual_verifier = DualDomainVerifier.new(@business.hostname)
       health_checker = DomainHealthChecker.new(check_domain)
-      render_service = RenderDomainService.new
+      render_service = DomainProvider.current
 
       dns_result = dns_checker.verify_cname
       dual_result = dual_verifier.verify_both_domains

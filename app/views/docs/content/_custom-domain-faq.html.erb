@@ -26,7 +26,7 @@
           </div>
           <div class="flex items-center">
             <span class="font-semibold text-gray-700 w-24">Target:</span>
-            <code class="bg-white px-2 py-1 rounded border">216.24.57.1</code>
+            <code class="bg-white px-2 py-1 rounded border"><%= bizblasts_dns_apex_target_ip %></code>
           </div>
           <div class="flex items-center">
             <span class="font-semibold text-gray-700 w-16">TTL:</span>
@@ -104,7 +104,7 @@
               <ul class="list-disc list-inside mt-2 space-y-1">
                 <li><strong>Type:</strong> Select "A"</li>
                 <li><strong>Name:</strong> Enter <code class="bg-gray-100 px-1 rounded">@</code></li>
-                <li><strong>Value:</strong> Enter <code class="bg-gray-100 px-1 rounded">216.24.57.1</code></li>
+                <li><strong>Value:</strong> Enter <code class="bg-gray-100 px-1 rounded"><%= bizblasts_dns_apex_target_ip %></code></li>
                 <li><strong>TTL:</strong> "Custom: 300 seconds"</li>
               </ul>
             </div>
@@ -181,7 +181,7 @@
               <ul class="list-disc list-inside mt-2 space-y-1">
                 <li><strong>Type:</strong> Select "A Record"</li>
                 <li><strong>Host:</strong> Enter <code class="bg-gray-100 px-1 rounded">@</code></li>
-                <li><strong>Value:</strong> Enter <code class="bg-gray-100 px-1 rounded">216.24.57.1</code></li>
+                <li><strong>Value:</strong> Enter <code class="bg-gray-100 px-1 rounded"><%= bizblasts_dns_apex_target_ip %></code></li>
                 <li><strong>TTL:</strong> Select "5 min"</li>
               </ul>
             </div>
@@ -244,7 +244,7 @@
               <ul class="list-disc list-inside mt-2 space-y-1">
                 <li><strong>Type:</strong> Select "A"</li>
                 <li><strong>Name:</strong> Enter <code class="bg-gray-100 px-1 rounded">@</code></li>
-                <li><strong>Target:</strong> Enter <code class="bg-gray-100 px-1 rounded">216.24.57.1</code></li>
+                <li><strong>Target:</strong> Enter <code class="bg-gray-100 px-1 rounded"><%= bizblasts_dns_apex_target_ip %></code></li>
                 <li><strong>Proxy status:</strong> Toggle OFF (gray cloud) - <strong class="text-red-600">Very Important!</strong></li>
                 <li><strong>TTL:</strong> Select "Auto" or "5 minutes"</li>
               </ul>
@@ -303,7 +303,7 @@
                 <li><strong>Host name:</strong> Enter <code class="bg-gray-100 px-1 rounded">@</code></li>
                 <li><strong>Type:</strong> Select "A"</li>
                 <li><strong>TTL:</strong> Enter <code class="bg-gray-100 px-1 rounded">300</code></li>
-                <li><strong>Data:</strong> Enter <code class="bg-gray-100 px-1 rounded">216.24.57.1</code></li>
+                <li><strong>Data:</strong> Enter <code class="bg-gray-100 px-1 rounded"><%= bizblasts_dns_apex_target_ip %></code></li>
               </ul>
             </div>
           </div>
@@ -357,7 +357,7 @@
             <ul class="list-disc list-inside mt-2 space-y-1 text-gray-600">
               <li><strong>Name/Host:</strong> <code class="bg-gray-100 px-1 rounded">@</code></li>
               <li><strong>Type:</strong> <code class="bg-gray-100 px-1 rounded">A</code></li>
-              <li><strong>Value/Target:</strong> <code class="bg-gray-100 px-1 rounded">216.24.57.1</code></li>
+              <li><strong>Value/Target:</strong> <code class="bg-gray-100 px-1 rounded"><%= bizblasts_dns_apex_target_ip %></code></li>
               <li><strong>TTL:</strong> <code class="bg-gray-100 px-1 rounded">300</code> seconds (5 minutes)</li>
             </ul>
           </div>
@@ -394,8 +394,8 @@
           </ul>
           <p class="font-semibold">Solutions:</p>
           <ul class="list-disc list-inside">
-            <li>Verify the A record target is exactly <code class="bg-gray-100 px-1 rounded">216.24.57.1</code></li>
-            <li>Verify the CNAME target is exactly <code class="bg-gray-100 px-1 rounded">bizblasts.onrender.com</code></li>
+            <li>Verify the A record target is exactly <code class="bg-gray-100 px-1 rounded"><%= bizblasts_dns_apex_target_ip %></code></li>
+            <li>Verify the CNAME target is exactly <code class="bg-gray-100 px-1 rounded"><%= bizblasts_dns_www_target_value %></code></li>
             <li>Wait for propagation (5 minutes to 2 hours)</li>
             <li>Remove all conflicting records</li>
           </ul>
@@ -448,7 +448,7 @@
       <p class="text-sm text-gray-600 mt-2">
         <strong>Expected Results:</strong><br>
         <code class="bg-white px-1 rounded">www.yourdomain.com canonical name = yourbusiness.bizblasts.com</code><br>
-        <code class="bg-white px-1 rounded">yourdomain.com has address 216.24.57.1</code>
+        <code class="bg-white px-1 rounded">yourdomain.com has address <%= bizblasts_dns_apex_target_ip %></code>
       </p>
     </div>
   </div>

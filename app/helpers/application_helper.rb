@@ -6,6 +6,39 @@ module ApplicationHelper
   # Include CSS sanitization methods for XSS protection
   include CssSanitizer
 
+  # Provider-aware DNS values for customer-facing documentation and emails.
+  # On the Caddy/Ubuntu deployment these point at our public IP; on Render
+  # they keep the legacy 216.24.57.1 / bizblasts.onrender.com values so the
+  # documentation reads correctly during the transition window.
+  def bizblasts_dns_apex_target_ip
+    if defined?(DomainProvider) && DomainProvider.caddy?
+      ENV['BIZBLASTS_PUBLIC_IP'].presence || resolve_first_a('bizblasts.com') || '<your BizBlasts server IP — contact support>'
+    else
+      '216.24.57.1'
+    end
+  end
+
+  def bizblasts_dns_www_target_type
+    defined?(DomainProvider) && DomainProvider.caddy? ? 'A' : 'CNAME'
+  end
+
+  def bizblasts_dns_www_target_value
+    if defined?(DomainProvider) && DomainProvider.caddy?
+      bizblasts_dns_apex_target_ip
+    else
+      'bizblasts.onrender.com'
+    end
+  end
+
+  def resolve_first_a(host)
+    require 'resolv'
+    Resolv::DNS.open do |r|
+      r.getresources(host, Resolv::DNS::Resource::IN::A).first&.address&.to_s
+    end
+  rescue StandardError
+    nil
+  end
+
   # Include route helpers from engines/namespaces needed globally or in test contexts
   include BusinessManager::Engine.routes.url_helpers if defined?(BusinessManager::Engine)
   # Or if it's just a namespace, not a full engine:

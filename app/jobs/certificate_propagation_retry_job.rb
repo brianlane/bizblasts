@@ -82,7 +82,7 @@ class CertificatePropagationRetryJob < ApplicationJob
 
   def trigger_render_verification(business)
     begin
-      render_service = RenderDomainService.new
+      render_service = DomainProvider.current
       apex_domain = business.hostname.sub(/^www\./, '')
       domains_to_verify = [apex_domain, "www.#{apex_domain}"]
       
@@ -106,7 +106,7 @@ class CertificatePropagationRetryJob < ApplicationJob
     begin
       Rails.logger.info "[CertificatePropagationRetryJob] Starting domain rebuild for #{business.hostname}"
       
-      render_service = RenderDomainService.new
+      render_service = DomainProvider.current
       apex_domain = business.hostname.sub(/^www\./, '')
       domains_to_rebuild = [apex_domain, "www.#{apex_domain}"]
       

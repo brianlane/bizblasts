@@ -19,7 +19,7 @@ class DomainRebuildContinueJob < ApplicationJob
     end
     
     begin
-      render_service = RenderDomainService.new
+      render_service = DomainProvider.current
       apex_domain = business.hostname.sub(/^www\./, '')
       
       # Step 3: Re-add domains honoring canonical preference

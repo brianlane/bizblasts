@@ -112,29 +112,33 @@
       <div class="step">
         <h3>Step 2: Add new host records</h3>
         <p>Create an A record with these exact settings:</p>
-        
+
         <div class="code-block">
           <strong>Name/Host:</strong> @<br>
           <strong>Type:</strong> A<br>
-          <strong>Value/Target:</strong> 216.24.57.1<br>
+          <strong>Value/Target:</strong> <%= @dns_apex_target_ip %><br>
           <strong>TTL:</strong> Auto or 300 (5 minutes)
         </div>
-        
-        <p>Create a CNAME record with these exact settings:</p>
-        
+
+        <p>Create a <%= @dns_www_target_type %> record with these exact settings:</p>
+
         <div class="code-block">
           <strong>Name/Host:</strong> www<br>
-          <strong>Type:</strong> CNAME<br>
-          <strong>Value/Target:</strong> <%= @render_target %><br>
+          <strong>Type:</strong> <%= @dns_www_target_type %><br>
+          <strong>Value/Target:</strong> <%= @dns_www_target_value %><br>
           <strong>TTL:</strong> Auto or 300 (5 minutes)
         </div>
 
         <div class="highlight">
-          <strong>💡 Important:</strong> 
+          <strong>💡 Important:</strong>
           <ul>
-            <li>The A record (@ → 216.24.57.1) handles your root domain (example.com)</li>
-            <li>The CNAME record (www → <%= @render_target %>) handles www.example.com</li>
-            <li>Some registrars require a trailing dot: "<strong><%= @render_target %>.</strong>"</li>
+            <li>The A record (@ → <%= @dns_apex_target_ip %>) handles your root domain (example.com)</li>
+            <% if @dns_www_target_type == 'CNAME' %>
+              <li>The CNAME record (www → <%= @dns_www_target_value %>) handles www.example.com</li>
+              <li>Some registrars require a trailing dot: "<strong><%= @dns_www_target_value %>.</strong>"</li>
+            <% else %>
+              <li>The A record (www → <%= @dns_www_target_value %>) handles www.example.com</li>
+            <% end %>
             <li>Remove any existing A or CNAME records that conflict with these settings</li>
           </ul>
         </div>
