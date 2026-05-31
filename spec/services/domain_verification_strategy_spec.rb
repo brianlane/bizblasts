@@ -319,6 +319,39 @@ RSpec.describe InProgressVerificationPolicy, type: :service do
         allow(policy).to receive(:verification_state).and_return(:unknown)
         expect(policy.status_reason).to eq('Domain configuration is in progress')
       end
+
+      # Regression for Bugbot MEDIUM: "Caddy status still says CNAME". On the
+      # Caddy deployment the status panel should reference apex + www A
+      # records and "BizBlasts verification" rather than "CNAME record" /
+      # "Render verification".
+      context 'in caddy mode' do
+        before do
+          allow(DomainProvider).to receive(:caddy?).and_return(true)
+        end
+
+        it 'uses Caddy-aware copy for the all-pending state' do
+          policy = described_class.new(false, false, false)
+          expect(policy.status_reason).to eq(
+            'Waiting for apex + www A records, BizBlasts verification, and health check'
+          )
+          expect(policy.status_reason).not_to include('CNAME')
+          expect(policy.status_reason).not_to include('Render')
+        end
+
+        it 'uses Caddy-aware copy for the DNS-only state' do
+          policy = described_class.new(true, false, false)
+          expect(policy.status_reason).to eq(
+            'DNS configured, waiting for BizBlasts verification and health check'
+          )
+        end
+
+        it 'uses Caddy-aware copy for the DNS+provider state' do
+          policy = described_class.new(true, true, false)
+          expect(policy.status_reason).to eq(
+            'DNS and BizBlasts verified, waiting for domain to return HTTP 200'
+          )
+        end
+      end
     end
   end
 end

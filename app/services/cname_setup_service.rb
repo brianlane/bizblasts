@@ -299,16 +299,19 @@ class CnameSetupService
       if deliver_domain_mail!(:setup_instructions, owner)
         @business.update!(cname_setup_email_sent_at: Time.current)
       else
-        # deliver_domain_mail! rescued an ArgumentError from DomainMailer (Caddy
-        # public IP not configured). Unlike restart_monitoring! / force_activate!
-        # — where the business has already transitioned to its target state and
-        # logging is the right degraded path — start_setup! has NOT enabled
-        # monitoring or notified the customer yet. Bubble it so the surrounding
-        # `rescue` runs rollback_changes!, instead of returning
-        # `success: true` while the customer is silently parked in cname_pending
-        # with zero DNS guidance (Bugbot MEDIUM: "Setup succeeds without
-        # instructions email").
-        raise SetupError, 'Setup instructions email could not be sent (BizBlasts public IP not configured)'
+        # deliver_domain_mail! rescued an ArgumentError from DomainMailer
+        # (typically the Caddy "public IP not configured" guard, but
+        # DomainMailer can also raise for other guard failures, e.g. a
+        # blank business subdomain — see Bugbot LOW "Setup masks mail
+        # ArgumentError cause"). Unlike restart_monitoring! /
+        # force_activate! — where the business has already transitioned
+        # to its target state and logging is the right degraded path —
+        # start_setup! has NOT enabled monitoring or notified the
+        # customer yet. Bubble the *actual* cause so the surrounding
+        # rescue runs rollback_changes! and the JSON error reflects the
+        # real problem instead of always blaming the public IP.
+        cause = @last_mailer_error_message.presence || 'unknown DomainMailer guard failure'
+        raise SetupError, "Setup instructions email could not be sent: #{cause}"
       end
     else
       Rails.logger.warn "[CnameSetupService] No owner found for business #{@business.id}, skipping email"
@@ -347,17 +350,24 @@ class CnameSetupService
     deliver_domain_mail!(:activation_success, owner) if owner
   end
 
-  # DomainMailer raises ArgumentError when the Caddy public IP is
-  # unconfigured (see DomainMailer#assign_dns_instructions!). Callers like
-  # restart_monitoring! have already persisted state transitions by the
-  # time we get here, so swallow the exception with a loud log instead of
-  # leaving the business in cname_monitoring with no instructions email
-  # (Bugbot MEDIUM: "Restart leaves monitoring without job"). Returns
-  # true on success, false on the misconfiguration path.
+  # DomainMailer raises ArgumentError when one of its guards trips — most
+  # commonly the Caddy "public IP not configured" check, but the mailer
+  # also raises for other invariants (e.g. a blank business subdomain).
+  # Callers like restart_monitoring! / force_activate! have already
+  # persisted state transitions by the time we get here, so swallow the
+  # exception with a loud log instead of leaving the business in
+  # cname_monitoring with no email (Bugbot MEDIUM: "Restart leaves
+  # monitoring without job"). Returns true on success, false on the
+  # misconfiguration path. The raw exception message is stashed in
+  # @last_mailer_error_message so start_setup!'s rollback can include
+  # the real cause in its error response (Bugbot LOW: "Setup masks mail
+  # ArgumentError cause").
   def deliver_domain_mail!(action, owner)
+    @last_mailer_error_message = nil
     DomainMailer.public_send(action, @business, owner).deliver_now
     true
   rescue ArgumentError => e
+    @last_mailer_error_message = e.message
     Rails.logger.error "[CnameSetupService] Skipping #{action} email for business #{@business.id}: #{e.message}"
     false
   end

@@ -171,48 +171,65 @@ class InProgressVerificationPolicy < VerificationPolicy
     true
   end
 
+  # Status copy referenced "CNAME record" and "Render verification" which is
+  # only accurate on Render. On Caddy the customer configures apex + www A
+  # records and the provider-verification step is BizBlasts' own domain
+  # registry check rather than Render's. Pick provider-aware wording so the
+  # live status panel stops contradicting the mailer/FAQ on Caddy deployments
+  # (Bugbot MEDIUM: "Caddy status still says CNAME").
   def status_reason
-    # Generate specific status message based on which checks have passed
-    case verification_state
-    # SSL not ready cases
-    when :all_pending
-      'Waiting for CNAME record, Render verification, and health check'
-    when :dns_only
-      'DNS configured, waiting for Render verification and health check'
-    when :render_only
-      'Render verified, waiting for DNS and health check'
-    when :health_only
-      'Health verified, waiting for DNS and Render verification'
-    when :dns_render
-      'DNS and Render verified, waiting for domain to return HTTP 200'
-    when :dns_health
-      'DNS and health verified, waiting for Render verification'
-    when :render_health
-      'Render and health verified, waiting for DNS propagation'
-    when :dns_render_http
-      'Domain working via HTTP - SSL certificate provisioning in progress'
-    
-    # SSL ready cases
-    when :ssl_only
-      'HTTPS working, waiting for DNS and Render verification'
-    when :dns_ssl
-      'DNS and HTTPS configured, waiting for Render verification'
-    when :render_ssl
-      'Render and HTTPS verified, waiting for DNS propagation'
-    when :health_ssl
-      'HTTPS working, waiting for DNS and Render verification'
-    when :dns_render_ssl
-      'DNS and Render verified, HTTPS working - finalizing activation'
-    when :dns_health_ssl
-      'DNS and HTTPS working, waiting for Render verification'
-    when :render_health_ssl
-      'Render and HTTPS verified, waiting for DNS propagation'
-    else
-      'Domain configuration is in progress'
-    end
+    PROGRESS_COPY.dig(provider_key, verification_state) || 'Domain configuration is in progress'
   end
 
+  PROGRESS_COPY = {
+    render: {
+      # SSL not ready cases
+      all_pending:    'Waiting for CNAME record, Render verification, and health check',
+      dns_only:       'DNS configured, waiting for Render verification and health check',
+      render_only:    'Render verified, waiting for DNS and health check',
+      health_only:    'Health verified, waiting for DNS and Render verification',
+      dns_render:     'DNS and Render verified, waiting for domain to return HTTP 200',
+      dns_health:     'DNS and health verified, waiting for Render verification',
+      render_health:  'Render and health verified, waiting for DNS propagation',
+      dns_render_http:'Domain working via HTTP - SSL certificate provisioning in progress',
+
+      # SSL ready cases
+      ssl_only:        'HTTPS working, waiting for DNS and Render verification',
+      dns_ssl:         'DNS and HTTPS configured, waiting for Render verification',
+      render_ssl:      'Render and HTTPS verified, waiting for DNS propagation',
+      health_ssl:      'HTTPS working, waiting for DNS and Render verification',
+      dns_render_ssl:  'DNS and Render verified, HTTPS working - finalizing activation',
+      dns_health_ssl:  'DNS and HTTPS working, waiting for Render verification',
+      render_health_ssl: 'Render and HTTPS verified, waiting for DNS propagation'
+    },
+    caddy: {
+      # SSL not ready cases
+      all_pending:    'Waiting for apex + www A records, BizBlasts verification, and health check',
+      dns_only:       'DNS configured, waiting for BizBlasts verification and health check',
+      render_only:    'BizBlasts verified, waiting for DNS and health check',
+      health_only:    'Health verified, waiting for DNS and BizBlasts verification',
+      dns_render:     'DNS and BizBlasts verified, waiting for domain to return HTTP 200',
+      dns_health:     'DNS and health verified, waiting for BizBlasts verification',
+      render_health:  'BizBlasts verified and healthy, waiting for DNS propagation',
+      dns_render_http:'Domain working via HTTP - SSL certificate provisioning in progress',
+
+      # SSL ready cases
+      ssl_only:        'HTTPS working, waiting for DNS and BizBlasts verification',
+      dns_ssl:         'DNS and HTTPS configured, waiting for BizBlasts verification',
+      render_ssl:      'BizBlasts and HTTPS verified, waiting for DNS propagation',
+      health_ssl:      'HTTPS working, waiting for DNS and BizBlasts verification',
+      dns_render_ssl:  'DNS and BizBlasts verified, HTTPS working - finalizing activation',
+      dns_health_ssl:  'DNS and HTTPS working, waiting for BizBlasts verification',
+      render_health_ssl: 'BizBlasts and HTTPS verified, waiting for DNS propagation'
+    }
+  }.freeze
+  private_constant :PROGRESS_COPY
+
   private
+
+  def provider_key
+    @provider_key ||= (defined?(DomainProvider) && DomainProvider.caddy?) ? :caddy : :render
+  end
 
   def verification_state
     case [@dns_verified, @render_verified, @health_verified, @ssl_ready]
