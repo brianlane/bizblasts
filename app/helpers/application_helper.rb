@@ -12,7 +12,19 @@ module ApplicationHelper
   # documentation reads correctly during the transition window.
   def bizblasts_dns_apex_target_ip
     if defined?(DomainProvider) && DomainProvider.caddy?
-      ENV['BIZBLASTS_PUBLIC_IP'].presence || resolve_first_a('bizblasts.com') || '<your BizBlasts server IP — contact support>'
+      ip = ENV['BIZBLASTS_PUBLIC_IP'].presence || resolve_first_a('bizblasts.com')
+      if ip.blank?
+        # Don't emit a literal "contact support" string into setup emails or
+        # the FAQ — customers would copy that into their DNS panel and DNS
+        # verification (CnameDnsChecker.expected_apex_ip) would also be nil
+        # so the monitoring loop could never succeed (Bugbot MEDIUM:
+        # "Placeholder IP blocks verification"). Log loudly so the
+        # CnameSetupService / mailer guard can refuse to send broken
+        # instructions instead.
+        Rails.logger.error "[ApplicationHelper] bizblasts_dns_apex_target_ip unresolved: set BIZBLASTS_PUBLIC_IP or DNS A record for bizblasts.com"
+        return nil
+      end
+      ip
     else
       '216.24.57.1'
     end

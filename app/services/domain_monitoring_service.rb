@@ -261,9 +261,21 @@ class DomainMonitoringService
     # Only start retry job if we detected propagation delay and business is still monitoring
     return unless health_result[:propagation_retry_needed]
     return unless @business.cname_monitoring? || @business.cname_pending?
-    
+
+    # CertificatePropagationRetryJob is built around Render's "rebuild
+    # domains via API" recovery model. On Caddy that whole pipeline is
+    # a no-op (remove_domain/add_domain are no-ops, ACME retry is
+    # already handled by Caddy itself), so don't even enqueue — the
+    # normal 5-minute monitoring tick will pick up cert success once
+    # Caddy finishes its own propagation (Bugbot LOW: "SSL retry still
+    # Render-specific").
+    if DomainProvider.caddy?
+      Rails.logger.info "[DomainMonitoringService] Skipping CertificatePropagationRetryJob for #{@business.hostname}: Caddy handles ACME retry internally"
+      return
+    end
+
     Rails.logger.info "[DomainMonitoringService] Starting certificate propagation retry for #{@business.hostname}"
-    
+
     # Start the retry job with initial delay of 5 minutes
     CertificatePropagationRetryJob.set(wait: 5.minutes).perform_later(@business.id, 0)
   end
