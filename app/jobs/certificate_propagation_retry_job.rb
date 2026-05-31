@@ -103,13 +103,26 @@ class CertificatePropagationRetryJob < ApplicationJob
   end
 
   def rebuild_domains_in_render(business)
+    # Caddy short-circuit: remove_domain / add_domain are no-ops on
+    # CaddyDomainService (Caddy issues / rotates certs internally based on
+    # on_demand_tls and Let's Encrypt). Running the rebuild loop here
+    # would just emit a flurry of no-op log lines and re-enqueue
+    # DomainRebuildContinueJob for nothing (Bugbot MEDIUM: "Caddy SSL
+    # retry runs noop rebuild"). Caddy's own ACME retry takes over,
+    # and the normal monitoring loop will pick up success on the next
+    # tick once the cert finishes propagating.
+    if DomainProvider.caddy?
+      Rails.logger.info "[CertificatePropagationRetryJob] Skipping rebuild for #{business.hostname}: Caddy handles cert retries internally; relying on its ACME loop"
+      return
+    end
+
     begin
       Rails.logger.info "[CertificatePropagationRetryJob] Starting domain rebuild for #{business.hostname}"
-      
+
       render_service = DomainProvider.current
       apex_domain = business.hostname.sub(/^www\./, '')
       domains_to_rebuild = [apex_domain, "www.#{apex_domain}"]
-      
+
       # Step 1: Remove existing domains
       Rails.logger.info "[CertificatePropagationRetryJob] Removing existing domains from Render"
       domains_to_rebuild.each do |domain_name|
@@ -119,11 +132,11 @@ class CertificatePropagationRetryJob < ApplicationJob
           render_service.remove_domain(domain['id'])
         end
       end
-      
+
       # Step 2: Schedule domain re-addition after cleanup delay
       Rails.logger.info "[CertificatePropagationRetryJob] Scheduling domain re-addition after 10 seconds for Render cleanup"
       DomainRebuildContinueJob.set(wait: 10.seconds).perform_later(business.id)
-      
+
     rescue => e
       Rails.logger.error "[CertificatePropagationRetryJob] Failed to rebuild domains: #{e.message}"
       raise e

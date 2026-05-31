@@ -21,18 +21,47 @@ RSpec.describe 'Api::V1::CustomDomains verify endpoint', type: :request do
 
   before do
     allow(AllowedHostService).to receive(:allowed?).and_return(false)
+    allow(AllowedHostService).to receive(:main_domain?).and_return(false)
+    allow(AllowedHostService).to receive(:valid_platform_subdomain?).and_return(false)
   end
 
   describe 'GET /api/v1/custom_domains/verify' do
     context 'when called by Caddy (loopback peer + localhost host)' do
-      it 'returns 200 for an allowed domain' do
+      it 'returns 200 for an allowed platform host' do
+        allow(AllowedHostService).to receive(:allowed?).with('bizblasts.com').and_return(true)
+        allow(AllowedHostService).to receive(:main_domain?).with('bizblasts.com').and_return(true)
+
+        get '/api/v1/custom_domains/verify',
+            params: { domain: 'bizblasts.com' },
+            env: caddy_headers
+
+        expect(response).to have_http_status(:ok)
+      end
+
+      it 'returns 200 for a registered custom domain (provider lookup succeeds)' do
         allow(AllowedHostService).to receive(:allowed?).with('shop.example.com').and_return(true)
+        provider = instance_double('Provider')
+        allow(DomainProvider).to receive(:current).and_return(provider)
+        allow(provider).to receive(:find_domain_by_name).with('shop.example.com').and_return('id' => 'caddy:shop.example.com', 'name' => 'shop.example.com')
 
         get '/api/v1/custom_domains/verify',
             params: { domain: 'shop.example.com' },
             env: caddy_headers
 
         expect(response).to have_http_status(:ok)
+      end
+
+      it 'returns 404 for a pre-setup custom domain (AllowedHostService says yes but provider has no entry)' do
+        allow(AllowedHostService).to receive(:allowed?).with('shop.example.com').and_return(true)
+        provider = instance_double('Provider')
+        allow(DomainProvider).to receive(:current).and_return(provider)
+        allow(provider).to receive(:find_domain_by_name).with('shop.example.com').and_return(nil)
+
+        get '/api/v1/custom_domains/verify',
+            params: { domain: 'shop.example.com' },
+            env: caddy_headers
+
+        expect(response).to have_http_status(:not_found)
       end
 
       it 'returns 404 for a disallowed domain' do
@@ -44,10 +73,11 @@ RSpec.describe 'Api::V1::CustomDomains verify endpoint', type: :request do
       end
 
       it 'accepts 127.0.0.1 as a Host as well' do
-        allow(AllowedHostService).to receive(:allowed?).with('shop.example.com').and_return(true)
+        allow(AllowedHostService).to receive(:allowed?).with('bizblasts.com').and_return(true)
+        allow(AllowedHostService).to receive(:main_domain?).with('bizblasts.com').and_return(true)
 
         get '/api/v1/custom_domains/verify',
-            params: { domain: 'shop.example.com' },
+            params: { domain: 'bizblasts.com' },
             env: caddy_headers.merge('HOST' => '127.0.0.1')
 
         expect(response).to have_http_status(:ok)

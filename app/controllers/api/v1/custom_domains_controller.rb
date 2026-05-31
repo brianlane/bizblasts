@@ -27,13 +27,27 @@ module Api
         domain = params[:domain].to_s.strip.downcase
         return head :bad_request if domain.blank?
 
-        if AllowedHostService.allowed?(domain)
-          Rails.logger.debug "[CustomDomainsController] verify allow domain=#{domain}"
-          head :ok
-        else
-          Rails.logger.info "[CustomDomainsController] verify deny domain=#{domain}"
-          head :not_found
+        unless AllowedHostService.allowed?(domain)
+          Rails.logger.info "[CustomDomainsController] verify deny (AllowedHostService) domain=#{domain}"
+          return head :not_found
         end
+
+        # Defense in depth: AllowedHostService accepts custom_domain businesses
+        # in cname_pending state (so the host-routing constraint admits the
+        # request once DNS is configured), but Caddy should only mint a cert
+        # for a domain that has actually progressed through CnameSetupService —
+        # otherwise we'd hand out a Let's Encrypt cert for a hostname that
+        # CaddyDomainService and DomainMonitoringService don't track, which
+        # Bugbot flagged as "TLS verify allows pre-setup domains". Platform
+        # hosts (bizblasts.com, *.bizblasts.com tenant subdomains) always
+        # pass through; only registered custom-domain businesses are gated.
+        unless platform_host?(domain) || registered_custom_domain?(domain)
+          Rails.logger.info "[CustomDomainsController] verify deny (pre-setup custom domain) domain=#{domain}"
+          return head :not_found
+        end
+
+        Rails.logger.debug "[CustomDomainsController] verify allow domain=#{domain}"
+        head :ok
       end
 
       private
@@ -61,6 +75,25 @@ module Api
 
         host = request.host.to_s.downcase
         host == 'localhost' || host == '127.0.0.1' || host == '::1'
+      end
+
+      # Platform-owned hostnames that Caddy is always permitted to mint certs
+      # for: the apex / www and any tenant subdomain under the primary domain.
+      def platform_host?(domain)
+        return true if AllowedHostService.main_domain?(domain)
+        AllowedHostService.valid_platform_subdomain?(domain)
+      end
+
+      # A custom-domain business is "registered" with the provider once
+      # CnameSetupService has finished its add_domain step. For Caddy that
+      # surfaces in CaddyDomainService#list_domains (which now filters on
+      # render_domain_added=true); for Render it's the same flag plus a
+      # live API lookup. Reuse find_domain_by_name to share the contract.
+      def registered_custom_domain?(domain)
+        DomainProvider.current.find_domain_by_name(domain).present?
+      rescue StandardError => e
+        Rails.logger.warn "[CustomDomainsController] provider lookup failed for #{domain}: #{e.message}"
+        false
       end
     end
   end
