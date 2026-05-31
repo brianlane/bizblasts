@@ -206,9 +206,9 @@ class DomainMonitoringService
 
   def send_activation_success_email!
     owner = @business.users.where(role: 'manager').first
-    
+
     if owner
-      DomainMailer.activation_success(@business, owner).deliver_now
+      deliver_domain_mail!(:activation_success, owner)
     else
       Rails.logger.warn "[DomainMonitoringService] No owner found for success email"
     end
@@ -216,12 +216,24 @@ class DomainMonitoringService
 
   def send_timeout_help_email!
     owner = @business.users.where(role: 'manager').first
-    
+
     if owner
-      DomainMailer.timeout_help(@business, owner).deliver_now
+      deliver_domain_mail!(:timeout_help, owner)
     else
       Rails.logger.warn "[DomainMonitoringService] No owner found for timeout email"
     end
+  end
+
+  # DomainMailer raises ArgumentError when the Caddy public IP is
+  # unconfigured (see DomainMailer#assign_dns_instructions!). The business
+  # has already transitioned to its terminal state by the time we get here
+  # (cname_success! / cname_timeout!), so swallow the exception with a
+  # loud log instead of aborting the surrounding monitoring logic
+  # (Bugbot MEDIUM: "Timeout help email can abort").
+  def deliver_domain_mail!(action, owner)
+    DomainMailer.public_send(action, @business, owner).deliver_now
+  rescue ArgumentError => e
+    Rails.logger.error "[DomainMonitoringService] Skipping #{action} email for business #{@business.id}: #{e.message}"
   end
 
   def time_remaining_estimate

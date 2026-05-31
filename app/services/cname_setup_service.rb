@@ -298,10 +298,11 @@ class CnameSetupService
 
     # Find business owner/admin user
     owner = @business.users.where(role: 'manager').first
-    
+
     if owner
-      DomainMailer.setup_instructions(@business, owner).deliver_now
-      @business.update!(cname_setup_email_sent_at: Time.current)
+      if deliver_domain_mail!(:setup_instructions, owner)
+        @business.update!(cname_setup_email_sent_at: Time.current)
+      end
     else
       Rails.logger.warn "[CnameSetupService] No owner found for business #{@business.id}, skipping email"
     end
@@ -309,18 +310,27 @@ class CnameSetupService
 
   def send_monitoring_restarted_email!
     owner = @business.users.where(role: 'manager').first
-    
-    if owner
-      DomainMailer.monitoring_restarted(@business, owner).deliver_now
-    end
+    deliver_domain_mail!(:monitoring_restarted, owner) if owner
   end
 
   def send_activation_success_email!
     owner = @business.users.where(role: 'manager').first
-    
-    if owner
-      DomainMailer.activation_success(@business, owner).deliver_now
-    end
+    deliver_domain_mail!(:activation_success, owner) if owner
+  end
+
+  # DomainMailer raises ArgumentError when the Caddy public IP is
+  # unconfigured (see DomainMailer#assign_dns_instructions!). Callers like
+  # restart_monitoring! have already persisted state transitions by the
+  # time we get here, so swallow the exception with a loud log instead of
+  # leaving the business in cname_monitoring with no instructions email
+  # (Bugbot MEDIUM: "Restart leaves monitoring without job"). Returns
+  # true on success, false on the misconfiguration path.
+  def deliver_domain_mail!(action, owner)
+    DomainMailer.public_send(action, @business, owner).deliver_now
+    true
+  rescue ArgumentError => e
+    Rails.logger.error "[CnameSetupService] Skipping #{action} email for business #{@business.id}: #{e.message}"
+    false
   end
 
   def start_monitoring!
