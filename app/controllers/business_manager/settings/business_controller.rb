@@ -192,10 +192,17 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
         { found: false, verified: false, error: e.message }
       end
 
-      # Use verification strategy to determine status consistently
+      # Use verification strategy to determine status consistently. Pass
+      # dual_result so the strategy can require BOTH apex and www on Caddy
+      # before flipping verified=true (see DomainVerificationStrategy notes).
       verification_strategy = DomainVerificationStrategy.new(@business)
-      verification_result = verification_strategy.determine_status(dns_result, render_result, health_result)
-      
+      verification_result = verification_strategy.determine_status(
+        dns_result,
+        render_result,
+        health_result,
+        dual_result: dual_result
+      )
+
       overall_status = verification_result[:verified]
       # Always derive the banner message from the live verification result.
       # Do not override with persisted flags to avoid stale green states.
@@ -281,7 +288,12 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
       end
 
       verification_strategy = DomainVerificationStrategy.new(@business)
-      verification_result = verification_strategy.determine_status(dns_result, render_result, health_result)
+      verification_result = verification_strategy.determine_status(
+        dns_result,
+        render_result,
+        health_result,
+        dual_result: dual_result
+      )
 
       unless verification_result[:verified]
         return render json: {

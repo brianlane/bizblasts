@@ -66,11 +66,7 @@ class CnameSetupService
         business_id: @business.id,
         domain: @business.hostname,
         status: @business.status,
-        next_steps: [
-          'Check your email for CNAME setup instructions',
-          'Add the CNAME record with your domain registrar',
-          'We will monitor DNS propagation and notify you when complete'
-        ]
+        next_steps: setup_next_steps
       }
 
     rescue => e
@@ -302,9 +298,42 @@ class CnameSetupService
     if owner
       if deliver_domain_mail!(:setup_instructions, owner)
         @business.update!(cname_setup_email_sent_at: Time.current)
+      else
+        # deliver_domain_mail! rescued an ArgumentError from DomainMailer (Caddy
+        # public IP not configured). Unlike restart_monitoring! / force_activate!
+        # — where the business has already transitioned to its target state and
+        # logging is the right degraded path — start_setup! has NOT enabled
+        # monitoring or notified the customer yet. Bubble it so the surrounding
+        # `rescue` runs rollback_changes!, instead of returning
+        # `success: true` while the customer is silently parked in cname_pending
+        # with zero DNS guidance (Bugbot MEDIUM: "Setup succeeds without
+        # instructions email").
+        raise SetupError, 'Setup instructions email could not be sent (BizBlasts public IP not configured)'
       end
     else
       Rails.logger.warn "[CnameSetupService] No owner found for business #{@business.id}, skipping email"
+    end
+  end
+
+  # Provider-aware next-step copy returned by start_setup!. On Render the
+  # canonical record for the www variant is a CNAME → bizblasts.onrender.com,
+  # but on the Caddy self-hosted deployment customers configure A records for
+  # BOTH apex and www pointing at BIZBLASTS_PUBLIC_IP, so hard-coding "CNAME"
+  # contradicts the mailer / FAQ / DualDomainVerifier copy (Bugbot LOW:
+  # "Setup API still says CNAME").
+  def setup_next_steps
+    if defined?(DomainProvider) && DomainProvider.caddy?
+      [
+        'Check your email for DNS setup instructions',
+        'Add A records for both the apex (@) and www subdomain pointing at the BizBlasts server IP with your domain registrar',
+        'We will monitor DNS propagation and notify you when complete'
+      ]
+    else
+      [
+        'Check your email for CNAME setup instructions',
+        'Add the CNAME record with your domain registrar',
+        'We will monitor DNS propagation and notify you when complete'
+      ]
     end
   end
 

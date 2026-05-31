@@ -129,6 +129,42 @@ RSpec.describe CnameSetupService, type: :service do
       end
     end
 
+    # Regression for Bugbot MEDIUM: "Setup succeeds without instructions
+    # email". On the Caddy deployment DomainMailer#assign_dns_instructions!
+    # raises ArgumentError when BIZBLASTS_PUBLIC_IP is missing. Previously
+    # CnameSetupService#start_setup! would catch nothing (deliver_domain_mail!
+    # swallowed it) and still flip the business to monitoring + return
+    # success: true with the customer having received no DNS instructions
+    # whatsoever. The rollback path is the correct behavior — fail loudly
+    # so the operator notices the misconfiguration before customers do.
+    context 'when DomainMailer raises ArgumentError (Caddy public IP unconfigured)' do
+      before do
+        allow(render_service).to receive(:find_domain_by_name).with('example.com').and_return(nil)
+        allow(render_service).to receive(:find_domain_by_name).with('www.example.com').and_return(nil)
+        allow(render_service).to receive(:add_domain).with('example.com').and_return({ 'id' => 'dom_123', 'name' => 'example.com' })
+        allow(render_service).to receive(:verify_domain).and_return({ 'verified' => true })
+        allow(render_service).to receive(:remove_domain)
+        # Simulate the Caddy ArgumentError path without flipping the global
+        # provider — we only want to assert that the rescue + rollback fires.
+        message = instance_double(ActionMailer::MessageDelivery)
+        allow(DomainMailer).to receive(:setup_instructions).with(business, owner).and_return(message)
+        allow(message).to receive(:deliver_now).and_raise(ArgumentError, 'BizBlasts public IP is not configured')
+      end
+
+      it 'rolls back state and returns success: false with a clear error' do
+        result = service.start_setup!
+
+        expect(result[:success]).to be false
+        expect(result[:error]).to match(/public IP not configured/i)
+
+        business.reload
+        expect(business.status).to eq('active')
+        expect(business.render_domain_added).to be false
+        expect(business.cname_setup_email_sent_at).to be_nil
+        expect(business.cname_monitoring_active).to be false
+      end
+    end
+
     context 'when Render API fails' do
       before do
         allow(render_service).to receive(:find_domain_by_name).with('example.com').and_return(nil)

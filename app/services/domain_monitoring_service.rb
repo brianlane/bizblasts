@@ -39,8 +39,17 @@ class DomainMonitoringService
       # Perform domain health check
       health_result = check_domain_health
 
-      # Determine overall verification status using strategy pattern
-      verification_result = @verification_strategy.determine_status(dns_result, render_result, health_result)
+      # Determine overall verification status using strategy pattern.
+      # Pass dual_result so Caddy deployments require BOTH apex and www to
+      # verify before flipping to cname_success! — the legacy single-host
+      # dns_result would otherwise let a half-configured domain activate
+      # (Bugbot HIGH: "Activation ignores dual DNS checks").
+      verification_result = @verification_strategy.determine_status(
+        dns_result,
+        render_result,
+        health_result,
+        dual_result: dual_result
+      )
 
       # Update business state based on results
       update_business_state!(verification_result)

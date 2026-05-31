@@ -126,6 +126,94 @@ RSpec.describe DomainVerificationStrategy, type: :service do
         end
       end
     end
+
+    # Regression: on Caddy a one-sided DNS pass (apex but not www, or vice
+    # versa) must NOT activate the domain — the strategy needs to consume the
+    # dual verification result rather than only the legacy single-host
+    # CnameDnsChecker output (Bugbot HIGH: "Activation ignores dual DNS
+    # checks"). On Render dual_result is informational and the legacy gate
+    # still applies.
+    context 'when caddy mode and dual_result is supplied' do
+      let(:render_result) { { verified: true } }
+      let(:health_result) { { healthy: true, ssl_ready: true } }
+      let(:legacy_dns_pass) { { verified: true } }
+
+      before do
+        allow(DomainProvider).to receive(:caddy?).and_return(true)
+      end
+
+      it 'blocks success when only the apex side of the dual check verified' do
+        dual_result = {
+          overall_verified: false,
+          apex_domain: { verified: true },
+          www_domain: { verified: false }
+        }
+
+        result = strategy.determine_status(
+          legacy_dns_pass, render_result, health_result, dual_result: dual_result
+        )
+
+        expect(result[:verified]).to be false
+        expect(result[:dns_verified]).to be false
+        expect(result[:should_continue]).to be true
+      end
+
+      it 'blocks success when only the www side of the dual check verified' do
+        dual_result = {
+          overall_verified: false,
+          apex_domain: { verified: false },
+          www_domain: { verified: true }
+        }
+
+        result = strategy.determine_status(
+          legacy_dns_pass, render_result, health_result, dual_result: dual_result
+        )
+
+        expect(result[:verified]).to be false
+        expect(result[:dns_verified]).to be false
+      end
+
+      it 'allows success when both apex and www verified in dual check' do
+        dual_result = {
+          overall_verified: true,
+          apex_domain: { verified: true },
+          www_domain: { verified: true }
+        }
+
+        result = strategy.determine_status(
+          legacy_dns_pass, render_result, health_result, dual_result: dual_result
+        )
+
+        expect(result[:verified]).to be true
+        expect(result[:dns_verified]).to be true
+        expect(result[:should_continue]).to be false
+      end
+    end
+
+    context 'when render mode (default) ignores dual_result for the legacy gate' do
+      let(:render_result) { { verified: true } }
+      let(:health_result) { { healthy: true, ssl_ready: true } }
+
+      it 'still trusts legacy single-host dns_result on Render even if dual_result disagrees' do
+        # Render mode: single-host CNAME pass remains authoritative so existing
+        # call sites (controller actions written for Render's CNAME flow)
+        # don't regress when dual_result eventually plumbs in everywhere.
+        allow(DomainProvider).to receive(:caddy?).and_return(false)
+
+        dual_result = {
+          overall_verified: false,
+          apex_domain: { verified: false },
+          www_domain: { verified: true }
+        }
+
+        result = strategy.determine_status(
+          { verified: true }, render_result, health_result, dual_result: dual_result
+        )
+
+        expect(result[:verified]).to be true
+        expect(result[:dns_verified]).to be true
+      end
+    end
   end
 end
 
