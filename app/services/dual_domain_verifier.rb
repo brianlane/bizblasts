@@ -51,9 +51,14 @@ class DualDomainVerifier
       if overall_verified
         Rails.logger.info "[DualDomainVerifier] ✅ Both domains verified successfully"
       else
+        # On Caddy www is an A record (not a CNAME), so hardcoding "www CNAME
+        # record" here would send Caddy operators down the wrong debugging
+        # path (Bugbot LOW: "Dual verifier log says CNAME"). Reuse the
+        # record_type we already attached to www_domain (set from
+        # CnameDnsChecker.expected_cname_target above) instead.
         missing = []
         missing << "apex A record" unless apex_result[:verified]
-        missing << "www CNAME record" unless www_result[:verified]
+        missing << "www #{www_record_type} record" unless www_result[:verified]
         Rails.logger.warn "[DualDomainVerifier] ❌ Missing: #{missing.join(', ')}"
       end
 

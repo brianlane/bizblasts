@@ -12,7 +12,14 @@ module ApplicationHelper
   # documentation reads correctly during the transition window.
   def bizblasts_dns_apex_target_ip
     if defined?(DomainProvider) && DomainProvider.caddy?
-      ip = ENV['BIZBLASTS_PUBLIC_IP'].presence || resolve_first_a('bizblasts.com')
+      # Strip the env-var read so any stray whitespace in /etc/bizblasts/.env
+      # (e.g. trailing CRLF on a Windows-edited file) doesn't make the FAQ /
+      # mailer show "  99.102.205.60\n" while CnameDnsChecker normalizes
+      # away the whitespace and verification looks at the trimmed value
+      # (Bugbot LOW: "FAQ IP differs from checker"). Mirror exactly what
+      # CnameDnsChecker.expected_apex_ip and DomainMailer#bizblasts_public_ip
+      # do.
+      ip = ENV['BIZBLASTS_PUBLIC_IP'].to_s.strip.presence || resolve_first_a('bizblasts.com')
       if ip.blank?
         # Don't emit a literal "contact support" string into setup emails or
         # the FAQ — customers would copy that into their DNS panel and DNS

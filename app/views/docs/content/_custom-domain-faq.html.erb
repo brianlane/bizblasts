@@ -438,16 +438,26 @@
 
     <div class="bg-gray-50 rounded-lg p-4">
       <h4 class="font-semibold mb-2">Command Line Check:</h4>
+      <%# The nslookup command and the expected-output line must match the   %>
+      <%# www record type the customer was instructed to create. On Caddy    %>
+      <%# www is an A record (not a CNAME), so showing -type=CNAME and the   %>
+      <%# "canonical name =" output line would tell users their DNS is       %>
+      <%# broken when it actually matches DualDomainVerifier (Bugbot MEDIUM: %>
+      <%# "FAQ www lookup still CNAME").                                     %>
       <code class="block bg-gray-800 text-green-400 p-3 rounded text-sm">
         # Check A record (root domain)
         nslookup -type=A yourdomain.com
-        
-        # Check CNAME record (www subdomain)
-        nslookup -type=CNAME www.yourdomain.com
+
+        # Check <%= bizblasts_dns_www_target_type %> record (www subdomain)
+        nslookup -type=<%= bizblasts_dns_www_target_type %> www.yourdomain.com
       </code>
       <p class="text-sm text-gray-600 mt-2">
         <strong>Expected Results:</strong><br>
-        <code class="bg-white px-1 rounded">www.yourdomain.com canonical name = <%= bizblasts_dns_www_target_value %></code><br>
+        <% if bizblasts_dns_www_target_type == 'CNAME' %>
+          <code class="bg-white px-1 rounded">www.yourdomain.com canonical name = <%= bizblasts_dns_www_target_value %></code><br>
+        <% else %>
+          <code class="bg-white px-1 rounded">www.yourdomain.com has address <%= bizblasts_dns_www_target_value %></code><br>
+        <% end %>
         <code class="bg-white px-1 rounded">yourdomain.com has address <%= bizblasts_dns_apex_target_ip %></code>
       </p>
     </div>

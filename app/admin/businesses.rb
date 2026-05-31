@@ -103,6 +103,28 @@ ActiveAdmin.register Business do
     def resource_url(resource)
       admin_business_url(resource.id)
     end
+
+    # Mirror BusinessManager::Settings::BusinessController#caddy_dual_dns_error
+    # so the admin status badge surfaces a meaningful error string when the
+    # dual-host gate fails after the legacy single-host check passed (e.g.
+    # apex pointed at our IP but www's A record is missing). Without this,
+    # admins would see verified=false next to a blank / "CNAME record not
+    # found" message that no longer matches what actually failed.
+    def admin_caddy_dual_dns_error(dual_result)
+      return 'Both apex and www A records must point to the BizBlasts server IP' unless dual_result.is_a?(Hash)
+
+      missing = []
+      apex = dual_result[:apex_domain] || {}
+      www  = dual_result[:www_domain]  || {}
+      missing << 'apex A record' unless apex[:verified]
+      missing << 'www A record'  unless www[:verified]
+
+      if missing.empty?
+        'DNS configuration incomplete'
+      else
+        "Missing: #{missing.join(' and ')}"
+      end
+    end
   end
 
   # Permit parameters updated for hostname/host_type, domain coverage, and CNAME fields
@@ -303,18 +325,31 @@ ActiveAdmin.register Business do
         # check"). Skip the dual check on Render so we don't add an extra
         # round of DNS lookups to the admin status endpoint when it's not
         # needed.
+        dual_result = nil
         effective_verified = if defined?(DomainProvider) && DomainProvider.caddy?
-                               dual = DualDomainVerifier.new(business.hostname).verify_both_domains
-                               DomainVerificationStrategy.dns_verified_for(dns_result, dual)
+                               dual_result = DualDomainVerifier.new(business.hostname).verify_both_domains
+                               DomainVerificationStrategy.dns_verified_for(dns_result, dual_result)
                              else
                                dns_result[:verified]
                              end
+
+        # When the dual gate downgrades a green single-host pass, surface a
+        # specific error so the admin error column doesn't show a blank /
+        # stale "CNAME record not found" message that no longer matches what
+        # actually failed (Bugbot LOW: "Admin DNS error stale").
+        effective_error = if effective_verified
+                            dns_result[:error]
+                          elsif dns_result[:verified] && dual_result.is_a?(Hash)
+                            admin_caddy_dual_dns_error(dual_result)
+                          else
+                            dns_result[:error]
+                          end
 
         status[:dns_check] = {
           verified: effective_verified,
           target: dns_result[:target],
           checked_at: dns_result[:checked_at],
-          error: dns_result[:error]
+          error: effective_error
         }
       end
       
