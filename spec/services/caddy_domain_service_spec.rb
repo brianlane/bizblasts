@@ -58,32 +58,33 @@ RSpec.describe CaddyDomainService, type: :service do
   end
 
   describe '#verify_domain (strict per-name DNS check)' do
-    before do
-      # Stub Resolv to control DNS resolution deterministically.
-      stub_const('FakeResolver', Class.new do
-        def self.records
-          @records ||= {}
-        end
+    # A-record stand-in: must expose #address that responds to #to_s with
+    # the dotted-quad. We use Resolv::IPv4 (the real type the production
+    # code receives from Resolv::DNS) so .to_s round-trips correctly.
+    let(:fake_records) { Hash.new { |h, k| h[k] = [] } }
 
-        def self.set(host, ips)
-          records[host] = ips
-        end
-
-        def getresources(host, _type)
-          (self.class.records[host] || []).map do |ip|
-            instance_double(Resolv::DNS::Resource::IN::A, address: IPAddr.new(ip))
+    let(:fake_resolver) do
+      records = fake_records
+      Class.new do
+        define_method(:getresources) do |host, _type|
+          (records[host] || []).map do |ip|
+            Struct.new(:address).new(Resolv::IPv4.create(ip))
           end
         end
-      end)
+      end.new
+    end
 
-      FakeResolver.records.clear
-      allow(Resolv::DNS).to receive(:open).and_yield(FakeResolver.new)
+    before do
+      # Production code calls `Resolv::DNS.open { |r| ... }` and expects the
+      # method to RETURN whatever the block returns. `and_yield` yields but
+      # discards the block's return value, so we route through a block stub.
+      allow(Resolv::DNS).to receive(:open) { |&blk| blk.call(fake_resolver) }
     end
 
     it 'verifies the EXACT hostname requested (not the apex sibling)' do
       # Apex points at us, www does NOT. www must NOT be reported as verified.
-      FakeResolver.set('example.com',     [public_ip])
-      FakeResolver.set('www.example.com', ['203.0.113.1']) # wrong IP
+      fake_records['example.com']     = [public_ip]
+      fake_records['www.example.com'] = ['203.0.113.1'] # wrong IP
 
       result = service.verify_domain('caddy:www.example.com')
 
@@ -91,7 +92,7 @@ RSpec.describe CaddyDomainService, type: :service do
     end
 
     it 'verifies www when www itself points at BizBlasts' do
-      FakeResolver.set('www.example.com', [public_ip])
+      fake_records['www.example.com'] = [public_ip]
 
       result = service.verify_domain('caddy:www.example.com')
 
@@ -99,7 +100,7 @@ RSpec.describe CaddyDomainService, type: :service do
     end
 
     it 'verifies the apex when the apex points at BizBlasts' do
-      FakeResolver.set('example.com', [public_ip])
+      fake_records['example.com'] = [public_ip]
 
       result = service.verify_domain('caddy:example.com')
 
