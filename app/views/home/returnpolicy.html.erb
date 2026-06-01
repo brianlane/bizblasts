@@ -1,8 +1,94 @@
-<div name="termly-embed" data-id="5cbb6ffd-fa3d-4700-aa2e-1f3127a91925"></div>
-<script type="text/javascript">(function(d, s, id) {
-  var js, tjs = d.getElementsByTagName(s)[0];
-  if (d.getElementById(id)) return;
-  js = d.createElement(s); js.id = id;
-  js.src = "https://app.termly.io/embed-policy.min.js";
-  tjs.parentNode.insertBefore(js, tjs);
-}(document, 'script', 'termly-jssdk'));</script>
+<%
+  set_seo_meta(
+    title: "Return Policy - BizBlasts",
+    description: "BizBlasts return and refund policy: how refunds work for BizBlasts subscriptions and how independent businesses handle their own customer refunds.",
+    canonical: "https://www.bizblasts.com/returnpolicy"
+  )
+
+  effective_date = "June 1, 2026"
+  support_email  = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
+%>
+
+<%= render layout: 'shared/legal_page',
+           locals: {
+             eyebrow: 'Return Policy',
+             title: 'Return and Refund Policy',
+             summary: "How refunds and returns work for the BizBlasts platform, and how each independent business that uses BizBlasts sets its own customer-facing return policy.",
+             effective_date: effective_date,
+             contact_email: support_email
+           } do %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '1. BizBlasts Subscription Fees' } do %>
+    <p>
+      BizBlasts subscription fees and one-time service fees are non-refundable except as expressly stated
+      below or as required by applicable law. Cancelling a subscription stops future renewals; it does not,
+      by itself, generate a refund for the current billing period.
+    </p>
+    <p>
+      We may offer specific promotional refund terms from time to time (for example, a money-back window for
+      a new plan). Any such offer is limited to its stated terms and may be denied for abuse, fraud, repeated
+      refund requests, or material violation of our
+      <%= link_to 'Terms of Service', '/terms', class: 'text-primary hover:underline' %>.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '2. Cancellations and Downgrades' } do %>
+    <p>
+      You can cancel your BizBlasts subscription at any time from your dashboard or by contacting support.
+      Cancellation takes effect at the end of your current billing period, and you retain access until then.
+      When you downgrade to a lower tier, premium features (such as custom-domain hosting) may stop working
+      at the start of the next billing period.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '3. Goods and Services Sold by Independent Businesses' } do %>
+    <p>
+      Many transactions on BizBlasts are between an end customer and an independent business that uses our
+      platform. For those transactions:
+    </p>
+    <ul class="list-disc space-y-2 pl-5">
+      <li>The transaction is between the customer and the underlying business, not BizBlasts.</li>
+      <li>Each business sets its own return, refund, exchange, cancellation, no-show, and deposit policies.</li>
+      <li>Each business is responsible for honoring those policies, communicating them to its customers, and complying with any applicable consumer-protection laws.</li>
+    </ul>
+    <p>
+      Customers should look for return and cancellation terms on the product or service page, in the cart, or
+      in published policy pages on the business&rsquo;s site, and should contact the business directly to
+      request a return or refund.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '4. Payment Disputes and Chargebacks' } do %>
+    <p>
+      Payments are processed by our payment provider (currently Stripe). When a customer disputes a charge,
+      the payment provider&rsquo;s dispute process applies. The business that received the payment is
+      responsible for responding to the dispute and providing evidence; BizBlasts is not a party to the
+      underlying transaction. BizBlasts platform fees may not be refundable on disputed transactions.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '5. Refund Tools for Businesses' } do %>
+    <p>
+      The BizBlasts dashboard provides tools to help businesses issue refunds for orders, bookings, deposits,
+      and tips processed through the platform. Use of those tools is governed by the business&rsquo;s own
+      policies and by the payment provider&rsquo;s rules.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '6. Changes' } do %>
+    <p>
+      We may update this Return Policy from time to time by posting a revised version on the site and
+      updating the effective date above.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '7. Contact' } do %>
+    <p>
+      Questions about BizBlasts subscription refunds or this Return Policy may be sent to
+      <%= mail_to support_email, support_email, class: "text-primary hover:underline" %>.
+      For refunds or returns on goods or services purchased from a business through their BizBlasts site,
+      please contact that business directly.
+    </p>
+  <% end %>
+
+<% end %>

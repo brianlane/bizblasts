@@ -1,0 +1,57 @@
+<%#
+  Shared layout for BizBlasts legal pages (Terms, Privacy, Disclaimer, etc.).
+
+  Modeled after the LegalPage/LegalSection pair used by our sister app New
+  Coworker (see /Users/brianlane/newCoworker/src/components/legal/LegalPage.tsx).
+  We host the content directly in this repo (instead of via a third-party
+  service like termly.io) so that:
+
+    * the pages keep rendering after our termly.io subscription ends,
+    * the copy can be reviewed in PRs alongside code changes, and
+    * the URLs work consistently on the main domain, tenant subdomains, and
+      tenant custom domains (e.g. https://www.losnemassageaz.com/terms).
+
+  Required locals:
+    eyebrow         - short uppercase label rendered above the title
+    title           - main page heading
+    summary         - one-paragraph summary of the policy
+    effective_date  - human-readable effective date (e.g. "June 1, 2026")
+    contact_email   - email used in mailto: links throughout the page
+
+  Yields the page body (use the shared/legal_section partial for each section).
+%>
+
+<% support_email = local_assigns.fetch(:contact_email) %>
+<% effective = local_assigns.fetch(:effective_date) %>
+
+<div class="bg-light min-h-screen">
+  <div class="bg-primary text-white py-12">
+    <div class="container mx-auto px-4 max-w-4xl">
+      <p class="text-xs sm:text-sm font-semibold uppercase tracking-[0.18em] text-secondary mb-3">
+        <%= local_assigns.fetch(:eyebrow) %>
+      </p>
+      <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
+        <%= local_assigns.fetch(:title) %>
+      </h1>
+      <p class="text-base sm:text-lg text-gray-200 leading-relaxed max-w-3xl">
+        <%= local_assigns.fetch(:summary) %>
+      </p>
+      <p class="mt-4 text-xs sm:text-sm text-gray-300">
+        Effective date: <%= effective %>
+      </p>
+    </div>
+  </div>
+
+  <div class="container mx-auto px-4 py-12 max-w-4xl">
+    <div class="bg-white rounded-lg shadow-lg p-6 sm:p-10">
+      <div class="space-y-8 text-sm sm:text-base leading-7 text-gray-700">
+        <%= yield %>
+      </div>
+
+      <div class="mt-10 pt-6 border-t border-gray-200 text-sm text-gray-500">
+        Questions? Contact us at
+        <%= mail_to support_email, support_email, class: "text-primary hover:underline" %>.
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,8 +1,120 @@
-<div name="termly-embed" data-id="9b941829-42bd-42a8-a97c-767ba5abea63"></div>
-<script type="text/javascript">(function(d, s, id) {
-  var js, tjs = d.getElementsByTagName(s)[0];
-  if (d.getElementById(id)) return;
-  js = d.createElement(s); js.id = id;
-  js.src = "https://app.termly.io/embed-policy.min.js";
-  tjs.parentNode.insertBefore(js, tjs);
-}(document, 'script', 'termly-jssdk'));</script>
+<%
+  set_seo_meta(
+    title: "Disclaimer - BizBlasts",
+    description: "Important disclaimers about the BizBlasts platform, the content on sites we host, and the goods and services sold by independent businesses through BizBlasts.",
+    canonical: "https://www.bizblasts.com/disclaimer"
+  )
+
+  effective_date = "June 1, 2026"
+  support_email  = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
+%>
+
+<%= render layout: 'shared/legal_page',
+           locals: {
+             eyebrow: 'Disclaimer',
+             title: 'Disclaimer',
+             summary: "Important context about the BizBlasts platform, the content on sites we host for independent businesses, and what we are and are not responsible for.",
+             effective_date: effective_date,
+             contact_email: support_email
+           } do %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '1. General Information Only' } do %>
+    <p>
+      The information published on BizBlasts and on sites we host is provided for general informational
+      purposes only. It is not professional advice (legal, medical, financial, tax, accounting, or
+      otherwise), and you should not rely on it as a substitute for advice from a qualified professional in
+      the relevant field.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '2. Independent Businesses' } do %>
+    <p>
+      Many sites that look and behave like normal business websites are hosted by independent businesses
+      using BizBlasts. The business is responsible for its own pricing, availability, scheduling, services,
+      products, claims, reviews, and customer communications. BizBlasts does not provide those services, set
+      those prices, or vet every claim made by every business that uses the platform.
+    </p>
+    <p>
+      When you book, purchase, or communicate through a BizBlasts-hosted site, you are entering into a
+      transaction or relationship with the underlying business, not with BizBlasts.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '3. No Endorsement' } do %>
+    <p>
+      The presence of a business, service, product, review, or third-party link on BizBlasts or on a
+      BizBlasts-hosted site does not constitute an endorsement, certification, or recommendation by
+      BizBlasts. Reviews displayed via integrations (such as Google reviews) are produced by their original
+      authors and providers; BizBlasts does not author or verify them.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '4. Forward-Looking Statements and Estimates' } do %>
+    <p>
+      Pricing estimates, service-area estimates, availability windows, projected arrival or completion times,
+      and similar forward-looking information are estimates only and may change. Actual results, including
+      whether a service can be performed, how long it will take, and what it will cost, depend on factors
+      outside our control.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '5. AI-Generated and Automated Content' } do %>
+    <p>
+      Portions of the platform may use automated tools or AI models to draft content, summarize
+      conversations, suggest responses, or assist with workflows. Automated output may be incomplete,
+      inaccurate, biased, or inappropriate for a given context. You should review automated output before
+      relying on it for important decisions or communications.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '6. External Links and Third-Party Services' } do %>
+    <p>
+      BizBlasts and BizBlasts-hosted sites may link to or integrate with third-party websites and services
+      (such as map providers, review platforms, payment processors, calendar systems, and analytics
+      providers). We do not control those third parties and are not responsible for their content, privacy
+      practices, availability, or terms.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '7. No Warranties' } do %>
+    <p>
+      The platform, its content, and the sites we host are provided &ldquo;as is&rdquo; and &ldquo;as
+      available,&rdquo; without warranty of any kind. To the maximum extent permitted by law, BizBlasts
+      disclaims all warranties, express or implied, including warranties of merchantability, fitness for a
+      particular purpose, accuracy, and non-infringement.
+    </p>
+    <p>
+      We do not warrant that the platform will be uninterrupted, error-free, or completely secure, that any
+      particular bookings or sales will be realized, or that any particular search-ranking, deliverability,
+      or domain-verification outcome will occur.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '8. Limitation of Liability' } do %>
+    <p>
+      To the maximum extent permitted by law, BizBlasts and its affiliates, officers, employees, and agents
+      will not be liable for any direct, indirect, incidental, consequential, special, exemplary, or punitive
+      damages arising out of or relating to your use of the platform or any content on it, including any
+      decisions you make based on that content.
+    </p>
+    <p>
+      For a more detailed allocation of risk, including the cap on our total liability, see our
+      <%= link_to 'Terms of Service', '/terms', class: 'text-primary hover:underline' %>.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '9. Changes' } do %>
+    <p>
+      We may update this Disclaimer from time to time by posting a revised version on the site and updating
+      the effective date above.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '10. Contact' } do %>
+    <p>
+      Questions about this Disclaimer may be sent to
+      <%= mail_to support_email, support_email, class: "text-primary hover:underline" %>.
+    </p>
+  <% end %>
+
+<% end %>

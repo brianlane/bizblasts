@@ -1,8 +1,96 @@
-<div name="termly-embed" data-id="bbb5e7b5-1370-4495-8894-fcc1162a6b23"></div>
-<script type="text/javascript">(function(d, s, id) {
-  var js, tjs = d.getElementsByTagName(s)[0];
-  if (d.getElementById(id)) return;
-  js = d.createElement(s); js.id = id;
-  js.src = "https://app.termly.io/embed-policy.min.js";
-  tjs.parentNode.insertBefore(js, tjs);
-}(document, 'script', 'termly-jssdk'));</script>
+<%
+  set_seo_meta(
+    title: "Shipping Policy - BizBlasts",
+    description: "BizBlasts shipping policy: how shipping works for digital subscriptions to BizBlasts and how the platform supports independent businesses that ship physical goods.",
+    canonical: "https://www.bizblasts.com/shippingpolicy"
+  )
+
+  effective_date = "June 1, 2026"
+  support_email  = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
+%>
+
+<%= render layout: 'shared/legal_page',
+           locals: {
+             eyebrow: 'Shipping Policy',
+             title: 'Shipping Policy',
+             summary: "How shipping is handled for the BizBlasts platform itself, and how BizBlasts supports independent businesses that sell and ship physical goods through their BizBlasts site.",
+             effective_date: effective_date,
+             contact_email: support_email
+           } do %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '1. BizBlasts Is a Software Platform' } do %>
+    <p>
+      BizBlasts itself is a digital, subscription-based platform. We do not ship physical goods when you sign
+      up for a BizBlasts account or pay a BizBlasts subscription. Access is provisioned electronically through
+      your dashboard, custom domain, and email.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '2. Goods Sold by Independent Businesses' } do %>
+    <p>
+      Many businesses that use BizBlasts sell physical products through their BizBlasts site. When a customer
+      buys a physical product from one of those businesses:
+    </p>
+    <ul class="list-disc space-y-2 pl-5">
+      <li>The transaction is between the customer and the underlying business, not BizBlasts.</li>
+      <li>That business is responsible for setting its shipping rates, handling times, carrier choice, insurance, tracking, and returned packages.</li>
+      <li>That business is responsible for any customs, duties, taxes, or import restrictions that apply.</li>
+      <li>That business is responsible for clearly publishing its own shipping terms on its BizBlasts site (for example, on the product page, in the cart, or in a published page).</li>
+    </ul>
+    <p>
+      For questions about a specific order, customers should contact the business they ordered from directly.
+      Each BizBlasts-hosted site shows business contact information in the header and footer.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '3. Platform Tools BizBlasts Provides' } do %>
+    <p>
+      To help businesses fulfill orders, the BizBlasts platform offers tools such as:
+    </p>
+    <ul class="list-disc space-y-2 pl-5">
+      <li>Order management with status tracking (received, processing, shipped, completed, cancelled).</li>
+      <li>Configurable shipping methods and rates per business.</li>
+      <li>Customer notifications for order confirmations, status changes, and shipping updates.</li>
+      <li>Service-area checks for delivery and on-site service businesses.</li>
+    </ul>
+    <p>
+      These tools record and communicate shipping information that the business provides; BizBlasts does not
+      itself pick, pack, or ship goods on behalf of any business.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '4. Service-Based and Digital-Only Businesses' } do %>
+    <p>
+      For service-based businesses (such as massage therapy, cleaning, lessons, consulting) and digital-only
+      businesses, no physical shipping is involved. &ldquo;Shipping&rdquo; in those contexts refers to service
+      delivery at the agreed time and location, or electronic access to a digital item, and is governed by
+      the business&rsquo;s own booking, cancellation, and service policies.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '5. BizBlasts Subscription Activation' } do %>
+    <p>
+      For BizBlasts subscriptions, activation typically happens immediately after payment is captured and
+      your account is set up. Custom-domain hosting becomes available when your DNS records are verified;
+      that step depends on your domain registrar and can take time to propagate. We send setup instructions
+      and progress updates to the email address on your account.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '6. Changes' } do %>
+    <p>
+      We may update this Shipping Policy from time to time by posting a revised version on the site and
+      updating the effective date above.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '7. Contact' } do %>
+    <p>
+      Questions about the BizBlasts platform or this Shipping Policy may be sent to
+      <%= mail_to support_email, support_email, class: "text-primary hover:underline" %>.
+      For questions about an order placed on a business&rsquo;s BizBlasts site, please contact that business
+      directly.
+    </p>
+  <% end %>
+
+<% end %>
