@@ -5,8 +5,10 @@ module Calendar
     queue_as :low_priority
     
     def perform
-      # Find connections that will expire within the refresh window (15 minutes)
-      window = 15.minutes
+      # Refresh tokens that will expire within 10 minutes. The job runs every
+      # 5 minutes (see config/initializers/solid_queue.rb), so a 10-minute
+      # window guarantees at least one refresh attempt before any token lapses.
+      window = 10.minutes
       expiring_soon = CalendarConnection.active
                                        .where('token_expires_at <= ?', window.from_now)
                                        .where('refresh_token IS NOT NULL')

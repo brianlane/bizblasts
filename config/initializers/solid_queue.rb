@@ -27,8 +27,10 @@ if defined?(SolidQueue)
         task.save! if task.changed?
       end
 
-      # Stagger schedules to avoid memory spikes from concurrent jobs.
-      # Each task uses a unique minute offset.
+      # Stagger schedules across the hour so unrelated recurring jobs don't all
+      # fire at minute :00. This spreads load on the DB / external APIs, keeps
+      # logs readable, and makes it easy to spot a single misbehaving task in
+      # observability tooling. Each task uses a unique minute offset.
 
       # Schedule auto-cancel of unpaid product orders
       upsert_recurring_task.call(

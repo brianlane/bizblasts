@@ -179,17 +179,19 @@ namespace :chrome do
       puts
       puts "If the job is still failing, try:"
       puts "  1. Check if Chrome can execute with dependencies: rake chrome:test_execute"
-      puts "  2. Review recent deployment logs for Chrome download failures"
-      puts "  3. Check Render logs during build time"
+      puts "  2. Review recent deploy logs:  journalctl -u puma -n 200"
+      puts "  3. Check the deploy script output: tail -n 200 /var/log/bizblasts-deploy.log"
     else
       puts "✗ Chrome installation issue detected"
       puts
       puts "Recommendations:"
-      puts "  1. Verify CUPRITE_BROWSER_PATH is set in Render dashboard"
-      puts "  2. Redeploy to trigger Chrome download in render-build.sh"
-      puts "  3. Check render-build.sh logs for Chrome download failures"
-      puts "  4. Verify render.yaml has the correct packages list"
-      puts "  5. Consider manually installing Chrome via Shell access"
+      puts "  1. Verify CUPRITE_BROWSER_PATH points at an installed Chrome binary"
+      puts "     (default lookup order: PlaceIdExtraction::BrowserPathResolver)"
+      puts "  2. Install Chrome for Testing into vendor/chrome:  rake chrome:install"
+      puts "  3. Confirm required system packages are present (libnss3, libatk-bridge2.0-0,"
+      puts "     libgbm1, libxkbcommon0, libgtk-3-0, libasound2, libcups2, fonts-liberation, etc.)"
+      puts "     On Ubuntu:  sudo apt-get install -y <packages>"
+      puts "  4. Re-run this diagnostic:  rake chrome:diagnose"
     end
     puts "=" * 80
   end
@@ -316,7 +318,10 @@ namespace :chrome do
       puts "Output: #{version_output}"
       puts
       puts "This usually means missing system dependencies."
-      puts "Check render.yaml has all required packages."
+      puts "On Ubuntu install:  libnss3 libatk-bridge2.0-0 libgbm1 libxkbcommon0"
+      puts "                    libgtk-3-0 libglib2.0-0 libasound2 libdrm2 libxcomposite1"
+      puts "                    libxdamage1 libxfixes3 libxrandr2 libcups2 libpango-1.0-0"
+      puts "                    libcairo2 fonts-liberation"
     end
   end
 end

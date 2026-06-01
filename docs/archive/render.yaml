@@ -1,3 +1,22 @@
+# ARCHIVED 2026-06: BizBlasts is now self-hosted on Ubuntu (Caddy + Puma via
+# script/deploy.sh). This file is kept for historical reference only -- it
+# documents how the app was deployed on Render.com when we were on the free
+# tier (512 MB web dyno, Postgres free plan). It is NOT consumed by anything
+# in the current deploy pipeline; do not edit unless you intend to redeploy
+# to Render.
+#
+# Migration notes:
+#   * `LOW_USAGE_MODE`, `RAILS_MAX_THREADS=1`, and `DB_POOL=2` were stripped
+#     out in PR #450 once we left the free dyno.
+#   * Current Ubuntu env vars live in /home/brianlane/apps/bizblasts/.env on
+#     the server and are loaded by the systemd unit, not by this file.
+#   * Deployment is triggered by the GitHub webhook at deploy.bizblasts.com
+#     which runs script/deploy.sh.
+#
+# If you ever need to redeploy to Render: restore this file to the repo root
+# (`git mv docs/archive/render.yaml render.yaml`) and re-enable the Render
+# service in the Render dashboard.
+
 services:
   - type: web
     name: bizblasts

@@ -4,14 +4,20 @@ default: &default
       batch_size: 500
       concurrency_maintenance_interval: 300
   workers:
-    # Single worker process that handles all queues sequentially.
-    # This minimizes memory usage on the shared web dyno and ensures we never
-    # run multiple heavy jobs in parallel (mailers, imports, image processing).
-    # IMPORTANT: processes must be 1 to maintain global email rate limiting
-    # instead of processes: <%= ENV.fetch("JOB_CONCURRENCY", 1) %>
-    # (EmailRateLimiter uses per-thread sleep, not distributed limiting).
+    # Single worker process that handles all queues across multiple threads.
+    #
+    # IMPORTANT: `processes:` must remain 1 -- this is a correctness
+    # constraint, NOT a memory constraint. EmailRateLimiter throttles outbound
+    # email (Resend caps us at 2 req/sec) using a per-thread sleep inside a
+    # single OS process. Multiple worker processes would each get their own
+    # limiter and we'd burst past the Resend cap. If we ever switch to a
+    # distributed limiter (Redis), this can be raised.
+    #
+    # `threads:` is safe to scale up for throughput. On the Ubuntu server we
+    # run 3 worker threads, matching Puma's default RAILS_MAX_THREADS so the
+    # DB pool sizing stays balanced. Bump JOB_THREADS to override.
     - queues: [ default, mailers, image_processing, low_priority ]
-      threads: 1
+      threads: <%= ENV.fetch("JOB_THREADS", 3) %>
       processes: 1
       polling_interval: 0.25
 
@@ -26,42 +32,38 @@ production:
 
 
 
-###In case we need to add more queues, we can add them here like this:
-# default: &default
-#   dispatchers:
-#     - polling_interval: 1
-#       batch_size: 500
-#       concurrency_maintenance_interval: 300
-#   workers:
-#     # Dedicated worker for email jobs - 1 thread to enforce serial execution
-#     # This prevents hitting Resend's 2 requests/second rate limit
-#     # The EmailRateLimiter enforces 2 req/sec PER THREAD, so with 1 thread
-#     # we guarantee max 2 emails/sec globally
-#     - queues: [ mailers ]
-#       threads: 1
-#       processes: 1
-#       polling_interval: 0.95
-
-#     # Dedicated worker for image processing jobs - 1 thread to prevent memory spikes
-#     # Image processing is memory-intensive: a 4000x3000 image decompresses to ~48MB
-#     # Running multiple jobs concurrently can easily exceed memory limits
-#     # Serial processing ensures stable memory usage
-#     - queues: [ image_processing ]
-#       threads: 1
-#       processes: 1
-#       polling_interval: 1
-
-#     # Default worker for all other jobs - higher concurrency for throughput
-#     - queues: [ default, low_priority ]
-#       threads: 3
-#       processes: <%= ENV.fetch("JOB_CONCURRENCY", 1) %>
-#       polling_interval: .75
-
-# development:
-#   <<: *default
-
-# test:
-#   <<: *default
-
-# production:
-#   <<: *default
+### Reference: split-queue layout if we ever need finer-grained tuning.
+###
+### The single-worker config above is the simplest correct setup for our
+### Ubuntu single-server deploy. If you want dedicated workers per queue
+### (for example, to give image_processing its own thread pool so a flood
+### of photo uploads can't starve transactional emails), uncomment something
+### like this:
+###
+### default: &default
+###   dispatchers:
+###     - polling_interval: 1
+###       batch_size: 500
+###       concurrency_maintenance_interval: 300
+###   workers:
+###     # Mailers: 1 thread / 1 process to preserve EmailRateLimiter semantics
+###     # (Resend caps us at 2 req/sec globally; see comment on the main worker).
+###     - queues: [ mailers ]
+###       threads: 1
+###       processes: 1
+###       polling_interval: 0.95
+###
+###     # Image processing: kept narrow because a single 4000x3000 JPEG
+###     # decompresses to ~48 MB of RGB pixels. The Ubuntu box has plenty
+###     # of RAM, but running many of these in parallel still pegs CPU and
+###     # ImageMagick benefits from serial execution per process.
+###     - queues: [ image_processing ]
+###       threads: 2
+###       processes: 1
+###       polling_interval: 1
+###
+###     # Everything else: scale freely.
+###     - queues: [ default, low_priority ]
+###       threads: <%= ENV.fetch("JOB_THREADS", 3) %>
+###       processes: <%= ENV.fetch("JOB_CONCURRENCY", 1) %>
+###       polling_interval: 0.75
