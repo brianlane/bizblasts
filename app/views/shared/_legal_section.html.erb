@@ -1,0 +1,18 @@
+<%#
+  Single titled section inside a shared/legal_page render.
+
+  Required locals:
+    title - section heading (e.g. "1. Agreement and Eligibility")
+
+  Yields the section body. Block content is wrapped in a tight space-y stack
+  so consecutive paragraphs / lists / code blocks share the same rhythm.
+%>
+
+<section class="space-y-3">
+  <h2 class="text-lg sm:text-xl font-semibold text-dark">
+    <%= local_assigns.fetch(:title) %>
+  </h2>
+  <div class="space-y-3 text-gray-700">
+    <%= yield %>
+  </div>
+</section>

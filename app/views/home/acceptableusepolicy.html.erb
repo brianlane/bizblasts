@@ -1,8 +1,113 @@
-<div name="termly-embed" data-id="5acd91e3-ec71-4968-9145-c9ea535b180e"></div>
-<script type="text/javascript">(function(d, s, id) {
-  var js, tjs = d.getElementsByTagName(s)[0];
-  if (d.getElementById(id)) return;
-  js = d.createElement(s); js.id = id;
-  js.src = "https://app.termly.io/embed-policy.min.js";
-  tjs.parentNode.insertBefore(js, tjs);
-}(document, 'script', 'termly-jssdk'));</script>
+<%
+  set_seo_meta(
+    title: "Acceptable Use Policy - BizBlasts",
+    description: "Acceptable Use Policy for BizBlasts: what businesses, staff, and customers can and cannot do on the BizBlasts platform and on sites we host.",
+    canonical: "https://www.bizblasts.com/acceptableusepolicy"
+  )
+
+  effective_date = "June 1, 2026"
+  support_email  = ENV.fetch('SUPPORT_EMAIL', 'bizblaststeam@gmail.com')
+%>
+
+<%= render layout: 'shared/legal_page',
+           locals: {
+             eyebrow: 'Acceptable Use Policy',
+             title: 'Acceptable Use Policy',
+             summary: "Conduct, content, and security rules that apply to everyone using the BizBlasts platform and sites we host, including business owners, staff, and end customers.",
+             effective_date: effective_date,
+             contact_email: support_email
+           } do %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '1. Scope' } do %>
+    <p>
+      This Acceptable Use Policy (&ldquo;AUP&rdquo;) applies to all use of the BizBlasts platform, including
+      our website, the application, custom-domain sites we host, communications features (SMS, email, calls),
+      payment processing, and APIs. It supplements our
+      <%= link_to 'Terms of Service', '/terms', class: 'text-primary hover:underline' %>
+      and applies to business owners, staff, end customers, and anyone else who interacts with the platform.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '2. Lawful Use' } do %>
+    <p>
+      You must use BizBlasts only for lawful purposes and in compliance with all applicable laws and
+      regulations, including consumer-protection, privacy, marketing, telecom, tax, sector-specific, and
+      licensing rules that apply to your business.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '3. Prohibited Content and Activities' } do %>
+    <p>You may not use BizBlasts to publish, transmit, store, or facilitate any of the following:</p>
+    <ul class="list-disc space-y-2 pl-5">
+      <li>Content that is illegal, infringes intellectual-property rights, or violates rights of privacy or publicity.</li>
+      <li>Sexually explicit content involving minors, child sexual abuse material, or any other content that exploits or endangers children.</li>
+      <li>Threats of violence, harassment, stalking, hateful conduct, or content that incites violence against an individual or group.</li>
+      <li>Fraudulent, deceptive, or misleading offers, claims, reviews, testimonials, pricing, or business credentials.</li>
+      <li>Unsolicited bulk email, unsolicited SMS, robocalls, scraping, phishing, malware distribution, or other abusive communications.</li>
+      <li>Sales of goods or services prohibited by law where they are sold, or sales prohibited by our payment processor (for example, items on Stripe&rsquo;s restricted list).</li>
+      <li>Multi-level-marketing schemes, pyramid schemes, gambling, drug paraphernalia, weapons, or other categories restricted by the payment processor.</li>
+      <li>Content that misrepresents your identity, your business, or your affiliation with a person or organization.</li>
+    </ul>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '4. Platform Integrity and Security' } do %>
+    <p>You may not, and must not allow others to:</p>
+    <ul class="list-disc space-y-2 pl-5">
+      <li>Probe, scan, or test the vulnerability of any BizBlasts system without our prior written consent.</li>
+      <li>Bypass or attempt to bypass authentication, authorization, rate limits, multi-tenant isolation, billing, or any other access controls.</li>
+      <li>Interfere with the proper functioning of the platform, including by overloading systems, abusing background workers, or sending excessive automated requests.</li>
+      <li>Reverse engineer, decompile, or attempt to extract the source code of the platform, except as expressly permitted by law.</li>
+      <li>Access data belonging to other tenants, other users, or other businesses without authorization.</li>
+      <li>Use the platform to build, train, or benchmark a competing product, except to the extent prohibited by law.</li>
+    </ul>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '5. Communications: Email, SMS, and Calls' } do %>
+    <p>
+      If you use email, SMS, or calling features, you are responsible for collecting valid consent from your
+      recipients and honoring opt-out, unsubscribe, and do-not-call requests. You must:
+    </p>
+    <ul class="list-disc space-y-2 pl-5">
+      <li>Only send messages to recipients who have agreed to receive them.</li>
+      <li>Include accurate sender identification and, where required, a clear way to opt out.</li>
+      <li>Honor opt-outs (such as <code class="rounded bg-gray-100 px-1 py-0.5 text-[0.95em] text-dark">STOP</code>) promptly across all related lists.</li>
+      <li>Avoid using BizBlasts for high-risk message types (premium SMS, lotteries, certain regulated industries) that are prohibited by our carriers or the law.</li>
+    </ul>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '6. Customer Data' } do %>
+    <p>
+      If you collect, process, or store data about customers, leads, or other end users through your
+      BizBlasts site, you are responsible for handling that data lawfully, securely, and in line with the
+      promises you make to those individuals. Do not upload data you do not have the right to use, and do not
+      use BizBlasts to handle data categories the platform is not designed for.
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '7. Reporting Abuse' } do %>
+    <p>
+      To report content or behavior that violates this AUP &mdash; for example, a BizBlasts-hosted site that
+      appears to be fraudulent, infringing, or unsafe &mdash; please email
+      <%= mail_to support_email, support_email, class: "text-primary hover:underline" %>
+      with as much detail as possible (URL, date and time, and a description of the issue).
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '8. Enforcement' } do %>
+    <p>
+      We investigate suspected violations of this AUP and may take action that we consider appropriate, up to
+      and including removing content, suspending or terminating accounts, removing custom domains, refusing
+      service, retaining or refunding fees, and cooperating with law-enforcement requests. We may act without
+      prior notice when the situation warrants (for example, to protect users, third parties, or the
+      platform).
+    </p>
+  <% end %>
+
+  <%= render layout: 'shared/legal_section', locals: { title: '9. Changes' } do %>
+    <p>
+      We may update this AUP from time to time. If we make material changes, we may post the revised version
+      on the site, update the effective date above, or use other reasonable means to notify you.
+    </p>
+  <% end %>
+
+<% end %>

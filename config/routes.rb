@@ -128,6 +128,23 @@ Rails.application.routes.draw do
         end
       end
 
+      # Platform legal pages on tenant subdomains and custom domains.
+      # These must be defined BEFORE the /:page catch-all below, otherwise
+      # Public::PagesController#show would receive page='terms' (etc.), fail
+      # to find a tenant page by that slug, and fall back to rendering the
+      # tenant's home template. The leading "/" on the controller path
+      # escapes the enclosing `scope module: 'public'` so the request
+      # dispatches to the top-level HomeController (not Public::HomeController).
+      # That makes the same copy serve from the main domain, tenant
+      # subdomains, and custom domains like https://www.losnemassageaz.com/terms.
+      get '/cookies',             to: '/home#cookies',             as: :tenant_cookies
+      get '/privacypolicy',       to: '/home#privacy',             as: :tenant_privacypolicy
+      get '/terms',               to: '/home#terms',               as: :tenant_terms
+      get '/disclaimer',          to: '/home#disclaimer',          as: :tenant_disclaimer
+      get '/shippingpolicy',      to: '/home#shippingpolicy',      as: :tenant_shippingpolicy
+      get '/returnpolicy',        to: '/home#returnpolicy',        as: :tenant_returnpolicy
+      get '/acceptableusepolicy', to: '/home#acceptableusepolicy', as: :tenant_acceptableusepolicy
+
       # Catch-all for static pages must come last
       get '/:page', to: 'pages#show', as: :tenant_page
     end
@@ -815,27 +832,13 @@ Rails.application.routes.draw do
 
     # Public cart/checkout and subscriptions now handled by TenantPublicConstraint (see top block)
 
-    # Policy pages for subdomain users (redirect to main domain)
-    get '/privacypolicy', to: redirect { |params, request| 
-      protocol = request.protocol
-      port = request.port != 80 ? ":#{request.port}" : ""
-      "#{protocol}#{request.domain}#{port}/privacypolicy"
-    }
-    get '/terms', to: redirect { |params, request| 
-      protocol = request.protocol
-      port = request.port != 80 ? ":#{request.port}" : ""
-      "#{protocol}#{request.domain}#{port}/terms"
-    }
-    get '/acceptableusepolicy', to: redirect { |params, request| 
-      protocol = request.protocol
-      port = request.port != 80 ? ":#{request.port}" : ""
-      "#{protocol}#{request.domain}#{port}/acceptableusepolicy"
-    }
-    get '/returnpolicy', to: redirect { |params, request| 
-      protocol = request.protocol
-      port = request.port != 80 ? ":#{request.port}" : ""
-      "#{protocol}#{request.domain}#{port}/returnpolicy"
-    }
+    # NOTE: Policy pages (/terms, /privacypolicy, /acceptableusepolicy,
+    # /returnpolicy, /cookies, /disclaimer, /shippingpolicy) used to redirect
+    # subdomain visitors to the main domain. They are now rendered inline by
+    # HomeController via the tenant_* routes inside the TenantPublicConstraint
+    # block at the top of this file, so subdomain visitors stay on their
+    # tenant host and custom-domain visitors (e.g. losnemassageaz.com/terms)
+    # get the same content rather than the tenant's home page.
 
     # Add a redirect for /settings under subdomain to the main domain
     get '/settings', to: redirect { |params, request| 

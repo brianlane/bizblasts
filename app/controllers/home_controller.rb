@@ -3,10 +3,18 @@
 # HomeController handles the main landing page of the application
 # It is designed to be resilient to database issues
 class HomeController < ApplicationController
-  # Skip authentication for index page and new static pages
+  # Skip authentication for index page, marketing pages, and platform legal pages.
+  # Legal pages must work for signed-out visitors on the main domain, on tenant
+  # subdomains, and on tenant custom domains (e.g. https://www.losnemassageaz.com/terms).
   skip_before_action :authenticate_user!, only: [:index, :about, :contact, :cookies, :privacy, :terms, :disclaimer, :shippingpolicy, :returnpolicy, :acceptableusepolicy, :pricing, :check_business_industry]
-  # Skip tenant setting for the home page since it's the main domain
-  skip_before_action :set_tenant, only: [:index, :about, :contact, :cookies, :privacy, :terms, :disclaimer, :shippingpolicy, :returnpolicy, :acceptableusepolicy, :pricing, :check_business_industry]
+
+  # Skip tenant setting only for the marketing-only pages (index/about/contact/pricing).
+  # The legal pages (cookies/privacy/terms/disclaimer/shippingpolicy/returnpolicy/
+  # acceptableusepolicy) intentionally run set_tenant so that when they are served
+  # from a tenant subdomain or custom domain, the layout can render the tenant's
+  # footer/branding and preserve cross-domain auth context. set_tenant is a no-op
+  # on the main domain, so this is also safe there.
+  skip_before_action :set_tenant, only: [:index, :about, :contact, :pricing, :check_business_industry]
 
   def index
     # Simple landing page without database dependencies
