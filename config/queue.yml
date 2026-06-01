@@ -24,14 +24,30 @@ default: &default
       processes: 1
       polling_interval: 0.5
 
+    # Dedicated image_processing worker -- threads:1 is REQUIRED for memory
+    # safety. ProcessImageJob and ProcessGalleryPhotoJob (and ImageCropJob)
+    # do ImageMagick / mini_magick variant generation on Active Storage
+    # blobs. A single 4000x3000 JPEG decompresses to ~48 MB of RGB pixels;
+    # running N of these concurrently uses ~N * 48 MB of RAM and pegs CPU.
+    # Both jobs explicitly document this in their queue_as declaration
+    # ("Use dedicated image_processing queue with single thread to prevent
+    # memory spikes"). None of them use `limits_concurrency`, so this
+    # worker definition is the only enforcement point. Keep at 1 unless
+    # the jobs themselves gain per-job concurrency limits.
+    - queues: [ image_processing ]
+      threads: 1
+      processes: 1
+      polling_interval: 1
+
     # General-purpose worker -- safe to scale threads for throughput. Covers
-    # every queue that does NOT pass through EmailRateLimiter. On Ubuntu we
+    # every queue that has no per-thread invariant of its own. On Ubuntu we
     # run 3 threads (matches Puma's default RAILS_MAX_THREADS so the DB pool
     # sizing stays balanced). Override with JOB_THREADS.
     #
     # processes:1 keeps things simple on a single-server deploy; bumping it
-    # is safe for these queues since none of them are rate-limited.
-    - queues: [ default, image_processing, low_priority ]
+    # is safe for these queues since none of them are rate-limited or
+    # memory-bound.
+    - queues: [ default, low_priority ]
       threads: <%= ENV.fetch("JOB_THREADS", 3) %>
       processes: 1
       polling_interval: 0.25
@@ -47,35 +63,23 @@ production:
 
 
 
-### Reference: finer-grained per-queue tuning if we ever need it.
+### Reference: scaling notes for the three-worker layout above.
 ###
-### The two-worker layout above (mailers + everything else) is what we run
-### in production. If you want a *third* dedicated worker -- say to give
-### image_processing its own thread pool so a flood of photo uploads can't
-### starve unrelated background work -- swap in something like this:
+### The active layout (mailers + image_processing + general) is the
+### minimum-correct configuration on this codebase. The two single-thread
+### workers exist for hard invariants -- do NOT scale them without first
+### removing the underlying constraint:
 ###
-### default: &default
-###   dispatchers:
-###     - polling_interval: 1
-###       batch_size: 500
-###       concurrency_maintenance_interval: 300
-###   workers:
-###     # Mailers stay locked at 1/1 -- see the EmailRateLimiter comment above.
-###     - queues: [ mailers ]
-###       threads: 1
-###       processes: 1
-###       polling_interval: 0.5
+###   * mailers worker: bound by EmailRateLimiter (per-thread sleep). To
+###     scale beyond 1 thread, either replace the limiter with a
+###     distributed (Redis-backed) one, or raise EMAIL_RATE_LIMIT_PER_SECOND
+###     to match the new total throughput against your Resend plan.
 ###
-###     # Image processing: kept narrow because a single 4000x3000 JPEG
-###     # decompresses to ~48 MB of RGB pixels. The Ubuntu box has plenty
-###     # of RAM, but ImageMagick still benefits from limited parallelism.
-###     - queues: [ image_processing ]
-###       threads: 2
-###       processes: 1
-###       polling_interval: 1
+###   * image_processing worker: bound by ImageMagick memory footprint. To
+###     scale beyond 1 thread, add `limits_concurrency to: N, key: :image`
+###     on ProcessImageJob / ProcessGalleryPhotoJob / ImageCropJob, or
+###     enforce a per-instance memory ceiling (cgroup, OOM-killer policy)
+###     so multiple concurrent decompressions can't take down the box.
 ###
-###     # Everything else: scale freely.
-###     - queues: [ default, low_priority ]
-###       threads: <%= ENV.fetch("JOB_THREADS", 3) %>
-###       processes: <%= ENV.fetch("JOB_CONCURRENCY", 1) %>
-###       polling_interval: 0.75
+### The general worker (default, low_priority) is the right knob for
+### throughput tuning. Bump JOB_THREADS to scale.
