@@ -17,6 +17,35 @@ class CnameDnsChecker
   # TODO: Consider making this configurable via ENV['RENDER_APEX_IP'] for easier updates
   RENDER_APEX_IP = ENV['RENDER_APEX_IP'] || '216.24.57.1'
 
+  # Provider-aware verification targets. On the Caddy/Ubuntu deployment the
+  # customer's apex A record (and the www A record) must point at our public
+  # IP — there is no CNAME-to-onrender step. On Render we keep the legacy
+  # CNAME-to-onrender + apex-A-to-216.24.57.1 contract.
+  # (Bugbot HIGH: DNS checks ignore Caddy targets.)
+  def self.expected_cname_target
+    return nil if defined?(DomainProvider) && DomainProvider.caddy?
+    RENDER_CNAME_TARGET
+  end
+
+  def self.expected_apex_ip
+    if defined?(DomainProvider) && DomainProvider.caddy?
+      ENV['BIZBLASTS_PUBLIC_IP'].to_s.strip.presence || resolve_bizblasts_a
+    else
+      RENDER_APEX_IP
+    end
+  end
+
+  # Fallback: if BIZBLASTS_PUBLIC_IP isn't set, derive the target from a live
+  # lookup of bizblasts.com itself (since the customer's apex is meant to
+  # point at the same host). Best-effort; nil on failure.
+  def self.resolve_bizblasts_a
+    Resolv::DNS.open do |r|
+      r.getresources('bizblasts.com', Resolv::DNS::Resource::IN::A).first&.address&.to_s
+    end
+  rescue StandardError
+    nil
+  end
+
   def initialize(domain_name)
     @domain_name = domain_name.to_s.strip.downcase
     @resolver = Resolv::DNS.new
@@ -27,35 +56,39 @@ class CnameDnsChecker
   def verify_cname
     Rails.logger.info "[CnameDnsChecker] Checking CNAME for: #{@domain_name}"
 
+    expected_cname = self.class.expected_cname_target
+    expected_ip    = self.class.expected_apex_ip
+
     begin
       result = {
         domain: @domain_name,
         verified: false,
         target: nil,
-        expected_target: RENDER_CNAME_TARGET,
+        expected_target: expected_cname || expected_ip,
         error: nil,
         checked_at: Time.current
       }
 
-      # First, try to resolve CNAME for the exact domain
-      cname_target = resolve_cname(@domain_name)
-      
+      # On Caddy there is no CNAME-to-onrender step; only A-record verification
+      # against BIZBLASTS_PUBLIC_IP matters. Skip CNAME resolution entirely.
+      cname_target = expected_cname ? resolve_cname(@domain_name) : nil
+
       if cname_target.present?
         result[:target] = cname_target
         result[:verified] = cname_matches_target?(cname_target)
-        
+
         Rails.logger.info "[CnameDnsChecker] CNAME found: #{@domain_name} -> #{cname_target}"
         Rails.logger.info "[CnameDnsChecker] Verification: #{result[:verified] ? 'PASSED' : 'FAILED'}"
       else
-        # If no CNAME exists, allow apex verification via A/ALIAS pointing to Render IP
-        if apex_a_matches_render?(@domain_name)
-          result[:target] = RENDER_APEX_IP
+        # No CNAME (or CNAME not applicable for provider) — verify via apex A record.
+        if apex_a_matches_expected?(@domain_name)
+          result[:target] = expected_ip
           result[:verified] = true
           result[:error] = nil
-          Rails.logger.info "[CnameDnsChecker] Apex A-record matches Render IP for #{@domain_name}"
+          Rails.logger.info "[CnameDnsChecker] Apex A-record matches expected IP for #{@domain_name}"
         else
-          result[:error] = 'No CNAME record found'
-          Rails.logger.warn "[CnameDnsChecker] No CNAME record (and apex A mismatch) for: #{@domain_name}"
+          result[:error] = expected_cname ? 'No CNAME record found' : 'A-record does not point at BizBlasts public IP'
+          Rails.logger.warn "[CnameDnsChecker] No matching DNS record for: #{@domain_name}"
         end
       end
 
@@ -66,7 +99,7 @@ class CnameDnsChecker
         domain: @domain_name,
         verified: false,
         target: nil,
-        expected_target: RENDER_CNAME_TARGET,
+        expected_target: expected_cname || expected_ip,
         error: e.message,
         checked_at: Time.current
       }
@@ -183,9 +216,12 @@ class CnameDnsChecker
   def cname_matches_target?(target)
     return false if target.blank?
 
+    expected = self.class.expected_cname_target
+    return false if expected.blank?
+
     # Normalize targets for comparison
     normalized_target = target.downcase.chomp('.')
-    normalized_expected = RENDER_CNAME_TARGET.downcase.chomp('.')
+    normalized_expected = expected.downcase.chomp('.')
 
     # Direct match
     return true if normalized_target == normalized_expected
@@ -201,16 +237,43 @@ class CnameDnsChecker
     false
   end
 
-  # Determine whether the domain (or its root form) has an A-record that
-  # points to Render's apex IP. This is used when an apex cannot use CNAME.
-  def apex_a_matches_render?(domain)
+  # Determine whether the domain has an A-record that points to the provider's
+  # expected apex IP (Render IP on Render, or BIZBLASTS_PUBLIC_IP on Caddy).
+  #
+  # Per-provider behavior (Bugbot MEDIUM: "WWW DNS checks apex only"):
+  #
+  # - Render: historic behavior. The www variant is verified via CNAME and we
+  #   only fall through to apex-A as a last-resort. In that fallback we accept
+  #   apex-A matching even if the caller passed `www.example.com`, because the
+  #   customer *must* have an apex A pointing at Render's IP for any traffic
+  #   to work and we don't want to flag the domain as broken just because
+  #   their www CNAME isn't observable.
+  #
+  # - Caddy: customers must independently set A records for BOTH apex and www
+  #   pointing at BIZBLASTS_PUBLIC_IP. Stripping www and checking only the
+  #   apex would mark www.example.com as verified when only the apex points
+  #   at us — and the on_demand_tls handshake for www would then 404 because
+  #   AllowedHostService would still say no. Check the EXACT host instead.
+  def apex_a_matches_expected?(domain)
+    expected = self.class.expected_apex_ip
+    return false if expected.blank?
+
+    caddy_mode = defined?(DomainProvider) && DomainProvider.caddy?
+    name = if caddy_mode
+             domain
+           else
+             domain.start_with?('www.') ? domain.sub('www.', '') : domain
+           end
+
     begin
-      root = domain.start_with?('www.') ? domain.sub('www.', '') : domain
-      a_records = @resolver.getresources(root, Resolv::DNS::Resource::IN::A)
-      a_records.map(&:address).map(&:to_s).include?(RENDER_APEX_IP)
+      a_records = @resolver.getresources(name, Resolv::DNS::Resource::IN::A)
+      a_records.map(&:address).map(&:to_s).include?(expected)
     rescue => e
-      Rails.logger.warn "[CnameDnsChecker] A-record lookup failed for #{domain}: #{e.message}"
+      Rails.logger.warn "[CnameDnsChecker] A-record lookup failed for #{name}: #{e.message}"
       false
     end
   end
+
+  # Backwards-compat alias — older callers / specs may reference the old name.
+  alias_method :apex_a_matches_render?, :apex_a_matches_expected?
 end

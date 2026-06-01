@@ -172,7 +172,7 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
       dns_checker = CnameDnsChecker.new(check_domain)
       dual_verifier = DualDomainVerifier.new(@business.hostname) # Dual verifier needs raw hostname to check both apex/www
       health_checker = DomainHealthChecker.new(check_domain)
-      render_service = RenderDomainService.new
+      render_service = DomainProvider.current
 
       # Perform all checks
       dns_result = dns_checker.verify_cname
@@ -192,23 +192,46 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
         { found: false, verified: false, error: e.message }
       end
 
-      # Use verification strategy to determine status consistently
+      # Use verification strategy to determine status consistently. Pass
+      # dual_result so the strategy can require BOTH apex and www on Caddy
+      # before flipping verified=true (see DomainVerificationStrategy notes).
       verification_strategy = DomainVerificationStrategy.new(@business)
-      verification_result = verification_strategy.determine_status(dns_result, render_result, health_result)
-      
+      verification_result = verification_strategy.determine_status(
+        dns_result,
+        render_result,
+        health_result,
+        dual_result: dual_result
+      )
+
       overall_status = verification_result[:verified]
       # Always derive the banner message from the live verification result.
       # Do not override with persisted flags to avoid stale green states.
       status_message = verification_result[:status_reason]
 
+      # The "DNS verified" row in the live status panel must use the SAME
+      # gate the strategy uses to flip cname_success!; otherwise on Caddy
+      # the row flashes green when only the canonical host passes while
+      # activation correctly stays blocked because the dual apex+www gate
+      # fails (Bugbot MEDIUM: "DNS status flag ignores dual check"). When
+      # the gate downgrades a single-host pass, surface a clear summary
+      # error so the UI doesn't fall back to "CNAME record not found".
+      effective_dns_verified = DomainVerificationStrategy.dns_verified_for(dns_result, dual_result)
+      dns_error_for_ui = if effective_dns_verified
+                           dns_result[:error]
+                         elsif dns_result[:verified]
+                           caddy_dual_dns_error(dual_result)
+                         else
+                           dns_result[:error]
+                         end
+
       render json: {
         overall_status: overall_status,
         status_message: status_message,
         dns_check: {
-          verified: dns_result[:verified],
+          verified: effective_dns_verified,
           target: dns_result[:target],
           expected_target: dns_result[:expected_target],
-          error: dns_result[:error]
+          error: dns_error_for_ui
         },
         dual_verification: {
           overall_verified: dual_result[:overall_verified],
@@ -262,7 +285,7 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
       dns_checker = CnameDnsChecker.new(check_domain)
       dual_verifier = DualDomainVerifier.new(@business.hostname)
       health_checker = DomainHealthChecker.new(check_domain)
-      render_service = RenderDomainService.new
+      render_service = DomainProvider.current
 
       dns_result = dns_checker.verify_cname
       dual_result = dual_verifier.verify_both_domains
@@ -281,7 +304,12 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
       end
 
       verification_strategy = DomainVerificationStrategy.new(@business)
-      verification_result = verification_strategy.determine_status(dns_result, render_result, health_result)
+      verification_result = verification_strategy.determine_status(
+        dns_result,
+        render_result,
+        health_result,
+        dual_result: dual_result
+      )
 
       unless verification_result[:verified]
         return render json: {
@@ -370,6 +398,26 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
 
     formatted_list = messages.map { |msg| "\u2022 #{msg}" }.join("\n")
     "Please fix the following errors:\n#{formatted_list}"
+  end
+
+  # Build a UI-friendly error string when the dual apex+www check downgrades
+  # an otherwise-green single-host dns_result. Without this, the frontend's
+  # `dns_check.error || 'CNAME record not found'` fallback would lie about
+  # the root cause (e.g. apex passed but www's A record is missing).
+  def caddy_dual_dns_error(dual_result)
+    return 'Both apex and www A records must point to the BizBlasts server IP' unless dual_result.is_a?(Hash)
+
+    missing = []
+    apex = dual_result[:apex_domain] || {}
+    www  = dual_result[:www_domain]  || {}
+    missing << 'apex A record' unless apex[:verified]
+    missing << 'www A record'  unless www[:verified]
+
+    if missing.empty?
+      'DNS configuration incomplete'
+    else
+      "Missing: #{missing.join(' and ')}"
+    end
   end
 
   def safe_return_path

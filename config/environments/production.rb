@@ -133,7 +133,10 @@ Rails.application.configure do
   # - Active custom domains stored in the database (both apex and www forms)
   config.host_authorization = {
     exclude: ->(request) do
-      return true if ["/up", "/healthcheck"].include?(request.path)
+      # Always-allowed paths:
+      #   - /up, /healthcheck     -> uptime / load-balancer probes
+      #   - Caddy on-demand TLS  -> always called with Host: 127.0.0.1
+      return true if ["/up", "/healthcheck", "/api/v1/custom_domains/verify"].include?(request.path)
 
       begin
         return false unless defined?(Business)

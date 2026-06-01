@@ -9,7 +9,7 @@ class DomainMonitoringService
     @business = business
     @dns_checker = CnameDnsChecker.new(@business.hostname)
     @dual_verifier = DualDomainVerifier.new(@business.hostname)
-    @render_service = RenderDomainService.new
+    @render_service = DomainProvider.current
     # Use the canonical domain for health checks based on business preference
     @health_checker = DomainHealthChecker.new(canonical_domain_for_health_check)
     @verification_strategy = DomainVerificationStrategy.new(@business)
@@ -39,8 +39,17 @@ class DomainMonitoringService
       # Perform domain health check
       health_result = check_domain_health
 
-      # Determine overall verification status using strategy pattern
-      verification_result = @verification_strategy.determine_status(dns_result, render_result, health_result)
+      # Determine overall verification status using strategy pattern.
+      # Pass dual_result so Caddy deployments require BOTH apex and www to
+      # verify before flipping to cname_success! — the legacy single-host
+      # dns_result would otherwise let a half-configured domain activate
+      # (Bugbot HIGH: "Activation ignores dual DNS checks").
+      verification_result = @verification_strategy.determine_status(
+        dns_result,
+        render_result,
+        health_result,
+        dual_result: dual_result
+      )
 
       # Update business state based on results
       update_business_state!(verification_result)
@@ -206,9 +215,9 @@ class DomainMonitoringService
 
   def send_activation_success_email!
     owner = @business.users.where(role: 'manager').first
-    
+
     if owner
-      DomainMailer.activation_success(@business, owner).deliver_now
+      deliver_domain_mail!(:activation_success, owner)
     else
       Rails.logger.warn "[DomainMonitoringService] No owner found for success email"
     end
@@ -216,12 +225,24 @@ class DomainMonitoringService
 
   def send_timeout_help_email!
     owner = @business.users.where(role: 'manager').first
-    
+
     if owner
-      DomainMailer.timeout_help(@business, owner).deliver_now
+      deliver_domain_mail!(:timeout_help, owner)
     else
       Rails.logger.warn "[DomainMonitoringService] No owner found for timeout email"
     end
+  end
+
+  # DomainMailer raises ArgumentError when the Caddy public IP is
+  # unconfigured (see DomainMailer#assign_dns_instructions!). The business
+  # has already transitioned to its terminal state by the time we get here
+  # (cname_success! / cname_timeout!), so swallow the exception with a
+  # loud log instead of aborting the surrounding monitoring logic
+  # (Bugbot MEDIUM: "Timeout help email can abort").
+  def deliver_domain_mail!(action, owner)
+    DomainMailer.public_send(action, @business, owner).deliver_now
+  rescue ArgumentError => e
+    Rails.logger.error "[DomainMonitoringService] Skipping #{action} email for business #{@business.id}: #{e.message}"
   end
 
   def time_remaining_estimate
@@ -261,9 +282,21 @@ class DomainMonitoringService
     # Only start retry job if we detected propagation delay and business is still monitoring
     return unless health_result[:propagation_retry_needed]
     return unless @business.cname_monitoring? || @business.cname_pending?
-    
+
+    # CertificatePropagationRetryJob is built around Render's "rebuild
+    # domains via API" recovery model. On Caddy that whole pipeline is
+    # a no-op (remove_domain/add_domain are no-ops, ACME retry is
+    # already handled by Caddy itself), so don't even enqueue — the
+    # normal 5-minute monitoring tick will pick up cert success once
+    # Caddy finishes its own propagation (Bugbot LOW: "SSL retry still
+    # Render-specific").
+    if DomainProvider.caddy?
+      Rails.logger.info "[DomainMonitoringService] Skipping CertificatePropagationRetryJob for #{@business.hostname}: Caddy handles ACME retry internally"
+      return
+    end
+
     Rails.logger.info "[DomainMonitoringService] Starting certificate propagation retry for #{@business.hostname}"
-    
+
     # Start the retry job with initial delay of 5 minutes
     CertificatePropagationRetryJob.set(wait: 5.minutes).perform_later(@business.id, 0)
   end

@@ -118,15 +118,15 @@
           <div class="code-block">
             <strong>Name/Host:</strong> @<br>
             <strong>Type:</strong> A<br>
-            <strong>Value/Target:</strong> 216.24.57.1<br>
+            <strong>Value/Target:</strong> <%= @dns_apex_target_ip %><br>
             <strong>TTL:</strong> Auto or 300 seconds
           </div>
-          
-          <p><strong>CNAME Record (for www subdomain):</strong></p>
+
+          <p><strong><%= @dns_www_target_type %> Record (for www subdomain):</strong></p>
           <div class="code-block">
             <strong>Name/Host:</strong> www<br>
-            <strong>Type:</strong> CNAME<br>
-            <strong>Value/Target:</strong> <%= @render_target %><br>
+            <strong>Type:</strong> <%= @dns_www_target_type %><br>
+            <strong>Value/Target:</strong> <%= @dns_www_target_value %><br>
             <strong>TTL:</strong> Auto or 300 seconds
           </div>
         </div>
@@ -134,7 +134,9 @@
         <div class="step">
           <h4>2. Common issues to check</h4>
           <ul>
-            <li><strong>Trailing dot:</strong> Some registrars require "<strong><%= @render_target %>.</strong>" (with dot)</li>
+            <% if @dns_www_target_type == 'CNAME' %>
+              <li><strong>Trailing dot:</strong> Some registrars require "<strong><%= @dns_www_target_value %>.</strong>" (with dot)</li>
+            <% end %>
             <li><strong>Conflicting records:</strong> Remove any existing A or AAAA records for this domain</li>
             <li><strong>Wrong host field:</strong> Use "@" for root domain or "www" for www subdomain</li>
             <li><strong>Case sensitivity:</strong> Ensure exact capitalization match</li>

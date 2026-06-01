@@ -6,6 +6,63 @@ module ApplicationHelper
   # Include CSS sanitization methods for XSS protection
   include CssSanitizer
 
+  # Provider-aware DNS values for customer-facing documentation and emails.
+  # On the Caddy/Ubuntu deployment these point at our public IP; on Render
+  # they keep the legacy 216.24.57.1 / bizblasts.onrender.com values so the
+  # documentation reads correctly during the transition window.
+  def bizblasts_dns_apex_target_ip
+    if defined?(DomainProvider) && DomainProvider.caddy?
+      # Strip the env-var read so any stray whitespace in /etc/bizblasts/.env
+      # (e.g. trailing CRLF on a Windows-edited file) doesn't make the FAQ /
+      # mailer show "  99.102.205.60\n" while CnameDnsChecker normalizes
+      # away the whitespace and verification looks at the trimmed value
+      # (Bugbot LOW: "FAQ IP differs from checker"). Mirror exactly what
+      # CnameDnsChecker.expected_apex_ip and DomainMailer#bizblasts_public_ip
+      # do.
+      ip = ENV['BIZBLASTS_PUBLIC_IP'].to_s.strip.presence || resolve_first_a('bizblasts.com')
+      if ip.blank?
+        # Don't emit a literal "contact support" string into setup emails or
+        # the FAQ — customers would copy that into their DNS panel and DNS
+        # verification (CnameDnsChecker.expected_apex_ip) would also be nil
+        # so the monitoring loop could never succeed (Bugbot MEDIUM:
+        # "Placeholder IP blocks verification"). Log loudly so the
+        # CnameSetupService / mailer guard can refuse to send broken
+        # instructions instead.
+        Rails.logger.error "[ApplicationHelper] bizblasts_dns_apex_target_ip unresolved: set BIZBLASTS_PUBLIC_IP or DNS A record for bizblasts.com"
+        return nil
+      end
+      ip
+    else
+      '216.24.57.1'
+    end
+  end
+
+  def bizblasts_dns_www_target_type
+    defined?(DomainProvider) && DomainProvider.caddy? ? 'A' : 'CNAME'
+  end
+
+  def bizblasts_dns_www_target_value
+    if defined?(DomainProvider) && DomainProvider.caddy?
+      bizblasts_dns_apex_target_ip
+    else
+      # Mirror DomainMailer#assign_dns_instructions! and
+      # CnameDnsChecker::RENDER_CNAME_TARGET, which use 'localhost' outside
+      # production so dev/test docs stay consistent across all three places.
+      # Otherwise the FAQ said `bizblasts.onrender.com` while the mailer
+      # said `localhost` — Bugbot MEDIUM: "Docs disagree on www DNS".
+      Rails.env.production? ? 'bizblasts.onrender.com' : 'localhost'
+    end
+  end
+
+  def resolve_first_a(host)
+    require 'resolv'
+    Resolv::DNS.open do |r|
+      r.getresources(host, Resolv::DNS::Resource::IN::A).first&.address&.to_s
+    end
+  rescue StandardError
+    nil
+  end
+
   # Include route helpers from engines/namespaces needed globally or in test contexts
   include BusinessManager::Engine.routes.url_helpers if defined?(BusinessManager::Engine)
   # Or if it's just a namespace, not a full engine:

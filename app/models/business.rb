@@ -1236,7 +1236,7 @@ class Business < ApplicationRecord
       setup_service = CnameSetupService.new(self)
       
       # First remove existing domains
-      render_service = RenderDomainService.new
+      render_service = DomainProvider.current
       apex_domain = hostname.sub(/^www\./, '')
       
       [apex_domain, "www.#{apex_domain}"].each do |domain_name|

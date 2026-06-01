@@ -7,7 +7,7 @@ class DomainRemovalService
 
   def initialize(business)
     @business = business
-    @render_service = RenderDomainService.new
+    @render_service = DomainProvider.current
   end
 
   # Complete domain removal - revert to subdomain hosting

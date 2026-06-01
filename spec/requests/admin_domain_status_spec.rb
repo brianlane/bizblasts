@@ -54,6 +54,49 @@ RSpec.describe 'Admin Domain Status API', type: :request do
       end
     end
 
+    # Regression for Bugbot MEDIUM: "DNS status flag ignores dual check".
+    # On Caddy the admin "✅ DNS Verified" badge must mirror the same gate
+    # used to flip cname_success! (i.e. require BOTH apex and www to
+    # verify), not the legacy single-host CnameDnsChecker pass that can
+    # show green when only the canonical host has the right A record.
+    context 'with Caddy mode and only the canonical host verified' do
+      let(:single_host_pass) do
+        {
+          verified: true,
+          target: '99.102.205.60',
+          checked_at: Time.current,
+          error: nil
+        }
+      end
+
+      before do
+        allow(DomainProvider).to receive(:caddy?).and_return(true)
+        allow(CnameDnsChecker).to receive(:new).and_return(
+          instance_double(CnameDnsChecker, verify_cname: single_host_pass)
+        )
+
+        dual = instance_double(DualDomainVerifier)
+        allow(DualDomainVerifier).to receive(:new).and_return(dual)
+        allow(dual).to receive(:verify_both_domains).and_return(
+          overall_verified: false,
+          apex_domain: { verified: true },
+          www_domain:  { verified: false }
+        )
+      end
+
+      it 'reports dns_check.verified=false because dual check failed on www' do
+        get "/admin/businesses/#{business.id}/domain_status"
+
+        expect(response).to have_http_status(:ok)
+
+        json_response = JSON.parse(response.body)
+
+        expect(json_response['dns_check']).to be_present
+        expect(json_response['dns_check']['verified']).to be false
+        expect(json_response['dns_check']['target']).to eq('99.102.205.60')
+      end
+    end
+
     context 'with inactive monitoring business' do
       before do
         business.update!(cname_monitoring_active: false, status: 'cname_active')

@@ -95,14 +95,14 @@
         <ul>
           <li><strong>Name:</strong> @</li>
           <li><strong>Type:</strong> A</li>
-          <li><strong>Target:</strong> 216.24.57.1</li>
+          <li><strong>Target:</strong> <%= @dns_apex_target_ip %></li>
         </ul>
-        
-        <p><strong>CNAME Record:</strong></p>
+
+        <p><strong><%= @dns_www_target_type %> Record:</strong></p>
         <ul>
           <li><strong>Name:</strong> www</li>
-          <li><strong>Type:</strong> CNAME</li>
-          <li><strong>Target:</strong> <%= @render_target %></li>
+          <li><strong>Type:</strong> <%= @dns_www_target_type %></li>
+          <li><strong>Target:</strong> <%= @dns_www_target_value %></li>
         </ul>
       </div>
     </div>
