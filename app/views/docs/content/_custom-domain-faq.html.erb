@@ -3,7 +3,8 @@
   <div class="bg-gradient-to-r from-primary to-secondary text-white rounded-2xl p-6 sm:p-8">
     <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">🌐 Custom Domain Setup FAQ</h2>
     <p class="text-lg sm:text-xl leading-relaxed opacity-90">
-      Step-by-step instructions for setting up CNAME records with popular domain registrars for BizBlasts businesses.
+      Step-by-step instructions for setting up DNS records (one A record for the apex domain and one
+      <%= bizblasts_dns_www_target_type %> record for the www subdomain) with popular domain registrars for BizBlasts businesses.
     </p>
   </div>
 
@@ -206,7 +207,12 @@
       
       <div class="mt-6 p-4 bg-orange-50 rounded-lg">
         <p class="text-sm text-orange-800">
-          <strong>📝 Namecheap Notes:</strong> Changes usually propagate within 5-30 minutes. Namecheap automatically adds a trailing dot to CNAME values.
+          <strong>📝 Namecheap Notes:</strong> Changes usually propagate within 5-30 minutes.
+          <% if bizblasts_dns_www_target_type == 'CNAME' %>
+            Namecheap automatically adds a trailing dot to CNAME values.
+          <% else %>
+            If you previously pointed <code>www</code> at another host via CNAME, delete that CNAME first — Namecheap won't let you save a www A record while a www CNAME for the same host still exists.
+          <% end %>
         </p>
       </div>
     </div>
@@ -271,7 +277,7 @@
       
       <div class="mt-6 p-4 bg-red-50 rounded-lg border-l-4 border-red-400">
         <p class="text-sm text-red-800">
-          <strong>🚨 Critical:</strong> Ensure proxy is OFF (gray cloud) for CNAME records. Changes propagate very quickly (1-5 minutes) due to Cloudflare's global network.
+          <strong>🚨 Critical:</strong> Ensure proxy is OFF (gray cloud) for both the apex A record and the www <%= bizblasts_dns_www_target_type %> record — Cloudflare's orange-cloud proxy intercepts TLS, which prevents our server from issuing your certificate. Changes propagate very quickly (1-5 minutes) due to Cloudflare's global network.
         </p>
       </div>
     </div>
@@ -419,7 +425,7 @@
   <!-- DNS Verification Tools -->
   <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 sm:p-8">
     <h3 class="text-xl sm:text-2xl font-bold text-dark mb-6">🔍 DNS Verification Tools</h3>
-    <p class="text-gray-700 mb-4">Use these free tools to check if your CNAME record is configured correctly:</p>
+    <p class="text-gray-700 mb-4">Use these free tools to check if your DNS records are configured correctly:</p>
     
     <div class="grid sm:grid-cols-3 gap-4 mb-6">
       <a href="https://whatsmydns.net" class="block p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
@@ -472,7 +478,7 @@
         <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4">1</div>
         <div>
           <p class="font-semibold">0-5 minutes</p>
-          <p class="text-gray-600">CNAME record saved at registrar</p>
+          <p class="text-gray-600">DNS records saved at registrar</p>
         </div>
       </div>
       <div class="flex items-center">
@@ -486,7 +492,7 @@
         <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4">3</div>
         <div>
           <p class="font-semibold">15-30 minutes</p>
-          <p class="text-gray-600">BizBlasts detects CNAME (monitoring every 5 minutes)</p>
+          <p class="text-gray-600">BizBlasts detects your DNS records (monitoring every 5 minutes)</p>
         </div>
       </div>
       <div class="flex items-center">

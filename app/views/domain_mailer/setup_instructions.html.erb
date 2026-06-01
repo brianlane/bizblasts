@@ -129,6 +129,26 @@
           <strong>TTL:</strong> Auto or 300 (5 minutes)
         </div>
 
+        <% if @dns_www_target_type == 'A' %>
+          <%# Caddy / self-hosted: BizBlasts needs the www subdomain as a   %>
+          <%# second A record (NOT a CNAME). Most customers already have a  %>
+          <%# www CNAME pointing at a previous host (Render, Wix, Squarespace, %>
+          <%# their old A2 / GoDaddy setup, etc.) and miss the swap if it's %>
+          <%# only mentioned as a sub-bullet — surface it as its own banner. %>
+          <div class="highlight" style="background:#fee2e2;border-color:#fca5a5;">
+            <strong>🚨 Migrating from another host?</strong>
+            <p style="margin:8px 0 0 0;">
+              If your domain currently has a <strong>CNAME record for www</strong>
+              (pointing at something like
+              <code>bizblasts.onrender.com</code>,
+              <code>cname.vercel-dns.com</code>, or your old hosting provider),
+              you must <strong>delete that CNAME</strong> before adding the A
+              record above. Most registrars will refuse to save a www A record
+              while a www CNAME for the same host already exists.
+            </p>
+          </div>
+        <% end %>
+
         <div class="highlight">
           <strong>💡 Important:</strong>
           <ul>

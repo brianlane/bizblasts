@@ -136,8 +136,14 @@
           <ul>
             <% if @dns_www_target_type == 'CNAME' %>
               <li><strong>Trailing dot:</strong> Some registrars require "<strong><%= @dns_www_target_value %>.</strong>" (with dot)</li>
+              <li><strong>Conflicting records:</strong> Remove any existing A, AAAA, or CNAME records for this domain</li>
+            <% else %>
+              <%# On Caddy the most common cause of a stuck www verification is %>
+              <%# leftover CNAME for www from a previous host. Call it out      %>
+              <%# explicitly so the operator knows what to look for.            %>
+              <li><strong>Old www CNAME still in place:</strong> If your www subdomain previously pointed at another host via CNAME, delete that CNAME — most registrars block adding a www A record while a www CNAME for the same name still exists.</li>
+              <li><strong>Conflicting records:</strong> Remove any existing A, AAAA, or CNAME records for this domain that don't match the values above</li>
             <% end %>
-            <li><strong>Conflicting records:</strong> Remove any existing A or AAAA records for this domain</li>
             <li><strong>Wrong host field:</strong> Use "@" for root domain or "www" for www subdomain</li>
             <li><strong>Case sensitivity:</strong> Ensure exact capitalization match</li>
           </ul>
@@ -185,9 +191,9 @@
         <ul>
           <li><strong>GoDaddy:</strong> My Products → DNS → Manage Zones → Add Record</li>
           <li><strong>Namecheap:</strong> Domain List → Manage → Advanced DNS → Add New Record</li>
-          <li><strong>Cloudflare:</strong> DNS → Add Record → Select CNAME</li>
+          <li><strong>Cloudflare:</strong> DNS → Add Record → Select <%= @dns_www_target_type %></li>
           <li><strong>Google Domains:</strong> DNS → Custom Records → Manage Custom Records</li>
-          <li><strong>Hover:</strong> DNS → Add New → CNAME</li>
+          <li><strong>Hover:</strong> DNS → Add New → <%= @dns_www_target_type %></li>
         </ul>
       </div>
 
@@ -196,7 +202,7 @@
         <p>We've paused automatic monitoring for now, but you can:</p>
         <ul>
           <li><strong>Contact support</strong> - We'll restart monitoring once your DNS is configured</li>
-          <li><strong>Fix the CNAME</strong> - Reply to this email when ready and we'll check again</li>
+          <li><strong>Fix the DNS records</strong> - Reply to this email when ready and we'll check again</li>
           <li><strong>Try later</strong> - Sometimes waiting a few hours helps with DNS propagation</li>
         </ul>
       </div>
