@@ -35,10 +35,16 @@ port ENV.fetch("PORT", 3000)
 plugin :tmp_restart
 
 # Run the Solid Queue supervisor inside Puma for single-server deployments.
-# Defaults to true because our production runs as a single Ubuntu host; set
-# SOLID_QUEUE_IN_PUMA=false explicitly when running a dedicated job worker
-# fleet (or in CI/test where we drive jobs synchronously).
-solid_queue_enabled = ENV.fetch("SOLID_QUEUE_IN_PUMA", "true") == "true"
+#
+# Default stays "false" because Procfile.dev already starts a standalone
+# worker (`worker: bin/jobs`); flipping the default would spin up TWO
+# SolidQueue supervisors under `bin/dev`, each with its own EmailRateLimiter
+# clock and dispatcher -- violating the single-process invariant that the
+# mailers worker in config/queue.yml relies on.
+#
+# Production explicitly sets SOLID_QUEUE_IN_PUMA=true via systemd/.env so
+# the single Puma process supervises jobs without a separate worker daemon.
+solid_queue_enabled = ENV.fetch("SOLID_QUEUE_IN_PUMA", "false") == "true"
 plugin :solid_queue if solid_queue_enabled
 
 # Specify the PID file. Defaults to tmp/pids/server.pid in development.

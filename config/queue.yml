@@ -4,19 +4,34 @@ default: &default
       batch_size: 500
       concurrency_maintenance_interval: 300
   workers:
-    # Single worker process that handles all queues across multiple threads.
+    # Dedicated mailers worker -- threads:1 and processes:1 are BOTH required
+    # for correctness, not memory.
     #
-    # IMPORTANT: `processes:` must remain 1 -- this is a correctness
-    # constraint, NOT a memory constraint. EmailRateLimiter throttles outbound
-    # email (Resend caps us at 2 req/sec) using a per-thread sleep inside a
-    # single OS process. Multiple worker processes would each get their own
-    # limiter and we'd burst past the Resend cap. If we ever switch to a
-    # distributed limiter (Redis), this can be raised.
+    # EmailRateLimiter (config/initializers/email_rate_limiter.rb) wraps every
+    # ActionMailer::MailDeliveryJob with a per-thread sleep that caps each
+    # thread at EMAIL_RATE_LIMIT_PER_SECOND (default 2 req/sec, matching
+    # Resend's free-tier limit). Because the limiter is local to one thread
+    # in one process, total outbound mail throughput is:
     #
-    # `threads:` is safe to scale up for throughput. On the Ubuntu server we
-    # run 3 worker threads, matching Puma's default RAILS_MAX_THREADS so the
-    # DB pool sizing stays balanced. Bump JOB_THREADS to override.
-    - queues: [ default, mailers, image_processing, low_priority ]
+    #   (mailer threads) * (mailer processes) * EMAIL_RATE_LIMIT_PER_SECOND
+    #
+    # Scaling either knob above 1 multiplies us past the provider cap, so the
+    # initializer explicitly states: "To remain safe, run the mailers queue
+    # with 1-2 threads in production." Keep this single-threaded until we
+    # move to a distributed (Redis-backed) limiter.
+    - queues: [ mailers ]
+      threads: 1
+      processes: 1
+      polling_interval: 0.5
+
+    # General-purpose worker -- safe to scale threads for throughput. Covers
+    # every queue that does NOT pass through EmailRateLimiter. On Ubuntu we
+    # run 3 threads (matches Puma's default RAILS_MAX_THREADS so the DB pool
+    # sizing stays balanced). Override with JOB_THREADS.
+    #
+    # processes:1 keeps things simple on a single-server deploy; bumping it
+    # is safe for these queues since none of them are rate-limited.
+    - queues: [ default, image_processing, low_priority ]
       threads: <%= ENV.fetch("JOB_THREADS", 3) %>
       processes: 1
       polling_interval: 0.25
@@ -32,13 +47,12 @@ production:
 
 
 
-### Reference: split-queue layout if we ever need finer-grained tuning.
+### Reference: finer-grained per-queue tuning if we ever need it.
 ###
-### The single-worker config above is the simplest correct setup for our
-### Ubuntu single-server deploy. If you want dedicated workers per queue
-### (for example, to give image_processing its own thread pool so a flood
-### of photo uploads can't starve transactional emails), uncomment something
-### like this:
+### The two-worker layout above (mailers + everything else) is what we run
+### in production. If you want a *third* dedicated worker -- say to give
+### image_processing its own thread pool so a flood of photo uploads can't
+### starve unrelated background work -- swap in something like this:
 ###
 ### default: &default
 ###   dispatchers:
@@ -46,17 +60,15 @@ production:
 ###       batch_size: 500
 ###       concurrency_maintenance_interval: 300
 ###   workers:
-###     # Mailers: 1 thread / 1 process to preserve EmailRateLimiter semantics
-###     # (Resend caps us at 2 req/sec globally; see comment on the main worker).
+###     # Mailers stay locked at 1/1 -- see the EmailRateLimiter comment above.
 ###     - queues: [ mailers ]
 ###       threads: 1
 ###       processes: 1
-###       polling_interval: 0.95
+###       polling_interval: 0.5
 ###
 ###     # Image processing: kept narrow because a single 4000x3000 JPEG
 ###     # decompresses to ~48 MB of RGB pixels. The Ubuntu box has plenty
-###     # of RAM, but running many of these in parallel still pegs CPU and
-###     # ImageMagick benefits from serial execution per process.
+###     # of RAM, but ImageMagick still benefits from limited parallelism.
 ###     - queues: [ image_processing ]
 ###       threads: 2
 ###       processes: 1
