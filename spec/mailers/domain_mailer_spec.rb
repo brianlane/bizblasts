@@ -160,7 +160,10 @@ RSpec.describe DomainMailer, type: :mailer do
 
     it 'explains next steps' do
       expect(body_text(mail)).to include('Contact support')
-      expect(body_text(mail)).to include('Fix the CNAME')
+      # Copy was de-CNAME'd so the same template reads correctly on the
+      # Caddy (A+A) and Render (A+CNAME) paths. Assert the provider-
+      # neutral wording the template now uses.
+      expect(body_text(mail)).to include('Fix the DNS records')
       expect(body_text(mail)).to include('Try later')
     end
   end
