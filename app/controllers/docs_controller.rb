@@ -29,7 +29,7 @@ class DocsController < ApplicationController
     },
     'custom-domain-faq' => {
       title: 'Custom Domain Setup FAQ',
-      description: 'Step-by-step instructions for setting up CNAME records with popular domain registrars',
+      description: 'Step-by-step instructions for setting up the DNS records that point your custom domain at BizBlasts with popular domain registrars',
       category: 'Technical Setup',
       estimated_read_time: '15 min read'
     }
