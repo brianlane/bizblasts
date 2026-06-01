@@ -24,7 +24,7 @@
 # Any libraries that use a connection pool or another resource pool should
 # be configured to provide at least as many connections as the number of
 # threads. This includes Active Record's `pool` parameter in `database.yml`.
-threads_count = ENV.fetch("RAILS_MAX_THREADS", 3).to_i
+threads_count = ENV.fetch("RAILS_MAX_THREADS", 5).to_i
 threads threads_count, threads_count
 
 # Specifies the `port` that Puma will listen on to receive requests; default is 3000.
@@ -34,7 +34,16 @@ port ENV.fetch("PORT", 3000)
 # Allow puma to be restarted by `bin/rails restart` command.
 plugin :tmp_restart
 
-# Run the Solid Queue supervisor inside of Puma for single-server deployments
+# Run the Solid Queue supervisor inside Puma for single-server deployments.
+#
+# Default stays "false" because Procfile.dev already starts a standalone
+# worker (`worker: bin/jobs`); flipping the default would spin up TWO
+# SolidQueue supervisors under `bin/dev`, each with its own EmailRateLimiter
+# clock and dispatcher -- violating the single-process invariant that the
+# mailers worker in config/queue.yml relies on.
+#
+# Production explicitly sets SOLID_QUEUE_IN_PUMA=true via systemd/.env so
+# the single Puma process supervises jobs without a separate worker daemon.
 solid_queue_enabled = ENV.fetch("SOLID_QUEUE_IN_PUMA", "false") == "true"
 plugin :solid_queue if solid_queue_enabled
 

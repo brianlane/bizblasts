@@ -4,14 +4,51 @@ default: &default
       batch_size: 500
       concurrency_maintenance_interval: 300
   workers:
-    # Single worker process that handles all queues sequentially.
-    # This minimizes memory usage on the shared web dyno and ensures we never
-    # run multiple heavy jobs in parallel (mailers, imports, image processing).
-    # IMPORTANT: processes must be 1 to maintain global email rate limiting
-    # instead of processes: <%= ENV.fetch("JOB_CONCURRENCY", 1) %>
-    # (EmailRateLimiter uses per-thread sleep, not distributed limiting).
-    - queues: [ default, mailers, image_processing, low_priority ]
+    # Dedicated mailers worker -- threads:1 and processes:1 are BOTH required
+    # for correctness, not memory.
+    #
+    # EmailRateLimiter (config/initializers/email_rate_limiter.rb) wraps every
+    # ActionMailer::MailDeliveryJob with a per-thread sleep that caps each
+    # thread at EMAIL_RATE_LIMIT_PER_SECOND (default 2 req/sec, matching
+    # Resend's free-tier limit). Because the limiter is local to one thread
+    # in one process, total outbound mail throughput is:
+    #
+    #   (mailer threads) * (mailer processes) * EMAIL_RATE_LIMIT_PER_SECOND
+    #
+    # Scaling either knob above 1 multiplies us past the provider cap, so the
+    # initializer explicitly states: "To remain safe, run the mailers queue
+    # with 1-2 threads in production." Keep this single-threaded until we
+    # move to a distributed (Redis-backed) limiter.
+    - queues: [ mailers ]
       threads: 1
+      processes: 1
+      polling_interval: 0.5
+
+    # Dedicated image_processing worker -- threads:1 is REQUIRED for memory
+    # safety. ProcessImageJob and ProcessGalleryPhotoJob (and ImageCropJob)
+    # do ImageMagick / mini_magick variant generation on Active Storage
+    # blobs. A single 4000x3000 JPEG decompresses to ~48 MB of RGB pixels;
+    # running N of these concurrently uses ~N * 48 MB of RAM and pegs CPU.
+    # Both jobs explicitly document this in their queue_as declaration
+    # ("Use dedicated image_processing queue with single thread to prevent
+    # memory spikes"). None of them use `limits_concurrency`, so this
+    # worker definition is the only enforcement point. Keep at 1 unless
+    # the jobs themselves gain per-job concurrency limits.
+    - queues: [ image_processing ]
+      threads: 1
+      processes: 1
+      polling_interval: 1
+
+    # General-purpose worker -- safe to scale threads for throughput. Covers
+    # every queue that has no per-thread invariant of its own. On Ubuntu we
+    # run 3 threads (matches Puma's default RAILS_MAX_THREADS so the DB pool
+    # sizing stays balanced). Override with JOB_THREADS.
+    #
+    # processes:1 keeps things simple on a single-server deploy; bumping it
+    # is safe for these queues since none of them are rate-limited or
+    # memory-bound.
+    - queues: [ default, low_priority ]
+      threads: <%= ENV.fetch("JOB_THREADS", 3) %>
       processes: 1
       polling_interval: 0.25
 
@@ -26,42 +63,23 @@ production:
 
 
 
-###In case we need to add more queues, we can add them here like this:
-# default: &default
-#   dispatchers:
-#     - polling_interval: 1
-#       batch_size: 500
-#       concurrency_maintenance_interval: 300
-#   workers:
-#     # Dedicated worker for email jobs - 1 thread to enforce serial execution
-#     # This prevents hitting Resend's 2 requests/second rate limit
-#     # The EmailRateLimiter enforces 2 req/sec PER THREAD, so with 1 thread
-#     # we guarantee max 2 emails/sec globally
-#     - queues: [ mailers ]
-#       threads: 1
-#       processes: 1
-#       polling_interval: 0.95
-
-#     # Dedicated worker for image processing jobs - 1 thread to prevent memory spikes
-#     # Image processing is memory-intensive: a 4000x3000 image decompresses to ~48MB
-#     # Running multiple jobs concurrently can easily exceed memory limits
-#     # Serial processing ensures stable memory usage
-#     - queues: [ image_processing ]
-#       threads: 1
-#       processes: 1
-#       polling_interval: 1
-
-#     # Default worker for all other jobs - higher concurrency for throughput
-#     - queues: [ default, low_priority ]
-#       threads: 3
-#       processes: <%= ENV.fetch("JOB_CONCURRENCY", 1) %>
-#       polling_interval: .75
-
-# development:
-#   <<: *default
-
-# test:
-#   <<: *default
-
-# production:
-#   <<: *default
+### Reference: scaling notes for the three-worker layout above.
+###
+### The active layout (mailers + image_processing + general) is the
+### minimum-correct configuration on this codebase. The two single-thread
+### workers exist for hard invariants -- do NOT scale them without first
+### removing the underlying constraint:
+###
+###   * mailers worker: bound by EmailRateLimiter (per-thread sleep). To
+###     scale beyond 1 thread, either replace the limiter with a
+###     distributed (Redis-backed) one, or raise EMAIL_RATE_LIMIT_PER_SECOND
+###     to match the new total throughput against your Resend plan.
+###
+###   * image_processing worker: bound by ImageMagick memory footprint. To
+###     scale beyond 1 thread, add `limits_concurrency to: N, key: :image`
+###     on ProcessImageJob / ProcessGalleryPhotoJob / ImageCropJob, or
+###     enforce a per-instance memory ceiling (cgroup, OOM-killer policy)
+###     so multiple concurrent decompressions can't take down the box.
+###
+### The general worker (default, low_priority) is the right knob for
+### throughput tuning. Bump JOB_THREADS to scale.
