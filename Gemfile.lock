@@ -274,7 +274,7 @@ GEM
       logger
       ostruct
     ice_cube (0.17.0)
-    image_processing (2.0.1)
+    image_processing (2.0.2)
     inherited_resources (1.14.0)
       actionpack (>= 6.0)
       has_scope (>= 0.6)
