@@ -1,8 +1,9 @@
 name: Dependabot automerge label
 
-# Tags Dependabot PRs that are eligible for auto-merge (patch + minor only,
-# never major). The actual merge is performed by dependabot-automerge.yml once
-# every CI check is green. Split into two workflows because:
+# Tags Dependabot PRs that are eligible for auto-merge (all semver update types:
+# patch, minor, and major). The actual merge is performed by
+# dependabot-automerge.yml once every CI check is green. Split into two workflows
+# because:
 #   - This one needs write access to label, which requires pull_request_target
 #     (Dependabot's pull_request token is read-only).
 #   - The strict "all checks green" evaluation must run AFTER CI finishes, which
@@ -35,6 +36,11 @@ jobs:
       - name: Add or remove the automerge label
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Required: this job has no checkout, so gh can't infer the repo from a
+          # git remote. Without GH_REPO, `gh label create` fails to resolve the
+          # base repo (it was silently swallowed by `|| true`, so the label was
+          # never created and labeling never worked).
+          GH_REPO: ${{ github.repository }}
           PR_URL: ${{ github.event.pull_request.html_url }}
           UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
         run: |
@@ -49,12 +55,12 @@ jobs:
           echo "Dependabot update type: ${UPDATE_TYPE:-<none>}"
 
           case "$UPDATE_TYPE" in
-            "version-update:semver-patch"|"version-update:semver-minor")
-              echo "Patch/minor update -> marking eligible for auto-merge."
+            "version-update:semver-patch"|"version-update:semver-minor"|"version-update:semver-major")
+              echo "Semver update ($UPDATE_TYPE) -> marking eligible for auto-merge."
               gh pr edit "$PR_URL" --add-label "dependabot-automerge"
               ;;
             *)
-              echo "Not a patch/minor update -> NOT eligible for auto-merge."
+              echo "Unknown/non-version update (${UPDATE_TYPE:-<none>}) -> NOT eligible for auto-merge."
               gh pr edit "$PR_URL" --remove-label "dependabot-automerge" || true
               ;;
           esac

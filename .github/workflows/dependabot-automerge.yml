@@ -62,8 +62,13 @@ jobs:
 
           [ "$STATE" = "OPEN" ]       || { echo "PR #$PR_NUMBER is $STATE; skipping."; exit 0; }
           [ "$IS_DRAFT" = "false" ]   || { echo "PR #$PR_NUMBER is a draft; skipping."; exit 0; }
-          [ "$AUTHOR" = "dependabot[bot]" ] || { echo "PR #$PR_NUMBER author is $AUTHOR; skipping."; exit 0; }
-          [ "$HAS_LABEL" = "true" ]   || { echo "PR #$PR_NUMBER lacks '$REQUIRED_LABEL' label (likely a major update); skipping."; exit 0; }
+          # gh reports the Dependabot bot author as "app/dependabot"; the raw API
+          # / event payload uses "dependabot[bot]". Accept both.
+          case "$AUTHOR" in
+            "dependabot[bot]"|"app/dependabot") ;;
+            *) echo "PR #$PR_NUMBER author is $AUTHOR; skipping."; exit 0 ;;
+          esac
+          [ "$HAS_LABEL" = "true" ]   || { echo "PR #$PR_NUMBER lacks '$REQUIRED_LABEL' label (not yet labeled, or a non-version update); skipping."; exit 0; }
 
           # Guard against a stale run: only act on checks for the current head.
           if [ "$CUR_SHA" != "$HEAD_SHA" ]; then
