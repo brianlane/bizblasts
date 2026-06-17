@@ -14,7 +14,7 @@
   },
   "devDependencies": {
     "@activeadmin/activeadmin": "^3.3.0",
-    "@babel/core": "^7.23.0",
+    "@babel/core": "^7.29.6",
     "@babel/preset-env": "^7.23.0",
     "@istanbuljs/load-nyc-config": "file:vendor/npm/@istanbuljs/load-nyc-config",
     "babel-jest": "^30.3.0",
