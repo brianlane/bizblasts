@@ -1,8 +1,9 @@
 name: Dependabot auto-merge
 
-# Strictly merges an eligible Dependabot PR only when EVERY check run for the
-# head commit concluded "success". Any failed / cancelled / timed_out / neutral
-# / skipped / action_required check blocks the merge.
+# Merges an eligible Dependabot PR only when EVERY check run for the head commit
+# concluded "success" or "neutral". Any failed / cancelled / timed_out / skipped
+# / action_required / stale check blocks the merge. ("neutral" is allowed because
+# healthy security tooling like CodeQL's default setup reports it routinely.)
 #
 # Runs after CI finishes (workflow_run) so we never sit on an idle runner
 # polling. If a check is still in progress when this fires, it exits quietly and
@@ -97,11 +98,16 @@ jobs:
             exit 0
           fi
 
-          # Strict gate: every remaining check must have concluded success.
-          NOT_SUCCESS=$(echo "$FILTERED" | jq -rc 'select(.conclusion != "success")')
-          if [ -n "$NOT_SUCCESS" ]; then
-            echo "Strict gate failed -- the following checks are not green (success):"
-            echo "$NOT_SUCCESS" | jq -r '"  - \(.name): \(.conclusion // "n/a")"'
+          # Gate: every remaining check must have concluded success OR neutral.
+          # "neutral" is what healthy security tooling reports when there's
+          # nothing actionable (e.g. CodeQL default setup posts a neutral parent
+          # check on every run) -- treating it as a failure would block every PR.
+          # Everything else (failure, cancelled, timed_out, skipped,
+          # action_required, stale, startup_failure, or still-null) still blocks.
+          BLOCKING=$(echo "$FILTERED" | jq -rc 'select(.conclusion != "success" and .conclusion != "neutral")')
+          if [ -n "$BLOCKING" ]; then
+            echo "Gate failed -- the following checks are not passing (success/neutral):"
+            echo "$BLOCKING" | jq -r '"  - \(.name): \(.conclusion // "n/a")"'
             exit 0
           fi
 
