@@ -148,7 +148,7 @@ gem 'geocoder'
 gem 'zip-codes' # Offline US ZIP code database for fallback geocoding
 
 # Calendar integrations
-gem 'google-apis-calendar_v3', '~> 0.54'
+gem 'google-apis-calendar_v3', '~> 0.55'
 gem 'googleauth', '~> 1.17'
 # Required at runtime by representable (via google-apis-calendar_v3); googleauth 1.17 dropped it
 gem 'multi_json'
