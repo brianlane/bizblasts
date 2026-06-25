@@ -630,7 +630,7 @@ GEM
       sprockets (>= 3.0.0)
     stduritemplate (0.0.59)
     stringio (3.2.0)
-    stripe (19.2.1)
+    stripe (19.3.0)
       bigdecimal
       logger
     strscan (3.1.8)
@@ -771,7 +771,7 @@ DEPENDENCIES
   solid_cache
   solid_queue
   sprockets-rails
-  stripe (~> 19.2)
+  stripe (~> 19.3)
   tailwindcss-rails
   thruster
   timecop
