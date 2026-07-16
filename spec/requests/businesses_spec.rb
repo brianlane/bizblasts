@@ -75,23 +75,30 @@ RSpec.describe "Businesses", type: :request do
       end
     end
 
-    context "performance with many businesses" do
+    context "with many businesses" do
       before do
-        # Create 20 additional businesses with various descriptions
+        # Create 20 additional businesses with deterministic descriptions
+        # (10 match "coffee", 10 don't).
         20.times do |i|
-          create(:business, 
-                 name: "Business #{i}", 
-                 description: "This is business #{i} offering #{['coffee', 'hair', 'yoga', 'fitness', 'food'].sample} services")
+          service = i.even? ? 'coffee' : 'yoga'
+          create(:business,
+                 name: "Business #{i}",
+                 description: "This is business #{i} offering #{service} services")
         end
       end
 
-      it "handles large dataset search efficiently" do
-        start_time = Time.current
+      # NOTE: This example previously asserted the request completed in under
+      # 1 wall-clock second, which flaked on shared CI runners. Response-time
+      # coverage lives in the dedicated performance_test CI job; here we only
+      # verify search correctness against a larger dataset.
+      it "handles large dataset search correctly" do
         get businesses_path, params: { search: 'coffee' }
-        end_time = Time.current
-        
+
         expect(response).to have_http_status(:success)
-        expect(end_time - start_time).to be < 1.second # Should be very fast
+        expect(response.body).to include('Local Coffee')
+        expect(response.body).to include('Business 18') # coffee description
+        expect(response.body).not_to include('Business 19') # yoga description
+        expect(response.body).not_to include('Zen Yoga')
       end
     end
   end
