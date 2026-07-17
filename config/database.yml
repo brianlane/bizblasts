@@ -60,7 +60,10 @@ test: &test
   pool: 10 # Increase connection pool for parallel tests
   prepared_statements: false # Disable for test speed
   variables:
-    statement_timeout: '10s'
+    # Guard against runaway queries, but leave headroom for DatabaseCleaner's
+    # TRUNCATE across 100+ tables, which intermittently exceeded 10s on
+    # saturated CI runners (PG::QueryCanceled flakes killing random specs).
+    statement_timeout: '60s'
 
 # For parallel testing setup
 <% (1..ENV.fetch('PARALLEL_TEST_PROCESSORS', 1).to_i).each do |i| %>
