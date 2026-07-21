@@ -5,10 +5,9 @@ ActiveAdmin.register Booking do
   #
   # Uncomment all parameters which should be permitted for assignment
   #
-  permit_params :business_id, :service_id, :staff_member_id, :tenant_customer_id, 
-                :start_time, :end_time, :status, :price, :notes, :metadata, 
-                :stripe_payment_intent_id, :stripe_customer_id, :paid, 
-                :cancelled_at, :cancellation_reason, :quantity
+  permit_params :business_id, :service_id, :staff_member_id, :tenant_customer_id,
+                :start_time, :end_time, :status, :notes,
+                :cancellation_reason, :quantity
   
   # Enable batch actions
   batch_action :destroy, confirm: "Are you sure you want to delete these bookings?" do |ids|
@@ -62,7 +61,7 @@ ActiveAdmin.register Booking do
     Booking.where(id: ids).find_each do |booking|
       begin
         if booking.can_be_cancelled?
-          booking.update!(status: :cancelled, cancelled_at: Time.current, cancellation_reason: "Batch cancelled by admin")
+          booking.update!(status: :cancelled, cancellation_reason: "Batch cancelled by admin")
           updated_count += 1
         else
           failed_count += 1
@@ -142,11 +141,7 @@ ActiveAdmin.register Booking do
       end
       row :quantity
       row :notes
-      row :metadata
-      row :stripe_payment_intent_id
-      row :stripe_customer_id
       row :promotion
-      row :cancelled_at
       row :cancellation_reason
       row :created_at
       row :updated_at

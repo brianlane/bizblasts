@@ -31,6 +31,16 @@ class DocumentTemplate < ApplicationRecord
     version + 1
   end
 
+  # Allowlist attributes/associations for Ransack (required by the
+  # ActiveAdmin filter sidebar; missing allowlists 500 the index page).
+  def self.ransackable_attributes(auth_object = nil)
+    %w[id business_id name document_type version active created_at updated_at]
+  end
+
+  def self.ransackable_associations(auth_object = nil)
+    %w[business]
+  end
+
   private
 
   def assign_sequential_version

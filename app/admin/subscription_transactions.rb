@@ -20,7 +20,6 @@ ActiveAdmin.register SubscriptionTransaction do
   filter :processed_date
   filter :created_at
   filter :stripe_invoice_id
-  filter :stripe_payment_intent_id
 
   # Index page
   index do
@@ -59,8 +58,6 @@ ActiveAdmin.register SubscriptionTransaction do
     column :stripe_status do |transaction|
       if transaction.stripe_invoice_id.present?
         status_tag 'Stripe Invoice', class: 'ok'
-      elsif transaction.stripe_payment_intent_id.present?
-        status_tag 'Stripe Payment', class: 'ok'
       else
         status_tag 'No Stripe Data', class: 'warning'
       end
@@ -120,19 +117,6 @@ ActiveAdmin.register SubscriptionTransaction do
           span "No Stripe invoice", class: 'empty'
         end
       end
-      row :stripe_payment_intent_id do |transaction|
-        if transaction.stripe_payment_intent_id.present?
-          div do
-            code transaction.stripe_payment_intent_id
-          end
-          div do
-            link_to "View in Stripe", "https://dashboard.stripe.com/payments/#{transaction.stripe_payment_intent_id}", 
-                    target: '_blank', class: 'button'
-          end
-        else
-          span "No Stripe payment intent", class: 'empty'
-        end
-      end
       row :created_at
       row :updated_at
     end
@@ -181,7 +165,6 @@ ActiveAdmin.register SubscriptionTransaction do
 
     f.inputs "Stripe Information" do
       f.input :stripe_invoice_id
-      f.input :stripe_payment_intent_id
     end
 
     f.actions
@@ -205,14 +188,13 @@ ActiveAdmin.register SubscriptionTransaction do
     column :processed_date
     column :failure_reason
     column :stripe_invoice_id
-    column :stripe_payment_intent_id
     column :created_at
   end
 
-  # Helper methods
+  # Helper methods. These are used inside index/show view blocks, so they must
+  # be exposed with helper_method (controller-private methods are not callable
+  # from Arbre views and raise NoMethodError).
   controller do
-    private
-
     def transaction_type_class(type)
       case type.to_s
       when 'billing', 'signup' then 'ok'
@@ -231,6 +213,8 @@ ActiveAdmin.register SubscriptionTransaction do
       else 'default'
       end
     end
+
+    helper_method :transaction_type_class, :transaction_status_class
   end
 end 
  

@@ -3,11 +3,11 @@
 ActiveAdmin.register CustomerSubscription do
   menu parent: 'Subscriptions', priority: 1
 
-  # Scopes for filtering
+  # Scopes for filtering (must match CustomerSubscription statuses: no :paused —
+  # the enum has no paused state and calling an undefined scope 500s the index)
   scope :all, default: true
   scope :active
   scope :cancelled
-  scope :paused
   scope :expired
   scope :failed
 
@@ -275,19 +275,6 @@ ActiveAdmin.register CustomerSubscription do
     redirect_to collection_path, notice: "#{ids.count} subscriptions cancelled."
   end
 
-  batch_action :pause_subscriptions do |ids|
-    batch_action_collection.find(ids).each do |subscription|
-      if subscription.active?
-        subscription.update!(status: :paused)
-        # Pause in Stripe if connected
-        if subscription.stripe_subscription_id.present?
-          SubscriptionStripeService.new(subscription).pause_stripe_subscription!
-        end
-      end
-    end
-    redirect_to collection_path, notice: "#{ids.count} subscriptions paused."
-  end
-
   # Member actions
   member_action :cancel_subscription, method: :post do
     if resource.active?
@@ -302,32 +289,6 @@ ActiveAdmin.register CustomerSubscription do
     end
   end
 
-  member_action :pause_subscription, method: :post do
-    if resource.active?
-      resource.update!(status: :paused)
-      # Pause in Stripe if connected
-      if resource.stripe_subscription_id.present?
-        SubscriptionStripeService.new(resource).pause_stripe_subscription!
-      end
-      redirect_to resource_path, notice: 'Subscription paused successfully.'
-    else
-      redirect_to resource_path, alert: 'Subscription cannot be paused.'
-    end
-  end
-
-  member_action :resume_subscription, method: :post do
-    if resource.paused?
-      resource.update!(status: :active)
-      # Resume in Stripe if connected
-      if resource.stripe_subscription_id.present?
-        SubscriptionStripeService.new(resource).resume_stripe_subscription!
-      end
-      redirect_to resource_path, notice: 'Subscription resumed successfully.'
-    else
-      redirect_to resource_path, alert: 'Subscription cannot be resumed.'
-    end
-  end
-
   # Action items (buttons on show page)
   action_item :cancel, only: :show, if: proc { resource.active? } do
     link_to 'Cancel Subscription', cancel_subscription_admin_customer_subscription_path(resource), 
@@ -335,18 +296,11 @@ ActiveAdmin.register CustomerSubscription do
             confirm: 'Are you sure you want to cancel this subscription?'
   end
 
-  action_item :pause, only: :show, if: proc { resource.active? } do
-    link_to 'Pause Subscription', pause_subscription_admin_customer_subscription_path(resource), 
-            method: :post, class: 'button'
-  end
-
-  action_item :resume, only: :show, if: proc { resource.paused? } do
-    link_to 'Resume Subscription', resume_subscription_admin_customer_subscription_path(resource), 
-            method: :post, class: 'button'
-  end
-
-  # Helper methods
+  # Helper methods. Exposed with helper_method because they are called from
+  # index/show view blocks (controller-private methods are not visible there).
   controller do
+    helper_method :subscription_status_class, :transaction_type_class, :transaction_status_class
+
     private
 
     def subscription_status_class(status)

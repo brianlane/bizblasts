@@ -5,15 +5,7 @@ ActiveAdmin.register ShippingMethod do
   #
   # Uncomment all parameters which should be permitted for assignment
   #
-  permit_params :name, :description, :cost, :active, :business_id
-  #
-  # or
-  #
-  # permit_params do
-  #   permitted = [:name, :description, :cost, :active, :business_id]
-  #   permitted << :other if params[:action] == 'create' && current_user.admin?
-  #   permitted
-  # end
+  permit_params :name, :cost, :active, :business_id
 
   # Enable batch actions
   batch_action :destroy, confirm: "Are you sure you want to delete these shipping methods?" do |ids|
@@ -80,7 +72,6 @@ ActiveAdmin.register ShippingMethod do
   end
 
   filter :name
-  filter :description
   filter :cost
   filter :active
   filter :business
@@ -89,7 +80,6 @@ ActiveAdmin.register ShippingMethod do
     selectable_column
     id_column
     column :name
-    column :description
     column :cost do |method|
       number_to_currency(method.cost) if method.cost
     end
@@ -101,7 +91,6 @@ ActiveAdmin.register ShippingMethod do
   form do |f|
     f.inputs do
       f.input :name
-      f.input :description
       f.input :cost
       f.input :active
       f.input :business, collection: Business.order(:name)

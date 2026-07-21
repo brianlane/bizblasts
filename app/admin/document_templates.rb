@@ -20,7 +20,7 @@ ActiveAdmin.register DocumentTemplate do
     column('Document Type') { |template| template.document_type.titleize }
     column :version
     column :active do |template|
-      status_tag(template.active? ? 'Active' : 'Inactive', template.active? ? :ok : :warning)
+      status_tag(template.active? ? 'Active' : 'Inactive', class: template.active? ? 'ok' : 'warning')
     end
     column :updated_at
     actions

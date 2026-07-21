@@ -100,8 +100,8 @@ class SubscriptionTransaction < ApplicationRecord
   
   # Ransack configuration
   def self.ransackable_attributes(auth_object = nil)
-    %w[id customer_subscription_id business_id tenant_customer_id transaction_type status 
-       processed_date amount created_at updated_at]
+    %w[id customer_subscription_id business_id tenant_customer_id transaction_type status
+       processed_date amount stripe_invoice_id failure_reason created_at updated_at]
   end
   
   def self.ransackable_associations(auth_object = nil)

@@ -36,7 +36,7 @@ class Payment < ApplicationRecord
   scope :pending, -> { where(status: :pending) }
   
   def mark_as_completed!
-    update(status: :completed, completed_at: Time.current)
+    update(status: :completed, paid_at: Time.current)
   end
   
   def refund!
@@ -100,6 +100,7 @@ class Payment < ApplicationRecord
       "paid_at",
       "payment_method",
       "platform_fee_amount",
+      "quickbooks_payment_id",
       "refund_reason",
       "refunded_amount",
       "status",
