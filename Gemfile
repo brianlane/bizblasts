@@ -153,6 +153,12 @@ gem 'googleauth', '~> 1.17'
 # Required at runtime by representable (via google-apis-calendar_v3); googleauth 1.17 dropped it
 gem 'multi_json'
 gem 'microsoft_graph', '~> 0.22'
+# Pinned below 2.9 to avoid CVE-2026-54696 (generator heap buffer overflow,
+# introduced in 2.9.0, fixed in 2.19.9). We can't reach 2.19.9 because
+# microsoft_graph_core pins microsoft_kiota_serialization_json ~> 0.9, which
+# caps json < 2.10. Remove this pin and `bundle update json` once
+# microsoft_graph_core allows kiota_serialization_json >= 0.10.
+gem 'json', '~> 2.8.2'
 gem 'oauth2', '~> 2.0'
 gem 'icalendar', '~> 2.12'
 gem 'httparty', '~> 0.24'
