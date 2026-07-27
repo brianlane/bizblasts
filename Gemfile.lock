@@ -234,9 +234,9 @@ GEM
       csv (>= 3.0.0)
     globalid (1.4.0)
       activesupport (>= 6.1)
-    google-apis-calendar_v3 (0.56.0)
+    google-apis-calendar_v3 (0.57.0)
       google-apis-core (>= 0.15.0, < 2.a)
-    google-apis-core (1.2.4)
+    google-apis-core (1.2.5)
       addressable (~> 2.9)
       faraday (~> 2.13)
       faraday-follow_redirects (~> 0.3)
@@ -726,7 +726,7 @@ DEPENDENCIES
   factory_bot_rails
   faker
   geocoder
-  google-apis-calendar_v3 (~> 0.56)
+  google-apis-calendar_v3 (~> 0.57)
   googleauth (~> 1.17)
   groupdate
   httparty (~> 0.24)
