@@ -158,7 +158,7 @@ gem 'microsoft_graph', '~> 0.22'
 # microsoft_graph_core pins microsoft_kiota_serialization_json ~> 0.9, which
 # caps json < 2.10. Remove this pin and `bundle update json` once
 # microsoft_graph_core allows kiota_serialization_json >= 0.10.
-gem 'json', '~> 2.8.2'
+gem 'json', '~> 2.9.1'
 gem 'oauth2', '~> 2.0'
 gem 'icalendar', '~> 2.12'
 gem 'httparty', '~> 0.24'

@@ -299,7 +299,7 @@ GEM
       thor (>= 0.14, < 2.0)
     jquery-ui-rails (8.0.0)
       railties (>= 3.2.16)
-    json (2.8.2)
+    json (2.9.1)
     jwt (3.2.0)
       base64
     kaminari (1.2.2)
@@ -734,7 +734,7 @@ DEPENDENCIES
   image_processing (~> 2.0)
   jbuilder
   jquery-ui-rails
-  json (~> 2.8.2)
+  json (~> 2.9.1)
   kaminari (~> 1.2)
   microsoft_graph (~> 0.22)
   mini_magick (~> 5.3)
