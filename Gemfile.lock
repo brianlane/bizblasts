@@ -348,7 +348,7 @@ GEM
       json (>= 2.6.3, < 2.10.0)
       microsoft_kiota_abstractions (~> 0.14.0)
       uuidtools (~> 2.2.0)
-    mini_magick (5.3.2)
+    mini_magick (5.3.3)
       logger
     mini_mime (1.1.5)
     minitest (6.0.6)
