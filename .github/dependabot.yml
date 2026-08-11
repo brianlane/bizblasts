@@ -5,6 +5,14 @@ updates:
   schedule:
     interval: daily
   open-pull-requests-limit: 10
+  ignore:
+  # json >= 2.9.0 is vulnerable to CVE-2026-54696 and the fix (2.19.9) is
+  # unreachable while microsoft_graph_core caps json below 2.10. See the pin
+  # in the Gemfile. Without this, Dependabot bumps the pin back into the
+  # vulnerable range, as it did in #613.
+  - dependency-name: json
+    versions:
+    - ">= 2.9.0"
 - package-ecosystem: github-actions
   directory: "/"
   schedule:
