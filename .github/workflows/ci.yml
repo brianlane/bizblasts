@@ -15,6 +15,14 @@ env:
   DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
   RUBY_VERSION: '3.4.3'
   NODE_VERSION: '20'
+  # Ferrum reads these into its defaults at require time. spec/support/capybara.rb
+  # already passes process_timeout: 240, but cuprite auto-registers a bare :cuprite
+  # driver with no options at require time (capybara/cuprite.rb:14), and when that
+  # registration is the one in effect Ferrum falls back to its 10s default -- which
+  # is exactly the "did not produce websocket url within 10 seconds" failure we see.
+  # Setting the env var makes 240s apply either way.
+  FERRUM_PROCESS_TIMEOUT: '240'
+  FERRUM_DEFAULT_TIMEOUT: '120'
 
 jobs:
   # ============================================
@@ -123,7 +131,9 @@ jobs:
         with:
           name: built-assets
           path: app/assets/builds
-          retention-days: 1
+          # 1 day meant re-running a failed job the next day could not fetch
+          # the assets it depends on ('Artifact not found for name: built-assets').
+          retention-days: 5
 
   # ============================================
   # STAGE 3: Test jobs (depend on build)
@@ -647,7 +657,17 @@ jobs:
         options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-      - run: sudo apt-get update && sudo apt-get install -y google-chrome-stable
+      - name: Install Chrome
+        run: |
+          # The runner image preloads Microsoft apt repos (azure-cli, prod) that
+          # intermittently return 403. `apt-get update` exits 100 if ANY configured
+          # repo fails, so an outage on Microsoft's side killed this job before a
+          # single test ran -- even though the Chrome repo fetched fine. Drop those
+          # repos, and don't let a partial update failure stop the install. If the
+          # Chrome repo itself is down, apt-get install still fails, with a clearer error.
+          sudo rm -f /etc/apt/sources.list.d/microsoft*.list /etc/apt/sources.list.d/azure*.list
+          sudo apt-get update || true
+          sudo apt-get install -y google-chrome-stable
       - uses: actions/checkout@v7
       - uses: ruby/setup-ruby@v1
         with:
@@ -690,7 +710,17 @@ jobs:
         options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-      - run: sudo apt-get update && sudo apt-get install -y google-chrome-stable
+      - name: Install Chrome
+        run: |
+          # The runner image preloads Microsoft apt repos (azure-cli, prod) that
+          # intermittently return 403. `apt-get update` exits 100 if ANY configured
+          # repo fails, so an outage on Microsoft's side killed this job before a
+          # single test ran -- even though the Chrome repo fetched fine. Drop those
+          # repos, and don't let a partial update failure stop the install. If the
+          # Chrome repo itself is down, apt-get install still fails, with a clearer error.
+          sudo rm -f /etc/apt/sources.list.d/microsoft*.list /etc/apt/sources.list.d/azure*.list
+          sudo apt-get update || true
+          sudo apt-get install -y google-chrome-stable
       - uses: actions/checkout@v7
       - uses: ruby/setup-ruby@v1
         with:
@@ -734,7 +764,17 @@ jobs:
         options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-      - run: sudo apt-get update && sudo apt-get install -y google-chrome-stable
+      - name: Install Chrome
+        run: |
+          # The runner image preloads Microsoft apt repos (azure-cli, prod) that
+          # intermittently return 403. `apt-get update` exits 100 if ANY configured
+          # repo fails, so an outage on Microsoft's side killed this job before a
+          # single test ran -- even though the Chrome repo fetched fine. Drop those
+          # repos, and don't let a partial update failure stop the install. If the
+          # Chrome repo itself is down, apt-get install still fails, with a clearer error.
+          sudo rm -f /etc/apt/sources.list.d/microsoft*.list /etc/apt/sources.list.d/azure*.list
+          sudo apt-get update || true
+          sudo apt-get install -y google-chrome-stable
       - uses: actions/checkout@v7
       - uses: ruby/setup-ruby@v1
         with:
@@ -783,7 +823,17 @@ jobs:
         options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-      - run: sudo apt-get update && sudo apt-get install -y google-chrome-stable
+      - name: Install Chrome
+        run: |
+          # The runner image preloads Microsoft apt repos (azure-cli, prod) that
+          # intermittently return 403. `apt-get update` exits 100 if ANY configured
+          # repo fails, so an outage on Microsoft's side killed this job before a
+          # single test ran -- even though the Chrome repo fetched fine. Drop those
+          # repos, and don't let a partial update failure stop the install. If the
+          # Chrome repo itself is down, apt-get install still fails, with a clearer error.
+          sudo rm -f /etc/apt/sources.list.d/microsoft*.list /etc/apt/sources.list.d/azure*.list
+          sudo apt-get update || true
+          sudo apt-get install -y google-chrome-stable
       - uses: actions/checkout@v7
       - uses: ruby/setup-ruby@v1
         with:
@@ -832,7 +882,17 @@ jobs:
         options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-      - run: sudo apt-get update && sudo apt-get install -y google-chrome-stable
+      - name: Install Chrome
+        run: |
+          # The runner image preloads Microsoft apt repos (azure-cli, prod) that
+          # intermittently return 403. `apt-get update` exits 100 if ANY configured
+          # repo fails, so an outage on Microsoft's side killed this job before a
+          # single test ran -- even though the Chrome repo fetched fine. Drop those
+          # repos, and don't let a partial update failure stop the install. If the
+          # Chrome repo itself is down, apt-get install still fails, with a clearer error.
+          sudo rm -f /etc/apt/sources.list.d/microsoft*.list /etc/apt/sources.list.d/azure*.list
+          sudo apt-get update || true
+          sudo apt-get install -y google-chrome-stable
       - uses: actions/checkout@v7
       - uses: ruby/setup-ruby@v1
         with:
@@ -881,7 +941,17 @@ jobs:
         options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-      - run: sudo apt-get update && sudo apt-get install -y google-chrome-stable
+      - name: Install Chrome
+        run: |
+          # The runner image preloads Microsoft apt repos (azure-cli, prod) that
+          # intermittently return 403. `apt-get update` exits 100 if ANY configured
+          # repo fails, so an outage on Microsoft's side killed this job before a
+          # single test ran -- even though the Chrome repo fetched fine. Drop those
+          # repos, and don't let a partial update failure stop the install. If the
+          # Chrome repo itself is down, apt-get install still fails, with a clearer error.
+          sudo rm -f /etc/apt/sources.list.d/microsoft*.list /etc/apt/sources.list.d/azure*.list
+          sudo apt-get update || true
+          sudo apt-get install -y google-chrome-stable
       - uses: actions/checkout@v7
       - uses: ruby/setup-ruby@v1
         with:
@@ -930,7 +1000,17 @@ jobs:
         options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-      - run: sudo apt-get update && sudo apt-get install -y google-chrome-stable
+      - name: Install Chrome
+        run: |
+          # The runner image preloads Microsoft apt repos (azure-cli, prod) that
+          # intermittently return 403. `apt-get update` exits 100 if ANY configured
+          # repo fails, so an outage on Microsoft's side killed this job before a
+          # single test ran -- even though the Chrome repo fetched fine. Drop those
+          # repos, and don't let a partial update failure stop the install. If the
+          # Chrome repo itself is down, apt-get install still fails, with a clearer error.
+          sudo rm -f /etc/apt/sources.list.d/microsoft*.list /etc/apt/sources.list.d/azure*.list
+          sudo apt-get update || true
+          sudo apt-get install -y google-chrome-stable
       - uses: actions/checkout@v7
       - uses: ruby/setup-ruby@v1
         with:
@@ -979,7 +1059,17 @@ jobs:
         options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-      - run: sudo apt-get update && sudo apt-get install -y google-chrome-stable
+      - name: Install Chrome
+        run: |
+          # The runner image preloads Microsoft apt repos (azure-cli, prod) that
+          # intermittently return 403. `apt-get update` exits 100 if ANY configured
+          # repo fails, so an outage on Microsoft's side killed this job before a
+          # single test ran -- even though the Chrome repo fetched fine. Drop those
+          # repos, and don't let a partial update failure stop the install. If the
+          # Chrome repo itself is down, apt-get install still fails, with a clearer error.
+          sudo rm -f /etc/apt/sources.list.d/microsoft*.list /etc/apt/sources.list.d/azure*.list
+          sudo apt-get update || true
+          sudo apt-get install -y google-chrome-stable
       - uses: actions/checkout@v7
       - uses: ruby/setup-ruby@v1
         with:
@@ -1028,7 +1118,17 @@ jobs:
         options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-      - run: sudo apt-get update && sudo apt-get install -y google-chrome-stable
+      - name: Install Chrome
+        run: |
+          # The runner image preloads Microsoft apt repos (azure-cli, prod) that
+          # intermittently return 403. `apt-get update` exits 100 if ANY configured
+          # repo fails, so an outage on Microsoft's side killed this job before a
+          # single test ran -- even though the Chrome repo fetched fine. Drop those
+          # repos, and don't let a partial update failure stop the install. If the
+          # Chrome repo itself is down, apt-get install still fails, with a clearer error.
+          sudo rm -f /etc/apt/sources.list.d/microsoft*.list /etc/apt/sources.list.d/azure*.list
+          sudo apt-get update || true
+          sudo apt-get install -y google-chrome-stable
       - uses: actions/checkout@v7
       - uses: ruby/setup-ruby@v1
         with:
