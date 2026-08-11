@@ -15,14 +15,20 @@ env:
   DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
   RUBY_VERSION: '3.4.3'
   NODE_VERSION: '20'
-  # Ferrum reads these into its defaults at require time. spec/support/capybara.rb
+  # Ferrum reads this into its default at require time. spec/support/capybara.rb
   # already passes process_timeout: 240, but cuprite auto-registers a bare :cuprite
-  # driver with no options at require time (capybara/cuprite.rb:14), and when that
+  # driver with no options at require time (capybara/cuprite.rb:14), and if that
   # registration is the one in effect Ferrum falls back to its 10s default -- which
   # is exactly the "did not produce websocket url within 10 seconds" failure we see.
   # Setting the env var makes 240s apply either way.
+  #
+  # Only the PROCESS timeout (browser startup) is set here. FERRUM_DEFAULT_TIMEOUT
+  # (per-command waits) is deliberately left alone: capybara.rb already passes
+  # timeout: 120 explicitly, so overriding the default buys nothing in the normal
+  # case, and raising it from 5s lets a stuck command outlive the hard
+  # Timeout.timeout(30) wrapper in spec/security/dom_xss_prevention_spec.rb:9,
+  # turning a fast retryable Ferrum::TimeoutError into a fatal Timeout::ExitException.
   FERRUM_PROCESS_TIMEOUT: '240'
-  FERRUM_DEFAULT_TIMEOUT: '120'
 
 jobs:
   # ============================================

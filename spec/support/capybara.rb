@@ -47,9 +47,10 @@ Capybara.register_driver(:cuprite) do |app|
     # no options (capybara/cuprite.rb:14). If that registration wins, Ferrum falls
     # back to its own defaults - process_timeout 10s - which produces the recurring
     # "Browser did not produce websocket url within 10 seconds" CI failures. CI
-    # therefore also sets FERRUM_PROCESS_TIMEOUT / FERRUM_DEFAULT_TIMEOUT in
-    # ci.yml, which Ferrum reads into its defaults, so the intended values apply
-    # either way.
+    # therefore also sets FERRUM_PROCESS_TIMEOUT in ci.yml, which Ferrum reads
+    # into its default, so the intended startup timeout applies either way.
+    # The per-command `timeout:` below is NOT mirrored into an env var on purpose
+    # - see the comment in ci.yml.
     process_timeout: (ENV['FERRUM_PROCESS_TIMEOUT'] || (is_ci ? 240 : 120)).to_i,
     timeout: (ENV['FERRUM_TIMEOUT'] || (is_ci ? 120 : 90)).to_i,
     network_timeout: (ENV['FERRUM_NETWORK_TIMEOUT'] || 180).to_i,
