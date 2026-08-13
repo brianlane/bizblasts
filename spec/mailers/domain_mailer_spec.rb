@@ -14,6 +14,17 @@ RSpec.describe DomainMailer, type: :mailer do
 
   before do
     ENV['SUPPORT_EMAIL'] = 'bizblaststeam@gmail.com'
+
+    # These examples assert the render-mode DNS copy (CNAME to
+    # bizblasts.onrender.com). DomainMailer branches on DomainProvider.caddy?
+    # and emits A-record instructions instead in caddy mode, which is now the
+    # default. Pinned so the existing assertions keep testing what they were
+    # written against.
+    #
+    # KNOWN GAP: the caddy A-record copy -- what customers actually receive now
+    # -- has no coverage here. These are customer-facing DNS instructions, so
+    # this is the most valuable of the caddy gaps to close.
+    allow(DomainProvider).to receive(:provider_name).and_return('render')
   end
 
   after do

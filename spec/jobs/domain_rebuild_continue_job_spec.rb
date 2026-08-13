@@ -18,6 +18,10 @@ RSpec.describe DomainRebuildContinueJob, type: :job do
   let(:render_service) { instance_double(RenderDomainService) }
 
   before do
+    # These examples exercise the Render provider specifically, so pin it.
+    # DomainProvider now defaults to 'caddy' (BizBlasts is self-hosted); without
+    # this the stub below would never be reached.
+    allow(DomainProvider).to receive(:provider_name).and_return('render')
     allow(RenderDomainService).to receive(:new).and_return(render_service)
     allow(Business).to receive(:find).with(business.id).and_return(business)
     allow(RenderDomainVerificationJob).to receive(:perform_later)

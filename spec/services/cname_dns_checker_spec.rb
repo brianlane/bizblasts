@@ -9,6 +9,15 @@ RSpec.describe CnameDnsChecker, type: :service do
 
   before do
     allow(Rails.env).to receive(:production?).and_return(false)
+
+    # These examples stub only the CNAME lookup. In caddy mode the checker
+    # resolves apex A records instead (cname_dns_checker.rb:26/31/261), which
+    # this file does not stub. It got render mode for free while DomainProvider
+    # defaulted to 'render'; the default is now 'caddy', so pin it explicitly.
+    #
+    # KNOWN GAP: the caddy apex-A path -- the one production actually takes now
+    # -- has no equivalent coverage here. Worth adding.
+    allow(DomainProvider).to receive(:provider_name).and_return('render')
   end
 
   describe '#initialize' do

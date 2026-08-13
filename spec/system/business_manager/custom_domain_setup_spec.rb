@@ -29,6 +29,10 @@ RSpec.describe "Custom Domain Setup", type: :system do
 
     # Mock all external services
     allow(CnameSetupService).to receive(:new).and_return(mock_setup_service)
+    # These examples exercise the Render provider specifically, so pin it.
+    # DomainProvider now defaults to 'caddy' (BizBlasts is self-hosted); without
+    # this the stub below would never be reached.
+    allow(DomainProvider).to receive(:provider_name).and_return('render')
     allow(RenderDomainService).to receive(:new).and_return(mock_render_service)
     allow(CnameDnsChecker).to receive(:new).and_return(mock_dns_checker)
     

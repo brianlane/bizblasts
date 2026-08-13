@@ -28,16 +28,18 @@ module DomainProvider
     explicit = ENV['BIZBLASTS_DOMAIN_PROVIDER'].to_s.strip.downcase
     return explicit if %w[caddy render].include?(explicit)
 
-    # No explicit BIZBLASTS_DOMAIN_PROVIDER set. Default to 'render' so that:
-    #   - Legacy Render deployments keep working unchanged.
-    #   - A Render deployment with a missing/mistyped RENDER_API_KEY fails
-    #     loudly (with a real Render API error) instead of silently falling
-    #     back to CaddyDomainService no-ops (Bugbot HIGH).
-    #   - The existing test suite, which stubs RenderDomainService.new
-    #     globally, continues to work without per-spec env juggling.
-    # Self-hosted Caddy deployments MUST set BIZBLASTS_DOMAIN_PROVIDER=caddy
-    # explicitly (see .env.example and the production .env on the Ubuntu host).
-    'render'
+    # No explicit BIZBLASTS_DOMAIN_PROVIDER set. Default to 'caddy'.
+    #
+    # This used to default to 'render' so that a legacy Render deployment with a
+    # missing or mistyped RENDER_API_KEY would fail loudly against the Render API
+    # rather than silently no-op into CaddyDomainService (Bugbot HIGH). BizBlasts
+    # is self-hosted on Ubuntu/Caddy now, so there is no Render deployment left
+    # for that to protect, and a 'render' default has the failure mode backwards:
+    # forget the variable on the Caddy host and custom-domain provisioning silently
+    # calls a hosting provider we no longer use.
+    #
+    # A Render deployment must now set BIZBLASTS_DOMAIN_PROVIDER=render explicitly.
+    'caddy'
   end
 
   def self.caddy?
