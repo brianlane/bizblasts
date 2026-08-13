@@ -16,6 +16,15 @@ RSpec.describe 'Admin Domain Status API', type: :request do
 
   before do
     sign_in admin_user, scope: :admin_user
+
+    # These examples stub CnameDnsChecker with a render-mode result (target
+    # bizblasts.onrender.com) and assert dns_check.verified from it. In caddy
+    # mode DomainVerificationStrategy.dns_verified_for reads :overall_verified
+    # off the dual-check result instead, which this file does not stub. Pinned
+    # so the assertions keep testing the branch they were written against.
+    #
+    # KNOWN GAP: the caddy dual-check path has no coverage here.
+    allow(DomainProvider).to receive(:provider_name).and_return('render')
   end
 
   describe 'GET /admin/businesses/:id/domain_status' do
