@@ -27,10 +27,44 @@ module CIVisitHelper
   # Override visit to handle pending connection errors more gracefully
   # This applies to both CI and local environments since Ferrum 0.17.1 raises these errors
   # despite pending_connection_errors: false setting (see capybara.rb comment)
+  # Report the timeouts actually in force when a browser-startup timeout fires.
+  #
+  # spec/support/capybara.rb registers :cuprite with process_timeout: 240 in CI,
+  # yet CI has reported "Browser did not produce websocket url within 10 seconds"
+  # -- and 10 is Ferrum's built-in default, which it only falls back to when
+  # :process_timeout is absent from its options. Something is bypassing the tuned
+  # registration and we have not been able to reproduce it locally: loading
+  # spec/support/capybara.rb outside CI yields 240, cuprite's own bare
+  # auto-registration (capybara/cuprite.rb:14) is the only other registration in
+  # play, and Capybara.reset! is just an alias for reset_sessions! so it does not
+  # clear registrations.
+  #
+  # This logs the evidence needed to settle it the next time it happens. Never
+  # raises -- diagnostics must not mask the original failure.
+  def log_ferrum_timeout_diagnostics(error)
+    driver = page.driver
+    opts   = driver.respond_to?(:options) ? driver.options : {}
+    warn "[Visit Helper][diag] #{error.class}: #{error.message}"
+    warn "[Visit Helper][diag] Capybara.current_driver=#{Capybara.current_driver.inspect} " \
+         "driver=#{driver.class}"
+    warn "[Visit Helper][diag] driver options: process_timeout=#{opts[:process_timeout].inspect} " \
+         "timeout=#{opts[:timeout].inspect} (process_timeout key present? #{opts.key?(:process_timeout)})"
+    warn "[Visit Helper][diag] Ferrum defaults: PROCESS_TIMEOUT=" \
+         "#{Ferrum::Browser::Options::PROCESS_TIMEOUT} DEFAULT_TIMEOUT=" \
+         "#{Ferrum::Browser::Options::DEFAULT_TIMEOUT}"
+    warn "[Visit Helper][diag] ENV: CI=#{ENV['CI'].inspect} " \
+         "FERRUM_PROCESS_TIMEOUT=#{ENV['FERRUM_PROCESS_TIMEOUT'].inspect} " \
+         "FERRUM_TIMEOUT=#{ENV['FERRUM_TIMEOUT'].inspect}"
+  rescue StandardError => diag_error
+    warn "[Visit Helper][diag] diagnostics unavailable: #{diag_error.class}: #{diag_error.message}"
+  end
+
   def visit(path)
     begin
       super(path)
     rescue Ferrum::PendingConnectionsError, Ferrum::TimeoutError, Ferrum::ProcessTimeoutError => e
+      log_ferrum_timeout_diagnostics(e) if e.is_a?(Ferrum::ProcessTimeoutError)
+
       if e.is_a?(Ferrum::ProcessTimeoutError) && !Thread.current[:visit_retrying]
         Thread.current[:visit_retrying] = true
         warn "[Visit Helper] Process timeout starting browser, resetting session and retrying..."
