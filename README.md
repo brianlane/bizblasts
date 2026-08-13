@@ -1,13 +1,13 @@
 ## Security Headers
 
-For production, enable HSTS at the edge (Render) for both the platform and all custom domains:
+For production, enable HSTS at the edge (Caddy) for both the platform and all custom domains:
 
 ```
 Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
 ```
 
 Notes:
-- Set this header via your CDN/edge (Render) so it applies before Rails. 
+- Set this header via your CDN/edge (Caddy) so it applies before Rails. 
 - Only enable `preload` if your apex and all subdomains serve HTTPS permanently.
 
 # BizBlasts
@@ -21,7 +21,7 @@ BizBlasts is a modern multi-tenant Rails 8 application for business websites wit
 - ✅ **Tenant-Aware Turbo Navigation** - Smart cross-subdomain handling
 - ✅ **Complete Turbo Compatibility** - All 56+ DOMContentLoaded listeners converted
 - ✅ **Comprehensive Test Coverage** - 61 tests covering all JavaScript functionality
-- ✅ **Production-Ready** - Optimized for Render.com deployment
+- ✅ **Production-Ready** - Optimized for the self-hosted Ubuntu + Caddy deployment
 
 **📖 See [docs/HOTWIRE_SETUP.md](docs/HOTWIRE_SETUP.md) for complete documentation**
 
@@ -41,11 +41,13 @@ BizBlasts is a modern multi-tenant Rails 8 application for business websites wit
 
 ## 🌐 **Custom Domain CNAME Setup (Premium Feature)**
 
-**BizBlasts Premium businesses can connect custom domains using CNAME records:**
+**BizBlasts Premium businesses can connect custom domains:**
 - ✅ **Automated DNS Monitoring** - Real-time verification of CNAME configuration
 - ✅ **Email-Guided Setup** - Step-by-step instructions sent to business owners
 - ✅ **Multi-DNS Server Verification** - Checks across Google DNS, Cloudflare, and OpenDNS
-- ✅ **Render.com Integration** - Automatic domain registration with hosting platform
+- ✅ **Hosting Provider Integration** - Automatic domain registration via the configured
+  provider (`CaddyDomainService` by default; `RenderDomainService` retained for the
+  legacy Render deployment). See `BIZBLASTS_DOMAIN_PROVIDER` in `.env.example`.
 - ✅ **ActiveAdmin Management** - Complete admin interface for domain lifecycle
 - ✅ **Automatic SSL** - HTTPS certificates provisioned automatically
 - ✅ **Tier-Based Controls** - Domain removal on tier downgrades
@@ -59,17 +61,26 @@ BizBlasts is a modern multi-tenant Rails 8 application for business websites wit
 2. System sends email notification to BizBlasts team for review
 3. Team reviews request and contacts business within 24-48 hours
 4. For custom domains: Domain ownership verification assistance provided
-5. System adds approved domain to Render.com via API
-6. Email sent with CNAME setup instructions (`domain.com` → `bizblasts.onrender.com`)
+5. System registers the approved domain with the configured domain provider
+6. Email sent with DNS setup instructions. The record type depends on the provider:
+   an `A` record pointing at `BIZBLASTS_PUBLIC_IP` on the Caddy deployment, or a
+   `CNAME` to `bizblasts.onrender.com` on the legacy Render one
 7. DNS monitoring checks every 5 minutes for 1 hour
-8. Domain automatically activated when CNAME verified
-9. SSL certificate provisioned by Render.com
+8. Domain automatically activated once DNS verifies
+9. SSL certificate provisioned automatically (Caddy on-demand TLS, or Render)
 
 **Environment Variables Required:**
 ```bash
+# Selects the custom-domain backend. Defaults to caddy; set to render only for
+# the legacy Render deployment.
+BIZBLASTS_DOMAIN_PROVIDER=caddy
+# Public IPv4 of the Caddy host, used for customer A records and DNS verification
+BIZBLASTS_PUBLIC_IP=your_public_ipv4_here
+SUPPORT_EMAIL=bizblaststeam@gmail.com
+
+# Legacy Render deployment only (BIZBLASTS_DOMAIN_PROVIDER=render)
 RENDER_API_KEY=your_render_api_key_here
 RENDER_SERVICE_ID=your_render_service_id_here
-SUPPORT_EMAIL=bizblaststeam@gmail.com
 ```
 
 ### **Domain Change Request Features**
@@ -626,7 +637,7 @@ Functional Colors:
 
 ---
 
-## 🚀 **Production Deployment (Render.com)**
+## 🚀 **Production Deployment (self-hosted Ubuntu + Caddy)**
 
 ### **Enhanced Build Process**
 The `bin/render-build.sh` script now includes:

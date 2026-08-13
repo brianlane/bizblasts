@@ -21,6 +21,10 @@ RSpec.describe CertificatePropagationRetryJob, type: :job do
   let(:www_domain_data) { { 'id' => 'www-domain-id', 'name' => 'www.example.com' } }
 
   before do
+    # These examples exercise the Render provider specifically, so pin it.
+    # DomainProvider now defaults to 'caddy' (BizBlasts is self-hosted); without
+    # this the stub below would never be reached.
+    allow(DomainProvider).to receive(:provider_name).and_return('render')
     allow(RenderDomainService).to receive(:new).and_return(render_service)
     allow(DomainHealthChecker).to receive(:new).and_return(health_checker)
     allow(Business).to receive(:find).with(business.id).and_return(business)

@@ -3,6 +3,16 @@
 require 'rails_helper'
 
 RSpec.describe DomainVerificationStrategy, type: :service do
+  # This file asserts the :render variant of PROGRESS_COPY throughout ("waiting
+  # for Render", "Render only", and so on), which it got for free while
+  # DomainProvider defaulted to 'render'. The default is now 'caddy' (BizBlasts
+  # is self-hosted), so pin the provider to keep these examples testing the copy
+  # they were written against.
+  #
+  # KNOWN GAP: the :caddy branch of PROGRESS_COPY -- the one production actually
+  # takes now -- has no equivalent coverage here. Worth adding.
+  before { allow(DomainProvider).to receive(:provider_name).and_return('render') }
+
   let(:business) { create(:business, cname_check_attempts: 5) }
   let(:strategy) { described_class.new(business) }
 
@@ -262,6 +272,11 @@ RSpec.describe TimeoutVerificationPolicy, type: :service do
 end
 
 RSpec.describe InProgressVerificationPolicy, type: :service do
+  # Same reason as the DomainVerificationStrategy block above: #status_reason
+  # reads the :render variant of PROGRESS_COPY, and DomainProvider now defaults
+  # to 'caddy'. Same KNOWN GAP -- no caddy-copy coverage.
+  before { allow(DomainProvider).to receive(:provider_name).and_return('render') }
+
   describe '#verified?' do
     it 'always returns false' do
       policy = described_class.new(true, true, false)

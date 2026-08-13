@@ -408,6 +408,14 @@ RSpec.describe "Business Manager Bookings", type: :request do
         it "filters slots that conflict with buffer time" do
           business.booking_policy.update!(buffer_time_mins: 30)
 
+          # The outer `let!(:booking)` lands at tomorrow-at-the-current-time-of-day
+          # (start_time: Time.current + 1.day). Once buffer_time_mins is 30, that
+          # booking conflicts with the 10:00 one below whenever the suite happens to
+          # run between roughly 08:30 and 11:30, making this example fail by wall
+          # clock rather than by behaviour. Clear the day first, as the
+          # max_daily_bookings example below already does.
+          Booking.where(staff_member: staff_member, start_time: date.all_day).delete_all
+
           # Create an existing booking that creates a buffer zone
           existing_start = Time.zone.local(date.year, date.month, date.day, 10, 0)
           existing_end = existing_start + 1.hour # Ends at 11:00

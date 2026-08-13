@@ -21,6 +21,10 @@ RSpec.describe DomainMonitoringService, type: :service do
 
   before do
     allow(CnameDnsChecker).to receive(:new).and_return(dns_checker)
+    # These examples exercise the Render provider specifically, so pin it.
+    # DomainProvider now defaults to 'caddy' (BizBlasts is self-hosted); without
+    # this the stub below would never be reached.
+    allow(DomainProvider).to receive(:provider_name).and_return('render')
     allow(RenderDomainService).to receive(:new).and_return(render_service)
     allow(DomainHealthChecker).to receive(:new).and_return(health_checker)
     allow(DomainVerificationStrategy).to receive(:new).and_return(verification_strategy)
