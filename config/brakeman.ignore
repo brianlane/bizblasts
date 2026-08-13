@@ -1,0 +1,32 @@
+{
+  "ignored_warnings": [
+    {
+      "fingerprint": "55e266e23c296e7241709a24ba1b98f788421bad91afeeedd0d934f2bbf2c59a",
+      "check_name": "Execute",
+      "warning_type": "Command Injection",
+      "message": "Possible command injection",
+      "file": "bin/split_tests.rb",
+      "line": 325,
+      "note": "False positive. Two independent reasons: (1) system() is called in its ARRAY form - system(env, *argv) - which execs directly and never invokes a shell, so no command injection is possible regardless of the interpolated value; (2) the interpolated value goes through sanitize_db_identifier (bin/split_tests.rb:495), which strips everything outside [a-zA-Z0-9_] and double-quotes the result, so the SQL identifier is safe too. Brakeman's Execute check flags interpolation inside a system() argument without accounting for the non-shell array form. Unflagged by brakeman <= 8.0.5; first reported by 8.0.6 with no change to this file, which has been untouched since 2025-07-02."
+    },
+    {
+      "fingerprint": "a11070207f27700eca3c9453c1d54dfcdb7c5371df2368ca53d3d7aabc6cadd3",
+      "check_name": "Execute",
+      "warning_type": "Command Injection",
+      "message": "Possible command injection",
+      "file": "bin/split_tests.rb",
+      "line": 326,
+      "note": "False positive - same reasoning as the bin/split_tests.rb:325 entry above (CREATE DATABASE rather than DROP DATABASE). system() array form, no shell; identifier sanitized by sanitize_db_identifier."
+    },
+    {
+      "fingerprint": "28510662a6c5c082e8b8ae0b56d06ff9e3ef06ce70593960ddcb4950d4e48446",
+      "check_name": "Execute",
+      "warning_type": "Command Injection",
+      "message": "Possible command injection",
+      "file": "bin/split_tests.rb",
+      "line": 448,
+      "note": "False positive - same reasoning as the bin/split_tests.rb:325 entry above (cleanup path, dropping leftover per-category test databases). system() array form, no shell; identifier sanitized by sanitize_db_identifier."
+    }
+  ],
+  "brakeman_version": "8.0.6"
+}
