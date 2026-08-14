@@ -266,4 +266,101 @@ RSpec.describe DomainMailer, type: :mailer do
       expect(mail.body.encoded).to include('font-family')
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Caddy-mode DNS instructions
+  #
+  # Everything above pins the provider to 'render'. This block covers the caddy
+  # branch of DomainMailer#assign_dns_instructions!, which is what the
+  # self-hosted deployment actually sends to customers. Previously untested.
+  # ---------------------------------------------------------------------------
+  describe 'caddy-mode DNS instructions' do
+    let(:public_ip) { '203.0.113.10' }
+
+    before do
+      allow(DomainProvider).to receive(:provider_name).and_return('caddy')
+      ENV['BIZBLASTS_PUBLIC_IP'] = public_ip
+    end
+
+    after { ENV.delete('BIZBLASTS_PUBLIC_IP') }
+
+    # Every mailer action that calls assign_dns_instructions!.
+    {
+      'setup_instructions'   => ->(b, u) { described_class.setup_instructions(b, u) },
+      'timeout_help'         => ->(b, u) { described_class.timeout_help(b, u) },
+      'monitoring_restarted' => ->(b, u) { described_class.monitoring_restarted(b, u) }
+    }.each do |action, builder|
+      context "##{action}" do
+        let(:mail) { builder.call(business, user) }
+
+        it 'instructs an A record for both apex and www, pointing at the public IP' do
+          text = body_text(mail)
+
+          # Apex and www both resolve to the Caddy host on this deployment.
+          expect(text).to include(public_ip)
+          expect(text).to include('Type: A')
+        end
+
+        it 'does not instruct the customer to create a CNAME' do
+          text = body_text(mail)
+
+          # Note: 'onrender.com' can legitimately appear in caddy mode -- the
+          # migration banner lists it as an OLD record to delete. What must not
+          # appear is a CNAME presented as a record to create, or Render's apex
+          # A target, which is hard-coded in the render branch.
+          expect(text).not_to include('Type: CNAME')
+          expect(text).not_to include('216.24.57.1')
+        end
+      end
+    end
+
+    describe 'the migrate-from-another-host banner' do
+      # Rendered only when @dns_www_target_type == 'A', i.e. caddy mode. Most
+      # customers arrive with a www CNAME pointing at a previous host, and
+      # registrars refuse to save a www A record while that CNAME exists, so
+      # this banner is load-bearing for the setup actually succeeding.
+      it 'tells caddy-mode customers to delete an existing www CNAME' do
+        text = body_text(described_class.setup_instructions(business, user))
+
+        expect(text).to include('Migrating from another host?')
+        expect(text).to match(/delete that CNAME/i)
+      end
+
+      it 'is absent in render mode, where www is itself a CNAME' do
+        allow(DomainProvider).to receive(:provider_name).and_return('render')
+        text = body_text(described_class.setup_instructions(business, user))
+
+        expect(text).not_to include('Migrating from another host?')
+      end
+    end
+
+    describe 'when the public IP cannot be resolved' do
+      before do
+        ENV.delete('BIZBLASTS_PUBLIC_IP')
+        # Force the bizblasts.com A-record fallback to come back empty.
+        allow(Resolv::DNS).to receive(:open).and_return([])
+      end
+
+      # Sending a placeholder would tell the customer to type non-IP text into
+      # their DNS panel, and would leave CnameDnsChecker.expected_apex_ip nil so
+      # verification could never succeed. The mailer refuses to send instead.
+      it 'raises rather than sending instructions containing a placeholder' do
+        expect { described_class.setup_instructions(business, user).body }
+          .to raise_error(ArgumentError, /public IP is not configured/)
+      end
+    end
+
+    describe 'whitespace in BIZBLASTS_PUBLIC_IP' do
+      before { ENV['BIZBLASTS_PUBLIC_IP'] = "  #{public_ip}\n" }
+
+      # The value is echoed into the customer's DNS panel and must match what
+      # CnameDnsChecker compares against, which normalises whitespace away.
+      it 'is stripped so the emitted value matches what DNS verification expects' do
+        text = body_text(described_class.setup_instructions(business, user))
+
+        expect(text).to include(public_ip)
+        expect(text).not_to match(/\s#{Regexp.escape(public_ip)}\s*\n\s*<br/)
+      end
+    end
+  end
 end

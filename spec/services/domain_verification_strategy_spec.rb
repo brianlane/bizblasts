@@ -370,3 +370,66 @@ RSpec.describe InProgressVerificationPolicy, type: :service do
     end
   end
 end
+
+# -----------------------------------------------------------------------------
+# Caddy-mode behaviour
+#
+# The blocks above pin the provider to 'render'. This covers the caddy branch --
+# the one the self-hosted deployment actually takes. Previously untested.
+# -----------------------------------------------------------------------------
+RSpec.describe 'DomainVerificationStrategy in caddy mode', type: :service do
+  before { allow(DomainProvider).to receive(:provider_name).and_return('caddy') }
+
+  describe 'InProgressVerificationPolicy#status_reason' do
+    it 'describes the apex + www A records rather than a CNAME' do
+      policy = InProgressVerificationPolicy.new(false, false, false)
+
+      expect(policy.status_reason)
+        .to eq('Waiting for apex + www A records, BizBlasts verification, and health check')
+    end
+
+    it 'attributes verification to BizBlasts, not Render' do
+      policy = InProgressVerificationPolicy.new(false, true, false)
+
+      expect(policy.status_reason).to eq('BizBlasts verified, waiting for DNS and health check')
+    end
+
+    # These strings are surfaced to business owners in the domain status UI.
+    # Naming a hosting provider we no longer use would be actively misleading.
+    # Also asserts each state produces copy at all: the caddy table is a
+    # separate hash from the render one, and a key present in render but missing
+    # from caddy would silently yield nil here rather than fail loudly.
+    it 'produces caddy copy for every reachable state, never mentioning Render' do
+      [true, false].repeated_permutation(4) do |dns, render, health, ssl|
+        state = "[dns=#{dns}, render=#{render}, health=#{health}, ssl=#{ssl}]"
+        reason = InProgressVerificationPolicy.new(dns, render, health, ssl).status_reason
+
+        expect(reason).to be_present, "no status_reason for #{state}"
+        expect(reason).not_to match(/render/i),
+          "expected no 'Render' for #{state}, got: #{reason.inspect}"
+      end
+    end
+  end
+
+  describe '.dns_verified_for' do
+    # On Caddy both apex and www must resolve, so the dual-check result is
+    # authoritative. Deriving the UI's "DNS verified" row from dns_result alone
+    # would flash green on one host while activation correctly stayed blocked.
+    it 'defers to the dual check when it reports overall_verified' do
+      expect(
+        DomainVerificationStrategy.dns_verified_for({ verified: true }, { overall_verified: false })
+      ).to be false
+    end
+
+    it 'accepts when the dual check reports overall success' do
+      expect(
+        DomainVerificationStrategy.dns_verified_for({ verified: false }, { overall_verified: true })
+      ).to be true
+    end
+
+    it 'falls back to the single result when no dual check was performed' do
+      expect(DomainVerificationStrategy.dns_verified_for({ verified: true }, nil)).to be true
+      expect(DomainVerificationStrategy.dns_verified_for({ verified: false }, nil)).to be false
+    end
+  end
+end

@@ -282,4 +282,133 @@ RSpec.describe CnameDnsChecker, type: :service do
       end
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Caddy-mode verification
+  #
+  # Everything above pins the provider to 'render'. This block covers the caddy
+  # branch -- apex/www A records against BIZBLASTS_PUBLIC_IP, with no
+  # CNAME-to-onrender step -- which is what the self-hosted deployment runs.
+  # Previously untested.
+  # ---------------------------------------------------------------------------
+  describe 'caddy mode' do
+    let(:public_ip) { '203.0.113.10' }
+    let(:resolver) { instance_double(Resolv::DNS) }
+    let(:a_record) { instance_double(Resolv::DNS::Resource::IN::A, address: public_ip) }
+
+    before do
+      allow(DomainProvider).to receive(:provider_name).and_return('caddy')
+      ENV['BIZBLASTS_PUBLIC_IP'] = public_ip
+    end
+
+    after { ENV.delete('BIZBLASTS_PUBLIC_IP') }
+
+    describe '.expected_cname_target' do
+      # Returning nil is what makes verify_cname skip CNAME resolution entirely.
+      it 'is nil, because there is no CNAME step on Caddy' do
+        expect(described_class.expected_cname_target).to be_nil
+      end
+    end
+
+    describe '.expected_apex_ip' do
+      it 'is the configured public IP' do
+        expect(described_class.expected_apex_ip).to eq(public_ip)
+      end
+
+      it 'strips surrounding whitespace so it matches what DomainMailer emits' do
+        ENV['BIZBLASTS_PUBLIC_IP'] = "  #{public_ip}\n"
+        expect(described_class.expected_apex_ip).to eq(public_ip)
+      end
+
+      it 'falls back to a live bizblasts.com A lookup when the var is unset' do
+        ENV.delete('BIZBLASTS_PUBLIC_IP')
+        allow(described_class).to receive(:resolve_bizblasts_a).and_return('198.51.100.7')
+
+        expect(described_class.expected_apex_ip).to eq('198.51.100.7')
+      end
+    end
+
+    describe '#verify_cname' do
+      let(:checker) { described_class.new(domain_name) }
+
+      before do
+        checker.instance_variable_set(:@resolver, resolver)
+        allow(resolver).to receive(:close)
+      end
+
+      context 'when the A record points at the public IP' do
+        before do
+          allow(resolver).to receive(:getresources)
+            .with(domain_name, Resolv::DNS::Resource::IN::A)
+            .and_return([a_record])
+        end
+
+        it 'verifies against the A record and reports the IP as the target' do
+          result = checker.verify_cname
+
+          expect(result[:verified]).to be true
+          expect(result[:target]).to eq(public_ip)
+          expect(result[:expected_target]).to eq(public_ip)
+          expect(result[:error]).to be_nil
+        end
+
+        it 'never performs a CNAME lookup' do
+          expect(resolver).not_to receive(:getresources)
+            .with(anything, Resolv::DNS::Resource::IN::CNAME)
+
+          checker.verify_cname
+        end
+      end
+
+      context 'when the A record points somewhere else' do
+        before do
+          allow(resolver).to receive(:getresources)
+            .with(domain_name, Resolv::DNS::Resource::IN::A)
+            .and_return([instance_double(Resolv::DNS::Resource::IN::A, address: '198.51.100.99')])
+        end
+
+        it 'reports the A-record error rather than the CNAME one' do
+          result = checker.verify_cname
+
+          expect(result[:verified]).to be false
+          expect(result[:error]).to eq('A-record does not point at BizBlasts public IP')
+        end
+      end
+    end
+
+    describe 'a www host' do
+      # On Caddy, www needs its OWN A record: AllowedHostService gates the
+      # on_demand_tls handshake per exact host, so accepting the apex's A record
+      # on behalf of www would let verification pass and then 404 at handshake.
+      # Render's branch deliberately strips the www. prefix instead. Exercised
+      # through verify_cname, since the matcher itself is private.
+      let(:checker) { described_class.new('www.example.com') }
+
+      before do
+        checker.instance_variable_set(:@resolver, resolver)
+        allow(resolver).to receive(:close)
+      end
+
+      it 'looks up the exact www host rather than the stripped apex' do
+        expect(resolver).to receive(:getresources)
+          .with('www.example.com', Resolv::DNS::Resource::IN::A)
+          .and_return([a_record])
+        expect(resolver).not_to receive(:getresources)
+          .with('example.com', Resolv::DNS::Resource::IN::A)
+
+        expect(checker.verify_cname[:verified]).to be true
+      end
+
+      it 'stays unverified when www has no A record of its own' do
+        allow(resolver).to receive(:getresources)
+          .with('www.example.com', Resolv::DNS::Resource::IN::A)
+          .and_return([])
+
+        result = checker.verify_cname
+
+        expect(result[:verified]).to be false
+        expect(result[:error]).to eq('A-record does not point at BizBlasts public IP')
+      end
+    end
+  end
 end
