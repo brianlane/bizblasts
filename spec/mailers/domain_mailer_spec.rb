@@ -355,11 +355,16 @@ RSpec.describe DomainMailer, type: :mailer do
 
       # The value is echoed into the customer's DNS panel and must match what
       # CnameDnsChecker compares against, which normalises whitespace away.
-      it 'is stripped so the emitted value matches what DNS verification expects' do
-        text = body_text(described_class.setup_instructions(business, user))
+      #
+      # Asserts against the raw HTML, NOT body_text. Nokogiri-extracted plain
+      # text would still `include` an untrimmed value, so a body_text assertion
+      # here proves nothing -- dropping .strip from bizblasts_public_ip would
+      # sail straight through it. Matching the exact rendered markup is what
+      # gives this example teeth.
+      it 'is stripped before being rendered into the DNS instructions' do
+        raw = described_class.setup_instructions(business, user).body.decoded
 
-        expect(text).to include(public_ip)
-        expect(text).not_to match(/\s#{Regexp.escape(public_ip)}\s*\n\s*<br/)
+        expect(raw).to include("Value/Target:</strong> #{public_ip}<br>")
       end
     end
   end

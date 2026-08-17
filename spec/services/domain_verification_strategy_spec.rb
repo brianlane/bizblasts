@@ -399,15 +399,41 @@ RSpec.describe 'DomainVerificationStrategy in caddy mode', type: :service do
     # Also asserts each state produces copy at all: the caddy table is a
     # separate hash from the render one, and a key present in render but missing
     # from caddy would silently yield nil here rather than fail loudly.
-    it 'produces caddy copy for every reachable state, never mentioning Render' do
-      [true, false].repeated_permutation(4) do |dns, render, health, ssl|
+    it 'produces specific caddy copy for every reachable state, never mentioning Render' do
+      # status_reason is `PROGRESS_COPY.dig(provider_key, state) || <generic>`,
+      # so a caddy key that goes missing does NOT yield nil -- it yields the
+      # generic fallback, which is both present and Render-free. Asserting
+      # merely "present and no Render" would therefore pass with the whole
+      # caddy table gutted. Assert the fallback is never reached instead.
+      fallback = 'Domain configuration is in progress'
+
+      # [true, true, true, true] is excluded because it is unreachable for this
+      # policy: create_verification_policy returns SuccessVerificationPolicy for
+      # all-verified before InProgressVerificationPolicy is ever constructed, and
+      # verification_state maps that combination to :unknown, which has no copy
+      # key in EITHER table. The example below pins that routing, so this
+      # exclusion stays honest rather than becoming a place for a real gap to hide.
+      states = [true, false].repeated_permutation(4).reject { |combo| combo.all? }
+
+      states.each do |dns, render, health, ssl|
         state = "[dns=#{dns}, render=#{render}, health=#{health}, ssl=#{ssl}]"
         reason = InProgressVerificationPolicy.new(dns, render, health, ssl).status_reason
 
-        expect(reason).to be_present, "no status_reason for #{state}"
+        expect(reason).not_to eq(fallback),
+          "fell back to the generic message for #{state}: a caddy PROGRESS_COPY key is missing"
         expect(reason).not_to match(/render/i),
           "expected no 'Render' for #{state}, got: #{reason.inspect}"
       end
+    end
+
+    it 'never sees the all-verified state, which routes to success instead' do
+      business = create(:business, cname_check_attempts: 1)
+      result = DomainVerificationStrategy.new(business).determine_status(
+        { verified: true }, { verified: true }, { healthy: true, ssl_ready: true }
+      )
+
+      expect(result[:verified]).to be true
+      expect(result[:should_continue]).to be false
     end
   end
 
