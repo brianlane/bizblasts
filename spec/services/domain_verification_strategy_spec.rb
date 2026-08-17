@@ -370,3 +370,92 @@ RSpec.describe InProgressVerificationPolicy, type: :service do
     end
   end
 end
+
+# -----------------------------------------------------------------------------
+# Caddy-mode behaviour
+#
+# The blocks above pin the provider to 'render'. This covers the caddy branch --
+# the one the self-hosted deployment actually takes. Previously untested.
+# -----------------------------------------------------------------------------
+RSpec.describe 'DomainVerificationStrategy in caddy mode', type: :service do
+  before { allow(DomainProvider).to receive(:provider_name).and_return('caddy') }
+
+  describe 'InProgressVerificationPolicy#status_reason' do
+    it 'describes the apex + www A records rather than a CNAME' do
+      policy = InProgressVerificationPolicy.new(false, false, false)
+
+      expect(policy.status_reason)
+        .to eq('Waiting for apex + www A records, BizBlasts verification, and health check')
+    end
+
+    it 'attributes verification to BizBlasts, not Render' do
+      policy = InProgressVerificationPolicy.new(false, true, false)
+
+      expect(policy.status_reason).to eq('BizBlasts verified, waiting for DNS and health check')
+    end
+
+    # These strings are surfaced to business owners in the domain status UI.
+    # Naming a hosting provider we no longer use would be actively misleading.
+    # Also asserts each state produces copy at all: the caddy table is a
+    # separate hash from the render one, and a key present in render but missing
+    # from caddy would silently yield nil here rather than fail loudly.
+    it 'produces specific caddy copy for every reachable state, never mentioning Render' do
+      # status_reason is `PROGRESS_COPY.dig(provider_key, state) || <generic>`,
+      # so a caddy key that goes missing does NOT yield nil -- it yields the
+      # generic fallback, which is both present and Render-free. Asserting
+      # merely "present and no Render" would therefore pass with the whole
+      # caddy table gutted. Assert the fallback is never reached instead.
+      fallback = 'Domain configuration is in progress'
+
+      # [true, true, true, true] is excluded because it is unreachable for this
+      # policy: create_verification_policy returns SuccessVerificationPolicy for
+      # all-verified before InProgressVerificationPolicy is ever constructed, and
+      # verification_state maps that combination to :unknown, which has no copy
+      # key in EITHER table. The example below pins that routing, so this
+      # exclusion stays honest rather than becoming a place for a real gap to hide.
+      states = [true, false].repeated_permutation(4).reject { |combo| combo.all? }
+
+      states.each do |dns, render, health, ssl|
+        state = "[dns=#{dns}, render=#{render}, health=#{health}, ssl=#{ssl}]"
+        reason = InProgressVerificationPolicy.new(dns, render, health, ssl).status_reason
+
+        expect(reason).not_to eq(fallback),
+          "fell back to the generic message for #{state}: a caddy PROGRESS_COPY key is missing"
+        expect(reason).not_to match(/render/i),
+          "expected no 'Render' for #{state}, got: #{reason.inspect}"
+      end
+    end
+
+    it 'never sees the all-verified state, which routes to success instead' do
+      business = create(:business, cname_check_attempts: 1)
+      result = DomainVerificationStrategy.new(business).determine_status(
+        { verified: true }, { verified: true }, { healthy: true, ssl_ready: true }
+      )
+
+      expect(result[:verified]).to be true
+      expect(result[:should_continue]).to be false
+    end
+  end
+
+  describe '.dns_verified_for' do
+    # On Caddy both apex and www must resolve, so the dual-check result is
+    # authoritative. Deriving the UI's "DNS verified" row from dns_result alone
+    # would flash green on one host while activation correctly stayed blocked.
+    it 'defers to the dual check when it reports overall_verified' do
+      expect(
+        DomainVerificationStrategy.dns_verified_for({ verified: true }, { overall_verified: false })
+      ).to be false
+    end
+
+    it 'accepts when the dual check reports overall success' do
+      expect(
+        DomainVerificationStrategy.dns_verified_for({ verified: false }, { overall_verified: true })
+      ).to be true
+    end
+
+    it 'falls back to the single result when no dual check was performed' do
+      expect(DomainVerificationStrategy.dns_verified_for({ verified: true }, nil)).to be true
+      expect(DomainVerificationStrategy.dns_verified_for({ verified: false }, nil)).to be false
+    end
+  end
+end
