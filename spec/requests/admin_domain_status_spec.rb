@@ -23,7 +23,9 @@ RSpec.describe 'Admin Domain Status API', type: :request do
     # off the dual-check result instead, which this file does not stub. Pinned
     # so the assertions keep testing the branch they were written against.
     #
-    # KNOWN GAP: the caddy dual-check path has no coverage here.
+    # The caddy dual-check path itself is covered by the '.dns_verified_for'
+    # examples in spec/services/domain_verification_strategy_spec.rb. It is
+    # deliberately not re-exercised through this endpoint.
     allow(DomainProvider).to receive(:provider_name).and_return('render')
   end
 

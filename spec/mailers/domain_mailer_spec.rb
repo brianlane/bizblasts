@@ -21,9 +21,9 @@ RSpec.describe DomainMailer, type: :mailer do
     # default. Pinned so the existing assertions keep testing what they were
     # written against.
     #
-    # KNOWN GAP: the caddy A-record copy -- what customers actually receive now
-    # -- has no coverage here. These are customer-facing DNS instructions, so
-    # this is the most valuable of the caddy gaps to close.
+    # The caddy A-record copy -- what customers actually receive now -- is
+    # covered by the 'caddy-mode DNS instructions' block at the bottom of this
+    # file. This pin scopes only the render-mode examples above it.
     allow(DomainProvider).to receive(:provider_name).and_return('render')
   end
 

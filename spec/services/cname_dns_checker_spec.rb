@@ -15,8 +15,9 @@ RSpec.describe CnameDnsChecker, type: :service do
     # this file does not stub. It got render mode for free while DomainProvider
     # defaulted to 'render'; the default is now 'caddy', so pin it explicitly.
     #
-    # KNOWN GAP: the caddy apex-A path -- the one production actually takes now
-    # -- has no equivalent coverage here. Worth adding.
+    # The caddy apex-A path -- the one production actually takes -- is covered
+    # by the 'caddy mode' block at the bottom of this file. This pin scopes only
+    # the render-mode examples above it.
     allow(DomainProvider).to receive(:provider_name).and_return('render')
   end
 

@@ -9,8 +9,9 @@ RSpec.describe DomainVerificationStrategy, type: :service do
   # is self-hosted), so pin the provider to keep these examples testing the copy
   # they were written against.
   #
-  # KNOWN GAP: the :caddy branch of PROGRESS_COPY -- the one production actually
-  # takes now -- has no equivalent coverage here. Worth adding.
+  # The :caddy branch of PROGRESS_COPY -- the one production actually takes --
+  # is covered by the 'DomainVerificationStrategy in caddy mode' describe at the
+  # bottom of this file. This pin scopes only the render-mode examples.
   before { allow(DomainProvider).to receive(:provider_name).and_return('render') }
 
   let(:business) { create(:business, cname_check_attempts: 5) }
@@ -274,7 +275,8 @@ end
 RSpec.describe InProgressVerificationPolicy, type: :service do
   # Same reason as the DomainVerificationStrategy block above: #status_reason
   # reads the :render variant of PROGRESS_COPY, and DomainProvider now defaults
-  # to 'caddy'. Same KNOWN GAP -- no caddy-copy coverage.
+  # to 'caddy'. Caddy copy for this policy is covered by the caddy-mode
+  # describe at the bottom of this file.
   before { allow(DomainProvider).to receive(:provider_name).and_return('render') }
 
   describe '#verified?' do
