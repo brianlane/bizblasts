@@ -226,7 +226,32 @@ RSpec.describe ServiceAreaChecker, 'performance', type: :performance do
       allow_any_instance_of(ServiceAreaChecker).to receive(:geocode_with_structured_search)
         .and_return([mock_result])
 
-      initial_objects = ObjectSpace.count_objects
+      # Measure LIVE slots, not ObjectSpace.count_objects[:TOTAL].
+      #
+      # TOTAL is heap CAPACITY -- allocated slots including free ones -- not
+      # live objects. Allocating 100k collectable objects and running GC moves
+      # TOTAL by zero, because freed slots stay in the heap as :FREE. TOTAL only
+      # moves when the heap has to EXPAND, and then it jumps by about a whole
+      # page batch: ~200,000 measured on this Ruby, twenty times the threshold
+      # below. That made the old assertion effectively binary -- ~0 when the
+      # heap happened not to expand, ~200,000 when it did -- with which one you
+      # got depending on how full the heap already was when the example started,
+      # i.e. on whatever ran before it under RSpec's random ordering. It went red
+      # on a .gitignore-only PR (#645), which is what surfaced this.
+      live_slots = lambda do
+        objects = ObjectSpace.count_objects
+        objects[:TOTAL] - objects[:FREE]
+      end
+
+      # Warm up BEFORE the baseline. `business` is a lazy let, so without this
+      # its record creation lands inside the measured window along with the
+      # first-call memoisation and connection setup -- one-time costs that have
+      # nothing to do with leaking and that dominated the reading.
+      business
+      5.times { |i| ServiceAreaChecker.new(business).within_radius?("9021#{i}", radius_miles: 50) }
+
+      GC.start
+      initial_live = live_slots.call
 
       # Perform many checks
       100.times do |i|
@@ -237,11 +262,11 @@ RSpec.describe ServiceAreaChecker, 'performance', type: :performance do
       # Force garbage collection
       GC.start
 
-      final_objects = ObjectSpace.count_objects
+      growth = live_slots.call - initial_live
 
-      # Object growth should be reasonable (not exponential)
-      # Allow for some growth due to caching and Ruby internals
-      growth = final_objects[:TOTAL] - initial_objects[:TOTAL]
+      # Measured steady-state retention is roughly 4-8 live slots per call, so
+      # ~400-800 for 100 iterations. The threshold keeps an order of magnitude
+      # of headroom over that while still catching runaway retention.
       expect(growth).to be < 10000
     end
   end
