@@ -38,7 +38,7 @@ gem "omniauth-rails_csrf_protection", "~> 2.0"
 gem "resend"
 
 # SMS delivery
-gem "twilio-ruby", "~> 7.10"
+gem "twilio-ruby", "~> 7.11"
 
 # Authorization
 gem "pundit"
