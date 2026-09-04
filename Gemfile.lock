@@ -348,7 +348,7 @@ GEM
       json (>= 2.6.3, < 2.10.0)
       microsoft_kiota_abstractions (~> 0.14.0)
       uuidtools (~> 2.2.0)
-    mini_magick (5.3.3)
+    mini_magick (5.4.0)
       logger
     mini_mime (1.1.5)
     minitest (6.0.6)
@@ -737,7 +737,7 @@ DEPENDENCIES
   json (~> 2.8.2)
   kaminari (~> 1.2)
   microsoft_graph (~> 0.22)
-  mini_magick (~> 5.3)
+  mini_magick (~> 5.4)
   multi_json
   oauth2 (~> 2.0)
   omniauth-google-oauth2 (~> 1.2)

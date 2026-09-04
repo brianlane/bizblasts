@@ -77,7 +77,7 @@ gem "image_processing", "~> 2.0"
 # image_processing 2.x dropped the implicit mini_magick dependency; declare it
 # explicitly so ProcessImageJob's ImageProcessing::MiniMagick path keeps working
 # (used for HEIC -> JPEG conversion of customer uploads).
-gem "mini_magick", "~> 5.3"
+gem "mini_magick", "~> 5.4"
 
 gem 'cloudflare-rails'
 
