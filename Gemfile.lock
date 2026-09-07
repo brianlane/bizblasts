@@ -276,7 +276,7 @@ GEM
       logger
       ostruct
     ice_cube (0.17.0)
-    image_processing (2.0.3)
+    image_processing (2.1.0)
     inherited_resources (1.14.0)
       actionpack (>= 6.0)
       has_scope (>= 0.6)
@@ -731,7 +731,7 @@ DEPENDENCIES
   groupdate
   httparty (~> 0.24)
   icalendar (~> 2.12)
-  image_processing (~> 2.0)
+  image_processing (~> 2.1)
   jbuilder
   jquery-ui-rails
   json (~> 2.8.2)
