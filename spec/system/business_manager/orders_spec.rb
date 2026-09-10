@@ -171,7 +171,7 @@ RSpec.describe "Business Manager Orders", type: :system do
       
       # Check financial summary
       expect(page).to have_content("Financial Summary:")
-      expect(page).to have_content("$#{sprintf('%.2f', product_order.total_amount)}")
+      expect(page).to have_content(ActionController::Base.helpers.number_to_currency(product_order.total_amount))
     end
     
     it "navigates back to the orders list" do
