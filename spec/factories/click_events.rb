@@ -6,9 +6,7 @@ FactoryBot.define do
     visitor_session do
       next if __override_names__.include?(:session_id)
 
-      attrs = { strategy: :create, business: business }
-      attrs[:visitor_fingerprint] = visitor_fingerprint if __override_names__.include?(:visitor_fingerprint)
-      association(:visitor_session, **attrs)
+      association(:visitor_session, strategy: :create, business: business)
     end
     session_id { visitor_session&.session_id }
     visitor_fingerprint { visitor_session&.visitor_fingerprint || SecureRandom.hex(16) }
