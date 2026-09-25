@@ -737,7 +737,11 @@ RSpec.describe AvailabilityService, type: :service do
     context 'with business time zone considerations' do
       let(:business_with_timezone) { create(:business, time_zone: 'America/New_York') }
       let(:staff_with_timezone) { create(:staff_member, business: business_with_timezone) }
-      let(:service_with_timezone) { create(:service, business: business_with_timezone) }
+      let(:service_with_timezone) do
+        ActsAsTenant.with_tenant(business_with_timezone) do
+          create(:service, business: business_with_timezone)
+        end
+      end
       
       before do
         create(:services_staff_member, service: service_with_timezone, staff_member: staff_with_timezone)
