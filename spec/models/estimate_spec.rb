@@ -50,7 +50,8 @@ RSpec.describe Estimate, type: :model do
 
   describe 'customer validation' do
     it 'skips contact validations when tenant_customer_id is present' do
-      estimate = build(:estimate, tenant_customer_id: 1, first_name: '', last_name: '', email: '', phone: '', address: '', city: '', state: '', zip: '')
+      customer = create(:tenant_customer)
+      estimate = build(:estimate, business: customer.business, tenant_customer: customer, first_name: '', last_name: '', email: '', phone: '', address: '', city: '', state: '', zip: '')
       expect(estimate).to be_valid
     end
   end

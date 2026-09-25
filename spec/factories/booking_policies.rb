@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :booking_policy do
-    association :business
+    business { ActsAsTenant.current_tenant || association(:business) }
     cancellation_window_mins { 0 }
     buffer_time_mins { 0 }
     max_daily_bookings { 0 }

@@ -2,8 +2,8 @@
 
 FactoryBot.define do
   factory :job_attachment do
-    association :business
-    attachable { association :service }
+    business { ActsAsTenant.current_tenant || association(:business) }
+    attachable { association :service, business: business }
     attachment_type { :before_photo }
     title { Faker::Lorem.words(number: 3).join(' ').titleize }
     description { Faker::Lorem.paragraph }

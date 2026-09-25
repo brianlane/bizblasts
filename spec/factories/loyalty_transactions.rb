@@ -1,7 +1,7 @@
 FactoryBot.define do
   factory :loyalty_transaction do
-    business
-    tenant_customer
+    business { ActsAsTenant.current_tenant || association(:business) }
+    tenant_customer { association :tenant_customer, business: business }
     transaction_type { 'earned' }
     points_amount { 100 }
     description { 'Test loyalty transaction' }

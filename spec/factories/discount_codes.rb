@@ -1,7 +1,7 @@
 FactoryBot.define do
   factory :discount_code do
-    business
-    association :used_by_customer, factory: :tenant_customer
+    business { ActsAsTenant.current_tenant || association(:business) }
+    used_by_customer { nil }
     code { "DISC#{SecureRandom.hex(4).upcase}" }
     discount_type { 'fixed_amount' }
     discount_value { 10.00 }
@@ -19,6 +19,7 @@ FactoryBot.define do
     trait :used do
       active { false }
       used_at { 1.day.ago }
+      used_by_customer { association :tenant_customer, business: business }
     end
     
     trait :expired do

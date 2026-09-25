@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :tip_configuration do
-    business
+    business { ActsAsTenant.current_tenant || association(:business) }
     default_tip_percentages { [15, 18, 20] }
     custom_tip_enabled { true }
     tip_message { "Thank you for your business! Tips are greatly appreciated." }

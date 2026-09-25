@@ -1,7 +1,7 @@
 FactoryBot.define do
   factory :estimate do
-    association :business
-    association :tenant_customer
+    business { ActsAsTenant.current_tenant || association(:business) }
+    tenant_customer { association :tenant_customer, business: business }
     proposed_start_time { Time.current + 1.day }
     required_deposit { 0.0 }
     subtotal { 0.0 }

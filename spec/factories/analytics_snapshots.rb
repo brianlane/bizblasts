@@ -2,7 +2,7 @@
 
 FactoryBot.define do
   factory :analytics_snapshot do
-    association :business
+    business { ActsAsTenant.current_tenant || association(:business) }
     snapshot_type { 'daily' }
     period_start { Date.current }
     period_end { Date.current }

@@ -249,8 +249,14 @@ RSpec.describe "Subscription Cancellation Flow", type: :request do
 
   describe "multi-tenant isolation" do
     let(:other_business) { create(:business, subdomain: 'otherbiz', hostname: 'otherbiz') }
-    let(:other_customer) { create(:tenant_customer, business: other_business) }
-    let(:other_subscription) { create(:customer_subscription, business: other_business, tenant_customer: other_customer) }
+    let(:other_customer) do
+      ActsAsTenant.with_tenant(other_business) { create(:tenant_customer, business: other_business) }
+    end
+    let(:other_subscription) do
+      ActsAsTenant.with_tenant(other_business) do
+        create(:customer_subscription, business: other_business, tenant_customer: other_customer)
+      end
+    end
 
     before { sign_in client_user }
 

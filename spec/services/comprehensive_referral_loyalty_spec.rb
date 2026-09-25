@@ -713,7 +713,9 @@ RSpec.describe 'Comprehensive Referral and Loyalty System', type: :service do
 
     describe 'Cross-business scenarios fail' do
       it 'business Y discount code fails at business X' do
-        business_discount_y = create(:discount_code, business: business_y, code: 'BUSINESSY10', discount_type: 'fixed_amount', discount_value: 10)
+        business_discount_y = ActsAsTenant.with_tenant(business_y) do
+          create(:discount_code, business: business_y, code: 'BUSINESSY10', discount_type: 'fixed_amount', discount_value: 10)
+        end
         
         ActsAsTenant.with_tenant(business_x) do
           tenant_customer = create(:tenant_customer, business: business_x, email: 'crosstest@example.com')

@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :promotion do
-    association :business
+    business { ActsAsTenant.current_tenant || association(:business) }
     name { "Summer Sale" }
     code { nil } # Default to automatic promotion (no code)
     start_date { 1.week.ago }

@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :loyalty_program do
-    business
+    business { ActsAsTenant.current_tenant || association(:business) }
     name { "#{business&.name || 'Test Business'} Loyalty Program" }
     points_name { 'points' }
     points_per_dollar { 1.0 }

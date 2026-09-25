@@ -12,10 +12,10 @@ FactoryBot.define do
     }
     status { :pending }
     notes { Faker::Lorem.paragraph }
-    association :service
-    association :staff_member
-    association :tenant_customer
-    association :business
+    business { ActsAsTenant.current_tenant || association(:business) }
+    service { association :service, business: business }
+    staff_member { association :staff_member, business: business }
+    tenant_customer { association :tenant_customer, business: business }
     
     trait :confirmed do
       status { :confirmed }
@@ -38,7 +38,7 @@ FactoryBot.define do
     end
     
     trait :with_promotion do
-      association :promotion
+      promotion { association :promotion, business: business }
       original_amount { service&.price || 100 }
       discount_amount { 10 }
       amount { original_amount - discount_amount }

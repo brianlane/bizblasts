@@ -2,10 +2,10 @@
 
 FactoryBot.define do
   factory :job_form_submission do
-    association :business
-    association :booking
-    association :job_form_template
-    association :staff_member
+    business { ActsAsTenant.current_tenant || association(:business) }
+    booking { association :booking, business: business }
+    job_form_template { association :job_form_template, business: business }
+    staff_member { association :staff_member, business: business }
     responses { {} }
     status { :draft }
 

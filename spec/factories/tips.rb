@@ -1,8 +1,8 @@
 FactoryBot.define do
   factory :tip do
-    association :business
-    association :booking
-    association :tenant_customer
+    business { ActsAsTenant.current_tenant || association(:business) }
+    tenant_customer { association :tenant_customer, business: business }
+    booking { association :booking, business: business, tenant_customer: tenant_customer }
     
     amount { 5.00 }
     status { :pending }

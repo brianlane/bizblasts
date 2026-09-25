@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :integration do
-    association :business
+    business { ActsAsTenant.current_tenant || association(:business) }
     kind { Integration.kinds.keys.sample } # Or a specific default like :webhook
     config { { url: "https://example.com/default_hook", key: "value" } }
 

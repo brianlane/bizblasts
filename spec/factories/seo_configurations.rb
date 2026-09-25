@@ -2,7 +2,7 @@
 
 FactoryBot.define do
   factory :seo_configuration do
-    association :business
+    business { ActsAsTenant.current_tenant || association(:business) }
     
     meta_title_template { '{{business_name}} | {{page_title}} in {{city}}, {{state}}' }
     meta_description_template { '{{business_name}} offers professional {{industry}} services in {{city}}, {{state}}. {{description}}' }

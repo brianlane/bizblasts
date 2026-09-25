@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :document_template do
-    business
+    business { ActsAsTenant.current_tenant || association(:business) }
     name { "Default Template" }
     document_type { 'estimate' }
     body { "<p>Standard terms</p>" }

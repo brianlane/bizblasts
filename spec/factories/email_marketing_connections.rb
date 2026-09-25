@@ -2,7 +2,7 @@
 
 FactoryBot.define do
   factory :email_marketing_connection do
-    association :business
+    business { ActsAsTenant.current_tenant || association(:business) }
 
     trait :mailchimp do
       provider { :mailchimp }
@@ -47,7 +47,7 @@ FactoryBot.define do
 
   factory :email_marketing_sync_log do
     association :email_marketing_connection
-    association :business
+    business { ActsAsTenant.current_tenant || association(:business) }
 
     sync_type { :full_sync }
     status { :pending }

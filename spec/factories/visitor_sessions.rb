@@ -2,7 +2,7 @@
 
 FactoryBot.define do
   factory :visitor_session do
-    association :business
+    business { ActsAsTenant.current_tenant || association(:business) }
     visitor_fingerprint { SecureRandom.hex(16) }
     session_id { SecureRandom.uuid }
     session_start { rand(1..60).minutes.ago }

@@ -2,7 +2,7 @@
 
 FactoryBot.define do
   factory :calendar_connection do
-    business
+    business { ActsAsTenant.current_tenant || association(:business) }
     staff_member
     provider { 'google' }
     uid { "calendar_#{SecureRandom.hex(8)}" }

@@ -737,7 +737,11 @@ RSpec.describe AvailabilityService, type: :service do
     context 'with business time zone considerations' do
       let(:business_with_timezone) { create(:business, time_zone: 'America/New_York') }
       let(:staff_with_timezone) { create(:staff_member, business: business_with_timezone) }
-      let(:service_with_timezone) { create(:service, business: business_with_timezone) }
+      let(:service_with_timezone) do
+        ActsAsTenant.with_tenant(business_with_timezone) do
+          create(:service, business: business_with_timezone)
+        end
+      end
       
       before do
         create(:services_staff_member, service: service_with_timezone, staff_member: staff_with_timezone)
@@ -751,19 +755,21 @@ RSpec.describe AvailabilityService, type: :service do
       end
       
       it 'respects business time zone when filtering past slots' do
-        # Freeze time at 10:00 AM Eastern so filtering uses that reference
-        est_zone = ActiveSupport::TimeZone['America/New_York']
-        est_time = est_zone.local(today.year, today.month, today.day, 10, 0)
-        travel_to est_time
-        
-        slots = described_class.available_slots(staff_with_timezone, today, service_with_timezone)
-        slot_times = slots.map { |slot| slot[:start_time].strftime('%H:%M') }
-        
-        # Should filter based on EST time, not UTC
-        expect(slot_times).not_to include('09:00') # Past in EST
-        expect(slot_times).to include('11:00')      # Future in EST
-        
-        travel_back
+        ActsAsTenant.with_tenant(business_with_timezone) do
+          # Freeze time at 10:00 AM Eastern so filtering uses that reference
+          est_zone = ActiveSupport::TimeZone['America/New_York']
+          est_time = est_zone.local(today.year, today.month, today.day, 10, 0)
+          travel_to est_time
+
+          slots = described_class.available_slots(staff_with_timezone, today, service_with_timezone)
+          slot_times = slots.map { |slot| slot[:start_time].strftime('%H:%M') }
+
+          # Should filter based on EST time, not UTC
+          expect(slot_times).not_to include('09:00') # Past in EST
+          expect(slot_times).to include('11:00')      # Future in EST
+
+          travel_back
+        end
       end
     end
     

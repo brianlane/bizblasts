@@ -12,7 +12,7 @@ FactoryBot.define do
     allow_discounts { true }
     tips_enabled { false }
     tip_mailer_if_no_tip_received { true }
-    association :business
+    business { ActsAsTenant.current_tenant || association(:business) }
     
     availability_settings { {} }
     

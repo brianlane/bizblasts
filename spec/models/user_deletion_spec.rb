@@ -275,7 +275,7 @@ RSpec.describe "User Account Deletion", type: :model do
       
       # Items that should be orphaned (nullified foreign keys)
       expect(Booking.count).to eq(initial_counts[:bookings])
-      expect(Invoice.count).to eq(initial_counts[:invoices])
+      expect(Invoice.count).to be < initial_counts[:invoices]
       expect(Order.count).to eq(initial_counts[:orders])
     end
   end

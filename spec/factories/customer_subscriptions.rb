@@ -3,7 +3,7 @@
 FactoryBot.define do
   factory :customer_subscription do
     # Required associations
-    association :business
+    business { ActsAsTenant.current_tenant || association(:business) }
     
     # Create tenant_customer that belongs to the same business
     tenant_customer { association(:tenant_customer, business: business) }

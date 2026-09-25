@@ -25,12 +25,12 @@ FactoryBot.define do
     
     trait :manager do
       role { :manager }
-      association :business
+      business { ActsAsTenant.current_tenant || association(:business) }
     end
     
     trait :staff do
       role { :staff }
-      association :business
+      business { ActsAsTenant.current_tenant || association(:business) }
     end
     
     trait :client do

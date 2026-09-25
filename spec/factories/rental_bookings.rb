@@ -2,9 +2,9 @@
 
 FactoryBot.define do
   factory :rental_booking do
-    association :business
-    association :product, factory: [:product, :rental]
-    association :tenant_customer
+    business { ActsAsTenant.current_tenant || association(:business) }
+    product { association :product, :rental, business: business }
+    tenant_customer { association :tenant_customer, business: business }
 
     start_time { 1.day.from_now }
     end_time { start_time + 2.days }

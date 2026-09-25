@@ -1,9 +1,9 @@
 FactoryBot.define do
   factory :sms_message do
     # Ensure consistent business association
-    association :business
-    association :tenant_customer
-    association :marketing_campaign
+    business { ActsAsTenant.current_tenant || association(:business) }
+    tenant_customer { association :tenant_customer, business: business }
+    marketing_campaign { association :marketing_campaign, business: business }
     
     phone_number { tenant_customer&.phone || "+15551234567" } 
     content { "Your booking reminder." }

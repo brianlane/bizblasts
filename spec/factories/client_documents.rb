@@ -2,7 +2,7 @@
 
 FactoryBot.define do
   factory :client_document do
-    association :business
+    business { ActsAsTenant.current_tenant || association(:business) }
     document_type { 'waiver' }
     status { 'completed' }
 

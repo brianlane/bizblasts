@@ -1,7 +1,7 @@
 FactoryBot.define do
   factory :sms_opt_in_invitation do
-    association :business
-    association :tenant_customer
+    business { ActsAsTenant.current_tenant || association(:business) }
+    tenant_customer { association :tenant_customer, business: business }
 
     phone_number { tenant_customer&.phone || '+15551234567' }
     context { 'booking_confirmation' }

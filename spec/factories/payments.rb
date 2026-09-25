@@ -1,8 +1,26 @@
 FactoryBot.define do
   factory :payment do
-    association :business
-    association :invoice
-    association :tenant_customer
+    business do
+      if __override_names__.include?(:invoice) && invoice&.business
+        invoice.business
+      elsif __override_names__.include?(:order) && order&.business
+        order.business
+      elsif __override_names__.include?(:tenant_customer) && tenant_customer&.business
+        tenant_customer.business
+      else
+        ActsAsTenant.current_tenant || association(:business)
+      end
+    end
+    tenant_customer do
+      if __override_names__.include?(:invoice) && invoice&.tenant_customer
+        invoice.tenant_customer
+      elsif __override_names__.include?(:tenant_customer)
+        tenant_customer
+      else
+        association(:tenant_customer, business: business)
+      end
+    end
+    invoice { association :invoice, business: business, tenant_customer: tenant_customer }
     order { nil }
 
     amount { invoice.total_amount }
