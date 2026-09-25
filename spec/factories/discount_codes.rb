@@ -1,7 +1,7 @@
 FactoryBot.define do
   factory :discount_code do
     business { ActsAsTenant.current_tenant || association(:business) }
-    association :used_by_customer, factory: :tenant_customer
+    used_by_customer { association :tenant_customer, business: business }
     code { "DISC#{SecureRandom.hex(4).upcase}" }
     discount_type { 'fixed_amount' }
     discount_value { 10.00 }

@@ -24,7 +24,7 @@ module TenantFactoryAligner
     return if record.business_id.nil?
 
     record.class.reflect_on_all_associations(:belongs_to).each do |assoc|
-      next if assoc.name == :business
+      next if assoc.name == :business || assoc.polymorphic?
       next if overrides.include?(assoc.name)
       next unless assoc.klass.respond_to?(:scoped_by_tenant?)
 
@@ -43,6 +43,7 @@ module TenantFactoryAligner
     overrides.each do |name|
       assoc = record.class.reflect_on_association(name)
       next unless assoc&.macro == :belongs_to
+      next if assoc.polymorphic?
       next unless assoc.klass.respond_to?(:scoped_by_tenant?)
 
       associated = record.public_send(name)

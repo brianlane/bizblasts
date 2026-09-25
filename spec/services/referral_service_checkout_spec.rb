@@ -394,7 +394,11 @@ RSpec.describe ReferralService, type: :service do
 
     context 'when business has no referral program' do
       let!(:business_without_program) { create(:business, hostname: 'no-program', referral_program_enabled: false) }
-      let!(:customer_no_program) { create(:tenant_customer, business: business_without_program) }
+      let!(:customer_no_program) do
+        ActsAsTenant.with_tenant(business_without_program) do
+          create(:tenant_customer, business: business_without_program)
+        end
+      end
 
       it 'fails validation' do
         # Use a fake referral code since businesses without referral programs shouldn't have referrals

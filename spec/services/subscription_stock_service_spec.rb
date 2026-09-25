@@ -386,11 +386,13 @@ RSpec.describe SubscriptionStockService, type: :service do
 
     it 'does not find substitutes from other businesses' do
       # Create product with unique name to avoid validation conflicts
-      other_substitute = create(:product, 
-                               business: other_business,
-                               name: "Other Business Product #{SecureRandom.hex(4)}",
-                               subscription_enabled: true,
-                               stock_quantity: 100)
+      other_substitute = ActsAsTenant.with_tenant(other_business) do
+        create(:product,
+               business: other_business,
+               name: "Other Business Product #{SecureRandom.hex(4)}",
+               subscription_enabled: true,
+               stock_quantity: 100)
+      end
       
       substitutes = service_instance.find_substitute_products
       

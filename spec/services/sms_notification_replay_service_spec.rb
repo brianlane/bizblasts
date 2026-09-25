@@ -86,10 +86,18 @@ RSpec.describe SmsNotificationReplayService, type: :service do
 
     context 'with business-specific opt-in' do
       let(:other_business) { create(:business, sms_enabled: true) }
-      let(:other_customer) { create(:tenant_customer, business: other_business, phone: customer.phone, phone_opt_in: true, phone_opt_in_at: Time.current, skip_notification_email: true) }
+      let(:other_customer) do
+        ActsAsTenant.with_tenant(other_business) do
+          create(:tenant_customer, business: other_business, phone: customer.phone, phone_opt_in: true, phone_opt_in_at: Time.current, skip_notification_email: true)
+        end
+      end
 
       let!(:business1_notification) { create(:pending_sms_notification, business: business, tenant_customer: customer) }
-      let!(:business2_notification) { create(:pending_sms_notification, business: other_business, tenant_customer: other_customer) }
+      let!(:business2_notification) do
+        ActsAsTenant.with_tenant(other_business) do
+          create(:pending_sms_notification, business: other_business, tenant_customer: other_customer)
+        end
+      end
 
       before do
         allow(Sms::MessageTemplates).to receive(:render).and_return('Mocked SMS message')
