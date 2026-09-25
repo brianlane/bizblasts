@@ -104,7 +104,9 @@ RSpec.describe BusinessMailer, type: :mailer do
 
     it 'does not send email when no manager exists' do
       business_without_manager = create(:business)
-      booking_no_manager = create(:booking, business: business_without_manager, tenant_customer: tenant_customer, service: service)
+      customer = create(:tenant_customer, business: business_without_manager)
+      svc = create(:service, business: business_without_manager)
+      booking_no_manager = create(:booking, business: business_without_manager, tenant_customer: customer, service: svc)
       
       expect {
         BusinessMailer.new_booking_notification(booking_no_manager).deliver_now
@@ -139,7 +141,8 @@ RSpec.describe BusinessMailer, type: :mailer do
 
     it 'does not send email when no manager exists' do
       business_without_manager = create(:business)
-      order_no_manager = create(:order, business: business_without_manager, tenant_customer: tenant_customer)
+      customer = create(:tenant_customer, business: business_without_manager)
+      order_no_manager = create(:order, business: business_without_manager, tenant_customer: customer)
       
       expect {
         BusinessMailer.new_order_notification(order_no_manager).deliver_now
@@ -224,7 +227,8 @@ RSpec.describe BusinessMailer, type: :mailer do
 
     it 'does not send email when no manager exists' do
       business_without_manager = create(:business)
-      payment_no_manager = create(:payment, business: business_without_manager, tenant_customer: tenant_customer)
+      customer = create(:tenant_customer, business: business_without_manager)
+      payment_no_manager = create(:payment, business: business_without_manager, tenant_customer: customer)
       
       expect {
         BusinessMailer.payment_received_notification(payment_no_manager).deliver_now
@@ -308,7 +312,9 @@ RSpec.describe BusinessMailer, type: :mailer do
   describe 'error handling' do
     it 'logs appropriate warnings when business has no manager' do
       business_without_manager = create(:business)
-      booking = create(:booking, business: business_without_manager, tenant_customer: tenant_customer, service: service)
+      customer = create(:tenant_customer, business: business_without_manager)
+      svc = create(:service, business: business_without_manager)
+      booking = create(:booking, business: business_without_manager, tenant_customer: customer, service: svc)
       
       expect(Rails.logger).to receive(:warn).with(/No manager user found for Business/)
       BusinessMailer.new_booking_notification(booking).deliver_now

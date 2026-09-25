@@ -1,7 +1,7 @@
 FactoryBot.define do
   factory :marketing_campaign do
     business { ActsAsTenant.current_tenant || association(:business) }
-    name { "Holiday Promotion" }
+    sequence(:name) { |n| "Holiday Promotion #{n}" }
     description { "Campaign for the holiday season." }
     campaign_type { :email } 
     status { :scheduled } 
