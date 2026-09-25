@@ -28,14 +28,17 @@ RSpec.describe Analytics::DashboardService, type: :service do
 
     context 'with visitor data' do
       before do
-        # Create visitor sessions with valid hex fingerprints
-        create(:visitor_session, business: business, visitor_fingerprint: 'a1b2c3d4e5f60001')
-        create(:visitor_session, business: business, visitor_fingerprint: 'a1b2c3d4e5f60002')
-        create(:visitor_session, :bounce, business: business, visitor_fingerprint: 'a1b2c3d4e5f60003')
-        create(:visitor_session, :converted_booking, business: business, visitor_fingerprint: 'a1b2c3d4e5f60004')
-        
-        # Create page views
-        5.times { create(:page_view, business: business) }
+        sessions = [
+          create(:visitor_session, business: business, visitor_fingerprint: 'a1b2c3d4e5f60001'),
+          create(:visitor_session, business: business, visitor_fingerprint: 'a1b2c3d4e5f60002'),
+          create(:visitor_session, :bounce, business: business, visitor_fingerprint: 'a1b2c3d4e5f60003'),
+          create(:visitor_session, :converted_booking, business: business, visitor_fingerprint: 'a1b2c3d4e5f60004')
+        ]
+
+        5.times do
+          session = sessions.sample
+          create(:page_view, business: business, session_id: session.session_id, visitor_fingerprint: session.visitor_fingerprint)
+        end
       end
 
       it 'returns correct visitor count' do

@@ -3,9 +3,15 @@
 FactoryBot.define do
   factory :page_view do
     business { ActsAsTenant.current_tenant || association(:business) }
-    visitor_session { association :visitor_session, business: business }
-    visitor_fingerprint { visitor_session.visitor_fingerprint }
-    session_id { visitor_session.session_id }
+    visitor_session do
+      next if __override_names__.include?(:session_id)
+
+      attrs = { strategy: :create, business: business }
+      attrs[:visitor_fingerprint] = visitor_fingerprint if __override_names__.include?(:visitor_fingerprint)
+      association(:visitor_session, **attrs)
+    end
+    session_id { visitor_session&.session_id }
+    visitor_fingerprint { visitor_session&.visitor_fingerprint || SecureRandom.hex(16) }
     page_path { ['/', '/services', '/products', '/contact', '/about'].sample }
     page_type { ['home', 'services', 'products', 'contact', 'about', 'custom'].sample }
     page_title { "#{page_type&.titleize} Page" }

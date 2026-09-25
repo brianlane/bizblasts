@@ -3,9 +3,15 @@
 FactoryBot.define do
   factory :click_event do
     business { ActsAsTenant.current_tenant || association(:business) }
-    visitor_session { association :visitor_session, business: business }
-    visitor_fingerprint { visitor_session.visitor_fingerprint }
-    session_id { visitor_session.session_id }
+    visitor_session do
+      next if __override_names__.include?(:session_id)
+
+      attrs = { strategy: :create, business: business }
+      attrs[:visitor_fingerprint] = visitor_fingerprint if __override_names__.include?(:visitor_fingerprint)
+      association(:visitor_session, **attrs)
+    end
+    session_id { visitor_session&.session_id }
+    visitor_fingerprint { visitor_session&.visitor_fingerprint || SecureRandom.hex(16) }
     element_type { 'button' }
     element_identifier { "btn-#{rand(1000..9999)}" }
     element_text { ['Book Now', 'Learn More', 'Contact Us', 'View Services', 'Add to Cart'].sample }
@@ -28,16 +34,12 @@ FactoryBot.define do
       category { 'product' }
       element_type { 'card' }
       action { 'view' }
-      target_type { 'Product' }
-      target_id { rand(1..100) }
     end
 
     trait :service_click do
       category { 'service' }
       element_type { 'link' }
       action { 'view' }
-      target_type { 'Service' }
-      target_id { rand(1..100) }
     end
 
     trait :contact_click do
