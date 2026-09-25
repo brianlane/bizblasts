@@ -5,7 +5,7 @@ FactoryBot.define do
     price { rand(10.0..100.0).round(2) }
     active { true }
     featured { false }
-    association :business # Assuming you have a business factory
+    business { ActsAsTenant.current_tenant || association(:business) }
     product_type { :standard }
     stock_quantity { 100 } # Ensure products have sufficient stock for testing
     allow_discounts { true }

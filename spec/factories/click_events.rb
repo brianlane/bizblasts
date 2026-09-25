@@ -2,9 +2,10 @@
 
 FactoryBot.define do
   factory :click_event do
-    association :business
-    visitor_fingerprint { SecureRandom.hex(16) }
-    session_id { SecureRandom.uuid }
+    business { ActsAsTenant.current_tenant || association(:business) }
+    visitor_session { association :visitor_session, business: business }
+    visitor_fingerprint { visitor_session.visitor_fingerprint }
+    session_id { visitor_session.session_id }
     element_type { 'button' }
     element_identifier { "btn-#{rand(1000..9999)}" }
     element_text { ['Book Now', 'Learn More', 'Contact Us', 'View Services', 'Add to Cart'].sample }

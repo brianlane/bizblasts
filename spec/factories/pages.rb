@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :page do
-    association :business
+    business { ActsAsTenant.current_tenant || association(:business) }
     title { "Sample Page" }
     sequence(:slug) { |n| "sample-page-#{n}" }
     page_type { :custom }

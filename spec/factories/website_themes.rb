@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :website_theme do
-    association :business
+    business { ActsAsTenant.current_tenant || association(:business) }
     sequence(:name) { |n| "Theme #{n}" }
     color_scheme { 
       {

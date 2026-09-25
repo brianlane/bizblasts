@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :location do
-    business
+    business { ActsAsTenant.current_tenant || association(:business) }
     name { "Downtown Office" }
     address { "123 Main St" }
     city { "San Francisco" }

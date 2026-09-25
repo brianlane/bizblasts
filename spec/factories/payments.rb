@@ -1,8 +1,8 @@
 FactoryBot.define do
   factory :payment do
-    association :business
-    association :invoice
-    association :tenant_customer
+    business { ActsAsTenant.current_tenant || association(:business) }
+    tenant_customer { association :tenant_customer, business: business }
+    invoice { association :invoice, business: business, tenant_customer: tenant_customer }
     order { nil }
 
     amount { invoice.total_amount }

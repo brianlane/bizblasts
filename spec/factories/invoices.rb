@@ -1,7 +1,7 @@
 FactoryBot.define do
   factory :invoice do
-    association :business
-    association :tenant_customer # Use correct association
+    business { ActsAsTenant.current_tenant || association(:business) }
+    tenant_customer { association :tenant_customer, business: business }
     # association :booking, optional: true
     # promotion is optional, set via service
     
@@ -16,7 +16,7 @@ FactoryBot.define do
     # original_amount, discount_amount are set by PromotionManager
 
     trait :with_booking do
-      association :booking
+      booking { association :booking, business: business, tenant_customer: tenant_customer }
       # Ensure business has a default tax rate for proper tax calculation
       after(:build) do |invoice, evaluator|
         # Create default tax rate if business doesn't have one
@@ -38,12 +38,7 @@ FactoryBot.define do
     end
 
     trait :with_tax_rate do
-      association :tax_rate
-      after(:build) do |invoice, evaluator|
-        # Ensure tax_rate belongs to the same business
-        invoice.tax_rate.business = invoice.business
-        invoice.tax_rate.save! if invoice.tax_rate.changed?
-      end
+      tax_rate { association :tax_rate, business: business }
     end
 
     trait :paid do

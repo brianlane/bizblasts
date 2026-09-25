@@ -2,7 +2,7 @@
 
 FactoryBot.define do
   factory :job_form_template do
-    association :business
+    business { ActsAsTenant.current_tenant || association(:business) }
     name { Faker::Lorem.words(number: 3).join(' ').titleize }
     description { Faker::Lorem.paragraph }
     form_type { :checklist }

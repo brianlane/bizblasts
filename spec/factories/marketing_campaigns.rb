@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :marketing_campaign do
-    association :business
+    business { ActsAsTenant.current_tenant || association(:business) }
     name { "Holiday Promotion" }
     description { "Campaign for the holiday season." }
     campaign_type { :email } 

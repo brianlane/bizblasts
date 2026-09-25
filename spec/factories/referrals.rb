@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :referral do
-    business
+    business { ActsAsTenant.current_tenant || association(:business) }
     association :referrer, factory: :user
     referral_code { "REF-#{SecureRandom.alphanumeric(8).upcase}" }
     status { 'pending' }

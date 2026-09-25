@@ -3,7 +3,7 @@ FactoryBot.define do
     sequence(:name) { |n| "Shipping #{n}" }
     cost { rand(5.0..25.0).round(2) }
     active { true }
-    association :business # Assuming you have a business factory
+    business { ActsAsTenant.current_tenant || association(:business) }
 
     trait :inactive do
       active { false }

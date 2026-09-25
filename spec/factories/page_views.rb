@@ -2,9 +2,10 @@
 
 FactoryBot.define do
   factory :page_view do
-    association :business
-    visitor_fingerprint { SecureRandom.hex(16) }
-    session_id { SecureRandom.uuid }
+    business { ActsAsTenant.current_tenant || association(:business) }
+    visitor_session { association :visitor_session, business: business }
+    visitor_fingerprint { visitor_session.visitor_fingerprint }
+    session_id { visitor_session.session_id }
     page_path { ['/', '/services', '/products', '/contact', '/about'].sample }
     page_type { ['home', 'services', 'products', 'contact', 'about', 'custom'].sample }
     page_title { "#{page_type&.titleize} Page" }

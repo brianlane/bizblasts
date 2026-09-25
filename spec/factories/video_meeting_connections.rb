@@ -2,8 +2,8 @@
 
 FactoryBot.define do
   factory :video_meeting_connection do
-    association :business
-    association :staff_member
+    business { ActsAsTenant.current_tenant || association(:business) }
+    staff_member { association :staff_member, business: business }
     provider { :zoom }
     access_token { SecureRandom.hex(32) }
     refresh_token { SecureRandom.hex(32) }

@@ -2,7 +2,7 @@
 
 FactoryBot.define do
   factory :csv_import_run do
-    association :business
+    business { ActsAsTenant.current_tenant || association(:business) }
     import_type { 'customers' }
     original_filename { 'test-import.csv' }
     status { :queued }

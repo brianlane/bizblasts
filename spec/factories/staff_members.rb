@@ -8,7 +8,7 @@ FactoryBot.define do
     bio { Faker::Lorem.paragraph }
     active { true }
     position { Faker::Job.title }
-    association :business
+    business { ActsAsTenant.current_tenant || association(:business) }
     
     availability do
       {

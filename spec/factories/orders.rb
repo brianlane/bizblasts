@@ -1,9 +1,9 @@
 FactoryBot.define do
   factory :order do
-    association :tenant_customer # Assuming you have a tenant_customer factory scoped to business
-    association :business
-    association :shipping_method, factory: :shipping_method # Create associated shipping method if not provided
-    association :tax_rate, factory: :tax_rate # Create associated tax rate if not provided
+    business { ActsAsTenant.current_tenant || association(:business) }
+    tenant_customer { association :tenant_customer, business: business }
+    shipping_method { association :shipping_method, business: business }
+    tax_rate { association :tax_rate, business: business }
 
     status { Order.statuses.keys.sample } # Random status
     shipping_address { "123 Shipping St" }

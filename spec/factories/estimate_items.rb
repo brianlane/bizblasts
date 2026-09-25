@@ -1,7 +1,7 @@
 FactoryBot.define do
   factory :estimate_item do
-    association :estimate
-    association :service
+    estimate
+    service { association :service, business: estimate.business }
     item_type { :service }
     description { "Test item" }
     qty { 1 }

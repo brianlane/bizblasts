@@ -9,7 +9,7 @@ FactoryBot.define do
     address { Faker::Address.full_address }
     notes { Faker::Lorem.paragraph }
     active { true }
-    association :business
+    business { ActsAsTenant.current_tenant || association(:business) }
     # Default email preferences will be set by after_create callback
     email_marketing_opt_out { nil }
     unsubscribed_at { nil }

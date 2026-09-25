@@ -2,7 +2,7 @@
 
 FactoryBot.define do
   factory :gallery_photo do
-    association :business
+    business { ActsAsTenant.current_tenant || association(:business) }
     sequence(:title) { |n| "Gallery Photo #{n}" }
     description { Faker::Lorem.sentence }
     photo_source { :gallery }

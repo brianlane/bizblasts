@@ -1,7 +1,7 @@
 FactoryBot.define do
   factory :pending_sms_notification do
-    association :business
-    association :tenant_customer
+    business { ActsAsTenant.current_tenant || association(:business) }
+    tenant_customer { association :tenant_customer, business: business }
 
     notification_type { 'booking_confirmation' }
     sms_type { 'booking' }
