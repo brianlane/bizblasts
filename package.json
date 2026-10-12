@@ -24,11 +24,13 @@
   },
   "overrides": {
     "braces": "file:vendor/npm/braces",
-    "dompurify": "3.4.16"
+    "dompurify": "3.4.16",
+    "source-map-js": "1.2.2"
   },
   "resolutions": {
     "braces": "file:vendor/npm/braces",
-    "dompurify": "3.4.16"
+    "dompurify": "3.4.16",
+    "source-map-js": "1.2.2"
   },
   "dependencies": {
     "@hotwired/stimulus": "^3.2.2",
