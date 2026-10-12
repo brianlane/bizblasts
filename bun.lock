@@ -36,6 +36,7 @@
   "overrides": {
     "braces": "file:vendor/npm/braces",
     "dompurify": "3.4.16",
+    "source-map-js": "1.2.2",
   },
   "packages": {
     "@activeadmin/activeadmin": ["@activeadmin/activeadmin@3.5.2", "", { "dependencies": { "jquery": "^3.7.1 || ^4.0.0", "jquery-ui": "^1.14.2", "jquery-ujs": "^1.2.2" } }, "sha512-eVCOpdyeIo19Ctyqi9UxWoUxGkhyQcKb52hqY+FgVIgjAgpkhf4BvQO3HpRp/D58gCrJk5NyqIxgK2xwXl2HEw=="],
@@ -982,7 +983,7 @@
 
     "source-map": ["source-map@0.6.1", "", {}, "sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g=="],
 
-    "source-map-js": ["source-map-js@1.2.1", "", {}, "sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA=="],
+    "source-map-js": ["source-map-js@1.2.2", "", {}, "sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw=="],
 
     "source-map-support": ["source-map-support@0.5.13", "", { "dependencies": { "buffer-from": "^1.0.0", "source-map": "^0.6.0" } }, "sha512-SHSKFHadjVA5oR4PPqhtAVdcBWwRYVd6g6cAXnIbRiIwc2EhPrTuKUBdSLvlEKyIP3GCf89fltvcZiP9MMFA1w=="],
 
