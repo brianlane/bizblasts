@@ -163,7 +163,7 @@ gem 'microsoft_graph', '~> 0.22'
 # kiota_serialization_json >= 0.10.
 gem 'json', '~> 2.8.2'
 gem 'oauth2', '~> 2.1'
-gem 'icalendar', '~> 2.12'
+gem 'icalendar', '~> 2.13'
 gem 'httparty', '~> 0.24'
 # gem 'calendav', '~> 0.3' # Temporarily disabled due to architecture compatibility issues
 gem 'prawn', '~> 2.4'
