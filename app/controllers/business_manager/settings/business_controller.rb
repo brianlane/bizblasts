@@ -179,18 +179,7 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
       dual_result = dual_verifier.verify_both_domains
       health_result = health_checker.check_health
       
-      # Check render status
-      render_result = begin
-        domain = render_service.find_domain_by_name(check_domain)
-        if domain
-          verification = render_service.verify_domain(domain['id'])
-          { found: true, verified: verification['verified'] == true }
-        else
-          { found: false, verified: false }
-        end
-      rescue => e
-        { found: false, verified: false, error: e.message }
-      end
+      render_result = provider_verification_result(render_service, check_domain)
 
       # Use verification strategy to determine status consistently. Pass
       # dual_result so the strategy can require BOTH apex and www on Caddy
@@ -291,17 +280,7 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
       dual_result = dual_verifier.verify_both_domains
       health_result = health_checker.check_health
 
-      render_result = begin
-        domain = render_service.find_domain_by_name(check_domain)
-        if domain
-          verification = render_service.verify_domain(domain['id'])
-          { found: true, verified: verification['verified'] == true }
-        else
-          { found: false, verified: false }
-        end
-      rescue => e
-        { found: false, verified: false, error: e.message }
-      end
+      render_result = provider_verification_result(render_service, check_domain)
 
       verification_strategy = DomainVerificationStrategy.new(@business)
       verification_result = verification_strategy.determine_status(
@@ -404,14 +383,41 @@ class BusinessManager::Settings::BusinessController < BusinessManager::BaseContr
   # an otherwise-green single-host dns_result. Without this, the frontend's
   # `dns_check.error || 'CNAME record not found'` fallback would lie about
   # the root cause (e.g. apex passed but www's A record is missing).
+  # Cloudflare checks both custom hostnames (apex and www), not only the
+  # canonical name the single-host DNS checker was given.
+  def provider_verification_result(render_service, check_domain)
+    if DomainProvider.cloudflare?
+      render_service.pair_verification(@business.hostname)
+    else
+      domain = render_service.find_domain_by_name(check_domain)
+      if domain
+        verification = render_service.verify_domain(domain['id'])
+        { found: true, verified: verification['verified'] == true }
+      else
+        { found: false, verified: false }
+      end
+    end
+  rescue StandardError => e
+    { found: false, verified: false, error: e.message }
+  end
+
   def caddy_dual_dns_error(dual_result)
-    return 'Both apex and www A records must point to the BizBlasts server IP' unless dual_result.is_a?(Hash)
+    if DomainProvider.cloudflare?
+      return 'Both the apex ALIAS and the www CNAME must point at the BizBlasts hostname' unless dual_result.is_a?(Hash)
+    else
+      return 'Both apex and www A records must point to the BizBlasts server IP' unless dual_result.is_a?(Hash)
+    end
 
     missing = []
     apex = dual_result[:apex_domain] || {}
     www  = dual_result[:www_domain]  || {}
-    missing << 'apex A record' unless apex[:verified]
-    missing << 'www A record'  unless www[:verified]
+    if DomainProvider.cloudflare?
+      missing << 'apex ALIAS or flattened CNAME' unless apex[:verified]
+      missing << 'www CNAME' unless www[:verified]
+    else
+      missing << 'apex A record' unless apex[:verified]
+      missing << 'www A record'  unless www[:verified]
+    end
 
     if missing.empty?
       'DNS configuration incomplete'

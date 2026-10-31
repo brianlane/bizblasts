@@ -412,4 +412,137 @@ RSpec.describe CnameDnsChecker, type: :service do
       end
     end
   end
+
+  describe 'cloudflare mode' do
+    let(:target) { 'customers.bizblasts.com' }
+    let(:resolver) { instance_double(Resolv::DNS) }
+    let(:shared_ip) { '104.16.1.1' }
+    let(:other_ip) { '203.0.113.50' }
+
+    before do
+      allow(DomainProvider).to receive(:provider_name).and_return('cloudflare')
+      allow(DomainProvider).to receive(:cloudflare?).and_return(true)
+      allow(DomainProvider).to receive(:caddy?).and_return(false)
+      ENV['CUSTOM_DOMAIN_CNAME_TARGET'] = "  #{target}.  \n"
+    end
+
+    after { ENV.delete('CUSTOM_DOMAIN_CNAME_TARGET') }
+
+    def address_record(type, ip)
+      instance_double(type, address: ip)
+    end
+
+    def cname_record(value)
+      instance_double(Resolv::DNS::Resource::IN::CNAME, name: value)
+    end
+
+    describe '.expected_cname_target' do
+      it 'uses the fallback origin, ignoring a home IP' do
+        ENV['BIZBLASTS_PUBLIC_IP'] = '198.51.100.8'
+        expect(described_class.expected_cname_target).to eq(target)
+        expect(described_class.expected_apex_ip).to be_nil
+      end
+    end
+
+    describe 'www' do
+      let(:checker) { described_class.new('www.example.com') }
+
+      before do
+        checker.instance_variable_set(:@resolver, resolver)
+        allow(resolver).to receive(:close)
+      end
+
+      it 'passes when the CNAME points at the fallback origin' do
+        allow(resolver).to receive(:getresources)
+          .with('www.example.com', Resolv::DNS::Resource::IN::CNAME)
+          .and_return([cname_record("#{target}.")])
+
+        result = checker.verify_cname
+
+        expect(result[:verified]).to be true
+        expect(result[:target]).to eq(target)
+        expect(result[:expected_target]).to eq(target)
+      end
+
+      it 'fails when www is only an A record, even if the address matches Cloudflare' do
+        allow(resolver).to receive(:getresources)
+          .with('www.example.com', Resolv::DNS::Resource::IN::CNAME)
+          .and_return([])
+
+        result = checker.verify_cname
+
+        expect(result[:verified]).to be false
+        expect(result[:error]).to eq('No CNAME record found')
+      end
+
+      it 'does not treat a different bizblasts hostname as a match' do
+        allow(resolver).to receive(:getresources)
+          .with('www.example.com', Resolv::DNS::Resource::IN::CNAME)
+          .and_return([cname_record('not-customers.bizblasts.com')])
+
+        result = checker.verify_cname
+
+        expect(result[:verified]).to be false
+        expect(result[:error]).to eq("CNAME should point to #{target}")
+      end
+    end
+
+    describe 'apex' do
+      let(:checker) { described_class.new('example.com') }
+
+      before do
+        checker.instance_variable_set(:@resolver, resolver)
+        allow(resolver).to receive(:close)
+        allow(resolver).to receive(:getresources)
+          .with('example.com', Resolv::DNS::Resource::IN::CNAME)
+          .and_return([])
+      end
+
+      it 'passes when a flattened CNAME resolves to the same addresses as the target' do
+        allow(resolver).to receive(:getresources)
+          .with('example.com', Resolv::DNS::Resource::IN::A)
+          .and_return([address_record(Resolv::DNS::Resource::IN::A, shared_ip)])
+        allow(resolver).to receive(:getresources)
+          .with(target, Resolv::DNS::Resource::IN::A)
+          .and_return([
+            address_record(Resolv::DNS::Resource::IN::A, shared_ip),
+            address_record(Resolv::DNS::Resource::IN::A, '104.16.1.2')
+          ])
+        allow(resolver).to receive(:getresources)
+          .with('example.com', Resolv::DNS::Resource::IN::AAAA)
+          .and_return([])
+
+        result = checker.verify_cname
+
+        expect(result[:verified]).to be true
+        expect(result[:target]).to eq(target)
+      end
+
+      it 'fails when the apex addresses are not the target addresses' do
+        allow(resolver).to receive(:getresources)
+          .with('example.com', Resolv::DNS::Resource::IN::A)
+          .and_return([address_record(Resolv::DNS::Resource::IN::A, other_ip)])
+        allow(resolver).to receive(:getresources)
+          .with(target, Resolv::DNS::Resource::IN::A)
+          .and_return([address_record(Resolv::DNS::Resource::IN::A, shared_ip)])
+        allow(resolver).to receive(:getresources)
+          .with('example.com', Resolv::DNS::Resource::IN::AAAA)
+          .and_return([])
+
+        result = checker.verify_cname
+
+        expect(result[:verified]).to be false
+        expect(result[:error]).to include('ALIAS or flattened CNAME')
+        expect(result[:expected_target]).to eq(target)
+      end
+
+      it 'passes an explicit apex CNAME to the fallback origin' do
+        allow(resolver).to receive(:getresources)
+          .with('example.com', Resolv::DNS::Resource::IN::CNAME)
+          .and_return([cname_record(target)])
+
+        expect(checker.verify_cname[:verified]).to be true
+      end
+    end
+  end
 end

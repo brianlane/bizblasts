@@ -113,7 +113,10 @@
         <div class="step">
           <h4>1. Double-check your DNS records</h4>
           <p>Verify both records are configured in your DNS management panel:</p>
-          
+
+          <% if @dns_provider == 'cloudflare' %>
+            <%= render 'cloudflare_dns_records' %>
+          <% else %>
           <p><strong>A Record (for root domain):</strong></p>
           <div class="code-block">
             <strong>Name/Host:</strong> @<br>
@@ -129,12 +132,17 @@
             <strong>Value/Target:</strong> <%= @dns_www_target_value %><br>
             <strong>TTL:</strong> Auto or 300 seconds
           </div>
+          <% end %>
         </div>
 
         <div class="step">
           <h4>2. Common issues to check</h4>
           <ul>
-            <% if @dns_www_target_type == 'CNAME' %>
+            <% if @dns_provider == 'cloudflare' %>
+              <li><strong>www:</strong> CNAME to <strong><%= @dns_cname_target %></strong>, not an A record.</li>
+              <li><strong>@:</strong> ALIAS or flattened CNAME to the same target. If your registrar cannot do that, move DNS to Cloudflare or forward @ to www.</li>
+              <li><strong>Old records:</strong> Remove A or CNAME records for @ and www that point somewhere else.</li>
+            <% elsif @dns_www_target_type == 'CNAME' %>
               <li><strong>Trailing dot:</strong> Some registrars require "<strong><%= @dns_www_target_value %>.</strong>" (with dot)</li>
               <li><strong>Conflicting records:</strong> Remove any existing A, AAAA, or CNAME records for this domain</li>
             <% else %>

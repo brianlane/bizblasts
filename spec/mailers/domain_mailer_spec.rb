@@ -368,4 +368,41 @@ RSpec.describe DomainMailer, type: :mailer do
       end
     end
   end
+
+  describe 'cloudflare DNS instructions' do
+    let(:txt_records) do
+      [{
+        name: '_cf-custom-hostname.example.com',
+        value: 'ownership-token',
+        purpose: 'ownership',
+        hostname: 'example.com'
+      }]
+    end
+
+    before do
+      allow(DomainProvider).to receive(:provider_name).and_return('cloudflare')
+      ENV['CUSTOM_DOMAIN_CNAME_TARGET'] = 'customers.bizblasts.com'
+      lookup = instance_double(CloudflareDomainService, txt_records_for: txt_records)
+      allow(CloudflareDomainService).to receive(:new).and_return(lookup)
+    end
+
+    after { ENV.delete('CUSTOM_DOMAIN_CNAME_TARGET') }
+
+    %w[setup_instructions timeout_help monitoring_restarted].each do |action|
+      it "tells the customer the www CNAME and apex ALIAS in #{action}" do
+        text = body_text(described_class.public_send(action, business, user))
+
+        expect(text).to include('www')
+        expect(text).to include('CNAME')
+        expect(text).to include('ALIAS or flattened CNAME')
+        expect(text).to include('customers.bizblasts.com')
+        expect(text).to include('_cf-custom-hostname.example.com')
+        expect(text).to include('ownership-token')
+        expect(text).to include('Move the domain\'s DNS to Cloudflare')
+        expect(text).to include('forward the root domain')
+        expect(text).not_to include('216.24.57.1')
+        expect(text).not_to include('bizblasts.onrender.com')
+      end
+    end
+  end
 end

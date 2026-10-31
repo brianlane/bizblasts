@@ -124,6 +124,11 @@ class DomainMonitoringService
   end
 
   def check_render_verification
+    if DomainProvider.cloudflare?
+      Rails.logger.debug "[DomainMonitoringService] Checking Cloudflare hostname and SSL status"
+      return @render_service.pair_verification(@business.hostname)
+    end
+
     Rails.logger.debug "[DomainMonitoringService] Checking Render verification status"
 
     begin
@@ -290,8 +295,9 @@ class DomainMonitoringService
     # normal 5-minute monitoring tick will pick up cert success once
     # Caddy finishes its own propagation (Bugbot LOW: "SSL retry still
     # Render-specific").
-    if DomainProvider.caddy?
-      Rails.logger.info "[DomainMonitoringService] Skipping CertificatePropagationRetryJob for #{@business.hostname}: Caddy handles ACME retry internally"
+    if DomainProvider.caddy? || DomainProvider.cloudflare?
+      reason = DomainProvider.cloudflare? ? 'Cloudflare issues the certificate at the edge' : 'Caddy handles ACME retry internally'
+      Rails.logger.info "[DomainMonitoringService] Skipping CertificatePropagationRetryJob for #{@business.hostname}: #{reason}"
       return
     end
 

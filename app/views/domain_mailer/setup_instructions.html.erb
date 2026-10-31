@@ -111,6 +111,9 @@
 
       <div class="step">
         <h3>Step 2: Add new host records</h3>
+        <% if @dns_provider == 'cloudflare' %>
+          <%= render 'cloudflare_dns_records' %>
+        <% else %>
         <p>Create an A record with these exact settings:</p>
 
         <div class="code-block">
@@ -162,6 +165,7 @@
             <li>Remove any existing A or CNAME records that conflict with these settings</li>
           </ul>
         </div>
+        <% end %>
       </div>
 
       <div class="step">

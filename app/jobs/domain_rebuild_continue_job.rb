@@ -65,6 +65,11 @@ class DomainRebuildContinueJob < ApplicationJob
   def determine_domains_to_add(business)
     apex_domain = business.hostname.sub(/^www\./, '')
     www_domain = "www.#{apex_domain}"
+
+    if defined?(DomainProvider) && DomainProvider.cloudflare?
+      Rails.logger.info "[DomainRebuildContinueJob] Cloudflare: re-adding apex and www"
+      return [apex_domain, www_domain]
+    end
     
     case business.canonical_preference
     when 'www'

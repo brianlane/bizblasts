@@ -145,6 +145,12 @@ RSpec.describe Business, type: :model do
       it { is_expected.not_to allow_value('double--hyphen').for(:hostname).with_message("can only contain lowercase letters, numbers, and single hyphens") }
       it { is_expected.not_to allow_value('www').for(:hostname).with_message("'www' is reserved.") }
       it { is_expected.not_to allow_value('admin').for(:hostname).with_message("'admin' is reserved.") }
+
+      %w[customers deploy local tunnel-origin ping].each do |reserved|
+        it "reserves #{reserved}" do
+          expect(subject).not_to allow_value(reserved).for(:hostname).with_message("'#{reserved}' is reserved.")
+        end
+      end
     end
 
     context 'when host type is custom domain' do

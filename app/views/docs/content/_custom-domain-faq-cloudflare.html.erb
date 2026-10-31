@@ -1,0 +1,52 @@
+<div class="space-y-8">
+  <div class="bg-gradient-to-r from-primary to-secondary text-white rounded-2xl p-6 sm:p-8">
+    <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">Custom Domain Setup</h2>
+    <p class="text-lg sm:text-xl leading-relaxed opacity-90">
+      Point your domain at BizBlasts with two DNS records. Cloudflare issues the certificate.
+      Do not create an A record to a home IP address.
+    </p>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 sm:p-8">
+    <h3 class="text-xl sm:text-2xl font-bold text-dark mb-6">Records to add</h3>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="text-left text-gray-500">
+            <th class="py-2 pr-4 font-medium">Name</th>
+            <th class="py-2 pr-4 font-medium">Type</th>
+            <th class="py-2 font-medium">Target</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="py-2 pr-4"><code class="bg-gray-100 px-2 py-1 rounded">www</code></td>
+            <td class="py-2 pr-4">CNAME</td>
+            <td class="py-2"><code class="bg-gray-100 px-2 py-1 rounded"><%= custom_domain_cname_target %></code></td>
+          </tr>
+          <tr>
+            <td class="py-2 pr-4"><code class="bg-gray-100 px-2 py-1 rounded">@</code></td>
+            <td class="py-2 pr-4">ALIAS or flattened CNAME</td>
+            <td class="py-2"><code class="bg-gray-100 px-2 py-1 rounded"><%= custom_domain_cname_target %></code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="text-sm text-gray-600 mt-4">
+      If the BizBlasts settings page or your setup email lists extra TXT records, add those too.
+      Cloudflare uses them only when it needs to confirm you control the domain before issuing the certificate.
+    </p>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 sm:p-8">
+    <h3 class="text-xl font-bold text-dark mb-3">Registrar has no ALIAS?</h3>
+    <ul class="list-disc pl-5 space-y-2 text-gray-700">
+      <li>Move DNS to Cloudflare (the free plan is enough) and add both records there. Cloudflare flattens a CNAME on @.</li>
+      <li>Or keep your registrar, forward the root domain (@) to www, and set only the www CNAME. Visitors who type the bare domain will land on www.</li>
+    </ul>
+    <p class="text-sm text-gray-600 mt-4">
+      Some panels label the root as <code>@</code>, some as a blank name, and some want a trailing dot on the target
+      (<code><%= custom_domain_cname_target %>.</code>). Remove any old A or CNAME records for @ and www that point somewhere else.
+    </p>
+  </div>
+</div>
