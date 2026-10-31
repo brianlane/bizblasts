@@ -22,12 +22,24 @@ class CnameDnsChecker
   # IP — there is no CNAME-to-onrender step. On Render we keep the legacy
   # CNAME-to-onrender + apex-A-to-216.24.57.1 contract.
   # (Bugbot HIGH: DNS checks ignore Caddy targets.)
+  # Hostname customers CNAME (www) or ALIAS (apex) to. Cloudflare for SaaS
+  # fallback origin. Override with CUSTOM_DOMAIN_CNAME_TARGET.
+  def self.custom_cname_target
+    ENV['CUSTOM_DOMAIN_CNAME_TARGET'].to_s.strip.downcase.chomp('.').presence || 'customers.bizblasts.com'
+  end
+
+  def self.cloudflare?
+    defined?(DomainProvider) && DomainProvider.cloudflare?
+  end
+
   def self.expected_cname_target
+    return custom_cname_target if cloudflare?
     return nil if defined?(DomainProvider) && DomainProvider.caddy?
     RENDER_CNAME_TARGET
   end
 
   def self.expected_apex_ip
+    return nil if cloudflare?
     if defined?(DomainProvider) && DomainProvider.caddy?
       ENV['BIZBLASTS_PUBLIC_IP'].to_s.strip.presence || resolve_bizblasts_a
     else
@@ -76,9 +88,27 @@ class CnameDnsChecker
       if cname_target.present?
         result[:target] = cname_target
         result[:verified] = cname_matches_target?(cname_target)
+        if self.class.cloudflare? && !result[:verified]
+          result[:error] = "CNAME should point to #{expected_cname}"
+        end
 
         Rails.logger.info "[CnameDnsChecker] CNAME found: #{@domain_name} -> #{cname_target}"
         Rails.logger.info "[CnameDnsChecker] Verification: #{result[:verified] ? 'PASSED' : 'FAILED'}"
+      elsif self.class.cloudflare?
+        # www must be a real CNAME. Apex may be an ALIAS or a flattened
+        # CNAME, which shows up only as A/AAAA records that match the target.
+        if www_name?(@domain_name)
+          result[:error] = 'No CNAME record found'
+          Rails.logger.warn "[CnameDnsChecker] No CNAME record for: #{@domain_name}"
+        elsif addresses_match_cname_target?(@domain_name)
+          result[:target] = expected_cname
+          result[:verified] = true
+          result[:error] = nil
+          Rails.logger.info "[CnameDnsChecker] Apex resolves like #{expected_cname} for #{@domain_name}"
+        else
+          result[:error] = "Apex should be an ALIAS or flattened CNAME to #{expected_cname}"
+          Rails.logger.warn "[CnameDnsChecker] Apex does not match #{expected_cname}: #{@domain_name}"
+        end
       else
         # No CNAME (or CNAME not applicable for provider) — verify via apex A record.
         if apex_a_matches_expected?(@domain_name)
@@ -226,6 +256,11 @@ class CnameDnsChecker
     # Direct match
     return true if normalized_target == normalized_expected
 
+    # Cloudflare customers must point at the fallback origin exactly.
+    # The non-production leniency below would treat any hostname containing
+    # "bizblasts" as a match, which hides a wrong CNAME target.
+    return false if self.class.cloudflare?
+
     # In development/test, be more lenient
     unless Rails.env.production?
       return true if normalized_target.include?('localhost') || 
@@ -276,4 +311,31 @@ class CnameDnsChecker
 
   # Backwards-compat alias — older callers / specs may reference the old name.
   alias_method :apex_a_matches_render?, :apex_a_matches_expected?
+
+  def www_name?(name)
+    name.to_s.downcase.start_with?('www.')
+  end
+
+  # True when every address for `name` is also an address of the CNAME
+  # target. That is what a registrar's ALIAS / CNAME-flattening looks like
+  # at the apex: no CNAME record remains, only the target's Cloudflare IPs.
+  def addresses_match_cname_target?(name)
+    target = self.class.custom_cname_target
+    apex_v4 = ip_strings(name, Resolv::DNS::Resource::IN::A)
+    target_v4 = ip_strings(target, Resolv::DNS::Resource::IN::A)
+    return false if apex_v4.empty? || target_v4.empty?
+    return false unless (apex_v4 - target_v4).empty?
+
+    apex_v6 = ip_strings(name, Resolv::DNS::Resource::IN::AAAA)
+    return true if apex_v6.empty?
+
+    target_v6 = ip_strings(target, Resolv::DNS::Resource::IN::AAAA)
+    target_v6.any? && (apex_v6 - target_v6).empty?
+  end
+
+  def ip_strings(host, type)
+    @resolver.getresources(host, type).map { |record| record.address.to_s }
+  rescue StandardError
+    []
+  end
 end

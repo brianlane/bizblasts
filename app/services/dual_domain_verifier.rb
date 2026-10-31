@@ -26,13 +26,14 @@ class DualDomainVerifier
       overall_verified = apex_result[:verified] && www_result[:verified]
       
       www_record_type = CnameDnsChecker.expected_cname_target ? 'CNAME' : 'A'
+      apex_record_type = DomainProvider.cloudflare? ? 'ALIAS' : 'A'
       result = {
         domain: @domain_name,
         overall_verified: overall_verified,
         apex_domain: {
           domain: @apex_domain,
           verified: apex_result[:verified],
-          record_type: 'A',
+          record_type: apex_record_type,
           target: apex_result[:target],
           expected_target: apex_result[:expected_target],
           error: apex_result[:error]
@@ -93,10 +94,21 @@ class DualDomainVerifier
 
   private
 
-  # Verify apex domain A record points to the active provider's expected IP.
-  # (Render IP on Render, BIZBLASTS_PUBLIC_IP on Caddy.) See Bugbot HIGH:
-  # "DNS checks ignore Caddy targets".
+  # Verify the apex record. Cloudflare accepts an ALIAS or a flattened
+  # CNAME (same addresses as the fallback origin). Render and Caddy still
+  # expect an A record at the provider IP.
   def verify_apex_domain
+    if defined?(DomainProvider) && DomainProvider.cloudflare?
+      Rails.logger.info "[DualDomainVerifier] Checking ALIAS/CNAME for: #{@apex_domain}"
+      checked = CnameDnsChecker.new(@apex_domain).verify_cname
+      return {
+        verified: checked[:verified],
+        target: checked[:target],
+        expected_target: checked[:expected_target],
+        error: checked[:error]
+      }
+    end
+
     Rails.logger.info "[DualDomainVerifier] Checking A record for: #{@apex_domain}"
 
     resolver = Resolv::DNS.new
@@ -189,15 +201,16 @@ class DualDomainVerifier
   # "Status messages still say CNAME").
   def generate_status_message(result)
     www_type = result[:www_domain][:record_type] || 'CNAME'
+    apex_type = result[:apex_domain][:record_type] || 'A'
 
     if result[:overall_verified]
       "Both apex domain and www subdomain are correctly configured"
     elsif result[:apex_domain][:verified] && !result[:www_domain][:verified]
-      "Apex domain (A record) verified, www subdomain (#{www_type}) needs configuration"
+      "Apex domain (#{apex_type}) verified, www subdomain (#{www_type}) needs configuration"
     elsif !result[:apex_domain][:verified] && result[:www_domain][:verified]
-      "www subdomain (#{www_type}) verified, apex domain (A record) needs configuration"
+      "www subdomain (#{www_type}) verified, apex domain (#{apex_type}) needs configuration"
     else
-      "Both A record and #{www_type} record need configuration"
+      "Both #{apex_type} record and #{www_type} record need configuration"
     end
   end
 
@@ -206,7 +219,11 @@ class DualDomainVerifier
     steps = []
 
     unless result[:apex_domain][:verified]
-      steps << "Add A record: @ → #{result[:apex_domain][:expected_target]}"
+      if defined?(DomainProvider) && DomainProvider.cloudflare?
+        steps << "Add an ALIAS or flattened CNAME: @ → #{result[:apex_domain][:expected_target]}"
+      else
+        steps << "Add A record: @ → #{result[:apex_domain][:expected_target]}"
+      end
     end
 
     unless result[:www_domain][:verified]

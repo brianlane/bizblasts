@@ -1,0 +1,60 @@
+<div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+  <h3 class="text-sm font-semibold text-gray-900 mb-2">DNS records to add</h3>
+  <p class="text-sm text-gray-700 mb-3">
+    At your domain registrar, point both names at <code class="bg-white px-1 rounded border"><%= cname_target %></code>.
+    Cloudflare issues the certificate. Do not create an A record to a home IP address.
+  </p>
+
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm">
+      <thead>
+        <tr class="text-left text-gray-500">
+          <th class="py-1 pr-4 font-medium">Name</th>
+          <th class="py-1 pr-4 font-medium">Type</th>
+          <th class="py-1 font-medium">Target</th>
+        </tr>
+      </thead>
+      <tbody class="text-gray-900">
+        <tr>
+          <td class="py-1 pr-4"><code>www</code></td>
+          <td class="py-1 pr-4">CNAME</td>
+          <td class="py-1"><code><%= cname_target %></code></td>
+        </tr>
+        <tr>
+          <td class="py-1 pr-4"><code>@</code></td>
+          <td class="py-1 pr-4">ALIAS or flattened CNAME</td>
+          <td class="py-1"><code><%= cname_target %></code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <% if txt_records.present? %>
+    <div class="mt-4">
+      <p class="text-sm font-medium text-gray-900 mb-2">TXT records from Cloudflare</p>
+      <p class="text-sm text-gray-700 mb-2">
+        Add these as well. Cloudflare uses them to confirm you control the domain before it issues the certificate.
+      </p>
+      <ul class="space-y-2">
+        <% txt_records.each do |record| %>
+          <li class="text-sm bg-white border border-blue-100 rounded p-2">
+            <div><span class="text-gray-500">Name:</span> <code><%= record[:name] %></code></div>
+            <div><span class="text-gray-500">Type:</span> TXT</div>
+            <div><span class="text-gray-500">Value:</span> <code class="break-all"><%= record[:value] %></code></div>
+            <% if record[:hostname].present? %>
+              <div><span class="text-gray-500">For:</span> <%= record[:hostname] %></div>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mt-4 text-sm text-gray-700">
+    <p class="font-medium text-gray-900 mb-1">Registrar has no ALIAS or flattened CNAME?</p>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>Move DNS to Cloudflare (the free plan is enough) and add both records there. Cloudflare flattens a CNAME on @.</li>
+      <li>Or keep your registrar, forward the root domain (@) to www, and set only the www CNAME above. Visitors who type the bare domain will land on www.</li>
+    </ul>
+  </div>
+</div>

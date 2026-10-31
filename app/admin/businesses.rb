@@ -111,13 +111,22 @@ ActiveAdmin.register Business do
     # admins would see verified=false next to a blank / "CNAME record not
     # found" message that no longer matches what actually failed.
     def admin_caddy_dual_dns_error(dual_result)
-      return 'Both apex and www A records must point to the BizBlasts server IP' unless dual_result.is_a?(Hash)
+      if defined?(DomainProvider) && DomainProvider.cloudflare?
+        return 'Both the apex ALIAS and the www CNAME must point at the BizBlasts hostname' unless dual_result.is_a?(Hash)
+      else
+        return 'Both apex and www A records must point to the BizBlasts server IP' unless dual_result.is_a?(Hash)
+      end
 
       missing = []
       apex = dual_result[:apex_domain] || {}
       www  = dual_result[:www_domain]  || {}
-      missing << 'apex A record' unless apex[:verified]
-      missing << 'www A record'  unless www[:verified]
+      if defined?(DomainProvider) && DomainProvider.cloudflare?
+        missing << 'apex ALIAS or flattened CNAME' unless apex[:verified]
+        missing << 'www CNAME' unless www[:verified]
+      else
+        missing << 'apex A record' unless apex[:verified]
+        missing << 'www A record'  unless www[:verified]
+      end
 
       if missing.empty?
         'DNS configuration incomplete'
@@ -326,7 +335,7 @@ ActiveAdmin.register Business do
         # round of DNS lookups to the admin status endpoint when it's not
         # needed.
         dual_result = nil
-        effective_verified = if defined?(DomainProvider) && DomainProvider.caddy?
+        effective_verified = if defined?(DomainProvider) && DomainProvider.dual_dns?
                                dual_result = DualDomainVerifier.new(business.hostname).verify_both_domains
                                DomainVerificationStrategy.dns_verified_for(dns_result, dual_result)
                              else

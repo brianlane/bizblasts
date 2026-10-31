@@ -217,6 +217,13 @@ class CnameSetupService
   def determine_domains_to_add
     apex_domain = @business.hostname.sub(/^www\./, '')
     www_domain = "www.#{apex_domain}"
+
+    # Cloudflare for SaaS does not create the sibling hostname for us.
+    # Both the apex and www must be registered or the missing one 404s at the edge.
+    if defined?(DomainProvider) && DomainProvider.cloudflare?
+      Rails.logger.info "[CnameSetupService] Cloudflare: registering apex and www"
+      return [apex_domain, www_domain]
+    end
     
     case @business.canonical_preference
     when 'www'
@@ -325,7 +332,15 @@ class CnameSetupService
   # contradicts the mailer / FAQ / DualDomainVerifier copy (Bugbot LOW:
   # "Setup API still says CNAME").
   def setup_next_steps
-    if defined?(DomainProvider) && DomainProvider.caddy?
+    if defined?(DomainProvider) && DomainProvider.cloudflare?
+      target = CnameDnsChecker.custom_cname_target
+      [
+        'Check your email for DNS setup instructions',
+        "Add a CNAME for www pointing at #{target}",
+        "Add an ALIAS or flattened CNAME for @ pointing at #{target}",
+        'We will monitor DNS and Cloudflare certificate status and notify you when complete'
+      ]
+    elsif defined?(DomainProvider) && DomainProvider.caddy?
       [
         'Check your email for DNS setup instructions',
         'Add A records for both the apex (@) and www subdomain pointing at the BizBlasts server IP with your domain registrar',

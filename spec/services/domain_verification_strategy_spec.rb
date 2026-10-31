@@ -461,3 +461,32 @@ RSpec.describe 'DomainVerificationStrategy in caddy mode', type: :service do
     end
   end
 end
+
+RSpec.describe 'DomainVerificationStrategy in cloudflare mode', type: :service do
+  before { allow(DomainProvider).to receive(:provider_name).and_return('cloudflare') }
+
+  it 'requires both apex and www before DNS counts as verified' do
+    expect(
+      DomainVerificationStrategy.dns_verified_for({ verified: true }, { overall_verified: false })
+    ).to be false
+  end
+
+  it 'describes CNAME and ALIAS records and Cloudflare, not a home IP or Render' do
+    policy = InProgressVerificationPolicy.new(false, false, false)
+    expect(policy.status_reason).to include('www CNAME')
+    expect(policy.status_reason).to include('apex ALIAS')
+    expect(policy.status_reason).to include('Cloudflare')
+    expect(policy.status_reason).not_to match(/render/i)
+  end
+
+  it 'has Cloudflare copy for every in-progress state' do
+    fallback = 'Domain configuration is in progress'
+    states = [true, false].repeated_permutation(4).reject { |combo| combo.all? }
+
+    states.each do |dns, provider, health, ssl|
+      reason = InProgressVerificationPolicy.new(dns, provider, health, ssl).status_reason
+      expect(reason).not_to eq(fallback)
+      expect(reason).not_to match(/render/i)
+    end
+  end
+end

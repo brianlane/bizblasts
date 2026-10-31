@@ -89,8 +89,11 @@ class DomainMailer < ApplicationMailer
   private
 
   # Provider-aware DNS instructions. Sets:
-  #   @dns_provider          - 'caddy' or 'render'
+  #   @dns_provider          - 'cloudflare', 'caddy', or 'render'
+  #   @dns_cname_target      - Cloudflare fallback origin (cloudflare only)
+  #   @dns_txt_records       - TXT records Cloudflare returned, if any
   #   @dns_apex_target_ip    - the IP the apex (@) A-record should point at
+  #                            (nil on Cloudflare; apex is an ALIAS, not an A record)
   #   @dns_www_target_type   - 'A' or 'CNAME'
   #   @dns_www_target_value  - the value for the www record
   #   @render_target         - legacy alias kept so older partials don't NPE
@@ -102,7 +105,21 @@ class DomainMailer < ApplicationMailer
   # succeed (Bugbot MEDIUM: "Placeholder IP blocks verification"). Failing
   # the mail send surfaces the operator misconfiguration loudly instead.
   def assign_dns_instructions!
-    if defined?(DomainProvider) && DomainProvider.caddy?
+    @dns_txt_records = []
+    if defined?(DomainProvider) && DomainProvider.cloudflare?
+      target = CnameDnsChecker.custom_cname_target
+      @dns_provider          = 'cloudflare'
+      @dns_cname_target      = target
+      @dns_apex_record_type  = 'ALIAS'
+      @dns_apex_target_value = target
+      @dns_www_target_type   = 'CNAME'
+      @dns_www_target_value  = target
+      @dns_txt_records       = cloudflare_txt_records
+      @render_target         = target
+      # Leave the legacy IP slot empty so a missed template cannot tell
+      # the customer to point an A record at a home or Cloudflare anycast IP.
+      @dns_apex_target_ip    = nil
+    elsif defined?(DomainProvider) && DomainProvider.caddy?
       ip = bizblasts_public_ip
       if ip.blank?
         Rails.logger.error "[DomainMailer] refusing to send DNS instructions: BIZBLASTS_PUBLIC_IP unset and bizblasts.com A-record lookup failed"
@@ -121,6 +138,13 @@ class DomainMailer < ApplicationMailer
       @dns_www_target_value  = Rails.env.production? ? 'bizblasts.onrender.com' : 'localhost'
       @render_target         = @dns_www_target_value
     end
+  end
+
+  def cloudflare_txt_records
+    CloudflareDomainService.new.txt_records_for(@business.hostname)
+  rescue StandardError => e
+    Rails.logger.warn "[DomainMailer] Cloudflare TXT lookup failed: #{e.class}"
+    []
   end
 
   def bizblasts_public_ip

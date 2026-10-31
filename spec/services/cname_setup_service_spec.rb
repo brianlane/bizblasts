@@ -391,4 +391,29 @@ RSpec.describe CnameSetupService, type: :service do
       end
     end
   end
+
+  describe 'cloudflare registration' do
+    let(:cloudflare) { instance_double(CloudflareDomainService) }
+
+    before do
+      allow(DomainProvider).to receive(:provider_name).and_return('cloudflare')
+      allow(DomainProvider).to receive(:current).and_return(cloudflare)
+      allow(cloudflare).to receive(:find_domain_by_name).and_return(nil)
+      allow(cloudflare).to receive(:add_domain).and_return({ 'id' => 'cf-1', 'name' => 'example.com' })
+    end
+
+    it 'registers apex and www, and skips a hostname Cloudflare already has' do
+      allow(cloudflare).to receive(:find_domain_by_name).with('example.com').and_return({ 'id' => 'existing', 'name' => 'example.com' })
+      allow(cloudflare).to receive(:find_domain_by_name).with('www.example.com').and_return(nil)
+
+      expect(cloudflare).not_to receive(:add_domain).with('example.com')
+      expect(cloudflare).to receive(:add_domain).with('www.example.com')
+
+      result = service.start_setup!
+
+      expect(result[:success]).to be true
+      expect(result[:next_steps].join(' ')).to include('customers.bizblasts.com')
+      expect(result[:next_steps].join(' ')).to include('ALIAS')
+    end
+  end
 end

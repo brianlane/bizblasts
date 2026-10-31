@@ -4,21 +4,19 @@
 #
 # Behaviour:
 #   - If BIZBLASTS_DOMAIN_PROVIDER is set, honor it explicitly
-#     ("caddy" or "render"; anything else raises).
-#   - Otherwise default to RenderDomainService when RENDER_API_KEY is
-#     configured (legacy Render deployment), and CaddyDomainService when
-#     it isn't (the Ubuntu/Caddy deployment).
-#
-# This keeps the migration backwards-compatible: production stays on Render
-# until DNS is cut over and RENDER_API_KEY is removed, at which point the
-# Ubuntu host transparently switches to CaddyDomainService.
+#     ("cloudflare", "caddy", or "render"; anything else raises).
+#   - Otherwise default to CaddyDomainService. Production on the home
+#     server sets BIZBLASTS_DOMAIN_PROVIDER=cloudflare so customer domains
+#     are Cloudflare for SaaS custom hostnames. Leave the variable unset
+#     (or set it to caddy) to keep the previous on-demand TLS behavior.
 module DomainProvider
   class UnknownProviderError < StandardError; end
 
   def self.current
     case provider_name
-    when 'caddy'  then CaddyDomainService.new
-    when 'render' then RenderDomainService.new
+    when 'cloudflare' then CloudflareDomainService.new
+    when 'caddy'      then CaddyDomainService.new
+    when 'render'     then RenderDomainService.new
     else
       raise UnknownProviderError, "Unknown BIZBLASTS_DOMAIN_PROVIDER=#{provider_name.inspect}"
     end
@@ -26,7 +24,7 @@ module DomainProvider
 
   def self.provider_name
     explicit = ENV['BIZBLASTS_DOMAIN_PROVIDER'].to_s.strip.downcase
-    return explicit if %w[caddy render].include?(explicit)
+    return explicit if %w[cloudflare caddy render].include?(explicit)
 
     # No explicit BIZBLASTS_DOMAIN_PROVIDER set. Default to 'caddy'.
     #
@@ -46,7 +44,17 @@ module DomainProvider
     provider_name == 'caddy'
   end
 
+  def self.cloudflare?
+    provider_name == 'cloudflare'
+  end
+
   def self.render?
     provider_name == 'render'
+  end
+
+  # Caddy and Cloudflare both require the apex and the www name to be
+  # checked on their own. Render still uses the legacy single-host gate.
+  def self.dual_dns?
+    caddy? || cloudflare?
   end
 end
