@@ -417,13 +417,20 @@ class CnameSetupService
 
     # Try to remove domain from Render if it was added
     if domain_was_added
-      begin
-        existing_domain = render_service.find_domain_by_name(@business.hostname)
-        if existing_domain
-          render_service.remove_domain(existing_domain['id'])
+      # Cloudflare setup registers both apex and www as separate custom
+      # hostnames, so rollback must remove the pair, not just the stored
+      # hostname, or the sibling stays on the zone and counts against the
+      # SaaS hostname quota (Bugbot MEDIUM: "Rollback leaves sibling
+      # hostname"). Each removal is rescued on its own so one failure
+      # cannot block the other. On Caddy remove_domain is a no-op.
+      apex_domain = @business.hostname.sub(/^www\./, '')
+      [apex_domain, "www.#{apex_domain}"].uniq.each do |domain_name|
+        begin
+          existing_domain = render_service.find_domain_by_name(domain_name)
+          render_service.remove_domain(existing_domain['id']) if existing_domain
+        rescue => e
+          Rails.logger.warn "[CnameSetupService] Failed to remove domain during rollback: #{domain_name}: #{e.message}"
         end
-      rescue => e
-        Rails.logger.warn "[CnameSetupService] Failed to remove domain during rollback: #{e.message}"
       end
     end
   rescue => e

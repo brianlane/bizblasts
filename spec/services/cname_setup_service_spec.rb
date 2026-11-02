@@ -415,5 +415,21 @@ RSpec.describe CnameSetupService, type: :service do
       expect(result[:next_steps].join(' ')).to include('customers.bizblasts.com')
       expect(result[:next_steps].join(' ')).to include('ALIAS')
     end
+
+    it 'removes both apex and www on rollback, not just the stored hostname' do
+      business.update!(render_domain_added: true)
+      allow(cloudflare).to receive(:find_domain_by_name).with('example.com')
+        .and_return({ 'id' => 'cf-apex', 'name' => 'example.com' })
+      allow(cloudflare).to receive(:find_domain_by_name).with('www.example.com')
+        .and_return({ 'id' => 'cf-www', 'name' => 'www.example.com' })
+      expect(cloudflare).to receive(:remove_domain).with('cf-apex')
+      expect(cloudflare).to receive(:remove_domain).with('cf-www')
+
+      service.send(:rollback_changes!)
+
+      business.reload
+      expect(business.status).to eq('active')
+      expect(business.render_domain_added).to be false
+    end
   end
 end

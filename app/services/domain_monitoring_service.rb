@@ -126,7 +126,25 @@ class DomainMonitoringService
   def check_render_verification
     if DomainProvider.cloudflare?
       Rails.logger.debug "[DomainMonitoringService] Checking Cloudflare hostname and SSL status"
-      return @render_service.pair_verification(@business.hostname)
+
+      # The Render branch below rescues API failures into an error hash so
+      # monitoring keeps ticking. The Cloudflare branch must do the same:
+      # pair_verification raises on timeouts and 429s, and an unrescued
+      # raise here makes perform_check! return should_continue: false, so
+      # DomainMonitoringJob stops scheduling and the business sits in
+      # cname_monitoring with no further checks (Bugbot HIGH: "API errors
+      # halt domain monitoring").
+      begin
+        return @render_service.pair_verification(@business.hostname)
+      rescue => e
+        Rails.logger.warn "[DomainMonitoringService] Cloudflare verification check failed: #{e.message}"
+
+        return {
+          found: false,
+          verified: false,
+          error: e.message
+        }
+      end
     end
 
     Rails.logger.debug "[DomainMonitoringService] Checking Render verification status"

@@ -140,7 +140,7 @@
           <ul>
             <% if @dns_provider == 'cloudflare' %>
               <li><strong>www:</strong> CNAME to <strong><%= @dns_cname_target %></strong>, not an A record.</li>
-              <li><strong>@:</strong> ALIAS or flattened CNAME to the same target. If your registrar cannot do that, move DNS to Cloudflare or forward @ to www.</li>
+              <li><strong>@:</strong> ALIAS or flattened CNAME to the same target. If your registrar cannot do that, move DNS to Cloudflare.</li>
               <li><strong>Old records:</strong> Remove A or CNAME records for @ and www that point somewhere else.</li>
             <% elsif @dns_www_target_type == 'CNAME' %>
               <li><strong>Trailing dot:</strong> Some registrars require "<strong><%= @dns_www_target_value %>.</strong>" (with dot)</li>

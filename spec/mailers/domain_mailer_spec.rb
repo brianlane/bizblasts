@@ -399,7 +399,7 @@ RSpec.describe DomainMailer, type: :mailer do
         expect(text).to include('_cf-custom-hostname.example.com')
         expect(text).to include('ownership-token')
         expect(text).to include('Move the domain\'s DNS to Cloudflare')
-        expect(text).to include('forward the root domain')
+        expect(text).not_to include('forward the root domain')
         expect(text).not_to include('216.24.57.1')
         expect(text).not_to include('bizblasts.onrender.com')
       end

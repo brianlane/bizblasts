@@ -42,7 +42,6 @@
     <h3 class="text-xl font-bold text-dark mb-3">Registrar has no ALIAS?</h3>
     <ul class="list-disc pl-5 space-y-2 text-gray-700">
       <li>Move DNS to Cloudflare (the free plan is enough) and add both records there. Cloudflare flattens a CNAME on @.</li>
-      <li>Or keep your registrar, forward the root domain (@) to www, and set only the www CNAME. Visitors who type the bare domain will land on www.</li>
     </ul>
     <p class="text-sm text-gray-600 mt-4">
       Some panels label the root as <code>@</code>, some as a blank name, and some want a trailing dot on the target
