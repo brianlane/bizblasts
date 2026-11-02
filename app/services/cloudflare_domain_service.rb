@@ -117,6 +117,13 @@ class CloudflareDomainService
   def normalize_domain_data(domain)
     return nil unless domain.is_a?(Hash)
 
+    # Already normalized: find_domain_by_name returns this shape, and
+    # RenderDomainVerificationJob passes that result back through here.
+    # Returning nil for it made the job raise NoMethodError reading
+    # verificationStatus and retry. Render and Caddy normalizers already
+    # return name-keyed input unchanged; match that here.
+    return domain if domain['name'].is_a?(String) && domain.key?('verificationStatus')
+
     row = domain.key?('hostname') ? domain : domain['result']
     return nil unless row.is_a?(Hash)
 

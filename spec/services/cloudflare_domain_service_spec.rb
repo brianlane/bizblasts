@@ -170,6 +170,23 @@ RSpec.describe CloudflareDomainService, type: :service do
     end
   end
 
+  describe '#normalize_domain_data' do
+    it 'returns an already-normalized hash unchanged instead of nil' do
+      normalized = service.normalize_domain_data(
+        hostname_payload('example.com', id: 'host-1', status: 'active', ssl_status: 'active')
+      )
+      expect(normalized['name']).to eq('example.com')
+
+      # RenderDomainVerificationJob passes find_domain_by_name output back
+      # through normalize_domain_data; a second pass must not become nil.
+      expect(service.normalize_domain_data(normalized)).to eq(normalized)
+    end
+
+    it 'returns nil for a hash with neither a hostname nor a result row' do
+      expect(service.normalize_domain_data({ 'id' => 'host-1' })).to be_nil
+    end
+  end
+
   describe '#pair_verification' do
     it 'requires both apex and www to be active with certificates' do
       payloads = {
