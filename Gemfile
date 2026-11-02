@@ -86,7 +86,7 @@ gem "redcarpet"
 gem "rouge" # For syntax highlighting
 
 # Stripe for payments
-gem "stripe", "~> 20.0"
+gem "stripe", "~> 20.1"
 
 # QR Code generation for in-person payments
 gem "rqrcode", "~> 3.2"
@@ -148,7 +148,7 @@ gem 'geocoder'
 gem 'zip-codes' # Offline US ZIP code database for fallback geocoding
 
 # Calendar integrations
-gem 'google-apis-calendar_v3', '~> 0.57'
+gem 'google-apis-calendar_v3', '~> 0.58'
 gem 'googleauth', '~> 1.17'
 # Required at runtime by representable (via google-apis-calendar_v3); googleauth 1.17 dropped it
 gem 'multi_json'
