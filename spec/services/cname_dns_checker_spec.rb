@@ -535,6 +535,26 @@ RSpec.describe CnameDnsChecker, type: :service do
         expect(result[:target]).to eq(target)
       end
 
+      it 'passes when a proxied apex has AAAA records in the 2405:8100::/32 range' do
+        allow(resolver).to receive(:getresources)
+          .with('example.com', Resolv::DNS::Resource::IN::A)
+          .and_return([address_record(Resolv::DNS::Resource::IN::A, '172.67.1.1')])
+        allow(resolver).to receive(:getresources)
+          .with(target, Resolv::DNS::Resource::IN::A)
+          .and_return([address_record(Resolv::DNS::Resource::IN::A, shared_ip)])
+        allow(resolver).to receive(:getresources)
+          .with('example.com', Resolv::DNS::Resource::IN::AAAA)
+          .and_return([address_record(Resolv::DNS::Resource::IN::AAAA, '2405:8100::1')])
+        allow(resolver).to receive(:getresources)
+          .with(target, Resolv::DNS::Resource::IN::AAAA)
+          .and_return([])
+
+        result = checker.verify_cname
+
+        expect(result[:verified]).to be true
+        expect(result[:target]).to eq(target)
+      end
+
       it 'fails when the apex addresses are not the target addresses' do
         allow(resolver).to receive(:getresources)
           .with('example.com', Resolv::DNS::Resource::IN::A)
