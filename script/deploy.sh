@@ -12,7 +12,7 @@
 #     -> webhook exec's THIS script (path is configured in hooks.json's
 #        execute-command field; current value: script/deploy.sh inside the
 #        checked-out repo at /home/brianlane/apps/bizblasts)
-#     -> this script: flock -> git fetch + reset --hard -> bundle/bun install
+#     -> this script: flock -> node preflight -> git fetch + reset --hard -> bundle/bun install
 #        -> asset precompile -> db:migrate -> systemctl restart puma -> health
 #        probe -> DEPLOY OK sentinel.
 #
@@ -92,6 +92,37 @@ fi
 cd "$APP_DIR"
 
 # ---------------------------------------------------------------------------
+# 2.5. Node preflight. sass 1.101+ requires Node >= 20.19.0 (package.json
+#      engines). Fail before git reset, bundle, bun, or asset builds so a
+#      mismatch stops the deploy here instead of dying inside the CSS build
+#      after the checkout has already moved.
+# ---------------------------------------------------------------------------
+log "checking node version"
+if ! command -v node >/dev/null 2>&1; then
+    log "DEPLOY FAILED: node is not installed or not on PATH."
+    log "  Install Node >= 20.19.0 (package.json engines, .node-version) and retry."
+    exit 1
+fi
+
+NODE_VERSION_RAW="$(node -v)"
+NODE_VERSION_NUM="${NODE_VERSION_RAW#v}"
+NODE_MAJOR="${NODE_VERSION_NUM%%.*}"
+NODE_REST="${NODE_VERSION_NUM#*.}"
+NODE_MINOR="${NODE_REST%%.*}"
+NODE_PATCH="${NODE_REST#*.}"
+NODE_PATCH="${NODE_PATCH%%[^0-9]*}"
+
+if ! [[ "$NODE_MAJOR" =~ ^[0-9]+$ && "$NODE_MINOR" =~ ^[0-9]+$ && "$NODE_PATCH" =~ ^[0-9]+$ ]] \
+    || [ "$NODE_MAJOR" -lt 20 ] \
+    || { [ "$NODE_MAJOR" -eq 20 ] && [ "$NODE_MINOR" -lt 19 ]; }; then
+    log "DEPLOY FAILED: Node ${NODE_VERSION_RAW} does not satisfy >= 20.19.0."
+    log "  sass 1.101 and newer refuse to compile CSS on older Node."
+    log "  Upgrade to Node >= 20.19.0 (the Node 20 LTS line in .node-version) and retry."
+    exit 1
+fi
+log "node ${NODE_VERSION_RAW} satisfies >= 20.19.0"
+
+# ---------------------------------------------------------------------------
 # 3. Sync code to the exact commit on origin/main.
 # ---------------------------------------------------------------------------
 log "git fetch origin main"
@@ -112,7 +143,10 @@ log "bundle install"
 bundle install --jobs=4 --retry=3
 
 log "bun install"
-bun install --frozen-lockfile || bun install
+# Frozen so a package.json / bun.lock mismatch fails the deploy. The previous
+# fallback (`|| bun install`) rewrote bun.lock in the production checkout
+# whenever the lockfile was stale.
+bun install --frozen-lockfile
 
 log "bun run build:js"
 bun run build:js
