@@ -63,7 +63,7 @@ Sprockets must be the **ONLY** processor for ActiveAdmin JavaScript.
 ruby -v  # Should be 3.4.3+
 
 # Node.js and Bun
-node -v  # Should be 20+
+node -v  # >= 20.19.0 (see .node-version)
 bun -v   # Should be 1.0+
 
 # PostgreSQL
