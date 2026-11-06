@@ -51,7 +51,12 @@ Rails.application.configure do
   # Enable variant tracking for database-backed variant management
   config.active_storage.track_variants = true
 
-  # Assume all access to the app is happening through a SSL-terminating reverse proxy.
+  # Cloudflare terminates visitor TLS. The tunnel delivers the request to
+  # Caddy, which reverse-proxies to Puma over plain HTTP. Caddy often sets
+  # X-Forwarded-Proto from the hop it accepted (http) instead of the scheme
+  # the visitor used (https). assume_ssl runs before force_ssl and marks the
+  # request https, so cookies are secure and force_ssl does not redirect.
+  # Without that, the redirect would bounce through the tunnel forever.
   config.assume_ssl = true
 
   # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.

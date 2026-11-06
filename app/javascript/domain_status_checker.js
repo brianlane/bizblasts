@@ -173,14 +173,16 @@ class DomainStatusChecker {
   showDetailedStatus(data) {
     if (!this.detailsExpanded) return;
     
+    const providerLabel = this.domainStatusContainer?.dataset.providerLabel || 'Render';
+
     // Update DNS status
     this.updateCheckStatus('dns', data.dns_check.verified, 
-      data.dns_check.verified ? `CNAME points to ${data.dns_check.target}` : (data.dns_check.error || 'CNAME record not found')
+      data.dns_check.verified ? `DNS points to ${data.dns_check.target}` : (data.dns_check.error || 'DNS record not found')
     );
     
-    // Update Render status
+    // Update provider status (Render, Caddy/BizBlasts, or Cloudflare)
     this.updateCheckStatus('render', data.render_check.verified,
-      data.render_check.verified ? 'Domain verified in Render' : (data.render_check.error || 'Domain not found in Render')
+      data.render_check.verified ? `Hostname active in ${providerLabel}` : (data.render_check.error || `Hostname not active in ${providerLabel}`)
     );
     
     // Update Health status

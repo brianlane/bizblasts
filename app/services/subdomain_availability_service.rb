@@ -5,7 +5,10 @@
 #   result = SubdomainAvailabilityService.call("mybiz", exclude_business: current_business)
 #   result => { available: true/false, message: "..." }
 class SubdomainAvailabilityService
-  RESERVED_WORDS = %w[www mail ftp admin root api app support help blog shop store manage settings dashboard].freeze
+  RESERVED_WORDS = %w[
+    www mail ftp admin root api app support help blog shop store manage settings dashboard
+    customers deploy local tunnel-origin ping
+  ].freeze
   FORMAT_REGEX = /\A[a-z0-9]([a-z0-9-]*[a-z0-9])?\z/.freeze
   LENGTH_RANGE = (3..63).freeze
 

@@ -111,8 +111,13 @@ class CertificatePropagationRetryJob < ApplicationJob
     # retry runs noop rebuild"). Caddy's own ACME retry takes over,
     # and the normal monitoring loop will pick up success on the next
     # tick once the cert finishes propagating.
-    if DomainProvider.caddy?
-      Rails.logger.info "[CertificatePropagationRetryJob] Skipping rebuild for #{business.hostname}: Caddy handles cert retries internally; relying on its ACME loop"
+    if DomainProvider.caddy? || DomainProvider.cloudflare?
+      reason = if DomainProvider.cloudflare?
+                 'Cloudflare issues the certificate at the edge; deleting the custom hostname would drop it'
+               else
+                 'Caddy handles cert retries internally; relying on its ACME loop'
+               end
+      Rails.logger.info "[CertificatePropagationRetryJob] Skipping rebuild for #{business.hostname}: #{reason}"
       return
     end
 

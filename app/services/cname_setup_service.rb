@@ -217,6 +217,13 @@ class CnameSetupService
   def determine_domains_to_add
     apex_domain = @business.hostname.sub(/^www\./, '')
     www_domain = "www.#{apex_domain}"
+
+    # Cloudflare for SaaS does not create the sibling hostname for us.
+    # Both the apex and www must be registered or the missing one 404s at the edge.
+    if defined?(DomainProvider) && DomainProvider.cloudflare?
+      Rails.logger.info "[CnameSetupService] Cloudflare: registering apex and www"
+      return [apex_domain, www_domain]
+    end
     
     case @business.canonical_preference
     when 'www'
@@ -325,7 +332,15 @@ class CnameSetupService
   # contradicts the mailer / FAQ / DualDomainVerifier copy (Bugbot LOW:
   # "Setup API still says CNAME").
   def setup_next_steps
-    if defined?(DomainProvider) && DomainProvider.caddy?
+    if defined?(DomainProvider) && DomainProvider.cloudflare?
+      target = CnameDnsChecker.custom_cname_target
+      [
+        'Check your email for DNS setup instructions',
+        "Add a CNAME for www pointing at #{target}",
+        "Add an ALIAS or flattened CNAME for @ pointing at #{target}",
+        'We will monitor DNS and Cloudflare certificate status and notify you when complete'
+      ]
+    elsif defined?(DomainProvider) && DomainProvider.caddy?
       [
         'Check your email for DNS setup instructions',
         'Add A records for both the apex (@) and www subdomain pointing at the BizBlasts server IP with your domain registrar',
@@ -402,13 +417,20 @@ class CnameSetupService
 
     # Try to remove domain from Render if it was added
     if domain_was_added
-      begin
-        existing_domain = render_service.find_domain_by_name(@business.hostname)
-        if existing_domain
-          render_service.remove_domain(existing_domain['id'])
+      # Cloudflare setup registers both apex and www as separate custom
+      # hostnames, so rollback must remove the pair, not just the stored
+      # hostname, or the sibling stays on the zone and counts against the
+      # SaaS hostname quota (Bugbot MEDIUM: "Rollback leaves sibling
+      # hostname"). Each removal is rescued on its own so one failure
+      # cannot block the other. On Caddy remove_domain is a no-op.
+      apex_domain = @business.hostname.sub(/^www\./, '')
+      [apex_domain, "www.#{apex_domain}"].uniq.each do |domain_name|
+        begin
+          existing_domain = render_service.find_domain_by_name(domain_name)
+          render_service.remove_domain(existing_domain['id']) if existing_domain
+        rescue => e
+          Rails.logger.warn "[CnameSetupService] Failed to remove domain during rollback: #{domain_name}: #{e.message}"
         end
-      rescue => e
-        Rails.logger.warn "[CnameSetupService] Failed to remove domain during rollback: #{e.message}"
       end
     end
   rescue => e

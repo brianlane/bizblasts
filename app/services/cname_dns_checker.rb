@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'ipaddr'
 require 'resolv'
 
 # Service for verifying CNAME DNS configuration
@@ -17,17 +18,44 @@ class CnameDnsChecker
   # TODO: Consider making this configurable via ENV['RENDER_APEX_IP'] for easier updates
   RENDER_APEX_IP = ENV['RENDER_APEX_IP'] || '216.24.57.1'
 
+  # Cloudflare's published edge IP ranges (https://www.cloudflare.com/ips/).
+  # A proxied customer zone returns these proxy IPs for the apex, not the
+  # fallback origin's current IPs, so the apex ALIAS check accepts an apex
+  # whose addresses all fall in these ranges. Update this list if Cloudflare
+  # publishes new ranges.
+  CLOUDFLARE_IP_RANGES = [
+    '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22',
+    '103.31.4.0/22', '141.101.64.0/18', '108.162.192.0/18',
+    '190.93.240.0/20', '188.114.96.0/20', '197.234.240.0/22',
+    '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13',
+    '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22',
+    '2400:cb00::/32', '2606:4700::/32', '2803:f800::/32',
+    '2405:b500::/32', '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32'
+  ].map { |range| IPAddr.new(range) }.freeze
+
   # Provider-aware verification targets. On the Caddy/Ubuntu deployment the
   # customer's apex A record (and the www A record) must point at our public
   # IP — there is no CNAME-to-onrender step. On Render we keep the legacy
   # CNAME-to-onrender + apex-A-to-216.24.57.1 contract.
   # (Bugbot HIGH: DNS checks ignore Caddy targets.)
+  # Hostname customers CNAME (www) or ALIAS (apex) to. Cloudflare for SaaS
+  # fallback origin. Override with CUSTOM_DOMAIN_CNAME_TARGET.
+  def self.custom_cname_target
+    ENV['CUSTOM_DOMAIN_CNAME_TARGET'].to_s.strip.downcase.chomp('.').presence || 'customers.bizblasts.com'
+  end
+
+  def self.cloudflare?
+    defined?(DomainProvider) && DomainProvider.cloudflare?
+  end
+
   def self.expected_cname_target
+    return custom_cname_target if cloudflare?
     return nil if defined?(DomainProvider) && DomainProvider.caddy?
     RENDER_CNAME_TARGET
   end
 
   def self.expected_apex_ip
+    return nil if cloudflare?
     if defined?(DomainProvider) && DomainProvider.caddy?
       ENV['BIZBLASTS_PUBLIC_IP'].to_s.strip.presence || resolve_bizblasts_a
     else
@@ -76,9 +104,27 @@ class CnameDnsChecker
       if cname_target.present?
         result[:target] = cname_target
         result[:verified] = cname_matches_target?(cname_target)
+        if self.class.cloudflare? && !result[:verified]
+          result[:error] = "CNAME should point to #{expected_cname}"
+        end
 
         Rails.logger.info "[CnameDnsChecker] CNAME found: #{@domain_name} -> #{cname_target}"
         Rails.logger.info "[CnameDnsChecker] Verification: #{result[:verified] ? 'PASSED' : 'FAILED'}"
+      elsif self.class.cloudflare?
+        # www must be a real CNAME. Apex may be an ALIAS or a flattened
+        # CNAME, which shows up only as A/AAAA records that match the target.
+        if www_name?(@domain_name)
+          result[:error] = 'No CNAME record found'
+          Rails.logger.warn "[CnameDnsChecker] No CNAME record for: #{@domain_name}"
+        elsif addresses_match_cname_target?(@domain_name)
+          result[:target] = expected_cname
+          result[:verified] = true
+          result[:error] = nil
+          Rails.logger.info "[CnameDnsChecker] Apex resolves like #{expected_cname} for #{@domain_name}"
+        else
+          result[:error] = "Apex should be an ALIAS or flattened CNAME to #{expected_cname}"
+          Rails.logger.warn "[CnameDnsChecker] Apex does not match #{expected_cname}: #{@domain_name}"
+        end
       else
         # No CNAME (or CNAME not applicable for provider) — verify via apex A record.
         if apex_a_matches_expected?(@domain_name)
@@ -226,6 +272,11 @@ class CnameDnsChecker
     # Direct match
     return true if normalized_target == normalized_expected
 
+    # Cloudflare customers must point at the fallback origin exactly.
+    # The non-production leniency below would treat any hostname containing
+    # "bizblasts" as a match, which hides a wrong CNAME target.
+    return false if self.class.cloudflare?
+
     # In development/test, be more lenient
     unless Rails.env.production?
       return true if normalized_target.include?('localhost') || 
@@ -276,4 +327,52 @@ class CnameDnsChecker
 
   # Backwards-compat alias — older callers / specs may reference the old name.
   alias_method :apex_a_matches_render?, :apex_a_matches_expected?
+
+  def www_name?(name)
+    name.to_s.downcase.start_with?('www.')
+  end
+
+  # True when the apex resolves to the CNAME target. A registrar's ALIAS /
+  # CNAME-flattening shows up at the apex only as A/AAAA records, not as a
+  # CNAME. When the customer zone is proxied those records are Cloudflare
+  # proxy IPs, which routinely differ from the target's current IPs, so a
+  # strict subset check fails for correctly pointed domains. Accept either
+  # the target's exact addresses (flattened CNAME snapshot) or Cloudflare
+  # edge addresses (proxied zone). The Cloudflare hostname-activation
+  # check, not this DNS check, proves the apex is mapped to our zone, so
+  # resolving to Cloudflare edge addresses is enough here.
+  def addresses_match_cname_target?(name)
+    target = self.class.custom_cname_target
+    apex_v4 = ip_strings(name, Resolv::DNS::Resource::IN::A)
+    target_v4 = ip_strings(target, Resolv::DNS::Resource::IN::A)
+    return false if apex_v4.empty? || target_v4.empty?
+    return false unless apex_addresses_point_at_target?(apex_v4, target_v4)
+
+    apex_v6 = ip_strings(name, Resolv::DNS::Resource::IN::AAAA)
+    return true if apex_v6.empty?
+
+    target_v6 = ip_strings(target, Resolv::DNS::Resource::IN::AAAA)
+    apex_addresses_point_at_target?(apex_v6, target_v6)
+  end
+
+  # Either the exact target addresses, or (for a proxied zone) Cloudflare
+  # edge addresses. All apex addresses must qualify; one stray address
+  # means the apex is not pointed at the target.
+  def apex_addresses_point_at_target?(apex_ips, target_ips)
+    return true if (apex_ips - target_ips).empty?
+    apex_ips.all? { |ip| cloudflare_ip?(ip) }
+  end
+
+  def cloudflare_ip?(ip)
+    addr = IPAddr.new(ip)
+    CLOUDFLARE_IP_RANGES.any? { |range| range.include?(addr) }
+  rescue StandardError
+    false
+  end
+
+  def ip_strings(host, type)
+    @resolver.getresources(host, type).map { |record| record.address.to_s }
+  rescue StandardError
+    []
+  end
 end

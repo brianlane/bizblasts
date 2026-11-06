@@ -10,7 +10,28 @@ module ApplicationHelper
   # On the Caddy/Ubuntu deployment these point at our public IP; on Render
   # they keep the legacy 216.24.57.1 / bizblasts.onrender.com values so the
   # documentation reads correctly during the transition window.
+  def custom_domain_cname_target
+    CnameDnsChecker.custom_cname_target
+  end
+
+  # TXT records Cloudflare asked the customer to publish, if any.
+  # Failures stay off the settings page; the CNAME instructions still render.
+  def cloudflare_hostname_txt_records(business)
+    return [] unless defined?(DomainProvider) && DomainProvider.cloudflare?
+    return [] unless business&.host_type_custom_domain? && business.hostname.present?
+
+    CloudflareDomainService.new.txt_records_for(business.hostname)
+  rescue StandardError => e
+    Rails.logger.warn "[CustomDomain] TXT record lookup failed for business #{business&.id}: #{e.class}"
+    []
+  end
+
   def bizblasts_dns_apex_target_ip
+    if defined?(DomainProvider) && DomainProvider.cloudflare?
+      # Customer apex is an ALIAS, not an A record at a home IP.
+      return nil
+    end
+
     if defined?(DomainProvider) && DomainProvider.caddy?
       # Strip the env-var read so any stray whitespace in /etc/bizblasts/.env
       # (e.g. trailing CRLF on a Windows-edited file) doesn't make the FAQ /
@@ -38,11 +59,14 @@ module ApplicationHelper
   end
 
   def bizblasts_dns_www_target_type
+    return 'CNAME' if defined?(DomainProvider) && DomainProvider.cloudflare?
     defined?(DomainProvider) && DomainProvider.caddy? ? 'A' : 'CNAME'
   end
 
   def bizblasts_dns_www_target_value
-    if defined?(DomainProvider) && DomainProvider.caddy?
+    if defined?(DomainProvider) && DomainProvider.cloudflare?
+      custom_domain_cname_target
+    elsif defined?(DomainProvider) && DomainProvider.caddy?
       bizblasts_dns_apex_target_ip
     else
       # Mirror DomainMailer#assign_dns_instructions! and
@@ -201,7 +225,11 @@ module ApplicationHelper
     when 'business-growth-strategies'
       render partial: 'docs/content/business-growth-strategies'
     when 'custom-domain-faq'
-      render partial: 'docs/content/custom-domain-faq'
+      if defined?(DomainProvider) && DomainProvider.cloudflare?
+        render partial: 'docs/content/custom-domain-faq-cloudflare'
+      else
+        render partial: 'docs/content/custom-domain-faq'
+      end
     else
       content_tag :div, class: 'text-center py-12' do
         content_tag :p, 'Documentation not available.', class: 'text-gray-500'

@@ -345,6 +345,25 @@ RSpec.describe DomainMonitoringService, type: :service do
         expect(result[:error]).to include('API error')
       end
     end
+
+    context 'when Cloudflare API fails' do
+      let(:cloudflare) { instance_double(CloudflareDomainService) }
+
+      before do
+        allow(DomainProvider).to receive(:provider_name).and_return('cloudflare')
+        allow(DomainProvider).to receive(:current).and_return(cloudflare)
+        allow(cloudflare).to receive(:pair_verification).and_raise(
+          CloudflareDomainService::CloudflareApiError.new('Cloudflare API request failed')
+        )
+      end
+
+      it 'returns an error result instead of raising, so monitoring keeps ticking' do
+        result = service.send(:check_render_verification)
+
+        expect(result[:verified]).to be false
+        expect(result[:error]).to include('Cloudflare API request failed')
+      end
+    end
   end
 
   describe '#check_domain_health' do

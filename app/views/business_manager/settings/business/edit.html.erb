@@ -341,11 +341,19 @@
             </div>
           </div>
 
+          <% if defined?(DomainProvider) && DomainProvider.cloudflare? && @business.host_type_custom_domain? && @business.hostname.present? %>
+            <%= render 'business_manager/settings/business/cloudflare_dns_instructions',
+                       cname_target: custom_domain_cname_target,
+                       txt_records: cloudflare_hostname_txt_records(@business) %>
+          <% end %>
+
           <!-- Domain Status Checker -->
           <% if @business.host_type_custom_domain? && @business.hostname.present? %>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-3">Domain Status</label>
-              <div id="domain-status-container" class="p-4 bg-white border border-gray-200 rounded-lg">
+              <div id="domain-status-container"
+                   class="p-4 bg-white border border-gray-200 rounded-lg"
+                   data-provider-label="<%= DomainProvider.cloudflare? ? 'Cloudflare' : (DomainProvider.caddy? ? 'BizBlasts' : 'Render') %>">
                 <div class="flex items-center justify-between">
                   <div>
                     <div id="domain-status-indicator" class="flex items-center">
@@ -376,14 +384,14 @@
                           <div id="dns-check-indicator" class="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
                           <span class="font-medium">DNS Configuration</span>
                         </div>
-                        <p id="dns-check-text" class="text-gray-500 mt-1">Checking CNAME record...</p>
+                        <p id="dns-check-text" class="text-gray-500 mt-1">Checking DNS records...</p>
                       </div>
                       <div>
                         <div class="flex items-center">
                           <div id="render-check-indicator" class="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
-                          <span class="font-medium">Render Integration</span>
+                          <span class="font-medium"><%= DomainProvider.cloudflare? ? 'Cloudflare' : (DomainProvider.caddy? ? 'BizBlasts' : 'Render Integration') %></span>
                         </div>
-                        <p id="render-check-text" class="text-gray-500 mt-1">Verifying domain in Render...</p>
+                        <p id="render-check-text" class="text-gray-500 mt-1"><%= DomainProvider.cloudflare? ? 'Checking Cloudflare hostname and certificate...' : (DomainProvider.caddy? ? 'Checking BizBlasts registration...' : 'Verifying domain in Render...') %></p>
                       </div>
                       <div>
                         <div class="flex items-center">

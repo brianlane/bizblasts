@@ -3,6 +3,14 @@
 class Business < ApplicationRecord
   attr_accessor :remove_logo, :logo_crop_data
   # Business represents a tenant in the multi-tenant architecture
+
+  # Subdomains that must not be claimed by a tenant. customers is the
+  # Cloudflare for SaaS fallback origin. deploy, local, tunnel-origin, and
+  # ping are infrastructure names on the tunnel.
+  RESERVED_SUBDOMAINS = %w[
+    www admin mail api help support status blog
+    customers deploy local tunnel-origin ping
+  ].freeze
   
   # Define the comprehensive list of industries based on showcase examples
   SHOWCASE_INDUSTRY_MAPPINGS = {
@@ -303,7 +311,7 @@ class Business < ApplicationRecord
               message: "can only contain lowercase letters, numbers, and single hyphens"
             },
             exclusion: {
-              in: %w(www admin mail api help support status blog),
+              in: RESERVED_SUBDOMAINS,
               message: "'%{value}' is reserved."
             },
             if: -> { host_type_subdomain? && (new_record? || will_save_change_to_hostname?) }

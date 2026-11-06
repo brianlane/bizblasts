@@ -59,8 +59,8 @@ class DomainVerificationStrategy
   # green on one host while activation correctly stays blocked (Bugbot
   # MEDIUM: "DNS status flag ignores dual check").
   def self.dns_verified_for(dns_result, dual_result = nil)
-    caddy_mode = defined?(DomainProvider) && DomainProvider.caddy?
-    if caddy_mode && dual_result.is_a?(Hash) && dual_result.key?(:overall_verified)
+    requires_both = defined?(DomainProvider) && DomainProvider.dual_dns?
+    if requires_both && dual_result.is_a?(Hash) && dual_result.key?(:overall_verified)
       return dual_result[:overall_verified] == true
     end
 
@@ -221,6 +221,24 @@ class InProgressVerificationPolicy < VerificationPolicy
       dns_render_ssl:  'DNS and BizBlasts verified, HTTPS working - finalizing activation',
       dns_health_ssl:  'DNS and HTTPS working, waiting for BizBlasts verification',
       render_health_ssl: 'BizBlasts and HTTPS verified, waiting for DNS propagation'
+    },
+    cloudflare: {
+      all_pending:    'Waiting for the www CNAME and apex ALIAS, Cloudflare hostname verification, and health check',
+      dns_only:       'DNS configured, waiting for Cloudflare hostname and SSL status',
+      render_only:    'Cloudflare hostname active, waiting for DNS and health check',
+      health_only:    'Health verified, waiting for DNS and Cloudflare hostname status',
+      dns_render:     'DNS and Cloudflare verified, waiting for the domain to return HTTP 200',
+      dns_health:     'DNS and health verified, waiting for Cloudflare hostname and SSL status',
+      render_health:  'Cloudflare hostname active and healthy, waiting for DNS',
+      dns_render_http:'Domain working via HTTP. Cloudflare is still finishing the certificate',
+
+      ssl_only:        'HTTPS working, waiting for DNS and Cloudflare hostname status',
+      dns_ssl:         'DNS and HTTPS configured, waiting for Cloudflare hostname status',
+      render_ssl:      'Cloudflare and HTTPS verified, waiting for DNS',
+      health_ssl:      'HTTPS working, waiting for DNS and Cloudflare hostname status',
+      dns_render_ssl:  'DNS and Cloudflare verified, HTTPS working. Finalizing activation',
+      dns_health_ssl:  'DNS and HTTPS working, waiting for Cloudflare hostname status',
+      render_health_ssl: 'Cloudflare and HTTPS verified, waiting for DNS'
     }
   }.freeze
   private_constant :PROGRESS_COPY
@@ -228,7 +246,13 @@ class InProgressVerificationPolicy < VerificationPolicy
   private
 
   def provider_key
-    @provider_key ||= (defined?(DomainProvider) && DomainProvider.caddy?) ? :caddy : :render
+    @provider_key ||= if defined?(DomainProvider) && DomainProvider.cloudflare?
+                        :cloudflare
+                      elsif defined?(DomainProvider) && DomainProvider.caddy?
+                        :caddy
+                      else
+                        :render
+                      end
   end
 
   def verification_state

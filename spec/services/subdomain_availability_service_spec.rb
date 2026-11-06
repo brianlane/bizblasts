@@ -27,10 +27,12 @@ RSpec.describe SubdomainAvailabilityService, type: :service do
     end
 
     context 'when subdomain is a reserved word' do
-      it 'returns unavailable' do
-        result = service.call('www')
-        expect(result.available).to be_falsey
-        expect(result.message).to eq('This subdomain is reserved')
+      %w[www customers deploy local tunnel-origin ping].each do |reserved|
+        it "rejects #{reserved}" do
+          result = service.call(reserved)
+          expect(result.available).to be_falsey
+          expect(result.message).to eq('This subdomain is reserved')
+        end
       end
     end
 
