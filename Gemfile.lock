@@ -156,7 +156,7 @@ GEM
     crass (1.0.8)
     cssbundling-rails (1.4.3)
       railties (>= 6.0.0)
-    csv (3.3.6)
+    csv (3.3.7)
     cuprite (0.20)
       capybara (~> 3.0)
       ferrum (~> 0.20.1)
@@ -521,7 +521,7 @@ GEM
       declarative (< 0.1.0)
       trailblazer-option (>= 0.1.1, < 0.2.0)
       uber (< 0.2.0)
-    resend (1.18.0)
+    resend (1.19.0)
       base64
       httparty (>= 0.22.0)
     responders (3.2.0)
