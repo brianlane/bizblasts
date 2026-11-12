@@ -14,7 +14,6 @@ env:
   RAILS_ENV: test
   DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
   RUBY_VERSION: '3.4.3'
-  NODE_VERSION: '20'
   # Ferrum reads this into its default at require time. spec/support/capybara.rb
   # already passes process_timeout: 240, but cuprite auto-registers a bare :cuprite
   # driver with no options at require time (capybara/cuprite.rb:14), and if that
@@ -116,7 +115,9 @@ jobs:
         if: steps.cache-assets.outputs.cache-hit != 'true'
         uses: actions/setup-node@v7
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          # Read .node-version (the Node 20 line) so CI stays on the same pin
+          # as local version managers. package.json engines require >=20.19.0.
+          node-version-file: '.node-version'
           cache: 'npm'
 
       - name: Install dependencies and build assets
