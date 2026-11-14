@@ -16,6 +16,11 @@
 #        -> asset precompile -> db:migrate -> systemctl restart puma -> health
 #        probe -> DEPLOY OK sentinel.
 #
+#   A missed webhook (tunnel down for a WiFi roam; GitHub does not retry)
+#   is caught by bizblasts-deploy-catchup.timer, which runs
+#   script/deploy-catchup.sh. That script calls THIS one, so it shares the
+#   flock below. The webhook stays the fast path. See docs/DEPLOY_CATCHUP.md.
+#
 # WHY THIS FILE IS IN THE REPO
 # ----------------------------
 # Earlier this lived only at /home/brianlane/apps/deploy.sh on the server, so
@@ -50,12 +55,26 @@
 #       `bundle install` and SIGTERM'ing each other via the webhook restart.
 #   v3 (this commit, 2026-06-01 PM): no behavioral changes - this is the
 #       initial check-in of v2 into the repo so it survives server rebuilds.
+#   v4: catch-up timer calls this script when origin/main moves and the
+#       webhook was missed. A dirty working tree is logged, then discarded
+#       with reset --hard, same deliberate policy as v1 (a dirty tree must
+#       not pin production to an old commit). BIZBLASTS_DEPLOY_FORCE=1
+#       re-runs the build and Puma restart even when HEAD already matches
+#       origin/main, so a failed deploy can be retried after the catch-up
+#       backoff. BIZBLASTS_DEPLOY_TRIGGER=catchup is appended to the
+#       DEPLOY OK / DEPLOY FAILED lines. git fetch is bounded by `timeout`
+#       so a dead network cannot hold the flock open. When
+#       BIZBLASTS_DEPLOY_EXPECT_SHA is set (the catch-up passes the SHA it
+#       already CI-checked), a fetch that shows a different origin/main
+#       exits 75 without resetting, so a commit that landed mid-check is
+#       not deployed unclassified. The webhook does not set that variable.
 # =============================================================================
 
 set -euo pipefail
+export GIT_TERMINAL_PROMPT=0
 
-APP_DIR=/home/brianlane/apps/bizblasts
-LOCK_FILE=/var/lock/bizblasts-deploy.lock
+APP_DIR=${BIZBLASTS_APP_DIR:-/home/brianlane/apps/bizblasts}
+LOCK_FILE=${BIZBLASTS_DEPLOY_LOCK_FILE:-/var/lock/bizblasts-deploy.lock}
 ts() { date -u +%FT%TZ; }
 log() { echo "[deploy $(ts)] $*"; }
 
@@ -91,16 +110,59 @@ fi
 
 cd "$APP_DIR"
 
+TRIGGER_NOTE=""
+if [ "${BIZBLASTS_DEPLOY_TRIGGER:-}" = "catchup" ]; then
+    TRIGGER_NOTE=" (triggered by catch-up check)"
+fi
+
 # ---------------------------------------------------------------------------
 # 3. Sync code to the exact commit on origin/main.
 # ---------------------------------------------------------------------------
 log "git fetch origin main"
-git fetch origin main --prune
+if ! timeout 60 git fetch origin main --prune; then
+    log "DEPLOY FAILED: git fetch origin main failed or timed out${TRIGGER_NOTE}"
+    exit 1
+fi
 PREV_SHA=$(git rev-parse --short HEAD)
 TARGET_SHA=$(git rev-parse --short origin/main)
-if [ "$PREV_SHA" = "$TARGET_SHA" ]; then
+TARGET_FULL=$(git rev-parse origin/main)
+# Catch-up classified a specific SHA. Re-check it under this flock, after
+# the fetch above. If main moved, do not reset onto the new tip; the next
+# catch-up tick classifies that commit. Exit 75 so the caller does not
+# treat this as a failed deploy. Webhook invocations leave the variable unset.
+if [ -n "${BIZBLASTS_DEPLOY_EXPECT_SHA:-}" ] && [ "$TARGET_FULL" != "$BIZBLASTS_DEPLOY_EXPECT_SHA" ]; then
+    log "DEPLOY SKIP: origin/main ${TARGET_FULL} does not match the CI-checked SHA ${BIZBLASTS_DEPLOY_EXPECT_SHA}; not deploying an unclassified commit${TRIGGER_NOTE}"
+    exit 75
+fi
+if [ "$PREV_SHA" = "$TARGET_SHA" ] && [ "${BIZBLASTS_DEPLOY_FORCE:-}" != "1" ]; then
     log "already at $TARGET_SHA; nothing to deploy"
     exit 0
+fi
+# A catch-up may have decided to force a restart while another deploy still
+# held this lock: that deploy had reset the worktree but had not yet written
+# deployed-sha. We only reach here after the lock is ours, so that deploy has
+# finished. If it recorded this SHA, do not reset or restart again.
+if [ "${BIZBLASTS_DEPLOY_FORCE:-}" = "1" ] && [ "$(git rev-parse HEAD)" = "$TARGET_FULL" ]; then
+    REV_FILE=${BIZBLASTS_DEPLOYED_SHA_FILE:-${HOME}/.local/state/bizblasts/deployed-sha}
+    stamped=""
+    if [ -f "$REV_FILE" ]; then
+        stamped=$(tr -d '[:space:]' < "$REV_FILE")
+    fi
+    if [ "$stamped" = "$TARGET_FULL" ]; then
+        log "already restarted onto ${TARGET_SHA} while waiting for the deploy lock; not restarting again${TRIGGER_NOTE}"
+        exit 0
+    fi
+fi
+if [ "$PREV_SHA" = "$TARGET_SHA" ]; then
+    log "already at $TARGET_SHA; re-running build and Puma restart (BIZBLASTS_DEPLOY_FORCE=1)${TRIGGER_NOTE}"
+fi
+# reset --hard drops modifications to tracked files. Untracked files stay.
+# Deliberate since v1: `git pull` used to abort on a dirty tree and leave
+# Puma on weeks-old code. The discard is logged so it is not silent.
+dirty=$(git status --porcelain || true)
+if [ -n "$dirty" ]; then
+    log "working tree dirty; git reset --hard origin/main will discard modifications to tracked files (untracked files are left in place)${TRIGGER_NOTE}"
+    printf '%s\n' "$dirty" | sed -n '1,50s/^/    /p'
 fi
 log "resetting $PREV_SHA -> $TARGET_SHA"
 git reset --hard origin/main
@@ -154,7 +216,7 @@ for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
 done
 
 if [ "$HEALTHY" != "1" ]; then
-    log "DEPLOY FAILED: Puma did not become healthy after restart (last HTTP $CODE)"
+    log "DEPLOY FAILED: Puma did not become healthy after restart (last HTTP $CODE)${TRIGGER_NOTE}"
     log "  systemctl status puma --no-pager:"
     systemctl status puma --no-pager -l 2>&1 | head -n 15 | sed 's/^/    /'
     log "  last 25 lines of puma journal:"
@@ -162,4 +224,14 @@ if [ "$HEALTHY" != "1" ]; then
     exit 1
 fi
 
-log "DEPLOY OK $PREV_SHA -> $TARGET_SHA"
+# Record the SHA only after the restart's health probe. The catch-up uses
+# this, not "Puma returned 200", to decide the commit is really running.
+# A failure between reset --hard and systemctl restart leaves the previous
+# SHA here, so the next catch-up retries instead of treating the old
+# process as success.
+REV_FILE=${BIZBLASTS_DEPLOYED_SHA_FILE:-${HOME}/.local/state/bizblasts/deployed-sha}
+mkdir -p "$(dirname "$REV_FILE")"
+rev_tmp=$(mktemp "$(dirname "$REV_FILE")/deployed-sha.XXXXXX")
+git rev-parse HEAD > "$rev_tmp"
+mv "$rev_tmp" "$REV_FILE"
+log "DEPLOY OK $PREV_SHA -> $TARGET_SHA${TRIGGER_NOTE}"
