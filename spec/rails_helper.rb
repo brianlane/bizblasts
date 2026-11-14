@@ -132,6 +132,14 @@ RSpec.configure do |config|
     FactoryBot.rewind_sequences if FactoryBot.respond_to?(:rewind_sequences)
   end
 
+  # Specs sometimes replace ActionMailer::Base.default_url_options and leave
+  # it empty. Mailer views then raise "Missing host to link to". The test
+  # environment is the source of truth; restore it before every example.
+  config.before(:each) do
+    ActionMailer::Base.default_url_options =
+      Rails.application.config.action_mailer.default_url_options.deep_dup
+  end
+
   config.around(:each) do |example|
     # Skip cleaning if :seed_test or :no_db_clean metadata is present
     if example.metadata[:seed_test] || example.metadata[:no_db_clean]

@@ -66,8 +66,9 @@ module Api
       # header is the public hostname, not `localhost`. That host mismatch
       # now rejects external traffic.
       #
-      # We use REMOTE_ADDR (not request.remote_ip) because the cloudflare-rails
-      # trusted-proxy chain rewrites remote_ip to the upstream CDN IP.
+      # We use REMOTE_ADDR (not request.remote_ip) because LocalProxyClientIp
+      # and cloudflare-rails rewrite remote_ip to the visitor. REMOTE_ADDR
+      # stays the Caddy loopback peer.
       def localhost_request?
         peer = request.env['REMOTE_ADDR'].to_s
         loopback_peer = peer == '127.0.0.1' || peer == '::1' || peer.start_with?('127.')

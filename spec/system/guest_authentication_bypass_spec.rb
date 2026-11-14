@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Guest Authentication Bypass', type: :system, js: true do
-  let!(:business) { create(:business, :with_default_tax_rate, host_type: 'subdomain') }
+  let!(:business) { create(:business, :with_default_tax_rate, host_type: 'subdomain', time_zone: 'America/Phoenix') }
   let!(:service) { create(:service, business: business, duration: 60, name: 'Test Service') }
   let!(:staff_member) { create(:staff_member, business: business, name: 'Staff Member') }
   let!(:product) { create(:product, name: 'Test Product', active: true, business: business) }
@@ -38,13 +38,7 @@ RSpec.describe 'Guest Authentication Bypass', type: :system, js: true do
       fill_in 'Email', with: 'guest@example.com'
       fill_in 'Phone', with: '555-5555'
 
-      # Select booking date and time
-      date = Date.today.next_day
-      select date.year.to_s,   from: 'booking_start_time_1i'
-      select date.month.to_s,  from: 'booking_start_time_2i'
-      select date.day.to_s,    from: 'booking_start_time_3i'
-      select '09',             from: 'booking_start_time_4i'
-      select '00',             from: 'booking_start_time_5i'
+      choose_first_open_booking_slot
 
       fill_in 'Notes', with: 'Guest booking test'
 

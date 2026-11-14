@@ -308,7 +308,11 @@ RSpec.describe BusinessManager::ServicesController, type: :controller do
 
     context 'when user does not have access to service' do
       let(:other_business) { create(:business) }
-      let(:other_service) { create(:service, business: other_business) }
+      let(:other_service) do
+        ActsAsTenant.with_tenant(other_business) do
+          create(:service, business: other_business)
+        end
+      end
 
       it 'cannot access service from different business for GET' do
         # ActsAsTenant scoping should prevent access - may succeed in test environment

@@ -1,17 +1,27 @@
 require 'rails_helper'
 
 RSpec.describe Public::BookingController, type: :controller do
-  let(:business) { create(:business) }
-  
+  let(:business) { create(:business, time_zone: 'America/Phoenix') }
+
   before do
     ActsAsTenant.current_tenant = business
     request.host = host_for(business)
   end
 
   describe 'POST #create' do
-    let(:service) { create(:service, business: business, price: 100.00) }
+    let(:service) { create(:service, business: business, price: 100.00, duration: 60) }
     let(:staff_member) { create(:staff_member, business: business) }
-    let(:start_time) { 1.day.from_now }
+    # A weekday 10:00 slot inside the staff member's default 09:00-17:00 hours.
+    let(:start_time) do
+      zone = Time.find_zone('America/Phoenix')
+      date = Date.current + 1
+      date += 1 while date.saturday? || date.sunday?
+      zone.local(date.year, date.month, date.day, 10, 0)
+    end
+
+    before do
+      create(:services_staff_member, service: service, staff_member: staff_member)
+    end
     
     let(:valid_booking_params) do
       {

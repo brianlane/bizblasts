@@ -6,7 +6,9 @@ class Rack::Attack
   # Use Rails.cache for all environments (no Redis dependency)
   Rack::Attack.cache.store = Rails.cache
 
-  # Always allow requests from localhost in development
+  # Development and test only. Do not safelist loopback in production:
+  # Caddy connects from 127.0.0.1, and before visitor IPs were restored
+  # every public request shared that address.
   safelist('allow from localhost') do |req|
     (Rails.env.development? || Rails.env.test?) && ['127.0.0.1', '::1'].include?(req.ip)
   end
@@ -62,7 +64,11 @@ class Rack::Attack
     req.ip if req.path == '/manage/settings/integrations/lookup-place-id' && req.post?
   end
 
-  # General request throttling for potential DDoS protection
+  # Per visitor, after Middleware::LocalProxyClientIp. Assets, Action Cable,
+  # and health checks are excluded. 100/minute is the burst cap and
+  # 300/5 minutes is the sustained cap for HTML and XHR once each visitor
+  # has their own address. They are left as-is: a person browsing stays
+  # under them, and a scanner on one IP still gets cut off.
   throttle('req/ip', limit: 300, period: 5.minutes) do |req|
     req.ip unless req.path.start_with?('/assets', '/cable', '/up', '/healthcheck')
   end
@@ -72,18 +78,51 @@ class Rack::Attack
     req.ip unless req.path.start_with?('/assets', '/cable', '/up', '/healthcheck')
   end
 
-  # Custom response for throttled requests
-  self.throttled_responder = lambda do |env|
-    retry_after = (env['rack.attack.match_data'] || {})[:period]
-    
-    [
-      429,
-      {
-        'Content-Type' => 'application/json',
-        'Retry-After' => retry_after.to_s
-      },
-      [{ error: 'Rate limit exceeded. Please try again later.' }.to_json]
-    ]
+  # rack-attack 6.x passes a Rack::Attack::Request, not the env hash.
+  # A bug in this block must still return 429. Raising here is what turned
+  # the November 2026 throttle into a site-wide 500.
+  def self.throttled_retry_after(request)
+    match_data = rack_attack_match_data(request)
+    return nil unless match_data.is_a?(Hash)
+
+    period = Integer(match_data[:period] || match_data['period'])
+    now = Integer(match_data[:epoch_time] || match_data['epoch_time'])
+    return nil unless period.positive?
+
+    remaining = period - (now % period)
+    remaining.positive? ? remaining : period
+  rescue ArgumentError, TypeError
+    nil
+  end
+
+  def self.rack_attack_match_data(request)
+    env = request.respond_to?(:env) ? request.env : request
+    return nil unless env.respond_to?(:[])
+
+    env['rack.attack.match_data']
+  end
+
+  def self.throttled_response_for(request)
+    retry_after = throttled_retry_after(request)
+    body = { error: 'Rate limit exceeded. Please try again later.' }.to_json
+    headers = { 'Content-Type' => 'application/json' }
+    headers['Retry-After'] = retry_after.to_s if retry_after
+    [429, headers, [body]]
+  end
+
+  def self.plain_throttled_response
+    [429, { 'Content-Type' => 'text/plain' }, ["Rate limit exceeded. Please try again later.\n"]]
+  end
+
+  self.throttled_responder = lambda do |request|
+    throttled_response_for(request)
+  rescue StandardError => e
+    begin
+      Rails.logger.error("[RACK_ATTACK] throttled_responder failed open: #{e.class}: #{e.message}")
+    rescue StandardError
+      nil
+    end
+    plain_throttled_response
   end
 
   # Log blocked requests

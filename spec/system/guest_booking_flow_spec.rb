@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Guest Booking Flow', type: :system, js: true do
-  let!(:business) { create(:business, :with_default_tax_rate, host_type: 'subdomain', time_zone: 'UTC') }
+  let!(:business) { create(:business, :with_default_tax_rate, host_type: 'subdomain', time_zone: 'America/Phoenix') }
   let!(:service) { create(:service, business: business, duration: 60, name: 'Guest Service') }
   let!(:staff_member) { create(:staff_member, business: business, name: 'Staff Member') }
 
@@ -27,12 +27,7 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
       fill_in 'Email', with: 'guest@example.com'
       fill_in 'Phone', with: '555-5555'
 
-      # Select booking date and time
-      select date.year.to_s,   from: 'booking_start_time_1i'
-      select date.month.to_s,  from: 'booking_start_time_2i'
-      select date.day.to_s,    from: 'booking_start_time_3i'
-      select '09',             from: 'booking_start_time_4i'
-      select '00',             from: 'booking_start_time_5i'
+      choose_first_open_booking_slot
 
       fill_in 'Notes', with: 'Guest booking test'
 
@@ -74,11 +69,7 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
       fill_in 'Password', with: 'password123'
       fill_in 'Confirm Password', with: 'password123'
 
-      select date.year.to_s,   from: 'booking_start_time_1i'
-      select date.month.to_s,  from: 'booking_start_time_2i'
-      select date.day.to_s,    from: 'booking_start_time_3i'
-      select '10',             from: 'booking_start_time_4i'
-      select '00',             from: 'booking_start_time_5i'
+      choose_first_open_booking_slot
 
       fill_in 'Notes', with: 'Booking with account'
       click_button 'Confirm Booking'
@@ -126,11 +117,7 @@ RSpec.describe 'Guest Booking Flow', type: :system, js: true do
         fill_in 'Password', with: 'testpass123'
         fill_in 'Confirm Password', with: 'testpass123'
 
-        select date.year.to_s,   from: 'booking_start_time_1i'
-        select date.month.to_s,  from: 'booking_start_time_2i'
-        select date.day.to_s,    from: 'booking_start_time_3i'
-        select '11',             from: 'booking_start_time_4i'
-        select '00',             from: 'booking_start_time_5i'
+        choose_first_open_booking_slot
 
         fill_in 'Notes', with: 'Email confirmation test'
 
