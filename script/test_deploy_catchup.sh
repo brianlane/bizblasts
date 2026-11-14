@@ -574,6 +574,41 @@ EOF
     ok "deploy.sh will not reset onto a tip it was not told to deploy"
 }
 
+test_force_skips_when_stamp_appears_under_the_lock() {
+    setup_pair
+    local tip home
+    tip=$(git -C "$APP" rev-parse HEAD)
+    printf 'local edit\n' >> "$APP/README"
+    printf '%s\n' "$tip" > "$WORK/deployed-sha"
+    home="$WORK/home"
+    mkdir -p "$home/.rbenv/bin"
+    cat > "$home/.rbenv/bin/rbenv" << 'EOF'
+#!/bin/bash
+if [ "$1" = "init" ]; then
+    printf '%s\n' true
+fi
+exit 0
+EOF
+    chmod +x "$home/.rbenv/bin/rbenv"
+    set +e
+    OUTPUT=$(
+        HOME="$home" \
+        BIZBLASTS_APP_DIR="$APP" \
+        BIZBLASTS_DEPLOY_LOCK_FILE="$WORK/deploy.lock" \
+        BIZBLASTS_DEPLOYED_SHA_FILE="$WORK/deployed-sha" \
+        BIZBLASTS_DEPLOY_EXPECT_SHA="$tip" \
+        BIZBLASTS_DEPLOY_FORCE=1 \
+        BIZBLASTS_DEPLOY_TRIGGER=catchup \
+        bash "$ROOT/script/deploy.sh" 2>&1
+    )
+    RC=$?
+    set -e
+    [ "$RC" -eq 0 ] || fail "force retry should exit 0 once the stamp matches, got $RC"
+    printf '%s\n' "$OUTPUT" | grep -q 'not restarting again' || fail "force retry did not notice the finished deploy"
+    grep -q 'local edit' "$APP/README" || fail "force retry reset the worktree after the deploy had already finished"
+    ok "a force retry does not rebuild once the lock holder has recorded the SHA"
+}
+
 test_not_a_checkout() {
     setup_pair
     APP="$WORK/not-a-repo"
@@ -626,6 +661,7 @@ test_restart_stamp_clears_failure
 test_exit_zero_without_stamp_backs_off
 test_tip_moved_is_not_a_failure
 test_deploy_sh_skips_unclassified_tip
+test_force_skips_when_stamp_appears_under_the_lock
 test_not_a_checkout
 test_repo_files
 

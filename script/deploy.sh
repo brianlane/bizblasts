@@ -138,6 +138,21 @@ if [ "$PREV_SHA" = "$TARGET_SHA" ] && [ "${BIZBLASTS_DEPLOY_FORCE:-}" != "1" ]; 
     log "already at $TARGET_SHA; nothing to deploy"
     exit 0
 fi
+# A catch-up may have decided to force a restart while another deploy still
+# held this lock: that deploy had reset the worktree but had not yet written
+# deployed-sha. We only reach here after the lock is ours, so that deploy has
+# finished. If it recorded this SHA, do not reset or restart again.
+if [ "${BIZBLASTS_DEPLOY_FORCE:-}" = "1" ] && [ "$(git rev-parse HEAD)" = "$TARGET_FULL" ]; then
+    REV_FILE=${BIZBLASTS_DEPLOYED_SHA_FILE:-${HOME}/.local/state/bizblasts/deployed-sha}
+    stamped=""
+    if [ -f "$REV_FILE" ]; then
+        stamped=$(tr -d '[:space:]' < "$REV_FILE")
+    fi
+    if [ "$stamped" = "$TARGET_FULL" ]; then
+        log "already restarted onto ${TARGET_SHA} while waiting for the deploy lock; not restarting again${TRIGGER_NOTE}"
+        exit 0
+    fi
+fi
 if [ "$PREV_SHA" = "$TARGET_SHA" ]; then
     log "already at $TARGET_SHA; re-running build and Puma restart (BIZBLASTS_DEPLOY_FORCE=1)${TRIGGER_NOTE}"
 fi

@@ -143,7 +143,10 @@ be the previous release: `deploy.sh` resets the worktree before bundle
 install, assets, migrate, and the restart. `deploy.sh` writes
 `~/.local/state/bizblasts/deployed-sha` only after the restart's health probe
 passes. The catch-up treats a matching stamp as "this commit is running" and
-ignores a stamp that is missing or names an older commit.
+ignores a stamp that is missing or names an older commit. A force retry
+that acquires the lock and finds the stamp already equal to `origin/main`
+does not reset the worktree and does not restart Puma: the deploy that
+held the lock finished successfully while this one waited.
 
 To retry immediately:
 
