@@ -4,6 +4,7 @@
 module Public
   class BookingController < Public::BaseController
     after_action :no_store!, only: %i[confirmation]
+    helper_method :business_zone, :picker_query, :day_slots_for, :parse_slot_time
     # Ensure tenant is set based on subdomain
     before_action :set_tenant
     include BusinessAccessProtection
@@ -19,6 +20,11 @@ module Public
       unless current_tenant
         Rails.logger.warn "[Public::BookingController#new] Tenant not set for request: #{request.host}"
         # tenant_not_found is likely called by set_tenant if it fails.
+        return
+      end
+
+      unless @service
+        redirect_to_calendar_for_service
         return
       end
 
@@ -57,6 +63,8 @@ module Public
         dt = BookingManager.process_datetime_params(params[:date], params[:start_time], current_tenant&.time_zone || 'UTC')
         @booking.start_time = dt if dt
       end
+
+      prepare_slot_picker if @booking.start_time.blank?
     end
 
     # POST /booking for guests, clients, and staff/managers
@@ -70,9 +78,11 @@ module Public
 
       # Validate service presence
       unless @service
-        flash[:alert] = "Invalid service selected."
-        redirect_to new_tenant_booking_path(service_id: booking_params[:service_id]), status: :unprocessable_content and return
+        redirect_to_calendar_for_service
+        return
       end
+
+      apply_slot_choice!
 
       # Determine customer based on user state
       if current_user&.client?
@@ -197,7 +207,11 @@ module Public
                              else
                                @service.duration
                              end
-      @booking.end_time        = @booking.start_time + duration_for_booking.minutes
+      if @booking.start_time.present?
+        @booking.end_time = @booking.start_time + duration_for_booking.minutes
+      end
+      enforce_available_slot
+      return if performed?
       
       # Process promo code if provided
       if booking_params[:promo_code].present?
@@ -481,6 +495,131 @@ module Public
     end
 
     private
+
+    def redirect_to_calendar_for_service
+      flash[:alert] = "Please choose a service to book."
+      redirect_to tenant_calendar_path
+    end
+
+    def apply_slot_choice!
+      choice = params.dig(:booking, :slot_choice).to_s
+      return if choice.blank?
+
+      iso, staff_id = choice.split('|', 2)
+      params[:booking][:start_time] = iso
+      params[:booking][:staff_member_id] = staff_id if staff_id.present?
+    end
+
+    def enforce_available_slot
+      return if chosen_slot_available?(@booking)
+
+      @booking.errors.add(:start_time, "isn't available. Please choose an open time.")
+      @booking.start_time = nil
+      prepare_slot_picker
+      flash.now[:alert] = "That time isn't available. Please choose an open time."
+      render :new, status: :unprocessable_content
+    end
+
+    def chosen_slot_available?(booking)
+      return false if booking&.start_time.blank? || @service.blank?
+
+      local = booking.start_time.in_time_zone(business_zone)
+      slots = BookingService.fetch_available_slots(
+        service: @service,
+        date: local.to_date,
+        interval: booking_slot_interval(booking),
+        tenant: current_tenant
+      )
+      slots.any? { |slot| slot_matches?(slot, local, booking.staff_member_id) }
+    end
+
+    def slot_matches?(slot, local, staff_id)
+      raw = slot[:start_time] || slot['start_time']
+      slot_time = parse_slot_time(raw)&.in_time_zone(business_zone)
+      return false unless slot_time
+
+      same_minute = slot_time.change(sec: 0) == local.change(sec: 0)
+      slot_staff = slot[:staff_member_id] || slot['staff_member_id']
+      same_minute && (staff_id.blank? || slot_staff.to_i == staff_id.to_i)
+    end
+
+    def prepare_slot_picker
+      return unless @service
+
+      today = Time.current.in_time_zone(business_zone).to_date
+      @picker_today = today
+      @picker_date = picker_date_param(today)
+      range = picker_calendar_range(@picker_date)
+      @calendar_start_date = range.begin
+      @calendar_end_date = range.end
+      @calendar_data = booking_calendar_data(range)
+      @picker_date = first_open_day(today) || @picker_date
+      @day_slots = day_slots_for(@picker_date)
+    end
+
+    def picker_date_param(today)
+      parsed = Date.iso8601(params[:picker_date].to_s)
+      [parsed, today].max
+    rescue ArgumentError
+      today
+    end
+
+    def picker_calendar_range(date)
+      month_start = date.beginning_of_month
+      grid_start = month_start.beginning_of_week(:monday)
+      weeks = ((month_start.end_of_month - grid_start).to_i / 7.0).ceil
+      grid_start..(grid_start + (([weeks, 5].max * 7) - 1).days)
+    end
+
+    def booking_calendar_data(range)
+      BookingService.generate_calendar_data(
+        service: @service,
+        date: range.begin,
+        tenant: current_tenant,
+        start_date: range.begin,
+        end_date: range.end,
+        interval: booking_slot_interval(@booking)
+      ) || {}
+    end
+
+    def first_open_day(today)
+      return @picker_date if day_slots_for(@picker_date).any?
+
+      (@calendar_start_date..@calendar_end_date).find do |date|
+        date >= today && day_slots_for(date).any?
+      end
+    end
+
+    def day_slots_for(date)
+      Array(@calendar_data[date.to_s] || @calendar_data[date])
+    end
+
+    def booking_slot_interval(booking = nil)
+      variant = booking&.service_variant || @service_variant
+      variant&.duration || @service&.duration || 30
+    end
+
+    def business_zone
+      name = current_tenant&.time_zone.presence || 'UTC'
+      @business_zone ||= ActiveSupport::TimeZone[name] || Time.zone
+    end
+
+    def parse_slot_time(value)
+      case value
+      when Time, ActiveSupport::TimeWithZone then value
+      when String then Time.zone.parse(value)
+      end
+    rescue ArgumentError, TypeError
+      nil
+    end
+
+    def picker_query(date)
+      {
+        service_id: @service.id,
+        service_variant_id: @service_variant&.id || params[:service_variant_id].presence,
+        picker_date: date.to_date.iso8601
+      }.compact
+    end
 
     # Wrap the action in the current tenant's time zone for correct multiparam time parsing
     def use_business_time_zone
