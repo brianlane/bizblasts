@@ -1,4 +1,35 @@
 <%# Offers only slots from BookingService, the same source as /calendar. %>
+<% if @variant_choice_pending %>
+  <div class="bg-white rounded-lg shadow border border-gray-200 p-6" data-booking-slot-picker>
+    <h2 class="text-lg font-semibold text-gray-900 mb-2">Available times</h2>
+    <p class="text-gray-600">Choose an option above to see open times.</p>
+  </div>
+  <script>
+    (function() {
+      function bindVariantNavigation() {
+        var root = document.getElementById('service_variant_dropdown');
+        if (!root || root.dataset.variantNavBound) return;
+        root.dataset.variantNavBound = '1';
+        root.addEventListener('change', function(event) {
+          var select = event.target;
+          if (!select || select.name !== 'booking[service_variant_id]' || !select.value) return;
+          var url = new URL(window.location.href);
+          url.searchParams.set('service_id', '<%= @service.id %>');
+          url.searchParams.set('service_variant_id', select.value);
+          url.searchParams.delete('date');
+          url.searchParams.delete('start_time');
+          window.location.assign(url.toString());
+        });
+      }
+      document.addEventListener('turbo:load', bindVariantNavigation);
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bindVariantNavigation);
+      } else {
+        bindVariantNavigation();
+      }
+    })();
+  </script>
+<% else %>
 <% today = @picker_today || Time.current.in_time_zone(business_zone).to_date %>
 <% month_label = @picker_date.strftime("%B %Y") %>
 <% zone_label = business_zone.to_s %>
@@ -134,3 +165,4 @@
     <% end %>
   </fieldset>
 </div>
+<% end %>

@@ -13,6 +13,8 @@ concurrency:
 env:
   RAILS_ENV: test
   DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+  # ubuntu-latest is 26.04, and ruby-builder has no 3.4.x build for it.
+  # Jobs pin ubuntu-24.04, which has the 3.4.3 build this workflow uses.
   RUBY_VERSION: '3.4.3'
   NODE_VERSION: '20'
   # Ferrum reads this into its default at require time. spec/support/capybara.rb
@@ -35,7 +37,7 @@ jobs:
   # STAGE 1: Quick checks (parallel, no DB needed)
   # ============================================
   scan_ruby:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
@@ -53,7 +55,7 @@ jobs:
       - run: brakeman --no-pager
 
   scan_js:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
@@ -65,7 +67,7 @@ jobs:
       - run: bundle exec importmap audit || echo "Skipping importmap audit"
 
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
@@ -81,7 +83,7 @@ jobs:
   # STAGE 2: Build assets (shared by all test jobs)
   # ============================================
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: write
@@ -154,7 +156,7 @@ jobs:
   # Model tests - split into 3 groups
   test_models_1:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: read
@@ -195,7 +197,7 @@ jobs:
 
   test_models_2:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: read
@@ -236,7 +238,7 @@ jobs:
 
   test_models_3:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: read
@@ -278,7 +280,7 @@ jobs:
   # Request tests - split into 3 groups
   test_requests_1:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: read
@@ -319,7 +321,7 @@ jobs:
 
   test_requests_2:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: read
@@ -360,7 +362,7 @@ jobs:
 
   test_requests_3:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: read
@@ -402,7 +404,7 @@ jobs:
   # Service tests - split into 5 groups
   test_services_1:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: read
@@ -443,7 +445,7 @@ jobs:
 
   test_services_2:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: read
@@ -484,7 +486,7 @@ jobs:
 
   test_services_3:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: read
@@ -525,7 +527,7 @@ jobs:
 
   test_services_4:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: read
@@ -566,7 +568,7 @@ jobs:
 
   test_services_5:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: read
@@ -608,7 +610,7 @@ jobs:
   # Integration/feature/mailer tests
   test_integration:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: read
@@ -646,7 +648,7 @@ jobs:
   # Security specs have JS tests that need Chrome
   test_other_1:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: read
@@ -699,7 +701,7 @@ jobs:
 
   test_other_2:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: read
@@ -753,7 +755,7 @@ jobs:
   # System tests - split into 7 groups (browser tests are slowest)
   test_system_1:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: write
@@ -812,7 +814,7 @@ jobs:
 
   test_system_2:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: write
@@ -871,7 +873,7 @@ jobs:
 
   test_system_3:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: write
@@ -930,7 +932,7 @@ jobs:
 
   test_system_4:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: write
@@ -989,7 +991,7 @@ jobs:
 
   test_system_5:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: write
@@ -1048,7 +1050,7 @@ jobs:
 
   test_system_6:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: write
@@ -1107,7 +1109,7 @@ jobs:
 
   test_system_7:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: write
@@ -1167,7 +1169,7 @@ jobs:
   # Performance test - runs on all PRs and main
   performance_test:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: read

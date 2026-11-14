@@ -29,10 +29,7 @@ module Public
       end
 
       @booking = current_tenant.bookings.new(service: @service)
-      if params[:service_variant_id].present? && @service
-        @service_variant = @service.service_variants.find_by(id: params[:service_variant_id])
-        @booking.service_variant = @service_variant if @service_variant
-      end
+      assign_picker_variant
       # Always pre-fill staff member if provided via query params
       @booking.staff_member_id = params[:staff_member_id] if params[:staff_member_id].present?
       
@@ -543,8 +540,27 @@ module Public
       same_minute && (staff_id.blank? || slot_staff.to_i == staff_id.to_i)
     end
 
+    def assign_picker_variant
+      return unless @service && @booking
+
+      if params[:service_variant_id].present?
+        @service_variant = @service.service_variants.active.find_by(id: params[:service_variant_id])
+      end
+      active_variants = @service.service_variants.active.by_position
+      @service_variant ||= active_variants.first if active_variants.one?
+      @booking.service_variant = @service_variant if @service_variant
+    end
+
+    def variant_choice_pending?
+      @service&.service_variants&.active&.many? && @service_variant.nil?
+    end
+
     def prepare_slot_picker
       return unless @service
+      if variant_choice_pending?
+        @variant_choice_pending = true
+        return
+      end
 
       today = Time.current.in_time_zone(business_zone).to_date
       @picker_today = today
@@ -566,9 +582,12 @@ module Public
 
     def picker_calendar_range(date)
       month_start = date.beginning_of_month
+      month_end = date.end_of_month
       grid_start = month_start.beginning_of_week(:monday)
-      weeks = ((month_start.end_of_month - grid_start).to_i / 7.0).ceil
-      grid_start..(grid_start + (([weeks, 5].max * 7) - 1).days)
+      # Date subtraction excludes the end day. A Monday month-end needs that day.
+      span_days = (month_end - grid_start).to_i + 1
+      weeks = [(span_days / 7.0).ceil, 5].max
+      grid_start..(grid_start + ((weeks * 7) - 1).days)
     end
 
     def booking_calendar_data(range)

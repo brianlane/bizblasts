@@ -48,10 +48,9 @@ module Public
         # Find the Monday that starts the week containing the first day of the month
         @calendar_start_date = month_start.beginning_of_week(:monday)
         
-        # Calculate how many weeks we need to show the full month
-        weeks_needed = ((month_end - @calendar_start_date).to_i / 7.0).ceil
-        
-        # Ensure we always show exactly 5 weeks for consistency
+        # Date subtraction excludes month_end, so a Monday month-end was dropped.
+        span_days = (month_end - @calendar_start_date).to_i + 1
+        weeks_needed = (span_days / 7.0).ceil
         weeks_to_show = [weeks_needed, 5].max
         @calendar_end_date = @calendar_start_date + (weeks_to_show * 7 - 1).days
         

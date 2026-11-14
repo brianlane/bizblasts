@@ -41,6 +41,27 @@ RSpec.describe Public::BookingController, type: :controller do
       local_times = offered.map { |time| time.in_time_zone('America/Phoenix') }
       expect(local_times.map(&:hour)).to all(be_between(9, 16))
       expect(local_times.map(&:to_date).uniq).to eq([Date.new(2026, 11, 18)])
+      expect(response.body).to include('picker_date=2026-11-30')
+    end
+
+    it 'uses the selected variant duration, not the service duration' do
+      create(:service_variant, service: service, name: 'Longer session', duration: 45, position: 1)
+
+      get :new, params: { service_id: service.id }
+
+      zone = Time.find_zone('America/Phoenix')
+      offered = offered_slot_times(response.body).map { |time| time.in_time_zone(zone).change(sec: 0) }
+      expect(offered).to eq(expected_starts(zone, step: 45, length: 60))
+    end
+
+    it 'waits for an option when several variants exist' do
+      create(:service_variant, service: service, name: 'Short', duration: 30, position: 1)
+      create(:service_variant, service: service, name: 'Long', duration: 90, position: 2)
+
+      get :new, params: { service_id: service.id }
+
+      expect(response.body).to include('Choose an option above to see open times.')
+      expect(response.body).not_to include('name="booking[slot_choice]"')
     end
 
     it 'keeps a preselected calendar slot and offers a way to change it' do
@@ -108,5 +129,16 @@ RSpec.describe Public::BookingController, type: :controller do
 
   def offered_slot_times(body)
     body.scan(/name="booking\[slot_choice\]"\s+value="([^"|]+)/).flatten.map { |value| Time.iso8601(value) }
+  end
+
+  def expected_starts(zone, step:, length:)
+    starts = []
+    cursor = zone.local(2026, 11, 18, 9, 0)
+    closing = zone.local(2026, 11, 18, 17, 0)
+    while cursor + length.minutes <= closing
+      starts << cursor
+      cursor += step.minutes
+    end
+    starts
   end
 end
