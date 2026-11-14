@@ -7,11 +7,12 @@ module Public
     before_action :check_referral_program_enabled, only: [:show]
 
     def index
-      # Cross-business referral overview (main domain)
-      @referrals_by_business = current_user.referrals_made
-                                          .includes(:business, :referred_tenant_customer)
-                                          .group_by(&:business)
-      @referral_stats = calculate_user_referral_stats_all_businesses
+      # Main domain: this user's own referrals at every business they referred.
+      # A business host stays inside that tenant. ActsAsTenant is not disabled
+      # for a tenant request.
+      referrals = referrals_visible_to_viewer
+      @referrals_by_business = referrals.group_by(&:business)
+      @referral_stats = referral_stats_for(referrals)
     end
 
     def show
@@ -77,26 +78,38 @@ module Public
       referral_transactions.sum(:points_amount)
     end
 
-    def calculate_user_referral_stats_all_businesses
-      # Cross-business referral stats for main domain
-      referrals = current_user.referrals_made
-      
+    # The signed-in user's referral rows only. On a business host that is the
+    # current tenant. On the main domain there is no tenant, so the read is
+    # explicitly unscoped and still limited to referrer_id = current_user.
+    def referrals_visible_to_viewer
+      relation = current_user.referrals_made.includes(:business, :referred_tenant_customer)
+      if on_business_domain?
+        relation.where(business: ActsAsTenant.current_tenant).to_a
+      else
+        ActsAsTenant.without_tenant { relation.to_a }
+      end
+    end
+
+    def referral_stats_for(referrals)
       {
-        total_referrals: referrals.count,
-        qualified_referrals: referrals.qualified.count,
-        pending_referrals: referrals.pending.count,
-        total_rewards_earned: calculate_total_referral_rewards_all_businesses,
-        businesses_referred_to: referrals.joins(:business).distinct.count('businesses.id')
+        total_referrals: referrals.size,
+        qualified_referrals: referrals.count(&:qualified?),
+        pending_referrals: referrals.count(&:pending?),
+        total_rewards_earned: referral_reward_points(referrals),
+        businesses_referred_to: referrals.map(&:business_id).uniq.size
       }
     end
 
-    def calculate_total_referral_rewards_all_businesses
-      # Calculate total loyalty points earned from referrals across all businesses
-      referral_transactions = LoyaltyTransaction.joins(:related_referral)
-                                              .where(referrals: { referrer: current_user })
-                                              .where(transaction_type: 'earned')
-      
-      referral_transactions.sum(:points_amount)
+    def referral_reward_points(referrals)
+      return 0 if referrals.empty?
+
+      query = lambda {
+        LoyaltyTransaction.joins(:related_referral)
+                          .where(referrals: { id: referrals.map(&:id), referrer_id: current_user.id })
+                          .where(transaction_type: 'earned')
+                          .sum(:points_amount)
+      }
+      on_business_domain? ? query.call : ActsAsTenant.without_tenant(&query)
     end
   end
 end 

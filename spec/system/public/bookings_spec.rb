@@ -37,8 +37,8 @@ RSpec.describe 'Bookings', type: :system do
       expect(page).to have_selector("input[name='booking[service_id]'][type='hidden']", visible: false)
       
       # Instead of checking for specific field IDs, we'll just verify the form has what we need
-      expect(page).to have_field('booking[start_time(1i)]') # Year field
-      expect(page).to have_field('booking[start_time(4i)]') # Hour field
+      expect(page).to have_css('[data-booking-slot-picker]')
+      expect(page).not_to have_field('booking[start_time(1i)]')
       expect(page).to have_field('booking[notes]')
     end
 
@@ -77,12 +77,8 @@ RSpec.describe 'Bookings', type: :system do
       expect(page).to have_content("Duration:")
       expect(page).to have_content("Price:")
       
-      # Check for date/time fields
-      expect(page).to have_field('booking[start_time(1i)]') # Year
-      expect(page).to have_field('booking[start_time(2i)]') # Month
-      expect(page).to have_field('booking[start_time(3i)]') # Day
-      expect(page).to have_field('booking[start_time(4i)]') # Hour
-      expect(page).to have_field('booking[start_time(5i)]') # Minute
+      expect(page).to have_css('[data-booking-slot-picker]')
+      expect(page).not_to have_field('booking[start_time(1i)]')
     end
 
     # Policy enforcement tests for the public booking UI

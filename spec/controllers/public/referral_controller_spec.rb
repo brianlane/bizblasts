@@ -97,18 +97,36 @@ RSpec.describe Public::ReferralController, type: :controller do
   describe 'GET #index' do
     before { sign_in user }
 
-    context 'cross-business referral overview' do
+    context 'referral overview' do
       let(:other_business) { create(:business, hostname: 'otherbiz') }
-      let!(:referral1) { create(:referral, business: business, referrer: user) }
-      let!(:referral2) { create(:referral, business: other_business, referrer: user) }
+      let!(:referral1) do
+        ActsAsTenant.with_tenant(business) do
+          create(:referral, business: business, referrer: user)
+        end
+      end
+      let!(:referral2) do
+        ActsAsTenant.with_tenant(other_business) do
+          create(:referral, business: other_business, referrer: user)
+        end
+      end
 
-      it 'shows referrals across all businesses' do
+      it 'shows this user\'s referrals across businesses on the main domain' do
+        ActsAsTenant.current_tenant = nil
+        request.host = 'lvh.me'
+
         get :index
-        
+
         expect(response).to have_http_status(:success)
-        expect(assigns(:referrals_by_business)).to be_present
-        expect(assigns(:referral_stats)).to be_present
         expect(assigns(:referral_stats)[:total_referrals]).to eq(2)
+        expect(assigns(:referrals_by_business).keys).to contain_exactly(business, other_business)
+      end
+
+      it 'stays inside the current tenant on a business host' do
+        get :index
+
+        expect(response).to have_http_status(:success)
+        expect(assigns(:referral_stats)[:total_referrals]).to eq(1)
+        expect(assigns(:referrals_by_business).keys).to eq([business])
       end
     end
 
@@ -183,29 +201,31 @@ RSpec.describe Public::ReferralController, type: :controller do
       
       before do
         sign_in user
-        # Enable referral program for other business
-        other_business.update!(referral_program_enabled: true)
-        other_business.create_referral_program!(
-          active: true,
-          referrer_reward_type: 'points',
-          referrer_reward_value: 100,
-          referral_code_discount_amount: 10.0,
-          min_purchase_amount: 0.0
-        )
+        ActsAsTenant.with_tenant(other_business) do
+          other_business.update!(referral_program_enabled: true)
+          other_business.create_referral_program!(
+            active: true,
+            referrer_reward_type: 'points',
+            referrer_reward_value: 100,
+            referral_code_discount_amount: 10.0,
+            min_purchase_amount: 0.0
+          )
+        end
       end
 
-      it 'prevents access to other business referral data' do
-        # Create a referral for the original business first
-        create(:referral, business: business, referrer: user)
-        
-        # Switch to other business tenant
+      it 'does not show another business\'s referrals' do
+        original = ActsAsTenant.with_tenant(business) do
+          create(:referral, business: business, referrer: user)
+        end
+
         ActsAsTenant.current_tenant = other_business
         request.host = "#{other_business.hostname}.lvh.me"
-        
+
         get :show
 
-        # Should not show referrals from the original business
-        expect(assigns(:my_referrals)).to be_empty
+        shown = Array(assigns(:my_referrals))
+        expect(shown.map(&:id)).not_to include(original.id)
+        expect(shown.map(&:business_id).uniq).to eq([other_business.id])
       end
     end
 
