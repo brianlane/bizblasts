@@ -16,6 +16,11 @@
 #        -> asset precompile -> db:migrate -> systemctl restart puma -> health
 #        probe -> DEPLOY OK sentinel.
 #
+#   A missed webhook (tunnel down for a WiFi roam; GitHub does not retry)
+#   is caught by bizblasts-deploy-catchup.timer, which runs
+#   script/deploy-catchup.sh. That script calls THIS one, so it shares the
+#   flock below. The webhook stays the fast path. See docs/DEPLOY_CATCHUP.md.
+#
 # WHY THIS FILE IS IN THE REPO
 # ----------------------------
 # Earlier this lived only at /home/brianlane/apps/deploy.sh on the server, so
@@ -50,9 +55,19 @@
 #       `bundle install` and SIGTERM'ing each other via the webhook restart.
 #   v3 (this commit, 2026-06-01 PM): no behavioral changes - this is the
 #       initial check-in of v2 into the repo so it survives server rebuilds.
+#   v4: catch-up timer calls this script when origin/main moves and the
+#       webhook was missed. A dirty working tree is logged, then discarded
+#       with reset --hard, same deliberate policy as v1 (a dirty tree must
+#       not pin production to an old commit). BIZBLASTS_DEPLOY_FORCE=1
+#       re-runs the build and Puma restart even when HEAD already matches
+#       origin/main, so a failed deploy can be retried after the catch-up
+#       backoff. BIZBLASTS_DEPLOY_TRIGGER=catchup is appended to the
+#       DEPLOY OK / DEPLOY FAILED lines. git fetch is bounded by `timeout`
+#       so a dead network cannot hold the flock open.
 # =============================================================================
 
 set -euo pipefail
+export GIT_TERMINAL_PROMPT=0
 
 APP_DIR=/home/brianlane/apps/bizblasts
 LOCK_FILE=/var/lock/bizblasts-deploy.lock
@@ -91,16 +106,35 @@ fi
 
 cd "$APP_DIR"
 
+TRIGGER_NOTE=""
+if [ "${BIZBLASTS_DEPLOY_TRIGGER:-}" = "catchup" ]; then
+    TRIGGER_NOTE=" (triggered by catch-up check)"
+fi
+
 # ---------------------------------------------------------------------------
 # 3. Sync code to the exact commit on origin/main.
 # ---------------------------------------------------------------------------
 log "git fetch origin main"
-git fetch origin main --prune
+if ! timeout 60 git fetch origin main --prune; then
+    log "DEPLOY FAILED: git fetch origin main failed or timed out${TRIGGER_NOTE}"
+    exit 1
+fi
 PREV_SHA=$(git rev-parse --short HEAD)
 TARGET_SHA=$(git rev-parse --short origin/main)
-if [ "$PREV_SHA" = "$TARGET_SHA" ]; then
+if [ "$PREV_SHA" = "$TARGET_SHA" ] && [ "${BIZBLASTS_DEPLOY_FORCE:-}" != "1" ]; then
     log "already at $TARGET_SHA; nothing to deploy"
     exit 0
+fi
+if [ "$PREV_SHA" = "$TARGET_SHA" ]; then
+    log "already at $TARGET_SHA; re-running build and Puma restart (BIZBLASTS_DEPLOY_FORCE=1)${TRIGGER_NOTE}"
+fi
+# reset --hard drops modifications to tracked files. Untracked files stay.
+# Deliberate since v1: `git pull` used to abort on a dirty tree and leave
+# Puma on weeks-old code. The discard is logged so it is not silent.
+dirty=$(git status --porcelain || true)
+if [ -n "$dirty" ]; then
+    log "working tree dirty; git reset --hard origin/main will discard modifications to tracked files (untracked files are left in place)${TRIGGER_NOTE}"
+    printf '%s\n' "$dirty" | sed -n '1,50s/^/    /p'
 fi
 log "resetting $PREV_SHA -> $TARGET_SHA"
 git reset --hard origin/main
@@ -154,7 +188,7 @@ for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
 done
 
 if [ "$HEALTHY" != "1" ]; then
-    log "DEPLOY FAILED: Puma did not become healthy after restart (last HTTP $CODE)"
+    log "DEPLOY FAILED: Puma did not become healthy after restart (last HTTP $CODE)${TRIGGER_NOTE}"
     log "  systemctl status puma --no-pager:"
     systemctl status puma --no-pager -l 2>&1 | head -n 15 | sed 's/^/    /'
     log "  last 25 lines of puma journal:"
@@ -162,4 +196,4 @@ if [ "$HEALTHY" != "1" ]; then
     exit 1
 fi
 
-log "DEPLOY OK $PREV_SHA -> $TARGET_SHA"
+log "DEPLOY OK $PREV_SHA -> $TARGET_SHA${TRIGGER_NOTE}"

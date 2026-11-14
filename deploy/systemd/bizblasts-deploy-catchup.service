@@ -1,0 +1,23 @@
+[Unit]
+Description=BizBlasts deploy catch-up (safety net for a missed GitHub webhook)
+Documentation=https://github.com/brianlane/bizblasts/blob/main/docs/DEPLOY_CATCHUP.md
+After=network-online.target
+Wants=network-online.target
+ConditionPathIsDirectory=/home/brianlane/apps/bizblasts
+
+[Service]
+Type=oneshot
+User=brianlane
+WorkingDirectory=/home/brianlane/apps/bizblasts
+Environment=HOME=/home/brianlane
+Environment=BIZBLASTS_DEPLOY_TRIGGER=catchup
+EnvironmentFile=-/home/brianlane/.config/bizblasts/deploy-catchup.env
+ExecStart=/bin/bash /home/brianlane/apps/bizblasts/script/deploy-catchup.sh
+# deploy.sh can wait up to 15 minutes for the flock, then build and restart.
+TimeoutStartSec=2700
+Nice=10
+SyslogIdentifier=bizblasts-deploy-catchup
+
+# The deploy lock is NOT taken here. script/deploy.sh flocks
+# /var/lock/bizblasts-deploy.lock, which is the same lock the webhook path
+# uses, so a catch-up run queues behind an in-flight webhook deploy.

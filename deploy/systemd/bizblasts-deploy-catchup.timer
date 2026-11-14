@@ -1,0 +1,16 @@
+[Unit]
+Description=Run the BizBlasts deploy catch-up every 3 minutes
+Documentation=https://github.com/brianlane/bizblasts/blob/main/docs/DEPLOY_CATCHUP.md
+
+[Timer]
+# Fires once shortly after boot (or shortly after the timer is started, if
+# the machine has already been up for 2 minutes). The repeating schedule is
+# OnUnitInactiveSec, so a long deploy is not overlapped and the next check
+# is 3 minutes after the previous one finishes.
+OnBootSec=2min
+OnUnitInactiveSec=3min
+AccuracySec=30s
+RandomizedDelaySec=15s
+
+[Install]
+WantedBy=timers.target

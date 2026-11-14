@@ -66,6 +66,16 @@ jobs:
           bundler-cache: true
       - run: bundle exec importmap audit || echo "Skipping importmap audit"
 
+  # Bash tests for the production deploy catch-up. No Ruby, database, or GitHub.
+  deploy_catchup:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: Deploy catch-up tests
+        run: bash script/test_deploy_catchup.sh
+
   lint:
     runs-on: ubuntu-24.04
     permissions:
