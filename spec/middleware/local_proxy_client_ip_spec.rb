@@ -77,7 +77,35 @@ RSpec.describe Middleware::LocalProxyClientIp do
     expect(remote_ip).to eq('127.0.0.1')
   end
 
-  it 'ignores loopback forwarding headers until TRUST_LOOPBACK_CLIENT_IP is enabled' do
+  it 'does not 500 when a scanner Client-IP disagrees with X-Forwarded-For' do
+    env = env_for('127.0.0.1', 'HTTP_X_FORWARDED_FOR' => '203.0.113.10',
+                               'HTTP_CLIENT_IP' => '198.51.100.7',
+                               'HTTP_X_CLIENT_IP' => '198.51.100.7',
+                               'HTTP_TRUE_CLIENT_IP' => '198.51.100.7')
+
+    status, _headers, body = stack.call(env)
+    ip, remote_ip, = body.join.split('|')
+
+    expect(status).to eq(200)
+    expect(ip).to eq('203.0.113.10')
+    expect(remote_ip).to eq('203.0.113.10')
+    expect(env['HTTP_CLIENT_IP']).to be_nil
+  end
+
+  it 'drops a mismatched Client-IP on a direct hit instead of raising' do
+    env = env_for('198.51.100.20', 'HTTP_X_FORWARDED_FOR' => '203.0.113.10',
+                                    'HTTP_CLIENT_IP' => '198.51.100.7')
+
+    status, _headers, body = stack.call(env)
+    ip, remote_ip, = body.join.split('|')
+
+    expect(status).to eq(200)
+    expect(ip).to eq('198.51.100.20')
+    expect(remote_ip).to eq('198.51.100.20')
+    expect(env['HTTP_CLIENT_IP']).to be_nil
+  end
+
+  it 'ignores loopback forwarding headers when TRUST_LOOPBACK_CLIENT_IP is false' do
     previous = ENV['TRUST_LOOPBACK_CLIENT_IP']
     ENV['TRUST_LOOPBACK_CLIENT_IP'] = 'false'
     ip, remote_ip, = call_for(env_for('127.0.0.1', 'HTTP_CF_CONNECTING_IP' => '203.0.113.10'))

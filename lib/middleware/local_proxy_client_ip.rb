@@ -19,12 +19,17 @@ module Middleware
   # Any other peer is a direct hit. Spoofable forwarding headers are
   # removed so a client cannot pick their own throttle key.
   #
-  # Loopback trust stays off until TRUST_LOOPBACK_CLIENT_IP=true. Caddy
-  # must overwrite CF-Connecting-IP from its trusted client IP before
-  # that flag is set. deploy.sh restarts Puma and does not edit Caddy,
-  # so enabling the flag in the same restart would let a direct Caddy
-  # client supply the throttle key. Development and test default the
-  # flag on. A process on this box can still connect to Puma directly.
+  # Caddy now overwrites CF-Connecting-IP and X-Forwarded-For with the
+  # client IP it resolved from the loopback tunnel, so loopback trust
+  # is on unless TRUST_LOOPBACK_CLIENT_IP=false. A process on this box
+  # can still connect to Puma directly.
+  #
+  # Client-IP (HTTP_CLIENT_IP) is deleted on every request. Caddy passes
+  # that header through, and ActionDispatch::RemoteIp raises
+  # IpSpoofAttackError — a 500 — when it disagrees with X-Forwarded-For.
+  # Scanners send it. We do not use it. X-Client-IP and True-Client-IP
+  # are not part of that check and are left alone. ip_spoofing_check
+  # stays on.
   class LocalProxyClientIp
     SPOOFABLE_HEADERS = %w[
       HTTP_X_FORWARDED_FOR
@@ -40,16 +45,16 @@ module Middleware
     end
 
     def self.trust_loopback_client_ip?
-      default = Rails.env.local? ? 'true' : 'false'
-      ActiveModel::Type::Boolean.new.cast(ENV.fetch('TRUST_LOOPBACK_CLIENT_IP', default))
+      ActiveModel::Type::Boolean.new.cast(ENV.fetch('TRUST_LOOPBACK_CLIENT_IP', 'true'))
     end
 
     def call(env)
+      # Every path, including a direct hit whose peer Rack treats as a
+      # trusted proxy. Client-IP is not how we identify the visitor.
+      env.delete('HTTP_CLIENT_IP')
       normalize_mapped_loopback!(env)
 
       if self.class.trust_loopback_client_ip? && loopback_peer?(env['REMOTE_ADDR'])
-        # Client-Ip plus X-Forwarded-For makes ActionDispatch::RemoteIp raise.
-        env.delete('HTTP_CLIENT_IP')
         ip = resolve_client_ip(env)
         apply_client_ip!(env, ip) if ip
       else
