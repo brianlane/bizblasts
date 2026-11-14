@@ -94,6 +94,11 @@ module Bizblasts
     # Increase Rack timeout for large file uploads (2 minutes)
     config.force_ssl = false unless Rails.env.production?
 
+    # Restore the visitor IP before RemoteIp and Rack::Attack read it.
+    # Caddy's connection is loopback, so without this every throttle shares 127.0.0.1.
+    require_relative '../lib/middleware/local_proxy_client_ip'
+    config.middleware.insert_before ActionDispatch::RemoteIp, Middleware::LocalProxyClientIp
+
     # SECURITY FIX: Add rack-attack middleware for rate limiting
     config.middleware.use Rack::Attack
 
