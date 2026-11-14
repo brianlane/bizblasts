@@ -129,25 +129,32 @@ GH_TOKEN=github_pat_...
 The unit loads that file when it exists. The timer only calls the API when
 `origin/main` is ahead of the checkout.
 
-**Backoff.** A failed `script/deploy.sh` (or a run that exits 0 while Puma is
-unhealthy) is not retried every tick. The same commit waits 15 minutes, then
-30, then 60, then 3 hours. The wait is stored in
+**Backoff.** A failed `script/deploy.sh`, or a run that exits 0 without
+recording a restart, is not retried every tick. The same commit waits 15
+minutes, then 30, then 60, then 3 hours. The wait is stored in
 `~/.local/state/bizblasts/deploy-catchup.state`. A newer `origin/main`
 starts the schedule over. When the wait is over, the retry sets
 `BIZBLASTS_DEPLOY_FORCE=1` so `script/deploy.sh` rebuilds and restarts Puma
 even though `HEAD` already matches `origin/main` (the failed run may have
 reset the worktree before it died).
 
-If Puma is healthy again, the next tick clears the failure and does not
-restart. To retry immediately:
+A retry is not skipped because Puma still returns HTTP 200. That process may
+be the previous release: `deploy.sh` resets the worktree before bundle
+install, assets, migrate, and the restart. `deploy.sh` writes
+`~/.local/state/bizblasts/deployed-sha` only after the restart's health probe
+passes. The catch-up treats a matching stamp as "this commit is running" and
+ignores a stamp that is missing or names an older commit.
+
+To retry immediately:
 
 ```bash
 BIZBLASTS_DEPLOY_FORCE=1 /home/brianlane/apps/bizblasts/script/deploy.sh
 ```
 
-Clearing the state file skips the wait. Do that only when a retry is actually
-wanted; if `HEAD` already equals `origin/main` and the state file is gone,
-the timer will not restart Puma.
+Clearing the failure state skips the wait. If `deployed-sha` is absent and
+`HEAD` already equals `origin/main`, the timer does not restart Puma. If
+`deployed-sha` names an older commit, the next tick restarts onto
+`origin/main`.
 
 **Dirty worktree.** `script/deploy.sh` compares commits, not a clean tree.
 The production checkout currently carries a local `bun.lock` modification.

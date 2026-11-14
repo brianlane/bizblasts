@@ -140,27 +140,18 @@ log_backoff() {
     log "DEPLOY CATCHUP BACKOFF: not retrying ${sha_short} after ${failure_count} failed deploy(s); next attempt after $(fmt_epoch "$next_at") (${remain}s left of a ${delay}s backoff) (triggered by catch-up check)"
 }
 
-# One-shot probe. A healthy box on the steady-state path never calls this.
-puma_healthy() {
-    if [ -n "${BIZBLASTS_HEALTH_CMD:-}" ]; then
-        if "$BIZBLASTS_HEALTH_CMD"; then
-            return 0
-        fi
-        return 1
+# SHA written by deploy.sh after a restart that passed its health probe.
+# Empty when that file is missing. An HTTP 200 from the current Puma is
+# not a substitute: the process can still be serving the previous release.
+deployed_sha() {
+    local file value
+    file=${BIZBLASTS_DEPLOYED_SHA_FILE:-${HOME}/.local/state/bizblasts/deployed-sha}
+    [ -f "$file" ] || return 0
+    value=$(tr -d '[:space:]' < "$file")
+    if [[ "$value" =~ ^[0-9a-fA-F]{7,40}$ ]]; then
+        printf '%s\n' "$value"
     fi
-    local i code
-    for i in 1 2 3; do
-        code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 \
-            -H 'Host: www.bizblasts.com' \
-            http://localhost:3000/ || echo 000)
-        case "$code" in
-            2*|3*) return 0 ;;
-        esac
-        if [ "$i" -lt 3 ]; then
-            sleep 2
-        fi
-    done
-    return 1
+    return 0
 }
 
 log_dirty() {
@@ -255,9 +246,11 @@ finish_deploy() {
         log "DEPLOY CATCHUP FAILED: deploy.sh exited ${rc} for ${head_short} -> ${target_short} (triggered by catch-up check); next attempt in $(backoff_delay "$failure_count")s"
         exit "$rc"
     fi
-    if ! puma_healthy; then
+    local restarted
+    restarted=$(deployed_sha)
+    if [ "$restarted" != "$TARGET" ]; then
         record_failure "$TARGET"
-        log "DEPLOY CATCHUP FAILED: deploy.sh exited 0 but Puma is not healthy at ${target_short} (triggered by catch-up check); next attempt in $(backoff_delay "$failure_count")s"
+        log "DEPLOY CATCHUP FAILED: deploy.sh exited 0 without recording a restart of ${target_short} (last restarted SHA: ${restarted:-none}). An HTTP 200 from the existing Puma is not a deploy (triggered by catch-up check); next attempt in $(backoff_delay "$failure_count")s"
         exit 1
     fi
     clear_state
@@ -330,15 +323,23 @@ TARGET_S=$(git rev-parse --short=12 origin/main)
 load_state
 
 if [ "$HEAD" = "$TARGET" ]; then
-    if [ "$failure_sha" != "$TARGET" ]; then
+    running=$(deployed_sha)
+    # The stamp is written only after systemctl restart and a passing
+    # health probe. Matching it is the signal that this commit is running.
+    if [ "$running" = "$TARGET" ]; then
         if [ -n "$failure_sha" ]; then
             clear_state
         fi
         exit 0
     fi
-    if puma_healthy; then
-        log "DEPLOY CATCHUP: Puma is healthy at ${TARGET_S}; clearing the previous failed deploy (triggered by catch-up check)"
-        clear_state
+    # No stamp yet (first install, or no deploy has finished under this
+    # script) and this commit has not failed: stay quiet. A stamp that
+    # names a different SHA means the worktree moved and Puma was not
+    # restarted onto it.
+    if [ "$failure_sha" != "$TARGET" ] && [ -z "$running" ]; then
+        if [ -n "$failure_sha" ]; then
+            clear_state
+        fi
         exit 0
     fi
     remain=$(backoff_remaining "$TARGET")
@@ -346,7 +347,11 @@ if [ "$HEAD" = "$TARGET" ]; then
         log_backoff "$TARGET_S" "$remain"
         exit 0
     fi
-    log "DEPLOY CATCHUP: retrying failed deploy of ${TARGET_S} after backoff (triggered by catch-up check)"
+    if [ "$failure_sha" = "$TARGET" ]; then
+        log "DEPLOY CATCHUP: retrying failed deploy of ${TARGET_S} after backoff (triggered by catch-up check)"
+    else
+        log "DEPLOY CATCHUP: checkout is ${TARGET_S} but the last restarted SHA is ${running}; invoking script/deploy.sh (triggered by catch-up check)"
+    fi
     log_dirty
     invoke_deploy force
 fi

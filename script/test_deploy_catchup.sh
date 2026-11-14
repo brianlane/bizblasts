@@ -56,7 +56,13 @@ setup_pair() {
 #!/bin/bash
 echo "force=\${BIZBLASTS_DEPLOY_FORCE:-} trigger=\${BIZBLASTS_DEPLOY_TRIGGER:-} expect=\${BIZBLASTS_DEPLOY_EXPECT_SHA:-}" >> "$WORK/deploy.log"
 git reset --hard origin/main >/dev/null
-exit "\$(cat "$WORK/exitcode")"
+code="\$(cat "$WORK/exitcode")"
+# A real deploy.sh writes deployed-sha only after restart and a passing probe.
+if [ "\$code" -eq 0 ] && [ "\${WRITE_STAMP:-1}" != "0" ]; then
+    mkdir -p "\$(dirname "$WORK/deployed-sha")"
+    git rev-parse HEAD > "$WORK/deployed-sha"
+fi
+exit "\$code"
 EOF
     chmod +x "$WORK/fake-deploy"
     cat > "$WORK/ci-green" << 'EOF'
@@ -69,6 +75,7 @@ EOF
     CI_CMD=""
     HEALTH_CMD="true"
     GRACE="600"
+    WRITE_STAMP=""
 }
 
 advance() {
@@ -84,7 +91,13 @@ run_catchup() {
         export BIZBLASTS_CATCHUP_STATE_FILE="$STATE"
         export BIZBLASTS_DEPLOY_SH="$WORK/fake-deploy"
         export BIZBLASTS_HEALTH_CMD="$HEALTH_CMD"
+        export BIZBLASTS_DEPLOYED_SHA_FILE="$WORK/deployed-sha"
         export BIZBLASTS_CI_APPEAR_GRACE_SECONDS="$GRACE"
+        if [ "${WRITE_STAMP:-}" = "0" ]; then
+            export WRITE_STAMP=0
+        else
+            unset WRITE_STAMP || true
+        fi
         if [ -n "$NOW" ]; then
             export BIZBLASTS_CATCHUP_NOW="$NOW"
         else
@@ -400,30 +413,77 @@ test_backoff_and_force_retry() {
     HEALTH_CMD=true
     NOW=$((5000000000 + 900 + 1800))
     run_catchup
-    [ "$RC" -eq 0 ] || fail "healthy after backoff should exit 0"
-    printf '%s\n' "$OUTPUT" | grep -q 'Puma is healthy' || fail "recovered Puma should clear the failure"
-    [ ! -f "$STATE" ] || fail "recovered Puma should clear state"
-    [ "$(wc -l < "$WORK/deploy.log" | tr -d ' ')" = "2" ] || fail "healthy retry must not deploy again"
-    ok "backoff, force retry, and healthy recovery"
+    [ "$RC" -eq 0 ] || fail "retry after backoff should succeed"
+    printf '%s\n' "$OUTPUT" | grep -q 'DEPLOY CATCHUP OK' || fail "successful retry should log OK"
+    [ ! -f "$STATE" ] || fail "successful retry should clear state"
+    [ "$(wc -l < "$WORK/deploy.log" | tr -d ' ')" = "3" ] || fail "backoff expiry should force one more deploy"
+    ok "backoff then a forced retry"
 }
 
-test_deploy_exit_zero_but_unhealthy_backs_off() {
+test_http_200_does_not_cancel_retry() {
+    setup_pair
+    advance second
+    local full
+    full=$(git -C "$SERVER" rev-parse HEAD)
+    printf '1\n' > "$WORK/exitcode"
+    NOW=8000000000
+    run_catchup
+    [ "$RC" -eq 1 ] || fail "setup deploy should fail"
+    # Disk is on the new SHA (fake reset) but nothing recorded a restart.
+    # A healthy HTTP response must not clear that failure.
+    printf '0\n' > "$WORK/exitcode"
+    WRITE_STAMP=0
+    HEALTH_CMD=true
+    NOW=$((8000000000 + 900))
+    run_catchup
+    [ "$RC" -eq 1 ] || fail "exit 0 without a restart stamp should still fail"
+    printf '%s\n' "$OUTPUT" | grep -q 'without recording a restart' || fail "missing restart-stamp failure"
+    local retry
+    retry=$(sed -n '2p' "$WORK/deploy.log")
+    [ "$retry" = "force=1 trigger=catchup expect=${full}" ] || fail "healthy Puma must not skip the force retry, got: $retry"
+    grep -q '^failure_count=2$' "$STATE" || fail "the unstamped exit 0 should keep the failure"
+    ok "HTTP 200 does not prove the new SHA is running"
+}
+
+test_restart_stamp_clears_failure() {
+    setup_pair
+    local full
+    full=$(git -C "$APP" rev-parse HEAD)
+    printf '%s\n' "$full" > "$WORK/deployed-sha"
+    NOW=8100000000
+    cat > "$STATE" << EOF
+failure_sha=${full}
+failure_count=1
+failure_at=${NOW}
+EOF
+    HEALTH_CMD=false
+    run_catchup
+    [ "$RC" -eq 0 ] || fail "a recorded restart should exit 0"
+    [ -z "$OUTPUT" ] || fail "a recorded restart should be quiet, got: $OUTPUT"
+    [ ! -f "$WORK/deploy.log" ] || fail "a recorded restart must not deploy again"
+    [ ! -f "$STATE" ] || fail "a recorded restart should clear the failure"
+    ok "deployed-sha match clears a failure without trusting HTTP"
+}
+
+test_exit_zero_without_stamp_backs_off() {
     setup_pair
     advance second
     printf '0\n' > "$WORK/exitcode"
-    HEALTH_CMD=false
+    WRITE_STAMP=0
+    HEALTH_CMD=true
     NOW=6000000000
     run_catchup
-    [ "$RC" -eq 1 ] || fail "unhealthy Puma after exit 0 should fail the catch-up"
-    printf '%s\n' "$OUTPUT" | grep -q 'exited 0 but Puma is not healthy' || fail "unhealthy reason missing"
-    grep -q '^failure_count=1$' "$STATE" || fail "unhealthy run should record a failure"
+    [ "$RC" -eq 1 ] || fail "exit 0 without a restart stamp should fail the catch-up"
+    printf '%s\n' "$OUTPUT" | grep -q 'without recording a restart' || fail "unstamped exit 0 reason missing"
+    grep -q '^failure_count=1$' "$STATE" || fail "unstamped exit 0 should record a failure"
 
     NOW=6000000100
+    HEALTH_CMD=true
     run_catchup
-    [ "$RC" -eq 0 ] || fail "unhealthy backoff should exit 0"
-    printf '%s\n' "$OUTPUT" | grep -q 'DEPLOY CATCHUP BACKOFF' || fail "unhealthy backoff not logged"
-    [ "$(wc -l < "$WORK/deploy.log" | tr -d ' ')" = "1" ] || fail "unhealthy backoff must not redeploy"
-    ok "exit 0 with an unhealthy Puma backs off"
+    [ "$RC" -eq 0 ] || fail "unstamped backoff should exit 0"
+    printf '%s\n' "$OUTPUT" | grep -q 'DEPLOY CATCHUP BACKOFF' || fail "unstamped backoff not logged"
+    [ "$(wc -l < "$WORK/deploy.log" | tr -d ' ')" = "1" ] || fail "unstamped backoff must not redeploy"
+    ok "exit 0 without a restart stamp backs off"
 }
 
 test_new_commit_clears_backoff() {
@@ -482,6 +542,7 @@ EOF
         HOME="$home" \
         BIZBLASTS_APP_DIR="$APP" \
         BIZBLASTS_DEPLOY_LOCK_FILE="$WORK/deploy.lock" \
+        BIZBLASTS_DEPLOYED_SHA_FILE="$WORK/deployed-sha" \
         BIZBLASTS_DEPLOY_EXPECT_SHA="$checked" \
         BIZBLASTS_DEPLOY_TRIGGER=catchup \
         bash "$ROOT/script/deploy.sh" 2>&1
@@ -491,6 +552,7 @@ EOF
     [ "$RC" -eq 75 ] || fail "moved tip should exit 75, got $RC"
     printf '%s\n' "$OUTPUT" | grep -q 'DEPLOY SKIP' || fail "deploy.sh did not log the skip"
     [ "$(git -C "$APP" rev-parse HEAD)" = "$checked" ] || fail "deploy.sh reset onto an unclassified commit"
+    [ ! -f "$WORK/deployed-sha" ] || fail "a skipped deploy must not record a restart"
 
     git -C "$APP" fetch origin main --quiet
     git -C "$APP" reset --hard origin/main >/dev/null
@@ -499,6 +561,7 @@ EOF
         HOME="$home" \
         BIZBLASTS_APP_DIR="$APP" \
         BIZBLASTS_DEPLOY_LOCK_FILE="$WORK/deploy.lock" \
+        BIZBLASTS_DEPLOYED_SHA_FILE="$WORK/deployed-sha" \
         BIZBLASTS_DEPLOY_EXPECT_SHA="$tip" \
         BIZBLASTS_DEPLOY_TRIGGER=catchup \
         bash "$ROOT/script/deploy.sh" 2>&1
@@ -507,6 +570,7 @@ EOF
     set -e
     [ "$RC" -eq 0 ] || fail "the CI-checked SHA should be allowed through, got $RC"
     printf '%s\n' "$OUTPUT" | grep -q 'already at' || fail "matching SHA should no-op when already checked out"
+    [ ! -f "$WORK/deployed-sha" ] || fail "an already-at no-op must not record a restart"
     ok "deploy.sh will not reset onto a tip it was not told to deploy"
 }
 
@@ -556,8 +620,10 @@ test_empty_ci_waits_then_deploys
 test_fetch_failure_skips
 test_refuses_diverged_history
 test_backoff_and_force_retry
-test_deploy_exit_zero_but_unhealthy_backs_off
 test_new_commit_clears_backoff
+test_http_200_does_not_cancel_retry
+test_restart_stamp_clears_failure
+test_exit_zero_without_stamp_backs_off
 test_tip_moved_is_not_a_failure
 test_deploy_sh_skips_unclassified_tip
 test_not_a_checkout

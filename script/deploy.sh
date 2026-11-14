@@ -209,4 +209,14 @@ if [ "$HEALTHY" != "1" ]; then
     exit 1
 fi
 
+# Record the SHA only after the restart's health probe. The catch-up uses
+# this, not "Puma returned 200", to decide the commit is really running.
+# A failure between reset --hard and systemctl restart leaves the previous
+# SHA here, so the next catch-up retries instead of treating the old
+# process as success.
+REV_FILE=${BIZBLASTS_DEPLOYED_SHA_FILE:-${HOME}/.local/state/bizblasts/deployed-sha}
+mkdir -p "$(dirname "$REV_FILE")"
+rev_tmp=$(mktemp "$(dirname "$REV_FILE")/deployed-sha.XXXXXX")
+git rev-parse HEAD > "$rev_tmp"
+mv "$rev_tmp" "$REV_FILE"
 log "DEPLOY OK $PREV_SHA -> $TARGET_SHA${TRIGGER_NOTE}"
