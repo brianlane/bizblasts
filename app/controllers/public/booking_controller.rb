@@ -515,6 +515,7 @@ module Public
       @booking.start_time = nil
       @booking.start_time = @service.event_starts_at if @service&.event? && @service.event_starts_at.present?
       @scheduled_event = true if @service&.event? && @service.event_starts_at.present?
+      assign_picker_variant unless @scheduled_event
       prepare_slot_picker unless @scheduled_event
       flash.now[:alert] = "That time isn't available. Please choose an open time."
       render :new, status: :unprocessable_content
@@ -572,12 +573,17 @@ module Public
     def assign_picker_variant
       return unless @service && @booking
 
-      if params[:service_variant_id].present?
-        @service_variant = @service.service_variants.active.find_by(id: params[:service_variant_id])
+      if selected_variant_id.present?
+        @service_variant = @service.service_variants.active.find_by(id: selected_variant_id)
       end
       active_variants = @service.service_variants.active.by_position
       @service_variant ||= active_variants.first if active_variants.one?
       @booking.service_variant = @service_variant if @service_variant
+    end
+
+    # GET uses ?service_variant_id=. A rejected POST only has booking[service_variant_id].
+    def selected_variant_id
+      params[:service_variant_id].presence || params.dig(:booking, :service_variant_id).presence
     end
 
     def variant_choice_pending?
@@ -664,7 +670,7 @@ module Public
     def picker_query(date)
       {
         service_id: @service.id,
-        service_variant_id: @service_variant&.id || params[:service_variant_id].presence,
+        service_variant_id: @service_variant&.id || selected_variant_id,
         picker_date: date.to_date.iso8601
       }.compact
     end
@@ -679,8 +685,9 @@ module Public
       # Try to get service_id from top-level params (GET new) or nested booking params (POST create error)
       service_id = params[:service_id] || params[:booking].try(:[], :service_id)
       @service = current_tenant.services.find_by(id: service_id)
-      if @service && params[:service_variant_id].present?
-        @service_variant = @service.service_variants.find_by(id: params[:service_variant_id])
+      variant_id = params[:service_variant_id].presence || params.dig(:booking, :service_variant_id).presence
+      if @service && variant_id.present?
+        @service_variant = @service.service_variants.active.find_by(id: variant_id)
       end
 
       # Ensure @available_products is always set, even if @service is nil

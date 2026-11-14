@@ -68,6 +68,31 @@ RSpec.describe Public::BookingController, type: :controller do
       expect(response.body).not_to include('9:00 AM')
     end
 
+    it 'keeps the chosen option and open times when a slot is rejected' do
+      short = create(:service_variant, service: service, name: 'Short', duration: 30, position: 1)
+      create(:service_variant, service: service, name: 'Long', duration: 90, position: 2)
+
+      post :create, params: {
+        booking: {
+          service_id: service.id,
+          service_variant_id: short.id,
+          staff_member_id: staff_member.id,
+          start_time: Time.find_zone('America/Phoenix').local(2026, 11, 14, 23, 45).iso8601,
+          tenant_customer_attributes: {
+            first_name: 'Ada',
+            last_name: 'Lovelace',
+            email: 'ada-variant@example.com',
+            phone: '555-123-4567'
+          }
+        }
+      }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include('Please choose an open time')
+      expect(response.body).to include('name="booking[slot_choice]"')
+      expect(response.body).not_to include('Choose an option above to see open times.')
+    end
+
     it 'waits for an option when several variants exist' do
       create(:service_variant, service: service, name: 'Short', duration: 30, position: 1)
       create(:service_variant, service: service, name: 'Long', duration: 90, position: 2)
