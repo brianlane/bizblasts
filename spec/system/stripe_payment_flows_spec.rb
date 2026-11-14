@@ -5,7 +5,7 @@ require 'rails_helper'
 RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
   include StripeWebhookHelpers
 
-  let!(:business) { create(:business, :with_default_tax_rate, :with_stripe_account, host_type: 'subdomain') }
+  let!(:business) { create(:business, :with_default_tax_rate, :with_stripe_account, host_type: 'subdomain', time_zone: 'America/Phoenix') }
   
   before do
     ActsAsTenant.current_tenant = business
@@ -56,13 +56,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         # Book service
         visit new_tenant_booking_path(service_id: service.id, staff_member_id: staff_member.id)
         
-        # Select date/time
-        tomorrow = Date.tomorrow
-        select tomorrow.year.to_s, from: 'booking_start_time_1i'
-        select tomorrow.month.to_s, from: 'booking_start_time_2i'
-        select tomorrow.day.to_s, from: 'booking_start_time_3i'
-        select '10', from: 'booking_start_time_4i'
-        select '00', from: 'booking_start_time_5i'
+        choose_first_open_booking_slot
         
         click_button 'Confirm Booking'
         
@@ -107,13 +101,7 @@ RSpec.describe 'Stripe Payment Flows', type: :system, js: true do
         fill_in 'Email', with: 'guest@example.com'
         fill_in 'Phone', with: '555-1234'
         
-        # Select date/time
-        tomorrow = Date.tomorrow
-        select tomorrow.year.to_s, from: 'booking_start_time_1i'
-        select tomorrow.month.to_s, from: 'booking_start_time_2i'
-        select tomorrow.day.to_s, from: 'booking_start_time_3i'
-        select '14', from: 'booking_start_time_4i'
-        select '00', from: 'booking_start_time_5i'
+        choose_first_open_booking_slot
 
         # Use a longer timeout for the button click as it may trigger slow operations
         using_wait_time(30) do

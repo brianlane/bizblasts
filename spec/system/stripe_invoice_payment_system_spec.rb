@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Invoice UI navigation after booking and Stripe payment', type: :system do
-  let!(:business) { create(:business, :with_default_tax_rate, :with_stripe_account, host_type: 'subdomain') }
+  let!(:business) { create(:business, :with_default_tax_rate, :with_stripe_account, host_type: 'subdomain', time_zone: 'America/Phoenix') }
   let!(:service) { create(:service, business: business, name: 'Test Service', price: 100.00, duration: 60) }
   let!(:staff_member) { create(:staff_member, business: business, name: 'Test Staff') }
   let!(:tenant_customer) { create(:tenant_customer, business: business, email: 'guest@example.com', first_name: 'Guest', last_name: 'Customer') }
@@ -33,13 +33,7 @@ RSpec.describe 'Invoice UI navigation after booking and Stripe payment', type: :
     fill_in 'Email', with: tenant_customer.email
     fill_in 'Phone', with: '555-1234'
     
-    # Select date/time for booking
-    tomorrow = Date.tomorrow
-    select tomorrow.year.to_s, from: 'booking_start_time_1i'
-    select tomorrow.month.to_s, from: 'booking_start_time_2i'
-    select tomorrow.day.to_s, from: 'booking_start_time_3i'
-    select '10', from: 'booking_start_time_4i'
-    select '00', from: 'booking_start_time_5i'
+    choose_first_open_booking_slot
     
     fill_in 'Notes', with: 'Test booking for payment flow'
     click_button 'Confirm Booking'

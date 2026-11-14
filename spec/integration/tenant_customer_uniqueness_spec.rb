@@ -1,12 +1,22 @@
 require 'rails_helper'
 
 RSpec.describe "TenantCustomer Email Uniqueness", type: :request do
-  let(:business1) { create(:business, subdomain: 'biz1', hostname: 'biz1') }
-  let(:business2) { create(:business, subdomain: 'biz2', hostname: 'biz2') }
-  let(:service1) { create(:service, business: business1, price: 100.00) }
-  let(:service2) { create(:service, business: business2, price: 150.00) }
+  let(:business1) { create(:business, subdomain: 'biz1', hostname: 'biz1', time_zone: 'America/Phoenix') }
+  let(:business2) { create(:business, subdomain: 'biz2', hostname: 'biz2', time_zone: 'America/Phoenix') }
+  let(:service1) { create(:service, business: business1, price: 100.00, duration: 60) }
+  let(:service2) { create(:service, business: business2, price: 150.00, duration: 60) }
   let(:staff1) { create(:staff_member, business: business1) }
   let(:staff2) { create(:staff_member, business: business2) }
+
+  def open_slot(weekdays_ahead)
+    zone = Time.find_zone('America/Phoenix')
+    date = Date.current
+    weekdays_ahead.times do
+      date += 1
+      date += 1 while date.saturday? || date.sunday?
+    end
+    zone.local(date.year, date.month, date.day, 10, 0).iso8601
+  end
   
   let(:customer_params) do
     {
@@ -20,6 +30,9 @@ RSpec.describe "TenantCustomer Email Uniqueness", type: :request do
   describe "booking creation with duplicate emails" do
     context "same email across different businesses" do
       it "allows creating customers with same email in different businesses" do
+        create(:services_staff_member, service: service1, staff_member: staff1)
+        create(:services_staff_member, service: service2, staff_member: staff2)
+
         # Create customer in business1
         ActsAsTenant.current_tenant = business1
         host! host_for(business1)
@@ -28,7 +41,7 @@ RSpec.describe "TenantCustomer Email Uniqueness", type: :request do
           booking: {
             service_id: service1.id,
             staff_member_id: staff1.id,
-            start_time: 1.day.from_now,
+            start_time: open_slot(1),
             notes: 'Test booking 1',
             tenant_customer_attributes: customer_params
           }
@@ -47,7 +60,7 @@ RSpec.describe "TenantCustomer Email Uniqueness", type: :request do
           booking: {
             service_id: service2.id,
             staff_member_id: staff2.id,
-            start_time: 1.day.from_now,
+            start_time: open_slot(1),
             notes: 'Test booking 2',
             tenant_customer_attributes: customer_params
           }
@@ -67,6 +80,7 @@ RSpec.describe "TenantCustomer Email Uniqueness", type: :request do
     
     context "same email within same business" do
       it "finds existing customer instead of creating duplicate" do
+        create(:services_staff_member, service: service1, staff_member: staff1)
         ActsAsTenant.current_tenant = business1
         host! host_for(business1)
         
@@ -75,7 +89,7 @@ RSpec.describe "TenantCustomer Email Uniqueness", type: :request do
           booking: {
             service_id: service1.id,
             staff_member_id: staff1.id,
-            start_time: 1.day.from_now,
+            start_time: open_slot(1),
             notes: 'First booking',
             tenant_customer_attributes: customer_params
           }
@@ -95,7 +109,7 @@ RSpec.describe "TenantCustomer Email Uniqueness", type: :request do
           booking: {
             service_id: service1.id,
             staff_member_id: staff1.id,
-            start_time: 2.days.from_now,
+            start_time: open_slot(2),
             notes: 'Second booking',
             tenant_customer_attributes: updated_params
           }
