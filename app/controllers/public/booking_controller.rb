@@ -61,7 +61,8 @@ module Public
         @booking.start_time = dt if dt
       end
 
-      prepare_slot_picker if @booking.start_time.blank?
+      lock_event_start_time
+      prepare_slot_picker if @booking.start_time.blank? && !@scheduled_event
     end
 
     # POST /booking for guests, clients, and staff/managers
@@ -508,13 +509,23 @@ module Public
     end
 
     def enforce_available_slot
-      return if chosen_slot_available?(@booking)
+      return if acceptable_start_time?
 
       @booking.errors.add(:start_time, "isn't available. Please choose an open time.")
       @booking.start_time = nil
-      prepare_slot_picker
+      @booking.start_time = @service.event_starts_at if @service&.event? && @service.event_starts_at.present?
+      @scheduled_event = true if @service&.event? && @service.event_starts_at.present?
+      prepare_slot_picker unless @scheduled_event
       flash.now[:alert] = "That time isn't available. Please choose an open time."
       render :new, status: :unprocessable_content
+    end
+
+    def acceptable_start_time?
+      if @service&.event?
+        event_time_allowed?
+      else
+        chosen_slot_available?(@booking)
+      end
     end
 
     def chosen_slot_available?(booking)
@@ -538,6 +549,24 @@ module Public
       same_minute = slot_time.change(sec: 0) == local.change(sec: 0)
       slot_staff = slot[:staff_member_id] || slot['staff_member_id']
       same_minute && (staff_id.blank? || slot_staff.to_i == staff_id.to_i)
+    end
+
+    def lock_event_start_time
+      return unless @service&.event? && @service.event_starts_at.present?
+
+      @scheduled_event = true
+      @booking.start_time = @service.event_starts_at
+    end
+
+    # Events have one legal start. A staff-availability slot at another time
+    # would be offered here and then rejected by BookingValidations.
+    def event_time_allowed?
+      return false unless @service&.event? && @service.event_starts_at.present?
+      return false if @booking.start_time.blank?
+
+      event_start = @service.event_starts_at.in_time_zone(business_zone).change(sec: 0)
+      booked = @booking.start_time.in_time_zone(business_zone).change(sec: 0)
+      event_start == booked
     end
 
     def assign_picker_variant

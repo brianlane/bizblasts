@@ -77,6 +77,17 @@ RSpec.describe Middleware::LocalProxyClientIp do
     expect(remote_ip).to eq('127.0.0.1')
   end
 
+  it 'ignores loopback forwarding headers until TRUST_LOOPBACK_CLIENT_IP is enabled' do
+    previous = ENV['TRUST_LOOPBACK_CLIENT_IP']
+    ENV['TRUST_LOOPBACK_CLIENT_IP'] = 'false'
+    ip, remote_ip, = call_for(env_for('127.0.0.1', 'HTTP_CF_CONNECTING_IP' => '203.0.113.10'))
+
+    expect(ip).to eq('127.0.0.1')
+    expect(remote_ip).to eq('127.0.0.1')
+  ensure
+    ENV['TRUST_LOOPBACK_CLIENT_IP'] = previous
+  end
+
   it 'does not trust forwarding headers from a direct, non-loopback peer' do
     ip, remote_ip, = call_for(env_for('198.51.100.20', 'HTTP_CF_CONNECTING_IP' => '203.0.113.10',
                                                          'HTTP_X_FORWARDED_FOR' => '203.0.113.10'))

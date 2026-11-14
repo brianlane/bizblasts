@@ -17,10 +17,14 @@ module Middleware
   # 127.0.0.1). The custom-domain TLS callback identifies Caddy by it.
   #
   # Any other peer is a direct hit. Spoofable forwarding headers are
-  # removed so a client cannot pick their own throttle key. Trusting the
-  # headers from loopback is safe only once Caddy overwrites
-  # CF-Connecting-IP from its trusted-proxy client IP (see the deploy
-  # notes). A process on this box can still connect to Puma directly.
+  # removed so a client cannot pick their own throttle key.
+  #
+  # Loopback trust stays off until TRUST_LOOPBACK_CLIENT_IP=true. Caddy
+  # must overwrite CF-Connecting-IP from its trusted client IP before
+  # that flag is set. deploy.sh restarts Puma and does not edit Caddy,
+  # so enabling the flag in the same restart would let a direct Caddy
+  # client supply the throttle key. Development and test default the
+  # flag on. A process on this box can still connect to Puma directly.
   class LocalProxyClientIp
     SPOOFABLE_HEADERS = %w[
       HTTP_X_FORWARDED_FOR
@@ -35,15 +39,22 @@ module Middleware
       @app = app
     end
 
+    def self.trust_loopback_client_ip?
+      default = Rails.env.local? ? 'true' : 'false'
+      ActiveModel::Type::Boolean.new.cast(ENV.fetch('TRUST_LOOPBACK_CLIENT_IP', default))
+    end
+
     def call(env)
       normalize_mapped_loopback!(env)
 
-      if loopback_peer?(env['REMOTE_ADDR'])
+      if self.class.trust_loopback_client_ip? && loopback_peer?(env['REMOTE_ADDR'])
         # Client-Ip plus X-Forwarded-For makes ActionDispatch::RemoteIp raise.
         env.delete('HTTP_CLIENT_IP')
         ip = resolve_client_ip(env)
         apply_client_ip!(env, ip) if ip
       else
+        # Flag off, or a direct hit. Drop the headers so Rack's default
+        # loopback trust cannot honor a caller-supplied X-Forwarded-For.
         strip_forwarding_headers!(env)
       end
 

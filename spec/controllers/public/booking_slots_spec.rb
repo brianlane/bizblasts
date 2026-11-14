@@ -54,6 +54,20 @@ RSpec.describe Public::BookingController, type: :controller do
       expect(offered).to eq(expected_starts(zone, step: 45, length: 60))
     end
 
+    it 'shows an event only at its scheduled start, not on the staff grid' do
+      event_start = Time.find_zone('America/Phoenix').local(2026, 11, 21, 19, 30)
+      event = create(:service, :event, business: business, name: 'Evening Circle', duration: 60,
+                                       event_starts_at: event_start)
+      create(:services_staff_member, service: event, staff_member: staff_member)
+
+      get :new, params: { service_id: event.id }
+
+      expect(response.body).to include('Saturday, November 21, 2026 at 7:30 PM')
+      expect(response.body).to include('one scheduled start time')
+      expect(response.body).not_to include('name="booking[slot_choice]"')
+      expect(response.body).not_to include('9:00 AM')
+    end
+
     it 'waits for an option when several variants exist' do
       create(:service_variant, service: service, name: 'Short', duration: 30, position: 1)
       create(:service_variant, service: service, name: 'Long', duration: 90, position: 2)
