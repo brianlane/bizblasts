@@ -63,14 +63,18 @@
 #       origin/main, so a failed deploy can be retried after the catch-up
 #       backoff. BIZBLASTS_DEPLOY_TRIGGER=catchup is appended to the
 #       DEPLOY OK / DEPLOY FAILED lines. git fetch is bounded by `timeout`
-#       so a dead network cannot hold the flock open.
+#       so a dead network cannot hold the flock open. When
+#       BIZBLASTS_DEPLOY_EXPECT_SHA is set (the catch-up passes the SHA it
+#       already CI-checked), a fetch that shows a different origin/main
+#       exits 75 without resetting, so a commit that landed mid-check is
+#       not deployed unclassified. The webhook does not set that variable.
 # =============================================================================
 
 set -euo pipefail
 export GIT_TERMINAL_PROMPT=0
 
-APP_DIR=/home/brianlane/apps/bizblasts
-LOCK_FILE=/var/lock/bizblasts-deploy.lock
+APP_DIR=${BIZBLASTS_APP_DIR:-/home/brianlane/apps/bizblasts}
+LOCK_FILE=${BIZBLASTS_DEPLOY_LOCK_FILE:-/var/lock/bizblasts-deploy.lock}
 ts() { date -u +%FT%TZ; }
 log() { echo "[deploy $(ts)] $*"; }
 
@@ -121,6 +125,15 @@ if ! timeout 60 git fetch origin main --prune; then
 fi
 PREV_SHA=$(git rev-parse --short HEAD)
 TARGET_SHA=$(git rev-parse --short origin/main)
+TARGET_FULL=$(git rev-parse origin/main)
+# Catch-up classified a specific SHA. Re-check it under this flock, after
+# the fetch above. If main moved, do not reset onto the new tip; the next
+# catch-up tick classifies that commit. Exit 75 so the caller does not
+# treat this as a failed deploy. Webhook invocations leave the variable unset.
+if [ -n "${BIZBLASTS_DEPLOY_EXPECT_SHA:-}" ] && [ "$TARGET_FULL" != "$BIZBLASTS_DEPLOY_EXPECT_SHA" ]; then
+    log "DEPLOY SKIP: origin/main ${TARGET_FULL} does not match the CI-checked SHA ${BIZBLASTS_DEPLOY_EXPECT_SHA}; not deploying an unclassified commit${TRIGGER_NOTE}"
+    exit 75
+fi
 if [ "$PREV_SHA" = "$TARGET_SHA" ] && [ "${BIZBLASTS_DEPLOY_FORCE:-}" != "1" ]; then
     log "already at $TARGET_SHA; nothing to deploy"
     exit 0

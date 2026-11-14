@@ -85,6 +85,7 @@ What each line means:
 | `DEPLOY CATCHUP HOLD: ... CI unknown` | The status API could not be read. Will not deploy this round. |
 | `DEPLOY CATCHUP BACKOFF` | The last deploy of this commit failed. Waiting before another restart. |
 | `DEPLOY CATCHUP REFUSING` | The checkout has commits that are not in `origin/main`. Nothing was reset. |
+| `origin/main moved after CI was checked` | Main advanced after the check. Nothing was reset and this is not a failed deploy. The next tick classifies the new commit. |
 | `DEPLOY CATCHUP OK` | `script/deploy.sh` finished and Puma answered on `localhost:3000`. |
 
 ## Uninstall
@@ -104,7 +105,7 @@ usual way (`script/deploy.sh`, or the webhook on the next push).
 
 **CI.** Before deploying a commit the webhook missed, the catch-up reads
 `GET /repos/brianlane/bizblasts/commits/<sha>/check-runs` (public, no token).
-It keeps the latest run of each job name. `auto-merge`, `label-dependabot`,
+It keeps the latest run of each job name. The catch-up then passes that SHA to `script/deploy.sh` as `BIZBLASTS_DEPLOY_EXPECT_SHA`. `deploy.sh` fetches again while it holds the deploy lock. If `origin/main` is a different commit, it exits 75 without resetting, and the catch-up skips the round instead of backing off. The webhook does not set the variable, so a push deploy still takes the latest tip. `auto-merge`, `label-dependabot`,
 and `deploy` are ignored. `success`, `neutral`, and `skipped` are green.
 `failure`, `cancelled`, `timed_out`, `action_required`, `stale`, and
 `startup_failure` block the deploy. Anything still queued or in progress

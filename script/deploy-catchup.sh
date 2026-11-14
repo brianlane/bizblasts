@@ -244,6 +244,12 @@ finish_deploy() {
     local rc="$1"
     local head_short="$2"
     local target_short="$3"
+    # deploy.sh exits 75 when origin/main moved after we classified it.
+    # That is not a broken deploy: do not back off, and do not reset.
+    if [ "$rc" -eq 75 ]; then
+        log "DEPLOY CATCHUP: origin/main moved after CI was checked for ${target_short}; not deploying this round (triggered by catch-up check)"
+        exit 0
+    fi
     if [ "$rc" -ne 0 ]; then
         record_failure "$TARGET"
         log "DEPLOY CATCHUP FAILED: deploy.sh exited ${rc} for ${head_short} -> ${target_short} (triggered by catch-up check); next attempt in $(backoff_delay "$failure_count")s"
@@ -268,6 +274,9 @@ finish_deploy() {
 invoke_deploy() {
     local force_flag="${1:-}"
     export BIZBLASTS_DEPLOY_TRIGGER=catchup
+    # Pin deploy.sh to the SHA whose checks we already classified. It
+    # re-fetches under the deploy lock and refuses a newer tip (exit 75).
+    export BIZBLASTS_DEPLOY_EXPECT_SHA="$TARGET"
     if [ "$force_flag" = "force" ]; then
         export BIZBLASTS_DEPLOY_FORCE=1
     else

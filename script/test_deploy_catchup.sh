@@ -54,7 +54,7 @@ setup_pair() {
     printf '0\n' > "$WORK/exitcode"
     cat > "$WORK/fake-deploy" << EOF
 #!/bin/bash
-echo "force=\${BIZBLASTS_DEPLOY_FORCE:-} trigger=\${BIZBLASTS_DEPLOY_TRIGGER:-}" >> "$WORK/deploy.log"
+echo "force=\${BIZBLASTS_DEPLOY_FORCE:-} trigger=\${BIZBLASTS_DEPLOY_TRIGGER:-} expect=\${BIZBLASTS_DEPLOY_EXPECT_SHA:-}" >> "$WORK/deploy.log"
 git reset --hard origin/main >/dev/null
 exit "\$(cat "$WORK/exitcode")"
 EOF
@@ -244,10 +244,11 @@ test_quiet_when_current_even_if_dirty() {
 
 test_deploys_when_ahead_and_green() {
     setup_pair
-    local old new
+    local old new full
     old=$(git -C "$APP" rev-parse --short=12 HEAD)
     advance second
     new=$(git -C "$SERVER" rev-parse --short=12 HEAD)
+    full=$(git -C "$SERVER" rev-parse HEAD)
     run_catchup
     [ "$RC" -eq 0 ] || fail "green catch-up should exit 0"
     printf '%s\n' "$OUTPUT" | grep -q "origin/main ${new} is ahead of deployed ${old}" || fail "missing ahead line"
@@ -255,14 +256,14 @@ test_deploys_when_ahead_and_green() {
     printf '%s\n' "$OUTPUT" | grep -q "triggered by catch-up check" || fail "trigger phrase missing"
     local calls
     calls=$(deploy_lines)
-    [ "$calls" = "force= trigger=catchup" ] || fail "expected one unforced catch-up deploy, got: $calls"
+    [ "$calls" = "force= trigger=catchup expect=${full}" ] || fail "expected one unforced catch-up deploy of the checked SHA, got: $calls"
     [ ! -f "$STATE" ] || fail "success should clear state"
     # second tick is the steady state
     OUTPUT=""
     run_catchup
     [ "$RC" -eq 0 ] || fail "second tick should exit 0"
     [ -z "$OUTPUT" ] || fail "second tick should be silent, got: $OUTPUT"
-    [ "$(deploy_lines)" = "force= trigger=catchup" ] || fail "second tick must not deploy again"
+    [ "$(deploy_lines)" = "force= trigger=catchup expect=${full}" ] || fail "second tick must not deploy again"
     ok "deploys when ahead and CI is green, then goes quiet"
 }
 
@@ -362,6 +363,8 @@ test_refuses_diverged_history() {
 test_backoff_and_force_retry() {
     setup_pair
     advance second
+    local full
+    full=$(git -C "$SERVER" rev-parse HEAD)
     printf '1\n' > "$WORK/exitcode"
     HEALTH_CMD=false
     NOW=5000000000
@@ -369,7 +372,7 @@ test_backoff_and_force_retry() {
     [ "$RC" -eq 1 ] || fail "failing deploy should exit 1"
     printf '%s\n' "$OUTPUT" | grep -q 'DEPLOY CATCHUP FAILED' || fail "failure was not logged"
     printf '%s\n' "$OUTPUT" | grep -q 'next attempt in 900s' || fail "first backoff should be 900s"
-    [ "$(deploy_lines)" = "force= trigger=catchup" ] || fail "first attempt should not force"
+    [ "$(deploy_lines)" = "force= trigger=catchup expect=${full}" ] || fail "first attempt should not force"
     grep -q '^failure_count=1$' "$STATE" || fail "state missing count 1"
 
     NOW=5000000100
@@ -386,7 +389,7 @@ test_backoff_and_force_retry() {
     grep -q '^failure_count=2$' "$STATE" || fail "state missing count 2"
     local second
     second=$(sed -n '2p' "$WORK/deploy.log")
-    [ "$second" = "force=1 trigger=catchup" ] || fail "retry should set FORCE=1, got: $second"
+    [ "$second" = "force=1 trigger=catchup expect=${full}" ] || fail "retry should set FORCE=1, got: $second"
 
     NOW=$((5000000000 + 900 + 100))
     run_catchup
@@ -443,6 +446,70 @@ test_new_commit_clears_backoff() {
     ok "a new origin/main commit is not stuck behind the previous failure"
 }
 
+test_tip_moved_is_not_a_failure() {
+    setup_pair
+    advance second
+    local full
+    full=$(git -C "$SERVER" rev-parse HEAD)
+    printf '75\n' > "$WORK/exitcode"
+    run_catchup
+    [ "$RC" -eq 0 ] || fail "exit 75 should not fail the catch-up"
+    printf '%s\n' "$OUTPUT" | grep -q 'origin/main moved after CI was checked' || fail "tip move was not logged"
+    [ ! -f "$STATE" ] || fail "a moved tip must not start backoff"
+    grep -q "expect=${full}" "$WORK/deploy.log" || fail "checked SHA was not passed to deploy.sh"
+    ok "a moved tip is skipped without backoff"
+}
+
+test_deploy_sh_skips_unclassified_tip() {
+    setup_pair
+    local checked tip home
+    checked=$(git -C "$APP" rev-parse HEAD)
+    advance second
+    tip=$(git -C "$SERVER" rev-parse HEAD)
+    home="$WORK/home"
+    mkdir -p "$home/.rbenv/bin"
+    cat > "$home/.rbenv/bin/rbenv" << 'EOF'
+#!/bin/bash
+if [ "$1" = "init" ]; then
+    printf '%s\n' true
+fi
+exit 0
+EOF
+    chmod +x "$home/.rbenv/bin/rbenv"
+
+    set +e
+    OUTPUT=$(
+        HOME="$home" \
+        BIZBLASTS_APP_DIR="$APP" \
+        BIZBLASTS_DEPLOY_LOCK_FILE="$WORK/deploy.lock" \
+        BIZBLASTS_DEPLOY_EXPECT_SHA="$checked" \
+        BIZBLASTS_DEPLOY_TRIGGER=catchup \
+        bash "$ROOT/script/deploy.sh" 2>&1
+    )
+    RC=$?
+    set -e
+    [ "$RC" -eq 75 ] || fail "moved tip should exit 75, got $RC"
+    printf '%s\n' "$OUTPUT" | grep -q 'DEPLOY SKIP' || fail "deploy.sh did not log the skip"
+    [ "$(git -C "$APP" rev-parse HEAD)" = "$checked" ] || fail "deploy.sh reset onto an unclassified commit"
+
+    git -C "$APP" fetch origin main --quiet
+    git -C "$APP" reset --hard origin/main >/dev/null
+    set +e
+    OUTPUT=$(
+        HOME="$home" \
+        BIZBLASTS_APP_DIR="$APP" \
+        BIZBLASTS_DEPLOY_LOCK_FILE="$WORK/deploy.lock" \
+        BIZBLASTS_DEPLOY_EXPECT_SHA="$tip" \
+        BIZBLASTS_DEPLOY_TRIGGER=catchup \
+        bash "$ROOT/script/deploy.sh" 2>&1
+    )
+    RC=$?
+    set -e
+    [ "$RC" -eq 0 ] || fail "the CI-checked SHA should be allowed through, got $RC"
+    printf '%s\n' "$OUTPUT" | grep -q 'already at' || fail "matching SHA should no-op when already checked out"
+    ok "deploy.sh will not reset onto a tip it was not told to deploy"
+}
+
 test_not_a_checkout() {
     setup_pair
     APP="$WORK/not-a-repo"
@@ -476,6 +543,7 @@ test_repo_files() {
     grep -q 'BIZBLASTS_DEPLOY_FORCE' "$ROOT/script/deploy.sh" || fail "deploy.sh missing force retry"
     grep -q 'working tree dirty' "$ROOT/script/deploy.sh" || fail "deploy.sh does not log a dirty tree"
     grep -q 'triggered by catch-up check' "$ROOT/script/deploy.sh" || fail "deploy.sh does not mark catch-up deploys"
+    grep -q 'exit 75' "$ROOT/script/deploy.sh" || fail "deploy.sh must refuse an unclassified tip with exit 75"
     ok "unit files, install commands, and deploy.sh policy"
 }
 
@@ -490,6 +558,8 @@ test_refuses_diverged_history
 test_backoff_and_force_retry
 test_deploy_exit_zero_but_unhealthy_backs_off
 test_new_commit_clears_backoff
+test_tip_moved_is_not_a_failure
+test_deploy_sh_skips_unclassified_tip
 test_not_a_checkout
 test_repo_files
 
