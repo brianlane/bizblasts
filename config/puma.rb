@@ -29,7 +29,13 @@ threads threads_count, threads_count
 
 # Specifies the `port` that Puma will listen on to receive requests; default is 3000.
 # Only use one port binding method to avoid conflicts
-port ENV.fetch("PORT", 3000)
+port_number = ENV.fetch("PORT", 3000)
+if ENV["RAILS_ENV"] == "production" && ENV["PUMA_BIND_ALL"] != "true"
+  # Production sits behind Caddy on this host; keep Puma off the LAN.
+  bind "tcp://127.0.0.1:#{port_number}"
+else
+  port port_number
+end
 
 # Allow puma to be restarted by `bin/rails restart` command.
 plugin :tmp_restart
