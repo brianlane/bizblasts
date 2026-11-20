@@ -1,6 +1,9 @@
 {
   "name": "app",
   "private": "true",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "scripts": {
     "build:css:application": "sass ./app/assets/stylesheets/application.sass.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules",
     "build:css:active_admin": "./bin/sass-build-activeadmin.sh",
