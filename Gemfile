@@ -164,7 +164,7 @@ gem 'microsoft_graph', '~> 0.22'
 gem 'json', '~> 2.8.2'
 gem 'oauth2', '~> 2.1'
 gem 'icalendar', '~> 2.13'
-gem 'httparty', '~> 0.24'
+gem 'httparty', '~> 0.25'
 # gem 'calendav', '~> 0.3' # Temporarily disabled due to architecture compatibility issues
 gem 'prawn', '~> 2.4'
 gem 'prawn-table', '~> 0.2'
